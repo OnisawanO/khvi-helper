@@ -3,6 +3,20 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { useState } from "react";
+import {
+  Bars3Icon,
+  CheckBadgeIcon,
+  CheckCircleIcon,
+  ChevronRightIcon,
+  ChatBubbleLeftRightIcon,
+  ClipboardDocumentListIcon,
+  ExclamationTriangleIcon,
+  MagnifyingGlassIcon,
+  MapPinIcon,
+  ShieldCheckIcon,
+  UserGroupIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
 
 const languageChips = ["All languages", "English", "Thai", "中文", "မြန်မာ", "Tiếng Việt", "한국어", "日本語"];
 
@@ -10,6 +24,12 @@ const interpreterRows = [
   ["N", "Natcha P.", "English, Thai", "Medical · English", "5 min", "bg-[#e7f5f2]"],
   ["S", "Somchai K.", "中文, Thai", "Legal · Government", "8 min", "bg-[#f9eadf]"],
   ["P", "Pimchan T.", "日本語, Thai", "Education · Daily life", "9 min", "bg-[#e6edf4]"],
+] as const;
+
+const howItWorksSteps = [
+  ["01", "Tell us what you need", "Choose a language, category, and location for support.", ClipboardDocumentListIcon],
+  ["02", "Meet a nearby interpreter", "See verified interpreters who match your language needs.", UserGroupIcon],
+  ["03", "Communicate with confidence", "Precise location and contact details unlock after a claim.", ChatBubbleLeftRightIcon],
 ] as const;
 
 function BrandMark({ light = false }: { light?: boolean }) {
@@ -41,7 +61,7 @@ function ScenePin({ className = "", sos = false }: { className?: string; sos?: b
   return (
     <div className={`absolute flex flex-col items-center ${className}`}>
       <div className={`relative flex h-12 w-12 items-center justify-center rounded-full border-4 border-white shadow-[0_8px_16px_rgba(16,49,61,0.2)] ${sos ? "bg-[#ef5b3e]" : "bg-[#0d8587]"}`}>
-        {sos ? <span className="text-[10px] font-extrabold text-white">SOS</span> : <span className="text-sm text-white">●</span>}
+        {sos ? <ExclamationTriangleIcon aria-hidden="true" className="h-5 w-5 text-white" /> : <MapPinIcon aria-hidden="true" className="h-5 w-5 text-white" />}
         <span className={`absolute -bottom-2 h-4 w-4 rotate-45 rounded-[3px] ${sos ? "bg-[#ef5b3e]" : "bg-[#0d8587]"}`} />
       </div>
     </div>
@@ -83,7 +103,7 @@ function NeighborhoodScene() {
           <span className="h-3 w-3 rounded-full bg-[#1aa875] shadow-[0_0_0_5px_rgba(26,168,117,0.12)]" />
           <div><p className="text-xs font-extrabold text-[#1d3b46]">Interpreters ready to help</p><p className="text-[11px] text-[#708087]">ล่ามที่พร้อมช่วยอยู่ใกล้คุณ</p></div>
         </div>
-        <span className="rounded-full bg-[#e9f4ed] px-3 py-1 text-xs font-extrabold text-[#188157]">Response avg. 02:18</span>
+        <span className="flex items-center gap-1.5 rounded-full bg-[#e9f4ed] px-3 py-1 text-xs font-extrabold text-[#188157]"><CheckCircleIcon aria-hidden="true" className="h-4 w-4" /> Response avg. 02:18</span>
       </div>
     </div>
   );
@@ -105,7 +125,7 @@ function InterpreterRow({ row }: { row: (typeof interpreterRows)[number] }) {
     <div className="flex items-center gap-3 border-b border-[#eee9e0] py-3 last:border-b-0">
       <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-extrabold text-[#173646] ${avatarClass}`}>{initial}</span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-extrabold text-[#203847]">{name} <span className="text-[#15966d]">●</span></p>
+        <p className="flex items-center gap-1 truncate text-sm font-extrabold text-[#203847]">{name} <CheckBadgeIcon aria-label="Verified interpreter" className="h-4 w-4 shrink-0 text-[#15966d]" /></p>
         <p className="truncate text-xs text-[#66767c]">{languages}</p>
       </div>
       <div className="hidden text-right sm:block"><p className="text-xs font-bold text-[#354f5a]">{specialty}</p><p className="mt-1 text-[11px] text-[#15966d]">Available now</p></div>
@@ -145,7 +165,7 @@ export default function Home() {
               aria-controls="mobile-navigation"
               onClick={() => setMenuOpen((open) => !open)}
             >
-              <span aria-hidden="true">{menuOpen ? "×" : "☰"}</span>
+              {menuOpen ? <XMarkIcon aria-hidden="true" className="h-5 w-5" /> : <Bars3Icon aria-hidden="true" className="h-5 w-5" />}
             </button>
           </div>
         </div>
@@ -175,13 +195,13 @@ export default function Home() {
             <span className="mt-1 block text-sm text-[#7b878b]">เชื่อมต่อกับล่ามที่ไว้ใจได้เมื่อคุณต้องการความช่วยเหลือ</span>
           </p>
           <div className="mt-8 flex max-w-[470px] flex-col gap-3 sm:flex-row">
-            <a className="flex h-14 flex-1 items-center justify-center gap-2 rounded-lg bg-[#ee5b3d] px-5 text-sm font-extrabold text-white shadow-[0_10px_20px_rgba(238,91,61,0.2)] transition-colors hover:bg-[#d94d31]" href="/request-help"><span aria-hidden="true" className="text-lg">⌁</span> Request urgent help</a>
-            <a className="flex h-14 flex-1 items-center justify-center gap-2 rounded-lg border-2 border-[#123b4f] bg-transparent px-5 text-sm font-extrabold text-[#123b4f] transition-colors hover:bg-[#edf3f1]" href="#find-interpreter"><span aria-hidden="true" className="text-lg">♙</span> Find an interpreter</a>
+            <a className="flex h-14 flex-1 items-center justify-center gap-2 rounded-lg bg-[#ee5b3d] px-5 text-sm font-extrabold text-white shadow-[0_10px_20px_rgba(238,91,61,0.2)] transition-colors hover:bg-[#d94d31]" href="/request-help"><ExclamationTriangleIcon aria-hidden="true" className="h-5 w-5" /> Request urgent help</a>
+            <a className="flex h-14 flex-1 items-center justify-center gap-2 rounded-lg border-2 border-[#123b4f] bg-transparent px-5 text-sm font-extrabold text-[#123b4f] transition-colors hover:bg-[#edf3f1]" href="#find-interpreter"><MagnifyingGlassIcon aria-hidden="true" className="h-5 w-5" /> Find an interpreter</a>
           </div>
           <div className="mt-9 flex flex-wrap gap-x-5 gap-y-2 text-xs font-bold text-[#748086]">
-            <span className="flex items-center gap-2"><span className="text-[#0d8587]">✓</span> Verified profiles</span>
-            <span className="flex items-center gap-2"><span className="text-[#0d8587]">✓</span> Privacy protected</span>
-            <span className="flex items-center gap-2"><span className="text-[#0d8587]">✓</span> 38 languages</span>
+            <span className="flex items-center gap-2"><CheckCircleIcon aria-hidden="true" className="h-4 w-4 text-[#0d8587]" /> Verified profiles</span>
+            <span className="flex items-center gap-2"><ShieldCheckIcon aria-hidden="true" className="h-4 w-4 text-[#0d8587]" /> Privacy protected</span>
+            <span className="flex items-center gap-2"><CheckCircleIcon aria-hidden="true" className="h-4 w-4 text-[#0d8587]" /> 38 languages</span>
           </div>
         </div>
         <NeighborhoodScene />
@@ -198,7 +218,7 @@ export default function Home() {
         <div className="rounded-xl border border-[#d6e0e4] bg-white px-5 py-5 shadow-[0_8px_24px_rgba(35,62,75,0.05)] sm:px-7">
           <div className="flex flex-col gap-3 border-b border-[#eee9e0] pb-4 sm:flex-row sm:items-end sm:justify-between">
             <div><p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[#0d8587]">Find help nearby</p><h2 className="mt-1 text-2xl font-extrabold tracking-normal text-[#153447]">Available interpreters</h2></div>
-            <a className="text-xs font-extrabold text-[#0d8587]" href="#community">View all ›</a>
+            <a className="inline-flex items-center gap-1 text-xs font-extrabold text-[#0d8587]" href="#community">View all <ChevronRightIcon aria-hidden="true" className="h-4 w-4" /></a>
           </div>
           <div className="flex flex-wrap gap-2 border-b border-[#eee9e0] py-4" aria-label="Filter interpreters by language">
             <span className="mr-1 self-center text-xs font-extrabold text-[#5b6d72]">Popular languages</span>
@@ -207,17 +227,17 @@ export default function Home() {
           <div className="divide-y divide-[#eee9e0]" aria-live="polite">
             {visibleRows.length > 0 ? visibleRows.map((row) => <InterpreterRow key={row[1]} row={row} />) : <p className="py-8 text-center text-sm text-[#66767c]">No interpreters found for this language yet.</p>}
           </div>
-          <div className="mt-3 flex items-center justify-between rounded-lg bg-[#f4f8f4] px-4 py-3 text-xs text-[#4f666d]"><span>Filter by language, distance, and expertise</span><a className="font-extrabold text-[#168766] transition-colors hover:text-[#0d8587]" href="/filters">Filters <span aria-hidden="true">›</span></a></div>
+          <div className="mt-3 flex items-center justify-between rounded-lg bg-[#f4f8f4] px-4 py-3 text-xs text-[#4f666d]"><span>Filter by language, distance, and expertise</span><a className="inline-flex items-center gap-1 font-extrabold text-[#168766] transition-colors hover:text-[#0d8587]" href="/filters">Filters <ChevronRightIcon aria-hidden="true" className="h-4 w-4" /></a></div>
         </div>
 
         <div id="community" className="rounded-xl border border-[#d6e0e4] bg-[#eef4f1] p-6 sm:p-7">
-          <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[#638271]">Community updates</p><h2 className="mt-1 text-2xl font-extrabold tracking-normal text-[#153447]">Our network</h2></div><IconBox className="rounded-lg bg-white text-[#0d8587]">♧</IconBox></div>
+          <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[#638271]">Community updates</p><h2 className="mt-1 text-2xl font-extrabold tracking-normal text-[#153447]">Our network</h2></div><IconBox className="rounded-lg bg-white text-[#0d8587]"><UserGroupIcon className="h-6 w-6" /></IconBox></div>
           <p className="mt-4 text-sm leading-7 text-[#53656c]">A verified interpreter community helping people communicate with confidence.</p>
           <div className="mt-5 space-y-3">
             <div className="rounded-xl border border-white/80 bg-white/75 p-3"><p className="text-xs font-extrabold text-[#234450]">New: Medical interpreters</p><p className="mt-1 text-xs text-[#78858a]">เพิ่มล่ามด้านการแพทย์ 6 คนในพื้นที่</p></div>
             <div className="rounded-xl border border-white/80 bg-white/75 p-3"><p className="text-xs font-extrabold text-[#234450]">Safety reminder</p><p className="mt-1 text-xs text-[#78858a]">ข้อมูลส่วนตัวจะเปิดเมื่อมีการ claim เท่านั้น</p></div>
           </div>
-          <a className="mt-5 inline-flex text-sm font-extrabold text-[#0d8587]" href="#safety">Read about safety ›</a>
+          <a className="mt-5 inline-flex items-center gap-1 text-sm font-extrabold text-[#0d8587]" href="#safety">Read about safety <ChevronRightIcon aria-hidden="true" className="h-4 w-4" /></a>
         </div>
       </section>
 
@@ -225,8 +245,8 @@ export default function Home() {
         <div className="mx-auto max-w-[1320px]">
           <div className="max-w-xl"><p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[#0d8587]">How it works</p><h2 className="mt-2 text-3xl font-extrabold tracking-normal text-[#153447]">Clear communication, made simple</h2><p className="mt-2 text-sm text-[#718086]">ขั้นตอนที่ชัดเจนตั้งแต่การขอความช่วยเหลือจนจบภารกิจ</p></div>
           <div className="mt-8 grid gap-5 md:grid-cols-3">
-            {[['01', 'Tell us what you need', 'Choose a language, category, and location for support.', '⌖'], ['02', 'Meet a nearby interpreter', 'See verified interpreters who match your language needs.', '♧'], ['03', 'Communicate with confidence', 'Precise location and contact details unlock after a claim.', '✓']].map(([number, title, description, icon]) => (
-              <article key={number} className="rounded-xl border border-[#d6e0e4] bg-white p-5"><div className="flex items-center justify-between"><IconBox className="rounded-lg bg-[#e1f0eb] text-[#0d8587]">{icon}</IconBox><span className="text-sm font-extrabold text-[#7d8d93]">{number}</span></div><h3 className="mt-5 font-extrabold text-[#203d4d]">{title}</h3><p className="mt-2 text-sm leading-6 text-[#6c797d]">{description}</p></article>
+            {howItWorksSteps.map(([number, title, description, StepIcon]) => (
+              <article key={number} className="rounded-xl border border-[#d6e0e4] bg-white p-5"><div className="flex items-center justify-between"><IconBox className="rounded-lg bg-[#e1f0eb] text-[#0d8587]"><StepIcon className="h-6 w-6" /></IconBox><span className="text-sm font-extrabold text-[#7d8d93]">{number}</span></div><h3 className="mt-5 font-extrabold text-[#203d4d]">{title}</h3><p className="mt-2 text-sm leading-6 text-[#6c797d]">{description}</p></article>
             ))}
           </div>
         </div>
