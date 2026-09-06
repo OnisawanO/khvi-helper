@@ -1,9 +1,9 @@
 # 📍 KHVI Helper (แพลตฟอร์มล่ามจิตอาสาเชิงพื้นที่และแจ้งเหตุฉุกเฉิน)
 ### *Map-based SOS Volunteer Interpreter Platform*
 
-[![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
 [![Supabase](https://img.shields.io/badge/Supabase-Database%20%26%20Auth-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/)
 [![Leaflet](https://img.shields.io/badge/Leaflet-Interactive%20Map-199900?style=for-the-badge&logo=leaflet)](https://leafletjs.com/)
 
@@ -61,7 +61,7 @@ flowchart LR
 ### 🚀 6. การติดตั้งและเริ่มต้นใช้งาน (Getting Started)
 
 #### ข้อกำหนดเบื้องต้น (Prerequisites)
-* [Node.js](https://nodejs.org/) (Version 18.17 หรือสูงกว่า)
+* [Node.js](https://nodejs.org/) (Version 20.9 หรือสูงกว่า)
 * บัญชี [Supabase](https://supabase.com/)
 
 #### ขั้นตอนการติดตั้ง (Installation Steps)
@@ -71,7 +71,7 @@ git clone https://github.com/OnisawanO/khvi-helper.git
 cd khvi
 
 # 2. ติดตั้ง Dependencies
-npm install
+npm ci
 
 # 3. ตั้งค่า Environment Variables (.env.local)
 cp .env.example .env.local
@@ -134,7 +134,7 @@ git clone https://github.com/OnisawanO/khvi-helper.git
 cd khvi
 
 # 2. Install dependencies
-npm install
+npm ci
 
 # 3. Configure environment variables (.env.local)
 # Add your Supabase credentials:
@@ -150,4 +150,26 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 ---
 
 ### 📑 Detailed Documentation
-สำหรับเอกสารข้อกำหนดเชิงเทคนิค, Business Rules, Use-case Diagram, และ ER Diagram ฉบับเต็ม กรุณาอ่านเพิ่มเติมได้ที่ 👉 **[detail.md](detail.md)**
+สำหรับเอกสารข้อกำหนดเชิงเทคนิค, Business Rules, Use-case Diagram, และ ER Diagram ฉบับเต็ม กรุณาอ่านเพิ่มเติมได้ที่ 👉 **[requirements.md](docs/requirements.md)**
+
+เอกสาร workflow การพัฒนาอยู่ที่ 👉 **[development-workflow.md](docs/development-workflow.md)**
+
+แนวทางการออกแบบ UI/UX อยู่ที่ 👉 **[SKILL.md](SKILL.md)**
+
+แนวทางตรวจคุณภาพข้อความอยู่ที่ 👉 **[stop-slop skill](skills/stop-slop/SKILL.md)**
+
+แนวทางวิเคราะห์โค้ดแบบ semantic อยู่ที่ 👉 **[lsp-code-analysis skill](skills/lsp-code-analysis/SKILL.md)**
+
+Project-local skills สำหรับ Next.js, Supabase และ frontend อยู่ในโฟลเดอร์ 👉 **[skills](skills/)**
+
+### 🔀 Development Workflow
+
+```text
+feature/* → develop → main
+```
+
+- พัฒนาแต่ละงานบน feature branch ที่แตกจาก `develop`
+- เปิด Pull Request เข้า `develop` หลังผ่าน lint และ build
+- ตรวจสอบงานรวมบน `develop` ก่อนเปิด Pull Request เข้า `main`
+- `main` และ `develop` ควรตั้งเป็น protected branches บน GitHub
+- AI Agent ห้าม push หรือ merge เอง และต้องรอคำสั่งก่อน commit
