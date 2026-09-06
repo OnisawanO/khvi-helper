@@ -4,7 +4,6 @@ import Image from "next/image";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import {
-  Bars3Icon,
   CheckBadgeIcon,
   CheckCircleIcon,
   ChevronRightIcon,
@@ -15,8 +14,9 @@ import {
   MapPinIcon,
   ShieldCheckIcon,
   UserGroupIcon,
-  XMarkIcon,
 } from "@heroicons/react/24/outline";
+import { SiteFooter } from "./components/site-footer";
+import { SiteHeader } from "./components/site-header";
 
 const languageChips = ["All languages", "English", "Thai", "中文", "မြန်မာ", "Tiếng Việt", "한국어", "日本語"];
 
@@ -31,27 +31,6 @@ const howItWorksSteps = [
   ["02", "Meet a nearby interpreter", "See verified interpreters who match your language needs.", UserGroupIcon],
   ["03", "Communicate with confidence", "Precise location and contact details unlock after a claim.", ChatBubbleLeftRightIcon],
 ] as const;
-
-function BrandMark({ light = false }: { light?: boolean }) {
-  return (
-    <a className="flex items-center gap-3" href="#top" aria-label="KHVI Helper home">
-      <span className={`relative h-11 w-11 shrink-0 overflow-hidden rounded-[10px] border ${light ? "border-white/20 bg-white/10" : "border-[#d8e1e6] bg-white"}`}>
-        <Image
-          src="/khvi-logo.jpg"
-          alt="KHVI Helper logo"
-          fill
-          sizes="44px"
-          className="scale-[2.15] object-cover object-[50%_54%]"
-          priority
-        />
-      </span>
-      <span className="min-w-0">
-        <span className={`block text-[21px] font-extrabold tracking-[-0.02em] ${light ? "text-white" : "text-[#10283a]"}`}>KHVI Helper</span>
-        <span className={`block text-[10px] font-semibold uppercase tracking-[0.12em] ${light ? "text-white/70" : "text-[#778084]"}`}>Trusted language support</span>
-      </span>
-    </a>
-  );
-}
 
 function IconBox({ children, className = "" }: { children: ReactNode; className?: string }) {
   return <span aria-hidden="true" className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-xl font-bold ${className}`}>{children}</span>;
@@ -135,7 +114,6 @@ function InterpreterRow({ row }: { row: (typeof interpreterRows)[number] }) {
 }
 
 export default function Home() {
-  const [menuOpen, setMenuOpen] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState("All languages");
   const visibleRows = selectedLanguage === "All languages"
     ? interpreterRows
@@ -144,44 +122,7 @@ export default function Home() {
   return (
     <main id="top" className="min-h-screen bg-[#f7f9fa] text-[#10283a]">
       <a className="skip-link" href="#main-content">Skip to main content</a>
-      <header className="sticky top-0 z-30 border-b border-[#dbe3e7] bg-[#fbfdfc]/95 shadow-[0_8px_24px_rgba(21,52,67,0.06)] backdrop-blur">
-        <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-6 px-5 py-3.5 sm:px-8 lg:px-12">
-          <BrandMark />
-          <nav className="hidden items-center gap-7 text-[13px] font-extrabold text-[#39525d] lg:flex" aria-label="Primary navigation">
-            <a className="transition-colors hover:text-[#0d8587]" href="#find-interpreter">Find an interpreter</a>
-            <a className="transition-colors hover:text-[#0d8587]" href="#how-it-works">How it works</a>
-            <a className="transition-colors hover:text-[#0d8587]" href="#safety">Trust &amp; safety</a>
-            <a className="transition-colors hover:text-[#0d8587]" href="#community">Community</a>
-          </nav>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <a className="hidden h-10 items-center rounded-lg border border-[#cbd7dc] bg-white px-3 text-xs font-extrabold text-[#425761] transition-colors hover:border-[#8fbfc1] hover:text-[#0d8587] sm:flex" href="/language" title="Change language">EN / ไทย</a>
-            <a className="hidden h-10 items-center rounded-lg border border-[#123b4f] px-4 text-xs font-extrabold text-[#123b4f] transition-colors hover:bg-[#edf3f1] sm:flex" href="/sign-in">Sign in</a>
-            <a className="flex h-10 items-center rounded-lg bg-[#092f45] px-4 text-xs font-extrabold text-white shadow-[0_6px_14px_rgba(9,47,69,0.16)] transition-colors hover:bg-[#0c4960] sm:px-5" href="/request-help">Get help</a>
-            <button
-              type="button"
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#cbd7dc] bg-white text-lg text-[#123b4f] transition-colors hover:border-[#8fbfc1] hover:text-[#0d8587] lg:hidden"
-              aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
-              aria-expanded={menuOpen}
-              aria-controls="mobile-navigation"
-              onClick={() => setMenuOpen((open) => !open)}
-            >
-              {menuOpen ? <XMarkIcon aria-hidden="true" className="h-5 w-5" /> : <Bars3Icon aria-hidden="true" className="h-5 w-5" />}
-            </button>
-          </div>
-        </div>
-        {menuOpen && (
-          <nav id="mobile-navigation" className="border-t border-[#e3eaed] bg-white px-5 py-3 lg:hidden" aria-label="Mobile navigation">
-            <div className="mx-auto flex max-w-[1440px] flex-col gap-1 sm:px-3">
-              <a className="rounded-lg px-3 py-3 text-sm font-extrabold text-[#39525d] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587]" href="#find-interpreter" onClick={() => setMenuOpen(false)}>Find an interpreter</a>
-              <a className="rounded-lg px-3 py-3 text-sm font-extrabold text-[#39525d] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587]" href="#how-it-works" onClick={() => setMenuOpen(false)}>How it works</a>
-              <a className="rounded-lg px-3 py-3 text-sm font-extrabold text-[#39525d] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587]" href="#safety" onClick={() => setMenuOpen(false)}>Trust &amp; safety</a>
-              <a className="rounded-lg px-3 py-3 text-sm font-extrabold text-[#39525d] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587]" href="#community" onClick={() => setMenuOpen(false)}>Community</a>
-              <a className="rounded-lg px-3 py-3 text-sm font-extrabold text-[#39525d] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587]" href="/language" onClick={() => setMenuOpen(false)}>EN / ไทย</a>
-              <a className="rounded-lg px-3 py-3 text-sm font-extrabold text-[#39525d] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587]" href="/sign-in" onClick={() => setMenuOpen(false)}>Sign in</a>
-            </div>
-          </nav>
-        )}
-      </header>
+      <SiteHeader />
 
       <section id="main-content" className="mx-auto grid max-w-[1440px] scroll-mt-24 gap-8 px-5 pb-8 pt-8 sm:px-8 sm:pt-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-center lg:px-12 lg:pb-12 lg:pt-12">
         <div className="lg:pr-2">
@@ -259,42 +200,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="border-t border-white/10 bg-[#06273a] px-5 py-10 text-white sm:px-8 lg:px-12 lg:py-12">
-        <div className="mx-auto max-w-[1320px]">
-          <div className="grid gap-10 md:grid-cols-[1.5fr_0.75fr_0.75fr_1.1fr]">
-            <div>
-              <BrandMark light />
-              <p className="mt-5 max-w-xs text-sm leading-6 text-white/60">Trusted language support for people, communities, and moments that matter.</p>
-              <p className="mt-4 text-xs font-bold uppercase tracking-[0.12em] text-[#8ed5c4]">Built for clearer communication</p>
-            </div>
-            <nav aria-label="Footer explore">
-              <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-white/45">Explore</p>
-              <div className="mt-4 space-y-3 text-sm font-semibold text-white/75">
-                <a className="block transition-colors hover:text-white" href="#find-interpreter">Find an interpreter</a>
-                <a className="block transition-colors hover:text-white" href="#how-it-works">How it works</a>
-                <a className="block transition-colors hover:text-white" href="#community">Community</a>
-              </div>
-            </nav>
-            <nav aria-label="Footer support">
-              <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-white/45">Support</p>
-              <div className="mt-4 space-y-3 text-sm font-semibold text-white/75">
-                <a className="block transition-colors hover:text-white" href="#safety">Trust &amp; safety</a>
-                <a className="block transition-colors hover:text-white" href="/request-help">Request help</a>
-                <a className="block transition-colors hover:text-white" href="/sign-in">Sign in</a>
-              </div>
-            </nav>
-            <div className="border-l border-white/10 pl-0 md:pl-7">
-              <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-white/45">Need help now?</p>
-              <p className="mt-4 text-sm leading-6 text-white/65">Start a request and connect with a verified interpreter near you.</p>
-              <a className="mt-5 inline-flex h-10 items-center rounded-lg bg-[#ef6747] px-4 text-xs font-extrabold text-white transition-colors hover:bg-[#f0785b]" href="/request-help">Request urgent help</a>
-            </div>
-          </div>
-          <div className="mt-10 flex flex-col gap-3 border-t border-white/10 pt-5 text-xs text-white/45 sm:flex-row sm:items-center sm:justify-between">
-            <p>© 2026 KHVI Helper. Volunteer Interpreter Network.</p>
-            <p>Private by default · Designed for real-world support</p>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </main>
   );
 }
