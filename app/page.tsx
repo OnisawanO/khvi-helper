@@ -1,7 +1,10 @@
+"use client";
+
 import Image from "next/image";
 import type { ReactNode } from "react";
+import { useState } from "react";
 
-const languageChips = ["English", "Thai", "中文", "မြန်မာ", "Tiếng Việt", "한국어", "日本語"];
+const languageChips = ["All languages", "English", "Thai", "中文", "မြန်မာ", "Tiếng Việt", "한국어", "日本語"];
 
 const interpreterRows = [
   ["N", "Natcha P.", "English, Thai", "Medical · English", "5 min", "bg-[#e7f5f2]"],
@@ -31,7 +34,7 @@ function BrandMark({ light = false }: { light?: boolean }) {
 }
 
 function IconBox({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xl font-bold ${className}`}>{children}</span>;
+  return <span aria-hidden="true" className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-xl font-bold ${className}`}>{children}</span>;
 }
 
 function ScenePin({ className = "", sos = false }: { className?: string; sos?: boolean }) {
@@ -89,7 +92,7 @@ function NeighborhoodScene() {
 function Stat({ value, label, note }: { value: string; label: string; note: string }) {
   return (
     <div className="min-w-0">
-      <p className="text-2xl font-extrabold tracking-normal text-[#122b3e]">{value}</p>
+      <p className="text-2xl font-extrabold tabular-nums tracking-normal text-[#122b3e]">{value}</p>
       <p className="mt-1 text-xs font-bold text-[#294554]">{label}</p>
       <p className="mt-1 text-[10px] leading-4 text-[#7a8588]">{note}</p>
     </div>
@@ -112,26 +115,55 @@ function InterpreterRow({ row }: { row: (typeof interpreterRows)[number] }) {
 }
 
 export default function Home() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState("All languages");
+  const visibleRows = selectedLanguage === "All languages"
+    ? interpreterRows
+    : interpreterRows.filter((row) => row[2].includes(selectedLanguage));
+
   return (
     <main id="top" className="min-h-screen bg-[#f7f9fa] text-[#10283a]">
+      <a className="skip-link" href="#main-content">Skip to main content</a>
       <header className="sticky top-0 z-30 border-b border-[#dbe3e7] bg-[#fbfdfc]/95 shadow-[0_8px_24px_rgba(21,52,67,0.06)] backdrop-blur">
         <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-6 px-5 py-3.5 sm:px-8 lg:px-12">
           <BrandMark />
           <nav className="hidden items-center gap-7 text-[13px] font-extrabold text-[#39525d] lg:flex" aria-label="Primary navigation">
-            <a className="transition hover:text-[#0d8587]" href="#find-interpreter">Find an interpreter</a>
-            <a className="transition hover:text-[#0d8587]" href="#how-it-works">How it works</a>
-            <a className="transition hover:text-[#0d8587]" href="#safety">Trust &amp; safety</a>
-            <a className="transition hover:text-[#0d8587]" href="#community">Community</a>
+            <a className="transition-colors hover:text-[#0d8587]" href="#find-interpreter">Find an interpreter</a>
+            <a className="transition-colors hover:text-[#0d8587]" href="#how-it-works">How it works</a>
+            <a className="transition-colors hover:text-[#0d8587]" href="#safety">Trust &amp; safety</a>
+            <a className="transition-colors hover:text-[#0d8587]" href="#community">Community</a>
           </nav>
           <div className="flex items-center gap-2 sm:gap-3">
-            <button type="button" className="hidden h-10 items-center gap-2 rounded-lg border border-[#cbd7dc] bg-white px-3 text-xs font-extrabold text-[#425761] transition hover:border-[#8fbfc1] hover:text-[#0d8587] sm:flex" title="Change language">EN <span className="text-[#94a0a0]">⌄</span></button>
-            <a className="hidden h-10 items-center rounded-lg border border-[#123b4f] px-4 text-xs font-extrabold text-[#123b4f] transition hover:bg-[#edf3f1] sm:flex" href="#login">Sign in</a>
-            <a className="flex h-10 items-center rounded-lg bg-[#092f45] px-4 text-xs font-extrabold text-white shadow-[0_6px_14px_rgba(9,47,69,0.16)] transition hover:bg-[#0c4960] sm:px-5" href="#request-help">Get help</a>
+            <a className="hidden h-10 items-center rounded-lg border border-[#cbd7dc] bg-white px-3 text-xs font-extrabold text-[#425761] transition-colors hover:border-[#8fbfc1] hover:text-[#0d8587] sm:flex" href="/language" title="Change language">EN / ไทย</a>
+            <a className="hidden h-10 items-center rounded-lg border border-[#123b4f] px-4 text-xs font-extrabold text-[#123b4f] transition-colors hover:bg-[#edf3f1] sm:flex" href="/sign-in">Sign in</a>
+            <a className="flex h-10 items-center rounded-lg bg-[#092f45] px-4 text-xs font-extrabold text-white shadow-[0_6px_14px_rgba(9,47,69,0.16)] transition-colors hover:bg-[#0c4960] sm:px-5" href="/request-help">Get help</a>
+            <button
+              type="button"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#cbd7dc] bg-white text-lg text-[#123b4f] transition-colors hover:border-[#8fbfc1] hover:text-[#0d8587] lg:hidden"
+              aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+              aria-expanded={menuOpen}
+              aria-controls="mobile-navigation"
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              <span aria-hidden="true">{menuOpen ? "×" : "☰"}</span>
+            </button>
           </div>
         </div>
+        {menuOpen && (
+          <nav id="mobile-navigation" className="border-t border-[#e3eaed] bg-white px-5 py-3 lg:hidden" aria-label="Mobile navigation">
+            <div className="mx-auto flex max-w-[1440px] flex-col gap-1 sm:px-3">
+              <a className="rounded-lg px-3 py-3 text-sm font-extrabold text-[#39525d] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587]" href="#find-interpreter" onClick={() => setMenuOpen(false)}>Find an interpreter</a>
+              <a className="rounded-lg px-3 py-3 text-sm font-extrabold text-[#39525d] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587]" href="#how-it-works" onClick={() => setMenuOpen(false)}>How it works</a>
+              <a className="rounded-lg px-3 py-3 text-sm font-extrabold text-[#39525d] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587]" href="#safety" onClick={() => setMenuOpen(false)}>Trust &amp; safety</a>
+              <a className="rounded-lg px-3 py-3 text-sm font-extrabold text-[#39525d] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587]" href="#community" onClick={() => setMenuOpen(false)}>Community</a>
+              <a className="rounded-lg px-3 py-3 text-sm font-extrabold text-[#39525d] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587]" href="/language" onClick={() => setMenuOpen(false)}>EN / ไทย</a>
+              <a className="rounded-lg px-3 py-3 text-sm font-extrabold text-[#39525d] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587]" href="/sign-in" onClick={() => setMenuOpen(false)}>Sign in</a>
+            </div>
+          </nav>
+        )}
       </header>
 
-      <section className="mx-auto grid max-w-[1440px] gap-8 px-5 pb-8 pt-8 sm:px-8 sm:pt-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-center lg:px-12 lg:pb-12 lg:pt-12">
+      <section id="main-content" className="mx-auto grid max-w-[1440px] scroll-mt-24 gap-8 px-5 pb-8 pt-8 sm:px-8 sm:pt-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-center lg:px-12 lg:pb-12 lg:pt-12">
         <div className="lg:pr-2">
           <div className="mb-5 inline-flex items-center gap-2 rounded-lg border border-[#cbdde3] bg-[#eef5f7] px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.08em] text-[#216873]"><span className="h-2 w-2 rounded-full bg-[#15966d]" /> KHVI service standard</div>
           <h1 className="max-w-[620px] text-[clamp(2.7rem,5vw,4.8rem)] font-extrabold leading-[1.08] tracking-normal text-[#122b3e]">
@@ -143,8 +175,8 @@ export default function Home() {
             <span className="mt-1 block text-sm text-[#7b878b]">เชื่อมต่อกับล่ามที่ไว้ใจได้เมื่อคุณต้องการความช่วยเหลือ</span>
           </p>
           <div className="mt-8 flex max-w-[470px] flex-col gap-3 sm:flex-row">
-            <a className="flex h-14 flex-1 items-center justify-center gap-2 rounded-lg bg-[#ee5b3d] px-5 text-sm font-extrabold text-white shadow-[0_10px_20px_rgba(238,91,61,0.2)] transition hover:bg-[#d94d31]" href="#request-help"><span className="text-lg">⌁</span> Request urgent help</a>
-            <a className="flex h-14 flex-1 items-center justify-center gap-2 rounded-lg border-2 border-[#123b4f] bg-transparent px-5 text-sm font-extrabold text-[#123b4f] transition hover:bg-[#edf3f1]" href="#find-interpreter"><span className="text-lg">♙</span> Find an interpreter</a>
+            <a className="flex h-14 flex-1 items-center justify-center gap-2 rounded-lg bg-[#ee5b3d] px-5 text-sm font-extrabold text-white shadow-[0_10px_20px_rgba(238,91,61,0.2)] transition-colors hover:bg-[#d94d31]" href="/request-help"><span aria-hidden="true" className="text-lg">⌁</span> Request urgent help</a>
+            <a className="flex h-14 flex-1 items-center justify-center gap-2 rounded-lg border-2 border-[#123b4f] bg-transparent px-5 text-sm font-extrabold text-[#123b4f] transition-colors hover:bg-[#edf3f1]" href="#find-interpreter"><span aria-hidden="true" className="text-lg">♙</span> Find an interpreter</a>
           </div>
           <div className="mt-9 flex flex-wrap gap-x-5 gap-y-2 text-xs font-bold text-[#748086]">
             <span className="flex items-center gap-2"><span className="text-[#0d8587]">✓</span> Verified profiles</span>
@@ -168,14 +200,14 @@ export default function Home() {
             <div><p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[#0d8587]">Find help nearby</p><h2 className="mt-1 text-2xl font-extrabold tracking-normal text-[#153447]">Available interpreters</h2></div>
             <a className="text-xs font-extrabold text-[#0d8587]" href="#community">View all ›</a>
           </div>
-          <div className="flex flex-wrap gap-2 border-b border-[#eee9e0] py-4">
+          <div className="flex flex-wrap gap-2 border-b border-[#eee9e0] py-4" aria-label="Filter interpreters by language">
             <span className="mr-1 self-center text-xs font-extrabold text-[#5b6d72]">Popular languages</span>
-            {languageChips.map((language) => <button key={language} type="button" className="rounded-full bg-[#f1f6f1] px-3 py-1.5 text-[11px] font-bold text-[#47706c] transition hover:bg-[#dfeee8]">{language}</button>)}
+            {languageChips.map((language) => <button key={language} type="button" aria-pressed={selectedLanguage === language} className={`rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors ${selectedLanguage === language ? "bg-[#0d8587] text-white" : "bg-[#f1f6f1] text-[#47706c] hover:bg-[#dfeee8]"}`} onClick={() => setSelectedLanguage(language)}>{language}</button>)}
           </div>
-          <div className="divide-y divide-[#eee9e0]">
-            {interpreterRows.map((row) => <InterpreterRow key={row[1]} row={row} />)}
+          <div className="divide-y divide-[#eee9e0]" aria-live="polite">
+            {visibleRows.length > 0 ? visibleRows.map((row) => <InterpreterRow key={row[1]} row={row} />) : <p className="py-8 text-center text-sm text-[#66767c]">No interpreters found for this language yet.</p>}
           </div>
-          <div className="mt-3 flex items-center justify-between rounded-xl bg-[#f4f8f4] px-4 py-3 text-xs text-[#4f666d]"><span>Filter by language, distance, and expertise</span><span className="font-extrabold text-[#168766]">Filters ›</span></div>
+          <div className="mt-3 flex items-center justify-between rounded-lg bg-[#f4f8f4] px-4 py-3 text-xs text-[#4f666d]"><span>Filter by language, distance, and expertise</span><a className="font-extrabold text-[#168766] transition-colors hover:text-[#0d8587]" href="/filters">Filters <span aria-hidden="true">›</span></a></div>
         </div>
 
         <div id="community" className="rounded-xl border border-[#d6e0e4] bg-[#eef4f1] p-6 sm:p-7">
@@ -202,8 +234,8 @@ export default function Home() {
 
       <section id="safety" className="bg-[#082f45] px-5 py-10 text-white sm:px-8 lg:px-12 lg:py-12">
         <div className="mx-auto grid max-w-[1320px] gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
-          <div><p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[#8ed5c4]">Trust &amp; safety</p><h2 className="mt-2 text-3xl font-extrabold tracking-normal">Your safety comes first</h2><p className="mt-3 max-w-md text-sm leading-7 text-white/70">We reveal only what is needed and unlock precise location details after a request is claimed.</p></div>
-          <div className="grid gap-3 sm:grid-cols-3"><div className="rounded-xl border border-white/10 bg-white/10 p-4"><p className="text-sm font-extrabold">Verified profiles</p><p className="mt-2 text-xs leading-5 text-white/65">ล่ามผ่านการตรวจสอบเอกสาร</p></div><div className="rounded-xl border border-white/10 bg-white/10 p-4"><p className="text-sm font-extrabold">Privacy protected</p><p className="mt-2 text-xs leading-5 text-white/65">ข้อมูลส่วนตัวไม่เปิดก่อน claim</p></div><div className="rounded-xl border border-white/10 bg-white/10 p-4"><p className="text-sm font-extrabold">Safety review</p><p className="mt-2 text-xs leading-5 text-white/65">ติดตามสถานะและ audit trail</p></div></div>
+          <div><p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[#8ed5c4]">Trust &amp; safety</p><h2 className="mt-2 text-3xl font-extrabold tracking-normal text-balance">Your safety comes first</h2><p className="mt-3 max-w-md text-sm leading-7 text-white/80">We reveal only what is needed and unlock precise location details after a request is claimed.</p></div>
+          <div className="grid gap-3 sm:grid-cols-3"><div className="rounded-lg border border-white/10 bg-white/10 p-4"><p className="text-sm font-extrabold">Verified profiles</p><p className="mt-2 text-xs leading-5 text-white/75">ล่ามผ่านการตรวจสอบเอกสาร</p></div><div className="rounded-lg border border-white/10 bg-white/10 p-4"><p className="text-sm font-extrabold">Privacy protected</p><p className="mt-2 text-xs leading-5 text-white/75">ข้อมูลส่วนตัวไม่เปิดก่อน claim</p></div><div className="rounded-lg border border-white/10 bg-white/10 p-4"><p className="text-sm font-extrabold">Safety review</p><p className="mt-2 text-xs leading-5 text-white/75">ติดตามสถานะและ audit trail</p></div></div>
         </div>
       </section>
 
@@ -218,23 +250,23 @@ export default function Home() {
             <nav aria-label="Footer explore">
               <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-white/45">Explore</p>
               <div className="mt-4 space-y-3 text-sm font-semibold text-white/75">
-                <a className="block transition hover:text-white" href="#find-interpreter">Find an interpreter</a>
-                <a className="block transition hover:text-white" href="#how-it-works">How it works</a>
-                <a className="block transition hover:text-white" href="#community">Community</a>
+                <a className="block transition-colors hover:text-white" href="#find-interpreter">Find an interpreter</a>
+                <a className="block transition-colors hover:text-white" href="#how-it-works">How it works</a>
+                <a className="block transition-colors hover:text-white" href="#community">Community</a>
               </div>
             </nav>
             <nav aria-label="Footer support">
               <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-white/45">Support</p>
               <div className="mt-4 space-y-3 text-sm font-semibold text-white/75">
-                <a className="block transition hover:text-white" href="#safety">Trust &amp; safety</a>
-                <a className="block transition hover:text-white" href="#request-help">Request help</a>
-                <a className="block transition hover:text-white" href="#login">Sign in</a>
+                <a className="block transition-colors hover:text-white" href="#safety">Trust &amp; safety</a>
+                <a className="block transition-colors hover:text-white" href="/request-help">Request help</a>
+                <a className="block transition-colors hover:text-white" href="/sign-in">Sign in</a>
               </div>
             </nav>
             <div className="border-l border-white/10 pl-0 md:pl-7">
               <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-white/45">Need help now?</p>
               <p className="mt-4 text-sm leading-6 text-white/65">Start a request and connect with a verified interpreter near you.</p>
-              <a className="mt-5 inline-flex h-10 items-center rounded-lg bg-[#ef6747] px-4 text-xs font-extrabold text-white transition hover:bg-[#f0785b]" href="#request-help">Request urgent help</a>
+              <a className="mt-5 inline-flex h-10 items-center rounded-lg bg-[#ef6747] px-4 text-xs font-extrabold text-white transition-colors hover:bg-[#f0785b]" href="/request-help">Request urgent help</a>
             </div>
           </div>
           <div className="mt-10 flex flex-col gap-3 border-t border-white/10 pt-5 text-xs text-white/45 sm:flex-row sm:items-center sm:justify-between">
