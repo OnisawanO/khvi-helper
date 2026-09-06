@@ -246,3 +246,19 @@ feature/* = branch สำหรับงานแต่ละชิ้น
 - ทุก route ใหม่ต้องเพิ่มใน `docs/route-inventory.md`
 - ทุก dynamic route ต้องระบุ access rule, data source, metadata และการทดสอบ navigation
 - ยังไม่ใช้ catch-all route, i18n route หรือ middleware สำหรับ routing จนกว่าจะมี requirement จริง
+
+## 17. New Idea และ System Setting Decision Gate
+
+เมื่อผู้ใช้เสนอไอเดียใหม่ที่อาจขัดกับ requirement, business rule, route inventory หรือ workflow เดิม Agent ต้องแยกให้ชัดว่าเป็น:
+
+- การเปลี่ยนแปลงเฉพาะ task นี้
+- การทดลองหรือ planned behavior
+- system setting หรือกฎถาวรที่ต้องใช้กับงานต่อไป
+
+ก่อนแก้ `AGENTS.md`, workflow, requirements, route inventory, configuration หรือ business rules ต้องถามผู้ใช้โดยตรงว่า:
+
+> ไอเดียนี้ต้องการให้เป็น setting หรือกฎถาวรของระบบสำหรับงานต่อไปด้วยหรือไม่ หรือใช้เฉพาะ task นี้เท่านั้น?
+
+Agent ต้องรอคำตอบเมื่อการเลือกนี้เปลี่ยน scope หรือพฤติกรรมของระบบ หากผู้ใช้ยังไม่ตัดสินใจ ให้เก็บไอเดียไว้ใน task scope หรือเอกสาร planned behavior โดยไม่ยกระดับเป็นกฎถาวร
+
+เมื่อผู้ใช้ยืนยันให้เป็น system setting ต้องอัปเดตไฟล์ที่เกี่ยวข้อง อธิบายผลกระทบ และเพิ่มรายการตรวจสอบใน Definition of Done หากใช้เฉพาะ task นี้ ห้ามแก้กฎกลางเพียงเพราะมีการพูดถึงไอเดียดังกล่าว

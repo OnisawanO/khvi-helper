@@ -7,8 +7,8 @@ import "@fontsource/noto-sans-thai/800.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "KHVI Helper | Find a trusted interpreter",
-  description: "Connect with trusted volunteer interpreters when language support matters most.",
+  title: "K-HVI | Map-based volunteer interpreter platform",
+  description: "Create a language help request pin and let approved volunteer interpreters nearby claim matched jobs.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
