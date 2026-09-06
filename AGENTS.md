@@ -231,3 +231,18 @@ feature/* = branch สำหรับงานแต่ละชิ้น
 กฎการจัดลำดับคือ `AGENTS.md` และเอกสาร business rules ของโปรเจกต์มีผลสูงสุด ตามด้วย project-local skills และ skill ระดับเครื่อง
 
 ห้ามให้ skill ภายนอกอนุมัติการ commit, push, merge หรือเปลี่ยน business rules เอง หาก skill สองตัวขัดกันให้หยุดและยึดกฎในไฟล์นี้
+
+## 16. Route และ Path Governance
+
+- ก่อนสร้างหรือแก้หน้าใหม่ต้องระบุ path และเหตุผลทางธุรกิจในแผนงาน
+- ใช้ path ภาษาอังกฤษ ตัวพิมพ์เล็ก และใช้ hyphen คั่นคำ
+- ใช้คำนามพหูพจน์กับ collection เช่น `/interpreters`
+- ใช้ dynamic segment เฉพาะค่าที่ระบุ resource จริง เช่น `/interpreters/[interpreterId]`
+- ใช้ stable ID เป็นตัวอ้างอิงหลัก ห้ามใช้ชื่อที่ผู้ใช้แก้ไขได้เป็น identity เพียงอย่างเดียว
+- Query parameter ใช้สำหรับ filter, sort, pagination และ view state ไม่ใช่การระบุ resource หลัก
+- ต้อง validate dynamic parameter ก่อน query database หรือเรียก API
+- หากไม่พบ resource ให้ใช้ `notFound()` และกำหนด behavior ไว้ใน route inventory
+- หากเปลี่ยน public path ต้องระบุ redirect หรือ migration plan ก่อนแก้ไข
+- ทุก route ใหม่ต้องเพิ่มใน `docs/route-inventory.md`
+- ทุก dynamic route ต้องระบุ access rule, data source, metadata และการทดสอบ navigation
+- ยังไม่ใช้ catch-all route, i18n route หรือ middleware สำหรับ routing จนกว่าจะมี requirement จริง

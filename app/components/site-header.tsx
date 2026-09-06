@@ -1,11 +1,87 @@
 "use client";
 
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BrandMark } from "./brand-mark";
+
+function getHashTarget(hash: string) {
+  try {
+    return document.getElementById(decodeURIComponent(hash.slice(1)));
+  } catch {
+    return null;
+  }
+}
+
+function scrollToHashTarget(hash: string, behavior: ScrollBehavior = "smooth") {
+  const target = getHashTarget(hash);
+
+  if (!target) {
+    return false;
+  }
+
+  const headerHeight = document.querySelector("header")?.getBoundingClientRect().height ?? 0;
+  const targetTop = target.getBoundingClientRect().top + window.scrollY;
+  const top = Math.max(targetTop - headerHeight - 24, 0);
+
+  window.scrollTo({ top, behavior });
+  return true;
+}
 
 export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleHashLinkClick = (event: MouseEvent) => {
+      const link = (event.target as Element | null)?.closest<HTMLAnchorElement>("a[href]");
+
+      if (!link) {
+        return;
+      }
+
+      const url = new URL(link.href);
+
+      if (url.origin !== window.location.origin || url.pathname !== window.location.pathname || !url.hash) {
+        return;
+      }
+
+      if (!getHashTarget(url.hash)) {
+        return;
+      }
+
+      event.preventDefault();
+      window.history.pushState(null, "", url.hash);
+      scrollToHashTarget(url.hash);
+    };
+
+    const handleHashChange = () => {
+      if (window.location.hash) {
+        scrollToHashTarget(window.location.hash);
+      }
+    };
+
+    document.addEventListener("click", handleHashLinkClick);
+    window.addEventListener("hashchange", handleHashChange);
+
+    const animationFrame = window.location.hash
+      ? requestAnimationFrame(() => scrollToHashTarget(window.location.hash, "auto"))
+      : null;
+    const timeout = window.location.hash
+      ? window.setTimeout(() => scrollToHashTarget(window.location.hash, "auto"), 250)
+      : null;
+
+    return () => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+
+      if (timeout) {
+        window.clearTimeout(timeout);
+      }
+
+      document.removeEventListener("click", handleHashLinkClick);
+      window.removeEventListener("hashchange", handleHashChange);
+    };
+  }, []);
 
   return (
     <header className="sticky top-0 z-30 border-b border-[#dbe3e7] bg-[#fbfdfc]/95 shadow-[0_8px_24px_rgba(21,52,67,0.06)] backdrop-blur">

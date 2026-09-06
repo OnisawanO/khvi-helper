@@ -26,14 +26,30 @@ docs/ilham/update-requirements
 3. หากเป็นงาน UI/UX ให้อ่าน `SKILL.md` และกำหนด design direction
 4. หากเป็นงานเขียนหรือแก้ไข prose, documentation, PR text หรือ UI copy ให้อ่าน `skills/stop-slop/SKILL.md`
 5. วางแผนงานและกำหนดขอบเขตไฟล์
-6. พัฒนาและทดสอบบน branch ของตนเอง
-7. รัน `npm run lint` และ `npm run build`
-8. เปิด Pull Request เข้า `develop`
-9. แก้ไข review comment และรอ status checks ผ่าน
-10. รวมงานเข้า `develop` หลังผ่านการ review
-11. ทดสอบภาพรวมจาก `develop`
-12. เปิด Pull Request จาก `develop` เข้า `main`
-13. รวมเข้า `main` เมื่อ review และ status checks ผ่านครบถ้วน
+6. หากเพิ่มหรือแก้หน้าเว็บ ให้กำหนด path, route type, parameter, access rule และ not-found behavior ใน `docs/route-inventory.md`
+7. พัฒนาและทดสอบบน branch ของตนเอง
+8. รัน `npm run lint` และ `npm run build`
+9. เปิด Pull Request เข้า `develop`
+10. แก้ไข review comment และรอ status checks ผ่าน
+11. รวมงานเข้า `develop` หลังผ่านการ review
+12. ทดสอบภาพรวมจาก `develop`
+13. เปิด Pull Request จาก `develop` เข้า `main`
+14. รวมเข้า `main` เมื่อ review และ status checks ผ่านครบถ้วน
+
+## Route และ Path Workflow
+
+ก่อน implement route ใหม่ ให้ตรวจสอบ `docs/route-inventory.md` และทำตามลำดับนี้:
+
+1. ระบุ URL path และความหมายทางธุรกิจ
+2. ระบุว่าเป็น static route, dynamic resource route หรือ query-based view
+3. ระบุ parameter และ validation rule
+4. ระบุว่า route เป็น public หรือจำเป็นต้อง authentication/authorization
+5. ระบุ data source และ behavior เมื่อไม่พบข้อมูล
+6. ระบุ metadata และลิงก์ที่ได้รับผลกระทบ
+7. เพิ่มหรือปรับ navigation test สำหรับ direct URL และ invalid parameter
+8. อัปเดต route inventory ใน Pull Request เดียวกัน
+
+ยังไม่เพิ่ม catch-all route, i18n routing, middleware routing หรือระบบ redirect จนกว่าจะมี requirement รองรับ
 
 ## กฎการใช้ Design Skill
 

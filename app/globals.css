@@ -3,6 +3,7 @@
 :root {
   --background: #f7f9fa;
   --foreground: #10283a;
+  --anchor-offset: 6.5rem;
 }
 
 @theme inline {
@@ -20,6 +21,17 @@ body {
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: var(--anchor-offset);
+}
+
+:where(section[id], main[id], div[id]) {
+  scroll-margin-top: var(--anchor-offset);
+}
+
+@media (max-width: 639px) {
+  :root {
+    --anchor-offset: 5.75rem;
+  }
 }
 
 :where(a, button) {
