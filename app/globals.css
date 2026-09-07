@@ -39,7 +39,7 @@ html {
   touch-action: manipulation;
 }
 
-:where(a, button):focus-visible {
+:where(a, button, input, select, textarea):focus-visible {
   outline: 3px solid var(--khvi-sun);
   outline-offset: 3px;
 }
