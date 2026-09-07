@@ -151,6 +151,12 @@ KHVI Helper เป็นเว็บแอปพลิเคชันสำห�
 
 ## 10. Git, Commit และ Pull Request
 
+ค่าเริ่มต้นของการส่งงานขึ้น GitHub คือ `develop` ในฐานะ default integration branch
+
+- เมื่อผู้ใช้สั่ง push โดยไม่ระบุ branch ให้ push feature branch ปัจจุบันและตั้งเป้า Pull Request ไปที่ `develop`
+- ห้ามตีความว่าให้ push ตรงเข้า `develop` เว้นแต่ผู้ใช้สั่งโดยตรง
+- `main` ใช้สำหรับ release และรับงานจาก `develop` หลังผ่านการ review เท่านั้น
+
 โครงสร้าง branch คือ:
 
 ```text
