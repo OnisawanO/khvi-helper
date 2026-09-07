@@ -1,0 +1,15 @@
+:root {
+  --khvi-ink: #10283a;
+  --khvi-navy: #092f45;
+  --khvi-teal: #4d8a93;
+  --khvi-sage: #759284;
+  --khvi-sun: #f0a35f;
+  --khvi-coral: #f04f3e;
+  --khvi-paper: #f7f9fa;
+  --khvi-surface: #ffffff;
+  --khvi-radius-sm: 0.5rem;
+  --khvi-radius-md: 1rem;
+  --khvi-radius-lg: 1.5rem;
+  --khvi-shadow-soft: 0 12px 32px rgba(16, 40, 58, 0.08);
+  --khvi-shadow-raised: 0 20px 48px rgba(16, 40, 58, 0.12);
+}
