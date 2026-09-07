@@ -16,6 +16,7 @@
 |---|---|---|---|---|---|
 | `/` | Static | Public | None | Not applicable | Implemented |
 | `/_not-found` | Framework fallback | Public | None | Framework fallback | Implemented |
+| `/mission/[id]` | Dynamic resource | Requester or claimed interpreter (role check not yet wired to real auth) | Mock data (`lib/mock-data.ts`), pending `bookings` table | `notFound()` on invalid id format or missing booking | Implemented (UI, mock data only) |
 
 ## Routes ที่วางแผนไว้
 
