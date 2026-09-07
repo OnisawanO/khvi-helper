@@ -22,11 +22,20 @@
 
 | Path | Type | Access | Data source | Not found behavior | Status |
 |---|---|---|---|---|---|
-| `/interpreters` | Resource list | Public | Interpreter table | Empty state | Planned |
-| `/interpreters/[interpreterId]` | Dynamic resource | Public | Interpreter table | `notFound()` | Planned |
-| `/requests` | Resource list | Authenticated | Request table | Empty state | Planned |
-| `/requests/[requestId]` | Dynamic resource | Authenticated | Request table | `notFound()` or `403` | Planned |
-| `/account/profile` | Static private route | Authenticated | User profile | Redirect to login | Planned |
+| `/login` | Static auth route | Public | Supabase Auth | Redirect authenticated user by role | Planned |
+| `/register` | Static auth route | Public | Supabase Auth, user profile | Redirect authenticated user by role | Planned |
+| `/profile` | Static private route | Authenticated | User profile | Redirect to login | Planned |
+| `/welcome` | Static private route | Authenticated User | User profile | Redirect to login | Planned |
+| `/request-help` | Resource create route | Authenticated User | `bookings`, `languages`, `categories` | Redirect to login or show form error | Planned |
+| `/my-requests` | Resource list | Authenticated User | `bookings` filtered by requester | Empty state | Planned |
+| `/map` | Resource map/list | Approved Interpreter | `bookings`, interpreter skills | Empty state or `403` | Planned |
+| `/volunteer/apply` | Resource create route | Authenticated User | `interpreter_profiles`, `languages`, `categories` | Redirect to current application status | Planned |
+| `/volunteer/status` | Resource detail route | Authenticated User | `interpreter_profiles` | Empty state if no application | Planned |
+| `/volunteer/dashboard` | Resource dashboard | Approved Interpreter | `bookings`, interpreter skills | `403` if not approved | Planned |
+| `/mission/[id]` | Dynamic resource | Booking requester or claimed interpreter | `bookings` | `notFound()` or `403` | Planned |
+| `/manager/verify-volunteers` | Resource list/detail | Manager/Admin | `interpreter_profiles`, user profile | Empty state or `403` | Planned |
+| `/admin` | Static dashboard | Admin | Users, bookings, reviews summary | `403` | Planned |
+| `/admin/users` | Resource list/detail | Admin | User profile and roles | Empty state or `403` | Planned |
 
 ## ข้อกำหนดเมื่อเพิ่ม route
 
