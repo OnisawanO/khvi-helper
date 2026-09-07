@@ -99,6 +99,11 @@ KHVI Helper เป็นเว็บแอปพลิเคชันสำห�
 - หลีกเลี่ยง dependency ใหม่ เว้นแต่จำเป็นและอธิบายเหตุผลได้
 - ห้ามเพิ่ม secret, credential หรือไฟล์ `.env` เข้า Repository
 - ห้ามสร้างไฟล์ตาม roadmap โดยไม่ตรวจสอบว่า task ต้องการจริง
+- งาน UI ต้องอ่าน `docs/design-system.md` และใช้ token จาก `app/design-tokens.css`
+- ห้ามเพิ่มสี ฟอนต์ radius shadow หรือ visual language ใหม่โดยไม่ระบุเหตุผล
+- หากไอเดีย UI เปลี่ยน theme ให้ถามว่าใช้เฉพาะหน้านี้หรือเป็น design system ของทั้งโปรเจกต์
+- ต้อง reuse component ใน `app/components/` ก่อนสร้าง component ใหม่
+- งาน UI ต้องตรวจ mobile, tablet, desktop และ visible focus state ตามความเหมาะสม
 
 ## 8. Workflow ของ Agent
 
@@ -109,10 +114,11 @@ KHVI Helper เป็นเว็บแอปพลิเคชันสำห�
 3. ห้ามเริ่มแก้ไขหากอยู่บน `main` หรือ `develop`
 4. อ่าน requirements และเอกสารที่เกี่ยวข้อง
 5. หากเป็นงาน UI/UX ให้อ่าน `SKILL.md` และกำหนด design direction
-6. หากเป็นงานเขียนหรือแก้ไข prose, documentation, PR text หรือ UI copy ให้อ่าน `skills/stop-slop/SKILL.md`
-7. แยกให้ได้ว่าส่วนใดทำแล้ว ส่วนใดอยู่ระหว่างทำ และส่วนใดเป็นแผนงาน
-8. ระบุไฟล์ที่จะเปลี่ยนและวางแผนสั้น ๆ
-9. ใช้ feature branch รูปแบบ `feature/<สมาชิก>/<งาน>`, `fix/<สมาชิก>/<งาน>` หรือ `docs/<สมาชิก>/<งาน>`
+6. หากเป็นงาน UI/UX ให้อ่าน `docs/design-system.md` และตรวจ token/component ที่มีอยู่
+7. หากเป็นงานเขียนหรือแก้ไข prose, documentation, PR text หรือ UI copy ให้อ่าน `skills/stop-slop/SKILL.md`
+8. แยกให้ได้ว่าส่วนใดทำแล้ว ส่วนใดอยู่ระหว่างทำ และส่วนใดเป็นแผนงาน
+9. ระบุไฟล์ที่จะเปลี่ยนและวางแผนสั้น ๆ
+10. ใช้ feature branch รูปแบบ `feature/<สมาชิก>/<งาน>`, `fix/<สมาชิก>/<งาน>` หรือ `docs/<สมาชิก>/<งาน>`
 
 ### ระหว่างทำงาน
 

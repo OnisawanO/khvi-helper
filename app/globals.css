@@ -1,8 +1,9 @@
 @import "tailwindcss";
+@import "./design-tokens.css";
 
 :root {
-  --background: #f7f9fa;
-  --foreground: #10283a;
+  --background: var(--khvi-paper);
+  --foreground: var(--khvi-ink);
   --anchor-offset: 6.5rem;
 }
 
@@ -39,7 +40,7 @@ html {
 }
 
 :where(a, button):focus-visible {
-  outline: 3px solid #f0a35f;
+  outline: 3px solid var(--khvi-sun);
   outline-offset: 3px;
 }
 

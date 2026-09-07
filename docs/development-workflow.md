@@ -24,17 +24,20 @@ docs/ilham/update-requirements
 1. แตก branch จาก `develop`
 2. อ่าน requirement และเอกสารที่เกี่ยวข้อง
 3. หากเป็นงาน UI/UX ให้อ่าน `SKILL.md` และกำหนด design direction
-4. หากเป็นงานเขียนหรือแก้ไข prose, documentation, PR text หรือ UI copy ให้อ่าน `skills/stop-slop/SKILL.md`
-5. วางแผนงานและกำหนดขอบเขตไฟล์
-6. หากเพิ่มหรือแก้หน้าเว็บ ให้กำหนด path, route type, parameter, access rule และ not-found behavior ใน `docs/route-inventory.md`
-7. พัฒนาและทดสอบบน branch ของตนเอง
-8. รัน `npm run lint` และ `npm run build`
-9. เปิด Pull Request เข้า `develop`
-10. แก้ไข review comment และรอ status checks ผ่าน
-11. รวมงานเข้า `develop` หลังผ่านการ review
-12. ทดสอบภาพรวมจาก `develop`
-13. เปิด Pull Request จาก `develop` เข้า `main`
-14. รวมเข้า `main` เมื่อ review และ status checks ผ่านครบถ้วน
+4. หากเป็นงาน UI/UX ให้อ่าน `docs/design-system.md` และตรวจ token/component ที่มีอยู่
+5. หากเป็นงานเขียนหรือแก้ไข prose, documentation, PR text หรือ UI copy ให้อ่าน `skills/stop-slop/SKILL.md`
+6. วางแผนงานและกำหนดขอบเขตไฟล์
+7. หากเพิ่มหรือแก้หน้าเว็บ ให้กำหนด path, route type, parameter, access rule และ not-found behavior ใน `docs/route-inventory.md`
+8. พัฒนาและทดสอบบน branch ของตนเอง
+9. รัน `npm run lint` และ `npm run build`
+10. เปิด Pull Request เข้า `develop`
+11. แก้ไข review comment และรอ status checks ผ่าน
+12. รวมงานเข้า `develop` หลังผ่านการ review
+13. ทดสอบภาพรวมจาก `develop`
+14. เปิด Pull Request จาก `develop` เข้า `main`
+15. รวมเข้า `main` เมื่อ review และ status checks ผ่านครบถ้วน
+
+งาน UI ที่เปลี่ยนสี ฟอนต์ รูปทรง หรือ visual language ต้องถามก่อนว่าจะใช้เฉพาะ task หรือยกระดับเป็น design system ทั้งโปรเจกต์
 
 ## Route และ Path Workflow
 
