@@ -171,5 +171,6 @@ feature/* → develop → main
 - พัฒนาแต่ละงานบน feature branch ที่แตกจาก `develop`
 - เปิด Pull Request เข้า `develop` หลังผ่าน lint และ build
 - ตรวจสอบงานรวมบน `develop` ก่อนเปิด Pull Request เข้า `main`
+- `develop` เป็น default integration branch สำหรับงานใหม่
 - `main` และ `develop` ควรตั้งเป็น protected branches บน GitHub
-- AI Agent ห้าม push หรือ merge เอง และต้องรอคำสั่งก่อน commit
+- AI Agent ต้องรอคำสั่งก่อน commit, push หรือ merge และหากไม่ระบุ target ให้ใช้ `develop`
