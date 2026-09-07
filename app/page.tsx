@@ -1,7 +1,6 @@
 "use client";
 
 import type { ComponentType, SVGProps } from "react";
-import { useEffect, useState } from "react";
 import {
   CalendarDaysIcon,
   CheckBadgeIcon,
@@ -18,6 +17,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { SiteFooter } from "./components/site-footer";
 import { SiteHeader, type Locale } from "./components/site-header";
+import { resolveCopyLocale, useStoredLocale } from "./lib/locale";
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 type RequestCardContent = {
@@ -303,22 +303,6 @@ const copy = {
   },
 } as const;
 
-const localeLanguageTags: Record<Locale, string> = {
-  en: "en",
-  th: "th",
-  zh: "zh-Hans",
-  my: "my",
-  vi: "vi",
-};
-
-function isLocale(value: string | null): value is Locale {
-  return value === "en" || value === "th" || value === "zh" || value === "my" || value === "vi";
-}
-
-function getCopyLocale(locale: Locale): keyof typeof copy {
-  return locale === "zh" ? "zh" : "en";
-}
-
 const statusTone = ["bg-[#f04f3e] text-white", "bg-white text-[#18384a]", "bg-white text-[#18384a]", "bg-[#e6f4ef] text-[#087557]"] as const;
 const stepIcons = [MapPinIcon, LanguageIcon, LockClosedIcon, CheckCircleIcon] as const;
 const safetyIcons = [CheckBadgeIcon, ShieldCheckIcon, DocumentCheckIcon] as const;
@@ -370,7 +354,7 @@ function MapPin({ className = "", sos = false }: { className?: string; sos?: boo
 }
 
 function MapPreview({ locale }: { locale: Locale }) {
-  const t = copy[getCopyLocale(locale)];
+  const t = copy[resolveCopyLocale(locale)];
 
   return (
     <div className="landing-map relative min-h-[520px] overflow-hidden border border-[#d8e1e6] bg-[#eef4f6] shadow-[0_18px_45px_rgba(20,55,72,0.12)]">
@@ -444,23 +428,8 @@ function RequestCard({ card, icon: IconComponent }: { card: RequestCardContent; 
 }
 
 export default function Home() {
-  const [locale, setLocale] = useState<Locale>(() => {
-    if (typeof window !== "undefined") {
-      const savedLocale = window.localStorage.getItem("khvi-locale");
-
-      if (isLocale(savedLocale)) {
-        return savedLocale;
-      }
-    }
-
-    return "en";
-  });
-  const t = copy[getCopyLocale(locale)];
-
-  useEffect(() => {
-    document.documentElement.lang = localeLanguageTags[locale];
-    window.localStorage.setItem("khvi-locale", locale);
-  }, [locale]);
+  const [locale, setLocale] = useStoredLocale();
+  const t = copy[resolveCopyLocale(locale)];
 
   return (
     <main id="top" className="min-h-screen bg-[#f7f9fa] text-[#10283a]">
