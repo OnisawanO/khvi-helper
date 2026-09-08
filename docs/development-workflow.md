@@ -10,6 +10,10 @@ develop   = branch รวมงานของทีม
 feature/* = งานย่อยของสมาชิกแต่ละคน
 ```
 
+`develop` เป็น default integration branch สำหรับงานใหม่ หากผู้ใช้ไม่ระบุ target branch
+ให้ถือว่า Pull Request ต้องมุ่งเข้า `develop` งานต้อง push จาก feature branch
+การ push ตรงเข้า `develop` หรือ `main` ต้องมีคำสั่งชัดเจนจากผู้ดูแลโครงการ
+
 ตัวอย่างชื่อ branch:
 
 ```text
