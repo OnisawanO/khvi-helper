@@ -37,9 +37,15 @@ export interface RegisterFormProps {
   onSuccess?: () => void;
   onCancel?: () => void;
   isModal?: boolean;
+  onSwitchToSignIn?: () => void;
 }
 
-export function RegisterForm({ onSuccess, onCancel, isModal = false }: RegisterFormProps) {
+export function RegisterForm({
+  onSuccess,
+  onCancel,
+  isModal = false,
+  onSwitchToSignIn,
+}: RegisterFormProps) {
   const router = useRouter();
   const [currentLocale] = useStoredLocale();
 
@@ -459,17 +465,25 @@ export function RegisterForm({ onSuccess, onCancel, isModal = false }: RegisterF
       )}
 
       {/* Footer */}
-      {!isModal && (
-        <div className="mt-6 border-t border-[#edf2f4] pt-5 text-center text-xs text-[#5c727d]">
-          <span>มีบัญชีอยู่แล้ว? </span>
+      <div className="mt-6 border-t border-[#edf2f4] pt-4 text-center text-xs text-[#5c727d]">
+        <span>มีบัญชีอยู่แล้ว? </span>
+        {onSwitchToSignIn ? (
+          <button
+            type="button"
+            onClick={onSwitchToSignIn}
+            className="font-extrabold text-[#0d8587] transition-colors hover:text-[#092f45] hover:underline cursor-pointer"
+          >
+            เข้าสู่ระบบที่นี่
+          </button>
+        ) : (
           <Link
-            href="/sign-in"
+            href="/login"
             className="font-extrabold text-[#0d8587] transition-colors hover:text-[#092f45] hover:underline"
           >
             เข้าสู่ระบบที่นี่
           </Link>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

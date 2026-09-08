@@ -175,3 +175,162 @@ export async function registerMockUser(input: RegisterInput): Promise<{
     user: newUser,
   };
 }
+
+export const DEFAULT_MOCK_USERS: Record<UserRole, UserProfile & { password: string }> = {
+  User: {
+    userId: "mock-user-id-001",
+    name: "สมชาย มีความหวัง (General User)",
+    email: "user@khvi.org",
+    phone: "0812345678",
+    dateOfBirth: "1995-05-12",
+    role: "User",
+    isLocked: false,
+    preferredUiLanguage: "th",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    password: "password123",
+  },
+  Interpreter: {
+    userId: "mock-interpreter-id-002",
+    name: "หลิน หลิน (Volunteer Interpreter)",
+    email: "volunteer@khvi.org",
+    phone: "0898765432",
+    dateOfBirth: "1992-08-20",
+    role: "Interpreter",
+    isLocked: false,
+    preferredUiLanguage: "zh",
+    createdAt: "2026-01-02T00:00:00.000Z",
+    password: "password123",
+  },
+  Manager: {
+    userId: "mock-manager-id-003",
+    name: "วิภา ตรวจสอบ (Manager)",
+    email: "manager@khvi.org",
+    phone: "0823456789",
+    dateOfBirth: "1988-11-15",
+    role: "Manager",
+    isLocked: false,
+    preferredUiLanguage: "th",
+    createdAt: "2026-01-03T00:00:00.000Z",
+    password: "password123",
+  },
+  Admin: {
+    userId: "mock-admin-id-004",
+    name: "ธีรเดช ผู้ดูแลระบบ (Admin)",
+    email: "admin@khvi.org",
+    phone: "0834567890",
+    dateOfBirth: "1985-03-30",
+    role: "Admin",
+    isLocked: false,
+    preferredUiLanguage: "en",
+    createdAt: "2026-01-04T00:00:00.000Z",
+    password: "password123",
+  },
+};
+
+export function getRedirectPathByRole(role: UserRole): string {
+  switch (role) {
+    case "User":
+      return "/request-help";
+    case "Interpreter":
+      return "/volunteer/dashboard";
+    case "Manager":
+      return "/manager";
+    case "Admin":
+      return "/admin";
+    default:
+      return "/";
+  }
+}
+
+export async function loginMockUser(
+  email: string,
+  password: string
+): Promise<{
+  success: boolean;
+  user?: UserProfile;
+  errors?: ValidationErrors;
+}> {
+  const trimmedEmail = email?.trim().toLowerCase() || "";
+  const errors: ValidationErrors = {};
+
+  if (!trimmedEmail) {
+    errors.email = "กรุณากรอกอีเมล";
+  }
+  if (!password) {
+    errors.password = "กรุณากรอกรหัสผ่าน";
+  }
+
+  if (Object.keys(errors).length > 0) {
+    return { success: false, errors };
+  }
+
+  // Check against default mock users
+  const matchedUser = Object.values(DEFAULT_MOCK_USERS).find(
+    (u) => u.email.toLowerCase() === trimmedEmail
+  );
+
+  if (matchedUser) {
+    if (matchedUser.password !== password) {
+      return { success: false, errors: { general: "อีเมลหรือรหัสผ่านไม่ถูกต้อง" } };
+    }
+    const profile: UserProfile = {
+      userId: matchedUser.userId,
+      name: matchedUser.name,
+      email: matchedUser.email,
+      phone: matchedUser.phone,
+      dateOfBirth: matchedUser.dateOfBirth,
+      role: matchedUser.role,
+      isLocked: matchedUser.isLocked,
+      preferredUiLanguage: matchedUser.preferredUiLanguage,
+      createdAt: matchedUser.createdAt,
+    };
+    saveMockUserSession(profile);
+    return { success: true, user: profile };
+  }
+
+  // Also check if current active session user matches
+  const currentSession = getMockUserSession();
+  if (currentSession && currentSession.email.toLowerCase() === trimmedEmail) {
+    saveMockUserSession(currentSession);
+    return { success: true, user: currentSession };
+  }
+
+  // Default fallback for any valid format email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(trimmedEmail)) {
+    return { success: false, errors: { email: "รูปแบบอีเมลไม่ถูกต้อง" } };
+  }
+
+  const dynamicUser: UserProfile = {
+    userId: `user-${Date.now()}`,
+    name: trimmedEmail.split("@")[0],
+    email: trimmedEmail,
+    phone: "0800000000",
+    dateOfBirth: "2000-01-01",
+    role: "User",
+    isLocked: false,
+    preferredUiLanguage: "th",
+    createdAt: new Date().toISOString(),
+  };
+
+  saveMockUserSession(dynamicUser);
+  return { success: true, user: dynamicUser };
+}
+
+export function quickLoginAsRole(role: UserRole): UserProfile {
+  const target = DEFAULT_MOCK_USERS[role];
+  const profile: UserProfile = {
+    userId: target.userId,
+    name: target.name,
+    email: target.email,
+    phone: target.phone,
+    dateOfBirth: target.dateOfBirth,
+    role: target.role,
+    isLocked: target.isLocked,
+    preferredUiLanguage: target.preferredUiLanguage,
+    createdAt: target.createdAt,
+  };
+  saveMockUserSession(profile);
+  return profile;
+}
+

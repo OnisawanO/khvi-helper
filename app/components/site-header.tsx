@@ -19,6 +19,7 @@ type SiteHeaderProps = {
   locale: Locale;
   onLocaleChange: (locale: Locale) => void;
   onOpenRegister?: () => void;
+  onOpenSignIn?: () => void;
 };
 
 const languageOptions = [
@@ -138,7 +139,22 @@ function LanguageSwitcher({ copy, locale, onLocaleChange, compact = false }: Sit
     </div>
   );
 }
-export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister }: SiteHeaderProps) {
+function getRegisterLabel(locale: Locale) {
+  switch (locale) {
+    case "zh":
+      return "注册";
+    case "th":
+      return "สมัครสมาชิก";
+    case "my":
+      return "စာရင်းသွင်းရန်";
+    case "vi":
+      return "Đăng ký";
+    default:
+      return "Sign up";
+  }
+}
+
+export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpenSignIn }: SiteHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -194,7 +210,8 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister }: Sit
     };
   }, []);
 
-  const registerLabel = locale === "zh" ? "注册" : "สมัครสมาชิก";
+  const registerLabel = getRegisterLabel(locale);
+  const primaryActionLabel = copy.primaryAction;
 
   return (
     <header className="sticky top-0 z-30 border-b border-[#dbe3e7] bg-[#fbfdfc]/95 shadow-[0_8px_24px_rgba(21,52,67,0.06)] backdrop-blur">
@@ -225,11 +242,21 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister }: Sit
               {registerLabel}
             </a>
           )}
-          <a className="hidden h-10 items-center rounded-lg border border-[#123b4f] px-4 text-xs font-extrabold text-[#123b4f] transition-colors hover:bg-[#edf3f1] sm:flex" href="/sign-in">
-            {copy.signIn}
-          </a>
+          {onOpenSignIn ? (
+            <button
+              type="button"
+              onClick={onOpenSignIn}
+              className="hidden h-10 items-center rounded-lg border border-[#123b4f] px-4 text-xs font-extrabold text-[#123b4f] transition-colors hover:bg-[#edf3f1] sm:flex"
+            >
+              {copy.signIn}
+            </button>
+          ) : (
+            <a className="hidden h-10 items-center rounded-lg border border-[#123b4f] px-4 text-xs font-extrabold text-[#123b4f] transition-colors hover:bg-[#edf3f1] sm:flex" href="/login">
+              {copy.signIn}
+            </a>
+          )}
           <a className="flex h-10 items-center rounded-lg bg-[#092f45] px-4 text-xs font-extrabold text-white shadow-[0_6px_14px_rgba(9,47,69,0.16)] transition-colors hover:bg-[#0c4960] sm:px-5" href="/request-help">
-            {copy.primaryAction}
+            {primaryActionLabel}
           </a>
           <button
             type="button"
@@ -272,9 +299,22 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister }: Sit
                 {registerLabel}
               </a>
             )}
-            <a className="rounded-lg px-3 py-3 text-sm font-extrabold text-[#39525d] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587]" href="/sign-in" onClick={() => setMenuOpen(false)}>
-              {copy.signIn}
-            </a>
+            {onOpenSignIn ? (
+              <button
+                type="button"
+                className="rounded-lg px-3 py-3 text-left text-sm font-extrabold text-[#39525d] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587]"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onOpenSignIn();
+                }}
+              >
+                {copy.signIn}
+              </button>
+            ) : (
+              <a className="rounded-lg px-3 py-3 text-sm font-extrabold text-[#39525d] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587]" href="/login" onClick={() => setMenuOpen(false)}>
+                {copy.signIn}
+              </a>
+            )}
           </div>
         </nav>
       )}

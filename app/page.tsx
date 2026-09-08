@@ -20,6 +20,7 @@ import { SiteFooter } from "./components/site-footer";
 import { SiteHeader, type Locale } from "./components/site-header";
 import { resolveCopyLocale, useStoredLocale } from "./lib/locale";
 import { RegisterModal } from "./register/register-modal";
+import { LoginModal } from "./login/login-modal";
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 type RequestCardContent = {
@@ -433,12 +434,26 @@ export default function Home() {
   const [locale, setLocale] = useStoredLocale();
   const t = copy[resolveCopyLocale(locale)];
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [isSignInOpen, setIsSignInOpen] = useState(false);
 
   useEffect(() => {
     const checkUrl = () => {
       const params = new URLSearchParams(window.location.search);
       if (params.get("register") === "true" || window.location.hash === "#register") {
-        queueMicrotask(() => setIsRegisterOpen(true));
+        queueMicrotask(() => {
+          setIsRegisterOpen(true);
+          setIsSignInOpen(false);
+        });
+      } else if (
+        params.get("signin") === "true" ||
+        params.get("login") === "true" ||
+        window.location.hash === "#signin" ||
+        window.location.hash === "#login"
+      ) {
+        queueMicrotask(() => {
+          setIsSignInOpen(true);
+          setIsRegisterOpen(false);
+        });
       }
     };
 
@@ -456,7 +471,14 @@ export default function Home() {
         copy={t.header}
         locale={locale}
         onLocaleChange={setLocale}
-        onOpenRegister={() => setIsRegisterOpen(true)}
+        onOpenRegister={() => {
+          setIsRegisterOpen(true);
+          setIsSignInOpen(false);
+        }}
+        onOpenSignIn={() => {
+          setIsSignInOpen(true);
+          setIsRegisterOpen(false);
+        }}
       />
 
       <section id="main-content" className="mx-auto grid max-w-[1440px] scroll-mt-24 gap-8 px-5 pb-10 pt-8 sm:px-8 lg:grid-cols-[0.76fr_1.24fr] lg:items-center lg:px-12 lg:py-12">
@@ -581,9 +603,16 @@ export default function Home() {
               <p className="text-sm font-extrabold text-[#087f80]">{t.roles.label}</p>
               <h2 className="mt-2 text-3xl font-extrabold tracking-normal text-[#153447] sm:text-4xl">{t.roles.title}</h2>
             </div>
-            <a className="inline-flex h-11 items-center justify-center rounded-lg border border-[#cbd7dc] bg-white px-4 text-sm font-extrabold text-[#173646] transition-colors hover:border-[#087f80] hover:text-[#087f80]" href="/sign-in">
+            <button
+              type="button"
+              onClick={() => {
+                setIsSignInOpen(true);
+                setIsRegisterOpen(false);
+              }}
+              className="inline-flex h-11 items-center justify-center rounded-lg border border-[#cbd7dc] bg-white px-4 text-sm font-extrabold text-[#173646] transition-colors hover:border-[#087f80] hover:text-[#087f80] cursor-pointer"
+            >
               {t.roles.action}
-            </a>
+            </button>
           </div>
           <div className="mt-8 grid gap-4 md:grid-cols-3">
             {t.roles.cards.map((card, index) => (
@@ -600,6 +629,19 @@ export default function Home() {
       <RegisterModal
         isOpen={isRegisterOpen}
         onClose={() => setIsRegisterOpen(false)}
+        onSwitchToSignIn={() => {
+          setIsRegisterOpen(false);
+          setIsSignInOpen(true);
+        }}
+      />
+
+      <LoginModal
+        isOpen={isSignInOpen}
+        onClose={() => setIsSignInOpen(false)}
+        onSwitchToRegister={() => {
+          setIsSignInOpen(false);
+          setIsRegisterOpen(true);
+        }}
       />
 
       <SiteFooter copy={t.footer} brandSubtitle={t.header.brandSubtitle} />
