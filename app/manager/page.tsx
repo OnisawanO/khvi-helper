@@ -6,6 +6,7 @@ import {
   ArchiveBoxXMarkIcon,
   ArrowLeftOnRectangleIcon,
   ArrowPathIcon,
+  Bars3Icon,
   BriefcaseIcon,
   ChatBubbleLeftRightIcon,
   CheckBadgeIcon,
@@ -256,7 +257,7 @@ const initialReports: IncidentReport[] = [
   },
 ];
 
-function ManagerHeader() {
+function ManagerHeader({ onMenuClick }: { onMenuClick?: () => void }) {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
@@ -272,9 +273,17 @@ function ManagerHeader() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-[#dbe3e7] bg-[#fbfdfc]/95 shadow-[0_8px_24px_rgba(21,52,67,0.06)] backdrop-blur">
-      <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-5 py-3.5 sm:px-8 lg:px-12">
-        {/* Brand */}
-        <div className="flex items-center gap-6">
+      <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-3 px-4 py-3 sm:px-8 lg:px-12">
+        {/* Brand & Mobile Drawer Button */}
+        <div className="flex items-center gap-3 sm:gap-6">
+          <button
+            type="button"
+            onClick={onMenuClick}
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#c9d8de] bg-white text-[#092f45] shadow-xs hover:border-[#087f80] hover:bg-[#edf7f5] hover:text-[#087f80] transition-colors md:hidden focus:outline-none focus:ring-2 focus:ring-[#087f80]/30 cursor-pointer"
+            aria-label="Open Navigation Menu"
+          >
+            <Bars3Icon className="h-5 w-5" />
+          </button>
           <BrandMark subtitle="Community interpreter map" />
         </div>
 
@@ -354,6 +363,7 @@ export default function ManagerDashboard() {
   const [navSection, setNavSection] = useState<
     "queue" | "approved" | "rejected" | "tickets" | "reports"
   >("queue");
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
 
   // Response text for tickets
@@ -421,20 +431,20 @@ export default function ManagerDashboard() {
         app.spokenLanguages.some((lang) => lang.toLowerCase().includes(query)) ||
         app.specialtyCategories.some((cat) => cat.toLowerCase().includes(query));
 
-      // 3. Multi-select Language filter: if any selected, applicant MUST know at least one of the chosen languages
+      // 3. Multi-select Language filter: if any selected, applicant MUST know ALL chosen languages (Strict AND narrowing)
       const matchesLanguage =
         selectedLanguages.length === 0 ||
-        selectedLanguages.some((selectedLang) => {
+        selectedLanguages.every((selectedLang) => {
           const target = selectedLang.trim().toLowerCase();
           const primary = app.primaryLanguage.trim().toLowerCase();
           const spoken = app.spokenLanguages.map((l) => l.trim().toLowerCase());
           return primary.includes(target) || spoken.some((l) => l.includes(target));
         });
 
-      // 4. Multi-select Category filter: if any selected, applicant MUST have at least one of the chosen categories
+      // 4. Multi-select Category filter: if any selected, applicant MUST have ALL chosen categories (Strict AND narrowing)
       const matchesCategory =
         selectedCategories.length === 0 ||
-        selectedCategories.some((selectedCat) =>
+        selectedCategories.every((selectedCat) =>
           app.specialtyCategories.some(
             (cat) => cat.trim().toLowerCase() === selectedCat.trim().toLowerCase()
           )
@@ -518,42 +528,57 @@ export default function ManagerDashboard() {
   const pendingReportCount = reports.filter((r) => r.status === "Pending Investigation").length;
 
   return (
-    <main className="min-h-screen bg-[#f7f9fa] text-[#10283a]">
-      <ManagerHeader />
+    <div className="flex min-h-screen flex-col bg-[#f7f9fa] text-[#092f45] antialiased">
+      <ManagerHeader onMenuClick={() => setIsMobileDrawerOpen(true)} />
 
-      <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
-        {/* Main Grid: Left Sidebar (250px / 3 cols) + Right Content Area (9 cols) */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-          {/* ================= LEFT SIDEBAR NAVIGATION ================= */}
-          <aside className="lg:col-span-3 space-y-6">
-            {/* Manager Operations Status Card */}
-            <div className="rounded-2xl border border-[#d8e3e7] bg-white p-4 shadow-xs">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#092f45] font-extrabold text-white">
-                  KH
+      {/* Mobile Slide-out Sidebar Drawer (Pop-up from left) */}
+      {isMobileDrawerOpen && (
+        <div className="fixed inset-0 z-50 flex md:hidden animate-in fade-in duration-200">
+          {/* Backdrop overlay */}
+          <div
+            onClick={() => setIsMobileDrawerOpen(false)}
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+          />
+
+          {/* Drawer content sliding from left */}
+          <aside className="relative z-10 flex h-full w-[80%] max-w-xs flex-col justify-between bg-white p-5 shadow-2xl animate-in slide-in-from-left duration-250 border-r border-slate-200">
+            <div className="space-y-6">
+              {/* Drawer Top Header */}
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#092f45] text-white">
+                    <ShieldCheckIcon className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-extrabold text-[#092f45]">Manager Console</h3>
+                    <p className="text-[10px] text-slate-400">Navigation Menu</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-sm font-extrabold text-[#112d3f]">Regional Operations</h3>
-                  <p className="text-[11px] text-[#69828e]">Bangkok & Central Hub</p>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsMobileDrawerOpen(false)}
+                  className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+                  aria-label="Close menu"
+                >
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
               </div>
-            </div>
 
-            {/* Navigation Menu Groups */}
-            <div className="rounded-2xl border border-[#d8e3e7] bg-white p-3 shadow-xs space-y-5">
-              {/* Group 1: Verification Hub */}
+              {/* Navigation Links in Mobile Drawer */}
               <div>
-                <p className="px-3 text-[10px] font-black uppercase tracking-wider text-[#7e94a0]">
+                <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Interpreter Verification
                 </p>
-                <nav className="mt-2 space-y-1">
+                <nav className="mt-2 space-y-1.5">
                   <button
-                    type="button"
-                    onClick={() => setNavSection("queue")}
-                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-extrabold transition-colors cursor-pointer ${
+                    onClick={() => {
+                      setNavSection("queue");
+                      setIsMobileDrawerOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${
                       navSection === "queue"
-                        ? "bg-[#087f80] text-white shadow-xs"
-                        : "text-[#3b5563] hover:bg-[#f0f5f7]"
+                        ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
@@ -562,10 +587,10 @@ export default function ManagerDashboard() {
                     </div>
                     {pendingCount > 0 && (
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
                           navSection === "queue"
-                            ? "bg-white text-[#087f80]"
-                            : "bg-[#fef4e8] text-[#b36916]"
+                            ? "bg-white/20 text-white"
+                            : "bg-amber-100 text-amber-800"
                         }`}
                       >
                         {pendingCount}
@@ -574,12 +599,14 @@ export default function ManagerDashboard() {
                   </button>
 
                   <button
-                    type="button"
-                    onClick={() => setNavSection("approved")}
-                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-extrabold transition-colors cursor-pointer ${
+                    onClick={() => {
+                      setNavSection("approved");
+                      setIsMobileDrawerOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${
                       navSection === "approved"
-                        ? "bg-[#087f80] text-white shadow-xs"
-                        : "text-[#3b5563] hover:bg-[#f0f5f7]"
+                        ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
@@ -587,10 +614,10 @@ export default function ManagerDashboard() {
                       <span>Approved Volunteers</span>
                     </div>
                     <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
                         navSection === "approved"
-                          ? "bg-white text-[#087f80]"
-                          : "bg-[#edf7f5] text-[#087557]"
+                          ? "bg-white/20 text-white"
+                          : "bg-teal-100 text-[#087f80]"
                       }`}
                     >
                       {approvedCount}
@@ -598,12 +625,14 @@ export default function ManagerDashboard() {
                   </button>
 
                   <button
-                    type="button"
-                    onClick={() => setNavSection("rejected")}
-                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-extrabold transition-colors cursor-pointer ${
+                    onClick={() => {
+                      setNavSection("rejected");
+                      setIsMobileDrawerOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${
                       navSection === "rejected"
-                        ? "bg-[#087f80] text-white shadow-xs"
-                        : "text-[#3b5563] hover:bg-[#f0f5f7]"
+                        ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
@@ -611,10 +640,10 @@ export default function ManagerDashboard() {
                       <span>Rejected Applications</span>
                     </div>
                     <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
                         navSection === "rejected"
-                          ? "bg-white text-[#087f80]"
-                          : "bg-[#fff1ef] text-[#d93829]"
+                          ? "bg-white/20 text-white"
+                          : "bg-red-100 text-[#d93829]"
                       }`}
                     >
                       {rejectedCount}
@@ -623,19 +652,21 @@ export default function ManagerDashboard() {
                 </nav>
               </div>
 
-              {/* Group 2: Incident & Help Desk */}
-              <div className="border-t border-[#edf2f4] pt-3">
-                <p className="px-3 text-[10px] font-black uppercase tracking-wider text-[#7e94a0]">
+              {/* Group 2 in Mobile Drawer */}
+              <div className="border-t border-slate-100 pt-3">
+                <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Support & Escalations
                 </p>
-                <nav className="mt-2 space-y-1">
+                <nav className="mt-2 space-y-1.5">
                   <button
-                    type="button"
-                    onClick={() => setNavSection("tickets")}
-                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-extrabold transition-colors cursor-pointer ${
+                    onClick={() => {
+                      setNavSection("tickets");
+                      setIsMobileDrawerOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${
                       navSection === "tickets"
-                        ? "bg-[#087f80] text-white shadow-xs"
-                        : "text-[#3b5563] hover:bg-[#f0f5f7]"
+                        ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
@@ -644,10 +675,10 @@ export default function ManagerDashboard() {
                     </div>
                     {openTicketCount > 0 && (
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
                           navSection === "tickets"
-                            ? "bg-white text-[#087f80]"
-                            : "bg-[#fff1ef] text-[#f04f3e]"
+                            ? "bg-white/20 text-white"
+                            : "bg-red-100 text-[#f04f3e]"
                         }`}
                       >
                         {openTicketCount}
@@ -656,12 +687,14 @@ export default function ManagerDashboard() {
                   </button>
 
                   <button
-                    type="button"
-                    onClick={() => setNavSection("reports")}
-                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-extrabold transition-colors cursor-pointer ${
+                    onClick={() => {
+                      setNavSection("reports");
+                      setIsMobileDrawerOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${
                       navSection === "reports"
-                        ? "bg-[#087f80] text-white shadow-xs"
-                        : "text-[#3b5563] hover:bg-[#f0f5f7]"
+                        ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
@@ -669,10 +702,10 @@ export default function ManagerDashboard() {
                       <span>Incident Reports</span>
                     </div>
                     <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
                         navSection === "reports"
-                          ? "bg-white text-[#087f80]"
-                          : "bg-[#fef4e8] text-[#b36916]"
+                          ? "bg-white/20 text-white"
+                          : "bg-amber-100 text-amber-800"
                       }`}
                     >
                       {pendingReportCount}
@@ -682,21 +715,183 @@ export default function ManagerDashboard() {
               </div>
             </div>
 
-            {/* Quick KPI Summary Box */}
-            <div className="rounded-2xl border border-[#d8e3e7] bg-white p-4 shadow-xs">
-              <span className="text-[11px] font-bold text-[#67808c]">Verified Active Pool</span>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-extrabold text-[#092f45]">48</span>
-                <span className="text-xs text-[#7e95a1]">interpreters on duty</span>
-              </div>
-              <p className="mt-1 text-[11px] text-[#718a96]">
-                Across 8 language pairs in Greater Bangkok.
-              </p>
+            {/* Quick KPI & Environment in Mobile Drawer */}
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
+              <p className="font-semibold text-slate-700 text-[11px]">Regional Hub: Bangkok Central</p>
+              <p className="text-[10px]">Verified Active Pool: 48 interpreters</p>
+              <p className="text-[10px]">Compliance: PDPA / ISO 27001</p>
             </div>
           </aside>
+        </div>
+      )}
 
-          {/* ================= RIGHT MAIN CONTENT ================= */}
-          <section className="lg:col-span-9 space-y-4">
+      {/* Body Container: Sidebar (Desktop) + Main Content */}
+      <div className="flex flex-1 flex-col overflow-hidden md:flex-row">
+        {/* Left Sidebar (Desktop only - matches admin style) */}
+        <aside className="hidden w-64 flex-shrink-0 border-r border-slate-200 bg-white p-4 md:flex md:flex-col justify-between">
+          <div className="space-y-6">
+            {/* Hub Header Card */}
+            <div className="flex items-center gap-3 px-2 py-1">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#092f45] font-extrabold text-white shadow-xs">
+                KH
+              </div>
+              <div>
+                <h3 className="text-sm font-extrabold text-[#112d3f]">Regional Hub</h3>
+                <p className="text-[11px] text-slate-500">Bangkok Operations</p>
+              </div>
+            </div>
+
+            {/* Group 1: Verification Hub */}
+            <div>
+              <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                Interpreter Verification
+              </p>
+              <nav className="mt-2 space-y-1">
+                <button
+                  type="button"
+                  onClick={() => setNavSection("queue")}
+                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition-all cursor-pointer ${
+                    navSection === "queue"
+                      ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <InboxStackIcon className="h-5 w-5" />
+                    <span>Application Queue</span>
+                  </div>
+                  {pendingCount > 0 && (
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                        navSection === "queue"
+                          ? "bg-white/20 text-white"
+                          : "bg-amber-100 text-amber-800"
+                      }`}
+                    >
+                      {pendingCount}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setNavSection("approved")}
+                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition-all cursor-pointer ${
+                    navSection === "approved"
+                      ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <CheckCircleIcon className="h-5 w-5" />
+                    <span>Approved Volunteers</span>
+                  </div>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                      navSection === "approved"
+                        ? "bg-white/20 text-white"
+                        : "bg-teal-100 text-[#087f80]"
+                    }`}
+                  >
+                    {approvedCount}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setNavSection("rejected")}
+                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition-all cursor-pointer ${
+                    navSection === "rejected"
+                      ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <ArchiveBoxXMarkIcon className="h-5 w-5" />
+                    <span>Rejected Archive</span>
+                  </div>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                      navSection === "rejected"
+                        ? "bg-white/20 text-white"
+                        : "bg-red-100 text-[#d93829]"
+                    }`}
+                  >
+                    {rejectedCount}
+                  </span>
+                </button>
+              </nav>
+            </div>
+
+            {/* Group 2: Support & Escalations */}
+            <div>
+              <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                Support & Escalations
+              </p>
+              <nav className="mt-2 space-y-1">
+                <button
+                  type="button"
+                  onClick={() => setNavSection("tickets")}
+                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition-all cursor-pointer ${
+                    navSection === "tickets"
+                      ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <ChatBubbleLeftRightIcon className="h-5 w-5" />
+                    <span>Help Requests</span>
+                  </div>
+                  {openTicketCount > 0 && (
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                        navSection === "tickets"
+                          ? "bg-white/20 text-white"
+                          : "bg-red-100 text-[#f04f3e]"
+                      }`}
+                    >
+                      {openTicketCount}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setNavSection("reports")}
+                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition-all cursor-pointer ${
+                    navSection === "reports"
+                      ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <ShieldExclamationIcon className="h-5 w-5" />
+                    <span>Incident Reports</span>
+                  </div>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                      navSection === "reports"
+                        ? "bg-white/20 text-white"
+                        : "bg-amber-100 text-amber-800"
+                    }`}
+                  >
+                    {pendingReportCount}
+                  </span>
+                </button>
+              </nav>
+            </div>
+          </div>
+
+          {/* Quick Info / Environment Footer Box */}
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
+            <p className="font-semibold text-slate-700">Environment: Operational</p>
+            <p className="text-[11px]">KHVI Node: BKK-CORE-01</p>
+            <p className="text-[11px]">Pool: 48 Interpreters on Duty</p>
+          </div>
+        </aside>
+
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6">
             {/* View Header with Search & Filter */}
             {(navSection === "queue" || navSection === "approved" || navSection === "rejected") && (
               <div className="rounded-2xl border border-[#d8e3e7] bg-white p-5 shadow-xs">
@@ -1278,9 +1473,8 @@ export default function ManagerDashboard() {
                 </div>
               </div>
             )}
-          </section>
+          </main>
         </div>
-      </div>
 
       {/* ================= CENTERED POP-UP MODAL (30% / 70% SPLIT) ================= */}
       {detailModalOpen && selectedApplicant && (
@@ -1596,7 +1790,7 @@ export default function ManagerDashboard() {
         }}
         brandSubtitle="Operations Console"
       />
-    </main>
+    </div>
   );
 }
 
