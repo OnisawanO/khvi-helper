@@ -17,6 +17,7 @@
 | `/` | Static | Public | None | Not applicable | Implemented |
 | `/_not-found` | Framework fallback | Public | None | Framework fallback | Implemented |
 | `/manager` | Static Mockup | Manager Role | Mock data (FR-40–46, FR-51–52) | Not applicable | Implemented |
+| `/admin` | Static Mockup | Admin Role | Mock data (FR-76–83, NFR-01, NFR-07) | Not applicable | Implemented |
 
 ## Routes ที่วางแผนไว้
 
