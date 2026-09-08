@@ -1,5 +1,19 @@
 # KHVI Route Inventory
 
+## Requester preview flow update
+
+- Entry: `/welcome`; `/wellcom` redirects to `/welcome`.
+- Flow: welcome → `/request-help` → `/my-requests/[requestId]`; the list and welcome link back to the saved request.
+- Requester pages now share browser-local storage (`khvi-requester-v1`) and start empty. Example records are not presented as the user's requests.
+- Creation, cancellation reasons and completion confirmations persist across reloads in the same browser. Storage errors leave the form available for retry.
+- Urgent requests expire 30 minutes after creation; scheduled requests expire at their appointment if still open. Absolute deadlines survive navigation.
+- Missing GPS stays empty, without invented coordinates. A meeting-point description can be saved; map placement still needs map integration.
+- These pages remain public previews, not authenticated production features. No request reaches a real interpreter. Server authorization, Supabase storage and interpreter actions remain pending.
+- Malformed IDs return server 404. Unknown numeric IDs show a browser-local missing-request screen after loading (HTTP 200, because the server cannot read browser storage).
+- Verification: `node --test app/lib/request-store.test.mjs`, `npm run lint`, `npm run build`.
+
+This update supersedes the older mock-source and state-only behavior notes below.
+
 เอกสารนี้เป็นรายการกลางของ path ในระบบ ใช้ตรวจสอบชื่อ route, สิทธิ์, data source และ behavior เมื่อไม่พบข้อมูล
 
 ## กติกา

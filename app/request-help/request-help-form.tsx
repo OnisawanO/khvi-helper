@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type SubmitEvent } from "react";
+import { useRouter } from "next/navigation";
+import { createRequest } from "@/app/lib/request-store";
+import { useRef, useState, type SubmitEvent } from "react";
 import {
   ArrowLeftIcon,
   BoltIcon,
@@ -15,8 +17,6 @@ import {
 import { useCopyLocale } from "@/app/components/app-shell";
 import { CATEGORIES, LANGUAGES, type CategoryId, type LanguageId, type Urgency } from "@/app/lib/mock-requests";
 
-/** The open pin in the mock data stands in for the request created here. */
-const CREATED_REQUEST_ID = "1042";
 const SCHEDULE_WINDOW_HOURS = 24;
 
 const copy = {
@@ -47,13 +47,13 @@ const copy = {
     gpsHint: "Coordinates stay approximate on the map until an interpreter claims the request.",
     gpsDenied: "Location permission was denied. The place description will be used instead.",
     gpsUnavailable: "This browser cannot share a location. The place description will be used instead.",
-    gpsMissing: "No coordinates attached yet, so interpreters will only see the place description.",
+    gpsMissing: "No coordinates attached. You can save a meeting point, but this preview will not place it on a map.",
     submit: "Create request pin",
     privacyTitle: "What interpreters can see",
     beforeClaim: "Before a claim",
     afterClaim: "Unlocked after a claim",
     beforeItems: ["Language and category", "Approximate area", "How urgent the request is"],
-    afterItems: ["Exact coordinates", "Full place description", "Your phone number"],
+    afterItems: ["Exact coordinates, if provided", "Full place description"],
     errors: {
       language: "Select the language you need.",
       category: "Select one category.",
@@ -134,6 +134,8 @@ const labelClass = "block text-sm font-extrabold text-[#294554]";
 const hintClass = "mt-1.5 text-xs leading-5 text-[#73848a]";
 
 export function RequestHelpForm() {
+  const saving = useRef(false);
+  const router = useRouter();
   const copyLocale = useCopyLocale();
   const t = copy[copyLocale];
 
@@ -146,7 +148,7 @@ export function RequestHelpForm() {
   const [scheduleBounds, setScheduleBounds] = useState<{ min: string; max: string } | null>(null);
   const [gps, setGps] = useState<GpsState>({ kind: "idle" });
   const [errors, setErrors] = useState<Errors>({});
-  const [created, setCreated] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   /** Bounds are read when the user picks "Scheduled" so the window starts from the real current time. */
   function selectUrgency(option: Urgency) {
@@ -177,6 +179,7 @@ export function RequestHelpForm() {
 
   function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving.current) return;
 
     const nextErrors: Errors = {};
 
@@ -195,20 +198,27 @@ export function RequestHelpForm() {
     if (urgency === "Scheduled") {
       if (!scheduledAt) {
         nextErrors.schedule = t.errors.scheduleMissing;
-      } else if (scheduleBounds && (scheduledAt < scheduleBounds.min || scheduledAt > scheduleBounds.max)) {
+      } else if (!Number.isFinite(Date.parse(scheduledAt)) || Date.parse(scheduledAt) <= Date.now() || Date.parse(scheduledAt) > Date.now() + 86400000) {
         nextErrors.schedule = t.errors.scheduleRange;
       }
     }
 
     setErrors(nextErrors);
 
-    if (Object.keys(nextErrors).length === 0) {
-      setCreated(true);
+    if (Object.keys(nextErrors).length === 0 && languageId && categoryId) {
+      saving.current = true;
+      try {
+        const id = createRequest({ languageId, categoryId, description: description.trim(), urgency,
+          exactAddress: place.trim(), latitude: gps.kind === "ready" ? gps.latitude : null,
+          longitude: gps.kind === "ready" ? gps.longitude : null }, scheduledAt);
+        router.push(`/my-requests/${id}`);
+      } catch {
+        saving.current = false;
+        setSaveError("Could not save your request. Check browser storage permissions and try again. Your form is still here.");
+      }
     }
   }
 
-  const selectedLanguage = LANGUAGES.find((language) => language.id === languageId);
-  const selectedCategory = CATEGORIES.find((category) => category.id === categoryId);
 
   return (
     <main id="main-content" className="flex-1 px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
@@ -225,54 +235,6 @@ export function RequestHelpForm() {
         <h1 className="mt-1.5 text-3xl font-extrabold tracking-normal text-[#122b3e] sm:text-4xl">{t.title}</h1>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-[#64777e]">{t.intro}</p>
 
-        {created ? (
-          <section className="mt-7 max-w-2xl border border-[#b6ddcd] bg-[#f3faf6] p-6">
-            <div className="flex items-start gap-3">
-              <CheckCircleIcon aria-hidden="true" className="h-9 w-9 shrink-0 text-[#087557]" />
-              <div>
-                <h2 className="text-xl font-extrabold text-[#0f3a2c]">{t.createdTitle}</h2>
-                <p className="mt-2 text-sm leading-7 text-[#3f6357]">{t.createdBody}</p>
-              </div>
-            </div>
-
-            <dl className="mt-6 grid gap-x-6 gap-y-4 border-t border-[#c6e3d5] pt-5 sm:grid-cols-2">
-              <div>
-                <dt className="text-xs font-extrabold text-[#5c8073]">{t.languageLabel}</dt>
-                <dd className="mt-1 text-sm font-extrabold text-[#123a2d]">{selectedLanguage?.[copyLocale]}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-extrabold text-[#5c8073]">{t.categoryLabel}</dt>
-                <dd className="mt-1 text-sm font-extrabold text-[#123a2d]">{selectedCategory?.[copyLocale]}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-extrabold text-[#5c8073]">{t.urgencyLegend}</dt>
-                <dd className="mt-1 text-sm font-extrabold text-[#123a2d]">
-                  {t.urgency[urgency].title}
-                  {urgency === "Scheduled" && scheduledAt ? ` · ${scheduledAt.replace("T", " ")}` : ""}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-extrabold text-[#5c8073]">{t.placeLabel}</dt>
-                <dd className="mt-1 text-sm font-extrabold text-[#123a2d]">{place}</dd>
-              </div>
-            </dl>
-
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <Link
-                className="inline-flex h-12 items-center justify-center rounded-lg bg-(--khvi-navy) px-5 text-sm font-extrabold text-white transition-colors hover:bg-[#0c4960]"
-                href={`/my-requests/${CREATED_REQUEST_ID}`}
-              >
-                {t.createdTrack}
-              </Link>
-              <Link
-                className="inline-flex h-12 items-center justify-center rounded-lg border border-[#cbd7dc] bg-white px-5 text-sm font-extrabold text-[#173646] transition-colors hover:border-[#087f80] hover:text-[#087f80]"
-                href="/my-requests"
-              >
-                {t.createdList}
-              </Link>
-            </div>
-          </section>
-        ) : (
           <div className="mt-7 grid items-start gap-6 lg:grid-cols-[1.35fr_0.65fr]">
             <form className="border border-[#d6e0e4] bg-white p-5 sm:p-6" noValidate onSubmit={handleSubmit}>
               <fieldset>
@@ -440,6 +402,7 @@ export function RequestHelpForm() {
                 </div>
               </fieldset>
 
+              {saveError && <FieldError message={saveError} />}
               <button
                 type="submit"
                 className="mt-7 flex h-14 w-full items-center justify-center gap-2 rounded-lg bg-(--khvi-coral) px-5 text-sm font-extrabold text-white shadow-[0_10px_20px_rgba(240,79,62,0.22)] transition-colors hover:bg-[#d94334]"
@@ -483,7 +446,6 @@ export function RequestHelpForm() {
               )}
             </aside>
           </div>
-        )}
       </div>
     </main>
   );
