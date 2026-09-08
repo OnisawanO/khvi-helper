@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/app/components/app-shell";
-import { findRequest, isValidRequestId } from "@/app/lib/mock-requests";
-import { RequestDetail } from "./request-detail";
+import { isValidRequestId } from "@/app/lib/mock-requests";
+import { StoredRequestDetail } from "./stored-request-detail";
 
 export async function generateMetadata(props: PageProps<"/my-requests/[requestId]">): Promise<Metadata> {
   const { requestId } = await props.params;
@@ -19,15 +19,13 @@ export async function generateMetadata(props: PageProps<"/my-requests/[requestId
 
 export default async function RequestStatusPage(props: PageProps<"/my-requests/[requestId]">) {
   const { requestId } = await props.params;
-  const request = findRequest(requestId);
-
-  if (!request) {
+  if (!isValidRequestId(requestId)) {
     notFound();
   }
 
   return (
     <AppShell>
-      <RequestDetail request={request} />
+      <StoredRequestDetail requestId={requestId} />
     </AppShell>
   );
 }

@@ -4,6 +4,8 @@
 
 ## 0. วิธีอ่านเอกสารและสถานะของระบบ
 
+ข้อกำหนดล่าสุดกำหนดให้ Manager ตรวจข้อมูลสมัครล่ามที่ประกอบด้วยภาษา หมวดหมู่ ช่องทางติดต่อ และ `experience_summary` เท่านั้น ยังไม่รวมเอกสารยืนยันตัวตนหรือ background check ใน MVP
+
 ภาพเกณฑ์การประเมินกำหนดสายสัมพันธ์ของหลักฐานไว้ดังนี้:
 
 ```text
@@ -47,15 +49,15 @@ Manager ทำงานหลังบ้านที่เกี่ยวข้
 
 | กลุ่มงาน | เป้าหมายของ Manager | ข้อกำหนดที่อ้างอิง |
 |---|---|---|
-| ตรวจสอบใบสมัครล่าม | ตรวจประวัติ ภาษา หมวดหมู่ เอกสาร และตัดสินใจ Approve หรือ Reject | `FR-40–46`, `BR-02`, `NFR-01` |
-| ประสานงานและส่งต่อปัญหา | ช่วยแก้ Help Request และคัดกรอง Report ก่อนส่งต่อกรณีที่ Admin ต้องจัดการ | `FR-47–53`, `BR-08`, `BR-09` |
+| ตรวจสอบใบสมัครล่าม | ตรวจภาษา หมวดหมู่ ช่องทางติดต่อ ประสบการณ์ และตัดสินใจ Approve หรือ Reject | `FR-14–15`, `BR-02`, `NFR-01` |
+| ประสานงานและส่งต่อปัญหา | ช่วยแก้ Help Request และคัดกรอง Report ก่อนส่งต่อกรณีที่ Admin ต้องจัดการ | `FR-17–18` |
 
-Manager ไม่ใช่ผู้แก้ Role หรือผู้ล็อกบัญชีในระดับระบบ การเปลี่ยน Role, lock/unlock และการดู Audit Log เป็นขอบเขตของ `Admin` ตาม `FR-76–83` ใน `docs/requirements.md` และตามการแบ่งสิทธิ์ใน `detail.md`
+Manager ไม่ใช่ผู้แก้ Role หรือผู้ล็อกบัญชีในระดับระบบ การเปลี่ยน Role และ Lock/Unlock เป็นขอบเขตของ `Admin` ส่วน Audit Log บันทึก action ของทั้ง Manager และ Admin ตาม `docs/requirements.md` และ `detail.md`
 
 ### 1.2 ความสัมพันธ์กับบทบาทอื่น
 
 - `User` หรือ `Interpreter` ส่งใบสมัครหรือเปิด Help Request/Report ให้ Manager ตรวจสอบ
-- `Manager` ตรวจเอกสารและตัดสินใจเรื่องใบสมัคร หรือช่วยประสานปัญหาของภารกิจ
+- `Manager` ตรวจข้อมูลสมัครและตัดสินใจเรื่องใบสมัคร หรือช่วยประสานปัญหาของภารกิจ
 - เมื่อ Manager อนุมัติใบสมัคร ระบบเปลี่ยนสิทธิ์ของผู้สมัครเป็น `Interpreter` ตาม business rule ที่กำหนด
 - เมื่อ Report เกินขอบเขตของ Manager เช่น ต้องล็อกบัญชี Manager ส่งต่อให้ `Admin`
 - `Admin` มีขอบเขตกว้างกว่า Manager และเป็นผู้รับผิดชอบการจัดการสิทธิ์หรือมาตรการด้านบัญชี
@@ -64,10 +66,10 @@ Manager ไม่ใช่ผู้แก้ Role หรือผู้ล็อ
 
 **อยู่ในขอบเขตของ Manager**
 
-- ดูคิวใบสมัครที่อยู่ใน `Pending` หรือ `Under Review` ตามหน้าจอ mockup
+- ดูคิวใบสมัครที่อยู่ใน `Pending`
 - ค้นหาด้วยชื่อ, Application ID, ประเทศ, ช่องทางติดต่อ, ภาษา และหมวดหมู่
 - กรองภาษาและหมวดหมู่แบบ multi-select โดยใช้เงื่อนไข AND
-- เปิดรายละเอียดผู้สมัครและดูเอกสารประกอบ
+- เปิดรายละเอียดผู้สมัครและดูภาษา หมวดหมู่ ช่องทางติดต่อ และประสบการณ์
 - อนุมัติใบสมัคร
 - ปฏิเสธใบสมัครพร้อมเหตุผลที่กรอกแบบบังคับ
 - ดูรายการ Approved และ Rejected
@@ -93,7 +95,7 @@ Manager ต้องตัดสินใจจากหลักฐานที
 1. เห็นจำนวนงานค้างและเลือกคิวที่ต้องจัดการ
 2. ค้นหาผู้สมัครจากข้อมูลที่จำได้ เช่น ชื่อ, ID, ภาษา หรือหมวดหมู่
 3. เปรียบเทียบคุณสมบัติในมุมมองเดียวโดยไม่ต้องเปิดหลายหน้า
-4. ตรวจเอกสารและประวัติก่อนตัดสินใจ
+4. ตรวจภาษา หมวดหมู่ ช่องทางติดต่อ และประสบการณ์ก่อนตัดสินใจ
 5. แยก Approve กับ Reject ให้ชัด และขอเหตุผลเมื่อปฏิเสธ
 6. ตรวจปัญหาภารกิจและตอบกลับผู้ขอความช่วยเหลือ
 7. ส่งต่อกรณีความปลอดภัยให้ Admin โดยไม่ทำเกินสิทธิ์ของตน
@@ -106,7 +108,7 @@ Manager ต้องตัดสินใจจากหลักฐานที
 | ปริมาณข้อมูล | คิวอาจมีผู้สมัครจำนวนมาก จึงต้องมี search, filter, count และรายการแบบ table ที่ scan ได้เร็ว |
 | บริบทการทำงาน | อาจทำงานจาก laptop, tablet หรือมือถือระหว่างประสานเหตุ จึงต้องมี responsive layout และ mobile drawer |
 | ความเร่งด่วน | Help Request อาจเป็นเหตุสด ป้าย urgency และจำนวนคดีค้างต้องเห็นก่อนรายละเอียดรอง |
-| ข้อมูลอ่อนไหว | เอกสารยืนยันตัวตน ช่องทางติดต่อ ประวัติการตรวจสอบ และ Report ต้องอยู่ในพื้นที่ที่เข้าถึงได้เฉพาะ Manager/Admin ตาม authorization |
+| ข้อมูลอ่อนไหว | ช่องทางติดต่อ รายละเอียดคำขอ และ Report ต้องอยู่ในพื้นที่ที่เข้าถึงได้ตาม permission ของ Manager/Admin |
 | ความเสี่ยงจากการตัดสินใจ | Approve เปิดสิทธิ์รับงาน ส่วน Reject กระทบผู้สมัคร จึงต้องแสดงหลักฐานและบังคับเหตุผลก่อนยืนยัน |
 | การเข้าถึง | ปุ่มต้องมีชื่อที่เข้าใจได้, icon ต้องไม่เป็นช่องทางสื่อความหมายเพียงอย่างเดียว, focus state ต้องมองเห็น และข้อความต้องอ่านได้บนจอเล็ก |
 
@@ -114,7 +116,7 @@ Manager ต้องตัดสินใจจากหลักฐานที
 
 - แสดงสถานะด้วยข้อความ เช่น `Pending`, `Approved`, `Rejected` ควบคู่กับสี
 - แยกปุ่ม `Approve Application` และ `Reject Application` ด้วยสีและตำแหน่งที่ต่างกัน
-- เปิดรายละเอียดก่อนการตัดสินใจ เพื่อให้ Manager เห็นภาษา เอกสาร ประวัติ และผลตรวจสอบ
+- เปิดรายละเอียดก่อนการตัดสินใจ เพื่อให้ Manager เห็นภาษา หมวดหมู่ ช่องทางติดต่อ และประสบการณ์
 - ไม่เปิดปุ่ม Reject สำหรับรายการที่ `Approved` เพราะการเพิกถอนสิทธิ์เป็นงานของ Admin
 - ปิดปุ่ม `Confirm Rejection` จนกว่าจะมีเหตุผลที่ไม่ใช่ช่องว่าง
 - แสดงสถานะ empty เมื่อค้นหาแล้วไม่พบผู้สมัคร เพื่อไม่ให้ Manager เข้าใจว่าระบบไม่มีข้อมูล
@@ -128,15 +130,15 @@ Manager ต้องตัดสินใจจากหลักฐานที
 
 | Requirement | รายละเอียดที่ Manager ต้องรองรับ | ผลลัพธ์ที่ผู้ใช้คาดหวัง |
 |---|---|---|
-| `FR-40–46` | ดูรายชื่อผู้สมัคร ตรวจประวัติ และ Approve/Reject พร้อมเหตุผล | ผู้สมัครมีผลตรวจสอบที่ชัดเจน และผู้ที่ผ่านได้รับสิทธิ์ล่ามตาม workflow |
-| `FR-47–53` | ดูข้อมูลติดต่อหลัง claim, รับ Help Request, ตอบคำร้อง และรับ Report | ผู้ขอหรือล่ามได้รับการประสานงาน และปัญหาที่ต้องใช้สิทธิ์สูงถูกส่งต่อ |
+| `FR-14–15` | ดูรายชื่อผู้สมัคร ตรวจข้อมูลสมัคร และ Approve/Reject พร้อมเหตุผล | ผู้สมัครมีผลตรวจสอบที่ชัดเจน และผู้ที่ผ่านได้รับสิทธิ์ล่ามตาม workflow |
+| `FR-17–18` | รับ Help Request และรับ Report | ผู้ขอหรือล่ามได้รับการประสานงาน และปัญหาที่ต้องใช้สิทธิ์สูงถูกส่งต่อ |
 | `BR-02` | อนุมัติล่ามก่อนเปิดให้เห็นงานและรับงาน | ผู้ที่ยังไม่ผ่านการตรวจไม่สามารถทำหน้าที่ Interpreter |
 | `BR-08` | รับรู้การยกเลิกหรือการเปิดงานกลับเข้าสู่ pool ตาม flow ภารกิจ | การประสานงานไม่ทำให้ status ภารกิจข้ามลำดับ |
 | `BR-09` | รับ Report และ Help Request จาก User/Interpreter | Manager มีจุดคัดกรองปัญหาการใช้งานและพฤติกรรม |
 | `NFR-01` | จำกัด route และ action ตาม role | ผู้ไม่มีสิทธิ์ไม่สามารถอ่านหรือแก้ข้อมูลหลังบ้าน |
-| `NFR-07` | รักษาความสามารถในการตรวจสอบย้อนหลังตาม audit policy | งานที่เกี่ยวกับ Manager ต้องกำหนด event, actor, เวลา และผลลัพธ์ให้สอดคล้องกับ scope ของ `audit_log` ที่ทีมยืนยัน |
+| Audit | บันทึกการกระทำสำคัญของ Manager และ Admin | event ต้องมี actor, timestamp, target และ reason ตาม scope ที่ทีมยืนยัน |
 
-หมายเหตุ: `docs/requirements.md` ใช้ช่วงเลข `FR-40–46` สำหรับ Manager Review และ `FR-47–53` สำหรับ Contact & Support ขณะที่ `detail.md` ใช้ชุดเลขที่ปรับใหม่ในบางส่วน เอกสารนี้จึงอ้างอิงชื่อกลุ่มฟังก์ชันร่วมกับเลขทั้งสองชุด และไม่ถือว่าเลขชุดใดชุดหนึ่งเปลี่ยน business rule โดยลำพัง
+หมายเหตุ: เอกสารนี้ยึดรหัส FR ใน `docs/requirements.md` ฉบับปัจจุบัน
 
 ### 3.2 Use Case ที่ต้องรองรับ
 
@@ -157,7 +159,7 @@ Use-case diagram ใน `docs/requirements.md` ระบุ Use Case หลั�
 - ใบสมัครอยู่ใน status ที่เปลี่ยนได้
 - Reject มีเหตุผลที่ไม่ใช่ค่าว่าง
 - การ Approve เปลี่ยนสถานะและ role อย่างเป็นธุรกรรมเดียวกัน
-- Manager ไม่สามารถเปลี่ยน Role, lock/unlock หรือแก้ Audit Log ที่เป็นขอบเขตของ Admin
+- Manager ไม่สามารถเปลี่ยน Role, lock/unlock หรือแก้ไข/ลบ Audit Log ได้ แต่การกระทำของ Manager ต้องถูกบันทึกใน Audit Log เช่นเดียวกับ Admin
 
 ---
 
@@ -195,13 +197,13 @@ flowchart TD
 ### 4.2 Flow ตรวจใบสมัครล่าม
 
 1. Manager เปิด `/manager` หลังระบบตรวจ role
-2. ระบบแสดง `Application Queue` พร้อมจำนวนรายการ `Pending` และ `Under Review`
+2. ระบบแสดง `Application Queue` พร้อมจำนวนรายการ `Pending`
 3. Manager ใช้ search หรือเปิด Filter เพื่อเลือกภาษากับหมวดหมู่
 4. ระบบใช้เงื่อนไข AND ระหว่างภาษาและหมวดหมู่ที่เลือก แล้วอัปเดตจำนวนผลลัพธ์
 5. Manager คลิกแถวเพื่อเปิดรายละเอียดแบบ 30% / 70%
-6. Manager อ่านข้อมูลผู้สมัคร, ภาษา, ความชำนาญ, background check, เอกสาร และประสบการณ์
-7. ถ้าหลักฐานครบ Manager กด `Approve Application`
-8. ถ้าหลักฐานไม่ครบ Manager กด `Reject Application`, ระบุเหตุผล และกด `Confirm Rejection`
+6. Manager อ่านข้อมูลผู้สมัคร ภาษา หมวดหมู่ ช่องทางติดต่อ และประสบการณ์
+7. ถ้าข้อมูลครบ Manager กด `Approve Application`
+8. ถ้าข้อมูลไม่ครบ Manager กด `Reject Application`, ระบุเหตุผล และกด `Confirm Rejection`
 9. ระบบอัปเดต status, บันทึก actor/time/reason และแจ้งผลตาม notification flow
 
 ### 4.3 Flow ช่วยเหลือภารกิจ
@@ -235,7 +237,7 @@ flowchart TD
 | Search | พิมพ์ชื่อ, ID, ประเทศ, ช่องทางติดต่อ, ภาษา หรือ category | ตารางแสดงเฉพาะรายการที่ตรง | อ่านรายการที่ Manager มีสิทธิ์เห็น | loading, no match, clear search |
 | Filter | เลือกหลายภาษา/หลายหมวดหมู่ | กรองแบบ AND และแสดงจำนวนผลลัพธ์ | ใช้กับ applicant list | popover เปิด/ปิด, reset, no result |
 | Applicant table | คลิกแถวหรือ `Review` | เปิด Application Detail Modal | ผู้สมัครต้องมีอยู่จริง | loading detail, missing record, error |
-| Detail Modal | Preview เอกสาร | เปิดตัวอย่างเอกสารหรือแสดงข้อผิดพลาด | Manager ที่ผ่าน authorization | document loading, unavailable, preview error |
+| Detail Modal | ดูรายละเอียดสมัคร | แสดงภาษา หมวดหมู่ ช่องทางติดต่อ และประสบการณ์ | Manager ที่ผ่าน authorization | loading, unavailable, permission error |
 | Detail Modal | `Approve Application` | เปลี่ยนเป็น Approved และส่งต่อ role transition | status ต้องอยู่ในขั้นที่อนุมัติได้ | disabled, success, conflict จากผู้ตรวจคนอื่น |
 | Detail Modal | `Reject Application` | เปิด Reject Modal | ต้องไม่ใช่รายการ Approved | modal open/close |
 | Reject Modal | กรอกเหตุผลแล้ว Confirm | เปลี่ยนเป็น Rejected, เก็บ reason และแจ้งผล | เหตุผลต้องไม่ว่าง | validation, submit loading, success/error |
@@ -261,7 +263,7 @@ flowchart TD
 ### 5.3 ตาราง state transition ของใบสมัคร
 
 ```text
-Pending / Under Review
+Pending
         ├─ Approve + valid evidence ─► Approved ─► role Interpreter
         └─ Reject + non-empty reason ─► Rejected
 ```
@@ -285,7 +287,7 @@ Pending / Under Review
 | Applicant Table | ตรวจคิวและ archive | ตารางเหมาะกับข้อมูลซ้ำหลายแถวและเปรียบเทียบ status, language, domain ได้เร็ว |
 | Status Badge | อ่านสถานะ | ใช้ข้อความและสีร่วมกัน ลดการแปลความหมายจากสีเพียงอย่างเดียว |
 | Application Detail Modal | ตรวจข้อมูลเชิงลึกและตัดสินใจ | รวมหลักฐานกับ action ไว้ใน task เดียว ลดการสลับ context |
-| Document Preview Item | ตรวจเอกสาร | แยกชื่อไฟล์ ประเภท และ action Preview ให้ scan ได้ง่าย |
+| Experience Summary | ตรวจประสบการณ์ | แสดงรายละเอียดประสบการณ์ในจุดเดียวเพื่อใช้ประกอบการตัดสินใจ |
 | Reject Modal | เก็บเหตุผลการปฏิเสธ | ใช้ modal เพราะเป็น action สำคัญที่ต้องหยุดตรวจความครบถ้วนก่อน submit |
 | Help Ticket Card | อ่านและตอบ Help Request | card แยกแต่ละเหตุการณ์ พร้อม urgency, status, mission และ response |
 | Incident Report Card | คัดกรองและส่งต่อ Report | แสดงผู้รายงาน ผู้ถูกรายงาน Booking และเหตุผลในกลุ่มเดียว |
@@ -299,8 +301,8 @@ Pending / Under Review
 |---|---|---|
 | `ManagerSidebar` | active section, counts, onSelect | navigation, badge, responsive drawer และ keyboard behavior |
 | `ApplicantFilters` | query, languages, categories | query state, AND filtering, reset และ accessible labels |
-| `VolunteerVerifyCard` | applicant summary | status, background check และ action ที่สอดคล้องกับ status |
-| `ApplicationDetailPanel` | applicant detail | profile, languages, documents, experience และ action bar |
+| `VolunteerVerifyCard` | applicant summary | status, languages, categories และ action ที่สอดคล้องกับ status |
+| `ApplicationDetailPanel` | applicant detail | profile, languages, categories, contact, experience และ action bar |
 | `RejectReasonDialog` | applicant id, submit handler | required validation, pending state, error และ focus return |
 | `HelpRequestList` | tickets, action handlers | urgency, status, response form และ empty/loading/error state |
 | `IncidentReportList` | reports, escalation handler | evidence summary, escalation status และ duplicate-action guard |
@@ -371,8 +373,8 @@ Status badge ต้องมีข้อความเสมอ เช่น `A
 
 ### 8.1 ความปลอดภัยของข้อมูล
 
-- Manager เห็นเอกสารและข้อมูลติดต่อเฉพาะเมื่อ server ยืนยันสิทธิ์แล้ว
-- ระบบต้องกำหนด audit event สำหรับ action สำคัญ เช่น Approve, Reject, Respond และ Escalate พร้อม actor, timestamp, target และ reason ให้ชัดเจนก่อนเชื่อม production โดย `NFR-07` ใน `docs/requirements.md` ระบุ audit ของ Admin โดยตรง ขณะที่ mockup ระบุว่าการกระทำของ Manager ถูก log จึงต้องยืนยัน scope นี้กับทีมก่อนใช้งานจริง
+- Manager เห็นข้อมูลติดต่อและรายละเอียดคำขอเฉพาะเมื่อ server ยืนยัน permission แล้ว
+- ระบบต้องกำหนด audit event สำหรับ action สำคัญของ Manager และ Admin เช่น Approve, Reject, Respond, Escalate และเปลี่ยน role พร้อม actor, timestamp, target และ reason
 - Client ห้ามเป็นผู้ตัดสินใจ role transition เพียงลำพัง
 - Report ที่เกี่ยวกับความเสี่ยงบัญชีต้องส่งต่อ Admin แทนการจำลอง lock จากหน้า Manager
 - production ต้องเพิ่ม RLS และ policy ก่อนเปิดใช้ข้อมูลจริงตามข้อจำกัดใน `detail.md`
@@ -393,7 +395,7 @@ Status badge ต้องมีข้อความเสมอ เช่น `A
 |---|---|---|
 | Data source | array ใน `page.tsx` | Supabase query และ typed data access |
 | Approve/Reject | เปลี่ยน React state ใน memory | Server Action, transaction, authorization, notification และ audit |
-| `Under Review` | มี status ใน mock data และ filter queue | ยืนยันว่าจะใช้ status นี้ใน schema หรือใช้เฉพาะ UI ก่อน deploy |
+| Permission | หน้า mockup แสดงข้อมูลตัวอย่าง | production ต้องตรวจ permission ฝั่ง server ก่อนเปิดข้อมูล |
 | Help/Report | มี card และ local state | `help_requests`, `reports`, manager action และ Admin handoff |
 | Auth | profile เป็นข้อมูลตัวอย่าง | Supabase Auth, role check, unauthorized state และ RLS |
 | Document preview | จำลอง `alert` | protected storage URL, access check, loading และ preview error |
@@ -406,9 +408,9 @@ Status badge ต้องมีข้อความเสมอ เช่น `A
 ## 9. Checklist สำหรับตรวจความครบถ้วน
 
 - [ ] ระบุ `Manager` เป็น actor พร้อมเป้าหมายและข้อจำกัด
-- [ ] ผูก `FR-40–46`, `FR-47–53`, `BR-02`, `BR-08`, `BR-09` และ `NFR-01` กับ action ในหน้า
+- [ ] ผูก `FR-14–18`, `BR-02`, `BR-08`, `BR-09` และ `NFR-01` กับ action ในหน้า
 - [ ] อธิบาย `UC9` และ `UC10` พร้อม precondition และ postcondition
-- [ ] มี flow ตั้งแต่ login, ค้นหา, ตรวจเอกสาร, Approve/Reject ไปจนถึง Help/Report escalation
+- [ ] มี flow ตั้งแต่ login, เปิดคิว, ตรวจข้อมูลสมัคร, Approve/Reject ไปจนถึง Help/Report escalation
 - [ ] อธิบาย action และผลลัพธ์ของทุก section ใน `/manager`
 - [ ] ระบุ loading, empty, error, unauthorized, conflict และ success state
 - [ ] แยก component ตามหน้าที่และระบุว่า component ใดมีอยู่จริงหรือเป็นโครงสร้างที่วางแผน

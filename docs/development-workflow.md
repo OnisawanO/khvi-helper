@@ -26,20 +26,33 @@ docs/ilham/update-requirements
 ## ลำดับการทำงาน
 
 1. แตก branch จาก `develop`
-2. อ่าน requirement และเอกสารที่เกี่ยวข้อง
-3. หากเป็นงาน UI/UX ให้อ่าน `SKILL.md` และกำหนด design direction
-4. หากเป็นงาน UI/UX ให้อ่าน `docs/design-system.md` และตรวจ token/component ที่มีอยู่
-5. หากเป็นงานเขียนหรือแก้ไข prose, documentation, PR text หรือ UI copy ให้อ่าน `skills/stop-slop/SKILL.md`
-6. วางแผนงานและกำหนดขอบเขตไฟล์
-7. หากเพิ่มหรือแก้หน้าเว็บ ให้กำหนด path, route type, parameter, access rule และ not-found behavior ใน `docs/route-inventory.md`
-8. พัฒนาและทดสอบบน branch ของตนเอง
-9. รัน `npm run lint` และ `npm run build`
-10. เปิด Pull Request เข้า `develop`
-11. แก้ไข review comment และรอ status checks ผ่าน
-12. รวมงานเข้า `develop` หลังผ่านการ review
-13. ทดสอบภาพรวมจาก `develop`
-14. เปิด Pull Request จาก `develop` เข้า `main`
-15. รวมเข้า `main` เมื่อ review และ status checks ผ่านครบถ้วน
+2. หาก task เกี่ยวข้องกับ requirement หรือ behavior หลัก ให้ผ่าน Requirement Consistency Gate ตาม `docs/requirement-consistency-checklist.md` ก่อนแก้ไฟล์
+3. อ่าน requirement และเอกสารที่เกี่ยวข้อง
+4. หากเป็นงาน UI/UX ให้อ่าน `SKILL.md` และกำหนด design direction
+5. หากเป็นงาน UI/UX ให้อ่าน `docs/design-system.md` และตรวจ token/component ที่มีอยู่
+6. หากเป็นงานเขียนหรือแก้ไข prose, documentation, PR text หรือ UI copy ให้อ่าน `skills/stop-slop/SKILL.md`
+7. วางแผนงานและกำหนดขอบเขตไฟล์
+8. หากเพิ่มหรือแก้หน้าเว็บ ให้กำหนด path, route type, parameter, access rule และ not-found behavior ใน `docs/route-inventory.md`
+9. พัฒนาและทดสอบบน branch ของตนเอง
+10. รัน `npm run lint` และ `npm run build`
+11. ตรวจ Requirement Consistency Gate ซ้ำกับ diff หาก task แตะ requirement หรือ behavior หลัก
+12. เปิด Pull Request เข้า `develop`
+13. แก้ไข review comment และรอ status checks ผ่าน
+14. รวมงานเข้า `develop` หลังผ่านการ review
+15. ทดสอบภาพรวมจาก `develop`
+16. เปิด Pull Request จาก `develop` เข้า `main`
+17. รวมเข้า `main` เมื่อ review และ status checks ผ่านครบถ้วน
+
+## Requirement Consistency Gate
+
+ก่อน implement requirement หรือ behavior หลัก ต้องใช้ checklist ที่ `docs/requirement-consistency-checklist.md` โดยตรวจอย่างน้อย:
+
+- Requirement กับ use case และ user flow
+- Requirement กับ database relation, schema และ migration ที่มีจริง
+- Requirement กับ route, role/permission และ business rule
+- Requirement กับ Source code และ configuration ปัจจุบัน
+
+ต้องแยกผลเป็นข้อที่สอดคล้อง, ขัดแย้ง และยังไม่ชัดเจน หากข้อขัดแย้งหรือข้อไม่ชัดเจนกระทบ scope, business rule, permission, status หรือ schema ให้หยุดและถามผู้ดูแลก่อนเริ่ม implementation ห้ามแก้โดยการเดา
 
 งาน UI ที่เปลี่ยนสี ฟอนต์ รูปทรง หรือ visual language ต้องถามก่อนว่าจะใช้เฉพาะ task หรือยกระดับเป็น design system ทั้งโปรเจกต์
 

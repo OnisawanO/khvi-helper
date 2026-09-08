@@ -197,7 +197,7 @@
 **Logic ที่เกี่ยวข้อง**
 
 - อ่านและอัปเดต `bookings`
-- ใช้ field `claimed_at`, `started_at`, `ended_at`, `user_confirmed_done_at`, `interpreter_confirmed_done_at`, `cancelled_by`, `cancel_reason`
+- ใช้ field `claimed_at`, `requester_confirmed_at`, `started_at`, `ended_at`, `user_confirmed_done_at`, `interpreter_confirmed_done_at`, `cancelled_by`, `cancel_reason`
 - เปิดเผยพิกัดจริงและข้อมูลติดต่อเฉพาะหลัง claim
 - `actions/mission-actions.ts`
 
@@ -206,7 +206,7 @@
 - ผู้ขอและล่ามเห็นข้อมูล mission เดียวกันตามสิทธิ์ของตัวเอง
 - `Claimed` กดเริ่มงานได้
 - `InProgress` ต้องให้ทั้งสองฝ่ายยืนยันจบ ก่อนเปลี่ยนเป็น `Completed`
-- ถ้าล่ามยกเลิกก่อนหมดอายุ ให้เปิดหมุดกลับเป็น `Open`
+- ถ้าล่ามยกเลิกใน `Claimed` ก่อนหมดอายุ ให้เปิดหมุดกลับเป็น `Open`; ถ้ายกเลิกใน `InProgress` ให้เป็น `Cancelled`
 - MVP ไม่รวมระบบแชท
 
 **จุดส่งต่องาน**

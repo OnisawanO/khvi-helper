@@ -22,26 +22,28 @@ function formatRemaining(totalSeconds: number): string {
  */
 export function ExpiryCountdown({
   seconds,
+  expiresAt,
   copyLocale,
   compact = false,
 }: {
   seconds: number;
+  expiresAt?: string;
   copyLocale: CopyLocale;
   compact?: boolean;
 }) {
-  const [remaining, setRemaining] = useState(seconds);
+  const [remaining, setRemaining] = useState<number | null>(expiresAt ? null : seconds);
   const t = copy[copyLocale];
 
   useEffect(() => {
     const interval = window.setInterval(() => {
-      setRemaining((current) => (current <= 0 ? 0 : current - 1));
+      setRemaining((current) => expiresAt ? Math.max(0, Math.ceil((Date.parse(expiresAt) - Date.now()) / 1000)) : Math.max(0, (current ?? seconds) - 1));
     }, 1000);
 
     return () => window.clearInterval(interval);
-  }, []);
+  }, [expiresAt, seconds]);
 
-  const isExpired = remaining <= 0;
-  const isRunningOut = !isExpired && remaining <= 5 * 60;
+  const isExpired = remaining !== null && remaining <= 0;
+  const isRunningOut = remaining !== null && !isExpired && remaining <= 5 * 60;
 
   return (
     <span
@@ -52,7 +54,7 @@ export function ExpiryCountdown({
       }`}
     >
       <ClockIcon aria-hidden="true" className={compact ? "h-4 w-4" : "h-5 w-5"} />
-      {isExpired ? t.expired : `${t.prefix} ${formatRemaining(remaining)}`}
+      {remaining === null ? (copyLocale === "zh" ? "正在检查截止时间…" : "Checking deadline…") : isExpired ? t.expired : `${t.prefix} ${formatRemaining(remaining)}`}
     </span>
   );
 }

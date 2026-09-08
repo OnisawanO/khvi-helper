@@ -4,6 +4,7 @@ import { createContext, useContext, type ReactNode } from "react";
 import { resolveCopyLocale, useStoredLocale, type CopyLocale } from "@/app/lib/locale";
 import { SiteFooter } from "./site-footer";
 import { SiteHeader } from "./site-header";
+import { RequestNavigation } from "./request-navigation";
 
 const shellCopy = {
   en: {
@@ -97,6 +98,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {t.skip}
       </a>
       <SiteHeader copy={t.header} locale={locale} onLocaleChange={setLocale} />
+      <RequestNavigation />
       {children}
       <SiteFooter copy={t.footer} brandSubtitle={t.header.brandSubtitle} />
     </CopyLocaleContext.Provider>

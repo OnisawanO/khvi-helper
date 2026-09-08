@@ -62,6 +62,21 @@ KHVI Helper เป็นเว็บแอปพลิเคชันสำห�
 หากข้อมูลจากแหล่งใดขัดแย้งกัน ต้องระบุความขัดแย้งและถามผู้ใช้ก่อนตัดสินใจ
 ห้ามเลือกใช้ข้อมูลใดข้อมูลหนึ่งเงียบ ๆ โดยไม่มีการแจ้งให้ทราบ
 
+### Requirement Consistency Gate
+
+งานใดก็ตามที่อ่าน แก้ เพิ่ม หรือนำ requirement ไป implement ต้องผ่าน gate นี้ก่อนเริ่มแก้ไฟล์:
+
+1. ระบุขอบเขต requirement ของ task และรวบรวมเอกสารที่เกี่ยวข้องอย่างน้อยจาก `docs/requirements.md`, `docs/user-flows.txt`, `detail.md`, เอกสาร role ที่เกี่ยวข้อง และ `docs/route-inventory.md` หากมีผลต่อ route
+2. ตรวจ Source code, configuration, database schema/migration ที่มีอยู่จริงแยกจากเอกสารแผนงาน
+3. ทำ conflict matrix สั้น ๆ โดยเทียบ requirement กับ use case/user flow, database relation/schema, route และ business rule ที่เกี่ยวข้อง
+4. แยกผลตรวจเป็น `สอดคล้อง`, `ขัดแย้ง`, `ยังไม่ชัดเจน` และบันทึกไฟล์/หัวข้อที่เป็นหลักฐาน
+5. หากพบความขัดแย้งหรือข้อไม่ชัดเจนที่เปลี่ยน scope, business rule, role/permission, status transition, data model หรือ API contract ให้หยุดก่อนแก้ implementation และถามผู้ใช้
+6. หากไม่พบความขัดแย้ง ให้สรุป decision ที่จะยึดและไฟล์ที่จะเปลี่ยนในแผนงานก่อนเริ่มแก้
+7. หลังแก้เสร็จให้ตรวจ gate ซ้ำกับ diff เพื่อยืนยันว่า requirement, flow, relation และ implementation ยังสอดคล้องกัน
+
+ใช้ checklist กลางที่ `docs/requirement-consistency-checklist.md` ทุกครั้งที่ task แตะ requirement
+หรือ behavior หลักของระบบ
+
 ## 5. ข้อกำหนดของโครงงาน
 
 - ต้องมีฟีเจอร์หลักตามขอบเขตของทีมและรองรับ CRUD ที่จำเป็น
@@ -112,13 +127,14 @@ KHVI Helper เป็นเว็บแอปพลิเคชันสำห�
 1. ตรวจสอบ branch ด้วย `git branch --show-current`
 2. ตรวจสอบสถานะไฟล์ด้วย `git status --short`
 3. ห้ามเริ่มแก้ไขหากอยู่บน `main` หรือ `develop`
-4. อ่าน requirements และเอกสารที่เกี่ยวข้อง
-5. หากเป็นงาน UI/UX ให้อ่าน `SKILL.md` และกำหนด design direction
-6. หากเป็นงาน UI/UX ให้อ่าน `docs/design-system.md` และตรวจ token/component ที่มีอยู่
-7. หากเป็นงานเขียนหรือแก้ไข prose, documentation, PR text หรือ UI copy ให้อ่าน `skills/stop-slop/SKILL.md`
-8. แยกให้ได้ว่าส่วนใดทำแล้ว ส่วนใดอยู่ระหว่างทำ และส่วนใดเป็นแผนงาน
-9. ระบุไฟล์ที่จะเปลี่ยนและวางแผนสั้น ๆ
-10. ใช้ feature branch รูปแบบ `feature/<สมาชิก>/<งาน>`, `fix/<สมาชิก>/<งาน>` หรือ `docs/<สมาชิก>/<งาน>`
+4. หาก task เกี่ยวข้องกับ requirement หรือ behavior หลัก ให้ผ่าน Requirement Consistency Gate และบันทึกผลตาม `docs/requirement-consistency-checklist.md`
+5. อ่าน requirements และเอกสารที่เกี่ยวข้อง
+6. หากเป็นงาน UI/UX ให้อ่าน `SKILL.md` และกำหนด design direction
+7. หากเป็นงาน UI/UX ให้อ่าน `docs/design-system.md` และตรวจ token/component ที่มีอยู่
+8. หากเป็นงานเขียนหรือแก้ไข prose, documentation, PR text หรือ UI copy ให้อ่าน `skills/stop-slop/SKILL.md`
+9. แยกให้ได้ว่าส่วนใดทำแล้ว ส่วนใดอยู่ระหว่างทำ และส่วนใดเป็นแผนงาน
+10. ระบุไฟล์ที่จะเปลี่ยนและวางแผนสั้น ๆ
+11. ใช้ feature branch รูปแบบ `feature/<สมาชิก>/<งาน>`, `fix/<สมาชิก>/<งาน>` หรือ `docs/<สมาชิก>/<งาน>`
 
 ### ระหว่างทำงาน
 
@@ -134,7 +150,8 @@ KHVI Helper เป็นเว็บแอปพลิเคชันสำห�
 2. รันคำสั่งตรวจสอบที่เกี่ยวข้อง
 3. ตรวจสอบว่าไม่มี secret หรือไฟล์ generated ถูกเพิ่ม
 4. ตรวจสอบ business rules ที่เกี่ยวข้อง
-5. รายงานไฟล์ที่แก้ ผลการตรวจสอบ และความเสี่ยงที่เหลือ
+5. หาก task ผ่าน Requirement Consistency Gate ให้ตรวจ checklist ซ้ำหลังแก้และระบุผลในรายงาน
+6. รายงานไฟล์ที่แก้ ผลการตรวจสอบ และความเสี่ยงที่เหลือ
 
 ## 9. คำสั่งมาตรฐาน
 

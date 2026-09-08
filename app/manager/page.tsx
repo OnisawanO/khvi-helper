@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState, useRef, useMemo } from "react";
 import {
   AdjustmentsHorizontalIcon,
@@ -13,6 +15,7 @@ import {
   CheckCircleIcon,
   CheckIcon,
   ChevronDownIcon,
+  Cog6ToothIcon,
   DocumentTextIcon,
   EllipsisHorizontalIcon,
   ExclamationCircleIcon,
@@ -26,10 +29,10 @@ import {
   ShieldCheckIcon,
   ShieldExclamationIcon,
   UserCircleIcon,
+  UserPlusIcon,
   XCircleIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { BrandMark } from "../components/brand-mark";
 import { SiteFooter } from "../components/site-footer";
 
 type ApplicantDocument = {
@@ -257,7 +260,37 @@ const initialReports: IncidentReport[] = [
   },
 ];
 
-function ManagerHeader({ onMenuClick }: { onMenuClick?: () => void }) {
+function formatBadgeCount(count: number): string {
+  if (count > 99) return "99+";
+  return count.toString();
+}
+
+function ManagerHeader({
+  onMenuClick,
+}: {
+  onMenuClick?: () => void;
+  isSidebarCollapsed?: boolean;
+  onToggleSidebar?: () => void;
+}) {
+  return (
+    <header className="sticky top-0 z-20 md:hidden border-b border-[#dbe3e7] bg-[#fbfdfc]/95 shadow-[0_4px_16px_rgba(21,52,67,0.03)] backdrop-blur">
+      <div className="flex w-full items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
+        {/* Mobile Drawer Toggle Button */}
+        <button
+          type="button"
+          onClick={onMenuClick}
+          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#c9d8de] bg-white text-[#092f45] shadow-xs hover:border-[#087f80] hover:bg-[#edf7f5] hover:text-[#087f80] transition-colors focus:outline-none focus:ring-2 focus:ring-[#087f80]/30 cursor-pointer"
+          aria-label="Open Navigation Menu"
+        >
+          <Bars3Icon className="h-5 w-5" />
+        </button>
+      </div>
+    </header>
+  );
+}
+
+export default function ManagerDashboard() {
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
@@ -271,89 +304,6 @@ function ManagerHeader({ onMenuClick }: { onMenuClick?: () => void }) {
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, []);
 
-  return (
-    <header className="sticky top-0 z-30 border-b border-[#dbe3e7] bg-[#fbfdfc]/95 shadow-[0_8px_24px_rgba(21,52,67,0.06)] backdrop-blur">
-      <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-3 px-4 py-3 sm:px-8 lg:px-12">
-        {/* Brand & Mobile Drawer Button */}
-        <div className="flex items-center gap-3 sm:gap-6">
-          <button
-            type="button"
-            onClick={onMenuClick}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#c9d8de] bg-white text-[#092f45] shadow-xs hover:border-[#087f80] hover:bg-[#edf7f5] hover:text-[#087f80] transition-colors md:hidden focus:outline-none focus:ring-2 focus:ring-[#087f80]/30 cursor-pointer"
-            aria-label="Open Navigation Menu"
-          >
-            <Bars3Icon className="h-5 w-5" />
-          </button>
-          <BrandMark subtitle="Community interpreter map" />
-        </div>
-
-        {/* Account Profile */}
-        <div className="flex items-center gap-4">
-
-          <div className="relative" ref={profileMenuRef}>
-            <button
-              type="button"
-              onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-              className="flex items-center gap-2.5 rounded-xl border border-[#d6e0e4] bg-white px-3 py-1.5 transition-colors hover:border-[#087f80]"
-            >
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#092f45] text-xs font-black text-white">
-                TY
-              </div>
-              <div className="text-left hidden md:block">
-                <p className="text-xs font-black leading-tight text-[#143141]">Taofix yayueri</p>
-                <p className="text-[10px] font-bold text-[#087f80]">Regional Manager</p>
-              </div>
-              <ChevronDownIcon
-                className={`h-4 w-4 text-[#6e848e] transition-transform ${
-                  profileMenuOpen ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-
-            {/* Profile Dropdown Menu */}
-            {profileMenuOpen && (
-              <div className="absolute right-0 mt-2 w-64 rounded-xl border border-[#d6e0e4] bg-white p-2 shadow-[0_18px_36px_rgba(19,52,68,0.16)] animate-in fade-in zoom-in-95">
-                <div className="border-b border-[#eef3f5] px-3 py-2.5">
-                  <p className="text-sm font-extrabold text-[#153447]">Taofix yayueri</p>
-                  <p className="text-xs text-[#6a808a]">tyayuxri@gmail.com</p>
-                  <span className="mt-2 inline-flex items-center gap-1 rounded-md bg-[#e6f4ef] px-2 py-0.5 text-[11px] font-bold text-[#087557]">
-                    <CheckBadgeIcon className="h-3.5 w-3.5" />
-                    Verified Staff
-                  </span>
-                </div>
-                <div className="py-1">
-                  <a
-                    href="#profile"
-                    onClick={() => setProfileMenuOpen(false)}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-bold text-[#2d4957] transition-colors hover:bg-[#f2f7f9] hover:text-[#087f80]"
-                  >
-                    <UserCircleIcon className="h-4 w-4" />
-                    Manager Profile & Settings
-                  </a>
-                </div>
-                <div className="border-t border-[#eef3f5] pt-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setProfileMenuOpen(false);
-                      alert("Simulating sign out");
-                    }}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-bold text-[#d93829] transition-colors hover:bg-[#fff2f0]"
-                  >
-                    <ArrowLeftOnRectangleIcon className="h-4 w-4" />
-                    Sign out
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </header>
-  );
-}
-
-export default function ManagerDashboard() {
   const [applicants, setApplicants] = useState<InterpreterApplicant[]>(initialApplicants);
   const [tickets, setTickets] = useState<HelpTicket[]>(initialTickets);
   const [reports, setReports] = useState<IncidentReport[]>(initialReports);
@@ -528,9 +478,7 @@ export default function ManagerDashboard() {
   const pendingReportCount = reports.filter((r) => r.status === "Pending Investigation").length;
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#f7f9fa] text-[#092f45] antialiased">
-      <ManagerHeader onMenuClick={() => setIsMobileDrawerOpen(true)} />
-
+    <div className="flex h-screen w-full overflow-hidden bg-[#f7f9fa] text-[#092f45] antialiased">
       {/* Mobile Slide-out Sidebar Drawer (Pop-up from left) */}
       {isMobileDrawerOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden animate-in fade-in duration-200">
@@ -545,15 +493,26 @@ export default function ManagerDashboard() {
             <div className="space-y-6">
               {/* Drawer Top Header */}
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#092f45] text-white">
-                    <ShieldCheckIcon className="h-4 w-4" />
+                <Link
+                  href="/"
+                  onClick={() => setIsMobileDrawerOpen(false)}
+                  className="flex items-center gap-2.5 group"
+                  title="KHVI Home (กลับสู่หน้าหลัก)"
+                >
+                  <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#087f80]/30 bg-[#092f45] shadow-xs">
+                    <Image
+                      src="/khvi-logo.jpg"
+                      alt="KHVI logo"
+                      fill
+                      sizes="36px"
+                      className="scale-[2.2] object-cover object-[50%_54%]"
+                    />
                   </div>
                   <div>
-                    <h3 className="text-xs font-extrabold text-[#092f45]">Manager Console</h3>
-                    <p className="text-[10px] text-slate-400">Navigation Menu</p>
+                    <h3 className="text-xs font-extrabold text-[#092f45] group-hover:text-[#087f80] transition-colors">KHVI Helper</h3>
+                    <p className="text-[10px] text-slate-400">Manager Console</p>
                   </div>
-                </div>
+                </Link>
                 <button
                   type="button"
                   onClick={() => setIsMobileDrawerOpen(false)}
@@ -593,7 +552,7 @@ export default function ManagerDashboard() {
                             : "bg-amber-100 text-amber-800"
                         }`}
                       >
-                        {pendingCount}
+                        {formatBadgeCount(pendingCount)}
                       </span>
                     )}
                   </button>
@@ -620,7 +579,7 @@ export default function ManagerDashboard() {
                           : "bg-teal-100 text-[#087f80]"
                       }`}
                     >
-                      {approvedCount}
+                      {formatBadgeCount(approvedCount)}
                     </span>
                   </button>
 
@@ -646,7 +605,7 @@ export default function ManagerDashboard() {
                           : "bg-red-100 text-[#d93829]"
                       }`}
                     >
-                      {rejectedCount}
+                      {formatBadgeCount(rejectedCount)}
                     </span>
                   </button>
                 </nav>
@@ -681,7 +640,7 @@ export default function ManagerDashboard() {
                             : "bg-red-100 text-[#f04f3e]"
                         }`}
                       >
-                        {openTicketCount}
+                        {formatBadgeCount(openTicketCount)}
                       </span>
                     )}
                   </button>
@@ -708,7 +667,7 @@ export default function ManagerDashboard() {
                           : "bg-amber-100 text-amber-800"
                       }`}
                     >
-                      {pendingReportCount}
+                      {formatBadgeCount(pendingReportCount)}
                     </span>
                   </button>
                 </nav>
@@ -716,176 +675,464 @@ export default function ManagerDashboard() {
             </div>
 
             {/* Quick KPI & Environment in Mobile Drawer */}
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
-              <p className="font-semibold text-slate-700 text-[11px]">Regional Hub: Bangkok Central</p>
-              <p className="text-[10px]">Verified Active Pool: 48 interpreters</p>
-              <p className="text-[10px]">Approved Pool: {approvedCount} Active Interpreters</p>
-              <p className="text-[10px]">Compliance: PDPA / ISO 27001</p>
+            <div className="space-y-3">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
+                <p className="font-semibold text-slate-700 text-[11px]">Regional Hub: Bangkok Central</p>
+                <p className="text-[10px]">Verified Active Pool: 48 interpreters</p>
+                <p className="text-[10px]">Approved Pool: {approvedCount} Active Interpreters</p>
+              </div>
+
+              {/* Bottom Profile in Mobile Drawer */}
+              <div className="border-t border-slate-200 pt-3">
+                <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-2.5 shadow-xs">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#092f45] text-xs font-black text-white">
+                      TY
+                    </div>
+                    <div className="min-w-0 truncate">
+                      <p className="text-xs font-black text-[#092f45] truncate">Taofix yayueri</p>
+                      <p className="text-[10px] text-[#087f80] font-bold">Regional Manager</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => alert("Simulating sign out")}
+                    className="rounded-lg p-1.5 text-[#d93829] hover:bg-[#fff2f0] transition-colors"
+                    title="Sign out"
+                  >
+                    <ArrowLeftOnRectangleIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
             </div>
           </aside>
         </div>
       )}
 
-      {/* Body Container: Sidebar (Desktop) + Main Content */}
-      <div className="flex flex-1 flex-col overflow-hidden md:flex-row">
-        {/* Left Sidebar (Desktop only - matches admin style) */}
-        <aside className="hidden w-64 flex-shrink-0 border-r border-slate-200 bg-white p-4 md:flex md:flex-col justify-between">
-          <div className="space-y-6">
-            {/* Hub Header Card */}
-            
+      {/* Left Sidebar (Desktop - Gemini Style, Full Height Top-to-Bottom, Smooth Expansion & Collapse) */}
+      <aside
+        className={`hidden h-full flex-shrink-0 border-r border-slate-200 bg-white transition-[width,padding] duration-300 ease-in-out md:flex md:flex-col justify-between ${
+          isSidebarCollapsed ? "w-16 px-2 py-3.5" : "w-64 p-4"
+        }`}
+      >
+        {/* Top Section: Brand Logo (Link to Home /) & Navigation */}
+        <div className="space-y-4 overflow-hidden">
+          {/* Top KHVI Brand / Home Navigation (Gemini Style) */}
+          <div className={`flex items-center transition-all duration-300 ${isSidebarCollapsed ? "justify-center" : "justify-between px-2"}`}>
+            <Link
+              href="/"
+              className="group relative flex items-center gap-3 rounded-2xl transition-transform hover:scale-105"
+              title="KHVI Home (กลับสู่หน้าหลัก)"
+            >
+              {/* Brand Icon (Round like Gemini Sparkle) */}
+              <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#087f80]/30 bg-[#092f45] shadow-xs group-hover:border-[#087f80]">
+                <Image
+                  src="/khvi-logo.jpg"
+                  alt="KHVI logo"
+                  fill
+                  sizes="40px"
+                  className="scale-[2.2] object-cover object-[50%_54%]"
+                  priority
+                />
+              </div>
+              <div
+                className={`min-w-0 transition-all duration-300 overflow-hidden whitespace-nowrap ${
+                  isSidebarCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"
+                }`}
+              >
+                <span className="block text-base font-black tracking-tight text-[#092f45]">KHVI</span>
+                <span className="block truncate text-[10px] font-bold text-[#087f80]">Interpreter Hub</span>
+              </div>
+            </Link>
 
-            {/* Group 1: Verification Hub */}
-            <div>
-              <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                Interpreter Verification
-              </p>
-              <nav className="mt-2 space-y-1">
-                <button
-                  type="button"
-                  onClick={() => setNavSection("queue")}
-                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition-all cursor-pointer ${
-                    navSection === "queue"
-                      ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <InboxStackIcon className="h-5 w-5" />
-                    <span>Application Queue</span>
-                  </div>
-                  {pendingCount > 0 && (
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-bold ${
-                        navSection === "queue"
-                          ? "bg-white/20 text-white"
-                          : "bg-amber-100 text-amber-800"
-                      }`}
-                    >
-                      {pendingCount}
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setNavSection("approved")}
-                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition-all cursor-pointer ${
-                    navSection === "approved"
-                      ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <CheckCircleIcon className="h-5 w-5" />
-                    <span>Approved Volunteers</span>
-                  </div>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-bold ${
-                      navSection === "approved"
-                        ? "bg-white/20 text-white"
-                        : "bg-teal-100 text-[#087f80]"
-                    }`}
-                  >
-                    {approvedCount}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setNavSection("rejected")}
-                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition-all cursor-pointer ${
-                    navSection === "rejected"
-                      ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <ArchiveBoxXMarkIcon className="h-5 w-5" />
-                    <span>Rejected Archive</span>
-                  </div>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-bold ${
-                      navSection === "rejected"
-                        ? "bg-white/20 text-white"
-                        : "bg-red-100 text-[#d93829]"
-                    }`}
-                  >
-                    {rejectedCount}
-                  </span>
-                </button>
-              </nav>
-            </div>
-
-            {/* Group 2: Support & Escalations */}
-            <div>
-              <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                Support & Escalations
-              </p>
-              <nav className="mt-2 space-y-1">
-                <button
-                  type="button"
-                  onClick={() => setNavSection("tickets")}
-                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition-all cursor-pointer ${
-                    navSection === "tickets"
-                      ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <ChatBubbleLeftRightIcon className="h-5 w-5" />
-                    <span>Help Requests</span>
-                  </div>
-                  {openTicketCount > 0 && (
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-bold ${
-                        navSection === "tickets"
-                          ? "bg-white/20 text-white"
-                          : "bg-red-100 text-[#f04f3e]"
-                      }`}
-                    >
-                      {openTicketCount}
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setNavSection("reports")}
-                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition-all cursor-pointer ${
-                    navSection === "reports"
-                      ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <ShieldExclamationIcon className="h-5 w-5" />
-                    <span>Incident Reports</span>
-                  </div>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-bold ${
-                      navSection === "reports"
-                        ? "bg-white/20 text-white"
-                        : "bg-amber-100 text-amber-800"
-                    }`}
-                  >
-                    {pendingReportCount}
-                  </span>
-                </button>
-              </nav>
-            </div>
+            {/* Sidebar Collapse Toggle Button */}
+            {!isSidebarCollapsed && (
+              <button
+                type="button"
+                onClick={() => setIsSidebarCollapsed(true)}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors cursor-pointer"
+                title="Collapse sidebar (ย่อแถบข้าง)"
+              >
+                <Bars3Icon className="h-5 w-5" />
+              </button>
+            )}
           </div>
 
-          {/* Quick Info / Environment Footer Box */}
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
-            <p className="font-semibold text-slate-700">Environment: Operational</p>
-            <p className="text-[11px]">KHVI Node: BKK-CORE-01</p>
-            <p className="text-[11px]">Pool: 48 Interpreters on Duty</p>
-            <p className="text-[11px]">Approved Pool: {approvedCount} Active Interpreters</p>
-          </div>
-        </aside>
+          {/* In collapsed mode, show Gemini-like hamburger below logo */}
+          {isSidebarCollapsed && (
+            <div className="flex justify-center pt-1 animate-in fade-in duration-200">
+              <button
+                type="button"
+                onClick={() => setIsSidebarCollapsed(false)}
+                className="flex h-10 w-10 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-[#092f45] transition-colors cursor-pointer"
+                title="Expand sidebar (เปิดแถบข้าง)"
+              >
+                <Bars3Icon className="h-5 w-5" />
+              </button>
+            </div>
+          )}
 
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6">
+          {/* Divider */}
+          <div className="border-t border-slate-100" />
+
+          {/* Navigation Group 1: Verification */}
+          <div>
+            <div
+              className={`overflow-hidden transition-all duration-300 ${
+                isSidebarCollapsed ? "h-0 opacity-0 pointer-events-none" : "h-5 opacity-100"
+              }`}
+            >
+              <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
+                Verification
+              </p>
+            </div>
+            <nav className="mt-1 space-y-1">
+              <button
+                type="button"
+                onClick={() => setNavSection("queue")}
+                className={`group relative flex items-center rounded-2xl transition-all duration-300 ease-in-out cursor-pointer ${
+                  isSidebarCollapsed ? "h-10 w-10 justify-center mx-auto p-0" : "w-full h-10 justify-between px-3"
+                } ${
+                  navSection === "queue"
+                    ? "bg-[#092f45] text-white shadow-sm"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
+                }`}
+                title={isSidebarCollapsed ? `Application Queue (${pendingCount})` : undefined}
+              >
+                <div className="relative flex items-center justify-center shrink-0">
+                  <InboxStackIcon className="h-5 w-5" />
+                  {isSidebarCollapsed && pendingCount > 0 && (
+                    <span className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-[#ef4444] text-[9px] font-black text-white ring-2 ring-white shadow-xs pointer-events-none">
+                      {formatBadgeCount(pendingCount)}
+                    </span>
+                  )}
+                </div>
+                {!isSidebarCollapsed && (
+                  <div className="flex items-center justify-between min-w-0 flex-1 ml-3 transition-opacity duration-200">
+                    <span className="text-xs font-bold truncate">Application Queue</span>
+                    {pendingCount > 0 && (
+                      <span
+                        className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                          navSection === "queue"
+                            ? "bg-white/20 text-white"
+                            : "bg-[#1e3a4b]/15 text-[#092f45]"
+                        }`}
+                      >
+                        {formatBadgeCount(pendingCount)}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setNavSection("approved")}
+                className={`group relative flex items-center rounded-2xl transition-all duration-300 ease-in-out cursor-pointer ${
+                  isSidebarCollapsed ? "h-10 w-10 justify-center mx-auto p-0" : "w-full h-10 justify-between px-3"
+                } ${
+                  navSection === "approved"
+                    ? "bg-[#092f45] text-white shadow-sm"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
+                }`}
+                title={isSidebarCollapsed ? `Approved Volunteers (${approvedCount})` : undefined}
+              >
+                <div className="relative flex items-center justify-center shrink-0">
+                  <CheckCircleIcon className="h-5 w-5" />
+                  {isSidebarCollapsed && approvedCount > 0 && (
+                    <span className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-[#10b981] text-[9px] font-black text-white ring-2 ring-white shadow-xs pointer-events-none">
+                      {formatBadgeCount(approvedCount)}
+                    </span>
+                  )}
+                </div>
+                {!isSidebarCollapsed && (
+                  <div className="flex items-center justify-between min-w-0 flex-1 ml-3 transition-opacity duration-200">
+                    <span className="text-xs font-bold truncate">Approved Volunteers</span>
+                    <span
+                      className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                        navSection === "approved"
+                          ? "bg-white/20 text-white"
+                          : "bg-teal-100 text-[#087f80]"
+                      }`}
+                    >
+                      {formatBadgeCount(approvedCount)}
+                    </span>
+                  </div>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setNavSection("rejected")}
+                className={`group relative flex items-center rounded-2xl transition-all duration-300 ease-in-out cursor-pointer ${
+                  isSidebarCollapsed ? "h-10 w-10 justify-center mx-auto p-0" : "w-full h-10 justify-between px-3"
+                } ${
+                  navSection === "rejected"
+                    ? "bg-[#092f45] text-white shadow-sm"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
+                }`}
+                title={isSidebarCollapsed ? `Rejected Archive (${rejectedCount})` : undefined}
+              >
+                <div className="relative flex items-center justify-center shrink-0">
+                  <ArchiveBoxXMarkIcon className="h-5 w-5" />
+                  {isSidebarCollapsed && rejectedCount > 0 && (
+                    <span className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-[#ef4444] text-[9px] font-black text-white ring-2 ring-white shadow-xs pointer-events-none">
+                      {formatBadgeCount(rejectedCount)}
+                    </span>
+                  )}
+                </div>
+                {!isSidebarCollapsed && (
+                  <div className="flex items-center justify-between min-w-0 flex-1 ml-3 transition-opacity duration-200">
+                    <span className="text-xs font-bold truncate">Rejected Archive</span>
+                    <span
+                      className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                        navSection === "rejected"
+                          ? "bg-white/20 text-white"
+                          : "bg-red-100 text-[#d93829]"
+                      }`}
+                    >
+                      {formatBadgeCount(rejectedCount)}
+                    </span>
+                  </div>
+                )}
+              </button>
+            </nav>
+          </div>
+
+          {/* Navigation Group 2: Support & Live Desk */}
+          <div>
+            <div
+              className={`overflow-hidden transition-all duration-300 ${
+                isSidebarCollapsed ? "h-0 opacity-0 pointer-events-none" : "h-5 opacity-100"
+              }`}
+            >
+              <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
+                Escalation Desk
+              </p>
+            </div>
+            <nav className="mt-1 space-y-1">
+              <button
+                type="button"
+                onClick={() => setNavSection("tickets")}
+                className={`group relative flex items-center rounded-2xl transition-all duration-300 ease-in-out cursor-pointer ${
+                  isSidebarCollapsed ? "h-10 w-10 justify-center mx-auto p-0" : "w-full h-10 justify-between px-3"
+                } ${
+                  navSection === "tickets"
+                    ? "bg-[#092f45] text-white shadow-sm"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
+                }`}
+                title={isSidebarCollapsed ? `Help Requests (${openTicketCount})` : undefined}
+              >
+                <div className="relative flex items-center justify-center shrink-0">
+                  <ChatBubbleLeftRightIcon className="h-5 w-5" />
+                  {isSidebarCollapsed && openTicketCount > 0 && (
+                    <span className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-[#ef4444] text-[9px] font-black text-white ring-2 ring-white shadow-xs pointer-events-none">
+                      {formatBadgeCount(openTicketCount)}
+                    </span>
+                  )}
+                </div>
+                {!isSidebarCollapsed && (
+                  <div className="flex items-center justify-between min-w-0 flex-1 ml-3 transition-opacity duration-200">
+                    <span className="text-xs font-bold truncate">Live Help Requests</span>
+                    {openTicketCount > 0 && (
+                      <span
+                        className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                          navSection === "tickets"
+                            ? "bg-white/20 text-white"
+                            : "bg-red-100 text-[#f04f3e]"
+                        }`}
+                      >
+                        {formatBadgeCount(openTicketCount)}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setNavSection("reports")}
+                className={`group relative flex items-center rounded-2xl transition-all duration-300 ease-in-out cursor-pointer ${
+                  isSidebarCollapsed ? "h-10 w-10 justify-center mx-auto p-0" : "w-full h-10 justify-between px-3"
+                } ${
+                  navSection === "reports"
+                    ? "bg-[#092f45] text-white shadow-sm"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
+                }`}
+                title={isSidebarCollapsed ? `Incident Reports (${pendingReportCount})` : undefined}
+              >
+                <div className="relative flex items-center justify-center shrink-0">
+                  <ShieldExclamationIcon className="h-5 w-5" />
+                  {isSidebarCollapsed && pendingReportCount > 0 && (
+                    <span className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-[#f59e0b] text-[9px] font-black text-white ring-2 ring-white shadow-xs pointer-events-none">
+                      {formatBadgeCount(pendingReportCount)}
+                    </span>
+                  )}
+                </div>
+                {!isSidebarCollapsed && (
+                  <div className="flex items-center justify-between min-w-0 flex-1 ml-3 transition-opacity duration-200">
+                    <span className="text-xs font-bold truncate">Incident Reports</span>
+                    {pendingReportCount > 0 && (
+                      <span
+                        className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                          navSection === "reports"
+                            ? "bg-white/20 text-white"
+                            : "bg-amber-100 text-amber-800"
+                        }`}
+                      >
+                        {formatBadgeCount(pendingReportCount)}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </button>
+            </nav>
+          </div>
+        </div>
+
+        {/* Bottom Section (Gemini Style: Settings icon + Circular Avatar & Hub Status pinned to bottom) */}
+        <div className="mt-auto space-y-2 pt-3 border-t border-slate-100">
+          {/* Settings Button (Restored) */}
+          <button
+            type="button"
+            onClick={() => alert("Manager System Settings & Preferences")}
+            className={`flex items-center rounded-2xl text-slate-500 hover:bg-slate-100 hover:text-[#092f45] transition-colors cursor-pointer ${
+              isSidebarCollapsed ? "h-10 w-10 justify-center mx-auto p-0" : "w-full gap-3 px-3 py-2 text-xs font-bold"
+            }`}
+            title="Manager Settings (ตั้งค่าระบบ)"
+          >
+            <Cog6ToothIcon className="h-5 w-5 shrink-0" />
+            {!isSidebarCollapsed && (
+              <span className="whitespace-nowrap transition-opacity duration-200">
+                Settings & SOP
+              </span>
+            )}
+          </button>
+
+          {/* Profile Avatar Card with Pop-up Menu (Gemini Style) */}
+          <div className="relative" ref={profileMenuRef}>
+            <button
+              type="button"
+              onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+              className={`group flex items-center rounded-2xl transition-all duration-300 hover:bg-slate-100 cursor-pointer ${
+                isSidebarCollapsed ? "h-10 w-10 justify-center mx-auto p-0" : "w-full justify-between p-1.5"
+              }`}
+              title="Taofix yayueri (Regional Manager)"
+              aria-expanded={profileMenuOpen}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                {/* Round Avatar with Initial (Gemini Style) */}
+                <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#087f80] bg-[#092f45] text-xs font-black text-white shadow-xs">
+                  TY
+                </div>
+                {!isSidebarCollapsed && (
+                  <div className="min-w-0 text-left whitespace-nowrap transition-opacity duration-200">
+                    <p className="text-xs font-bold leading-tight text-[#092f45] truncate">Taofix yayueri</p>
+                    <p className="text-[10px] font-bold text-[#087f80]">Regional Manager</p>
+                  </div>
+                )}
+              </div>
+              {!isSidebarCollapsed && (
+                <ChevronDownIcon
+                  className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-300 ${
+                    profileMenuOpen ? "rotate-180" : ""
+                  }`}
+                />
+              )}
+            </button>
+
+            {/* Profile Dropdown Pop-up Menu (Gemini flyout when collapsed vs dropup when expanded) */}
+            {profileMenuOpen && (
+              <div
+                className={`absolute z-50 w-64 rounded-2xl border border-[#d6e0e4] bg-white p-2 shadow-[0_18px_36px_rgba(19,52,68,0.16)] animate-in fade-in zoom-in-95 ${
+                  isSidebarCollapsed
+                    ? "left-full bottom-0 ml-3"
+                    : "bottom-full left-0 mb-2"
+                }`}
+              >
+                <div className="border-b border-[#eef3f5] px-3 py-2.5">
+                  <p className="text-sm font-extrabold text-[#153447]">Taofix yayueri</p>
+                  <p className="text-xs text-[#6a808a]">tyayuxri@gmail.com</p>
+                  <span className="mt-2 inline-flex items-center gap-1 rounded-md bg-[#e6f4ef] px-2 py-0.5 text-[11px] font-bold text-[#087557]">
+                    <CheckBadgeIcon className="h-3.5 w-3.5" />
+                    Verified Staff
+                  </span>
+                </div>
+                <div className="py-1 space-y-0.5">
+                  <a
+                    href="#profile"
+                    onClick={() => setProfileMenuOpen(false)}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#2d4957] transition-colors hover:bg-[#f2f7f9] hover:text-[#087f80]"
+                  >
+                    <UserCircleIcon className="h-4 w-4" />
+                    Profile
+                  </a>
+                  <Link
+                    href="/login"
+                    onClick={() => setProfileMenuOpen(false)}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#2d4957] transition-colors hover:bg-[#f2f7f9] hover:text-[#087f80]"
+                  >
+                    <UserPlusIcon className="h-4 w-4" />
+                    Add account
+                  </Link>
+                </div>
+                <div className="border-t border-[#eef3f5] pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      alert("Simulating sign out");
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#d93829] transition-colors hover:bg-[#fff2f0]"
+                  >
+                    <ArrowLeftOnRectangleIcon className="h-4 w-4" />
+                    Sign out
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Hub Operational Status in Sidebar Bottom with smooth transition */}
+          {isSidebarCollapsed ? (
+            <div className="flex justify-center py-1 animate-in fade-in duration-200">
+              <span
+                className="relative flex h-3 w-3 items-center justify-center cursor-help"
+                title="Hub Operational · Active"
+              >
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-emerald-200/70 bg-emerald-50/50 p-2.5 text-[10px] animate-in fade-in duration-300">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 font-extrabold text-emerald-800">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                  </span>
+                  Hub Operational · Active
+                </span>
+                <span className="text-[9px] font-bold text-emerald-600">BKK-CORE-01</span>
+              </div>
+              <p className="mt-1 text-slate-500">Bangkok Central · 48 Active Pool</p>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* Right Column: Header on Top + Main Content Workspace + Footer */}
+      <div className="flex flex-1 flex-col h-full overflow-hidden min-w-0">
+        <ManagerHeader
+          onMenuClick={() => setIsMobileDrawerOpen(true)}
+          isSidebarCollapsed={isSidebarCollapsed}
+          onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        />
+
+        {/* Main Content Workspace (Flex column with min-h-full ensures sticky footer at bottom) */}
+        <div className="flex-1 overflow-y-auto min-w-0 flex flex-col">
+          <main className="flex-1 p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6">
             {/* View Header with Search & Filter */}
             {(navSection === "queue" || navSection === "approved" || navSection === "rejected") && (
               <div className="rounded-2xl border border-[#d8e3e7] bg-white p-5 shadow-xs">
@@ -1103,40 +1350,40 @@ export default function ManagerDashboard() {
               </div>
             )}
 
-            {/* Clean Table List (Styling matched to user image) */}
+            {/* Clean Table List with Grid Dividers (Matched to Admin style, min-h-[480px] for elegant default proportions) */}
             {(navSection === "queue" || navSection === "approved" || navSection === "rejected") && (
-              <div className="rounded-2xl border border-[#d8e3e7] bg-white shadow-xs overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-[#edf2f5] text-[11px] font-bold text-[#718b97] bg-[#fafcfd]">
-                        <th className="py-3.5 pl-5 pr-3">Applicant & Time</th>
-                        <th className="py-3.5 px-3">Primary Pair</th>
-                        <th className="py-3.5 px-3">Specialty Domains</th>
-                        <th className="py-3.5 px-3">Background</th>
-                        <th className="py-3.5 px-3">Status</th>
-                        <th className="py-3.5 pr-5 pl-3 text-right">Action</th>
+              <div className="min-h-[480px] rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col justify-between">
+                <div className="overflow-x-auto flex-1">
+                  <table className="w-full text-left border-collapse text-xs text-slate-600">
+                    <thead className="border-b border-slate-200 bg-slate-50/90 font-bold uppercase tracking-wider text-slate-500">
+                      <tr className="divide-x divide-slate-200">
+                        <th className="py-3.5 pl-5 pr-4 w-[26%]">Applicant & Time</th>
+                        <th className="px-3.5 py-3.5 w-[18%]">Primary Pair</th>
+                        <th className="px-3.5 py-3.5 w-[22%]">Specialty Domains</th>
+                        <th className="px-3.5 py-3.5 w-[13%] text-center">Background</th>
+                        <th className="px-3.5 py-3.5 w-[11%] text-center">Status</th>
+                        <th className="py-3.5 pr-5 pl-3 text-right w-[10%]">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#f0f4f6] text-xs">
+                    <tbody className="divide-y divide-slate-100">
                       {displayedApplicants.length > 0 ? (
                         displayedApplicants.map((app) => (
                           <tr
                             key={app.id}
                             onClick={() => handleOpenDetailModal(app)}
-                            className="group hover:bg-[#f6fafa] transition-colors cursor-pointer"
+                            className="divide-x divide-slate-100 group hover:bg-teal-50/40 transition-colors cursor-pointer"
                           >
                             {/* Applicant & Time */}
-                            <td className="py-3 pl-5 pr-3">
+                            <td className="py-3.5 pl-5 pr-4">
                               <div className="flex items-center gap-3">
                                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#092f45] text-xs font-black text-white shadow-2xs">
                                   {app.name.slice(0, 2).toUpperCase()}
                                 </div>
                                 <div>
-                                  <p className="font-extrabold text-sm text-[#143243] group-hover:text-[#087f80] transition-colors">
+                                  <p className="font-bold text-sm text-[#092f45] group-hover:text-[#087f80] transition-colors">
                                     {app.name}
                                   </p>
-                                  <p className="text-[11px] text-[#718995]">
+                                  <p className="text-[11px] text-slate-500 font-mono">
                                     {app.appliedDate.split(" ")[1]} · {app.country}
                                   </p>
                                 </div>
@@ -1144,22 +1391,22 @@ export default function ManagerDashboard() {
                             </td>
 
                             {/* Primary Pair */}
-                            <td className="py-3 px-3">
-                              <span className="font-bold text-[#1f3e4f]">
-                                {app.primaryLanguage} - 	Mandarin Chinese
+                            <td className="px-3.5 py-3.5">
+                              <span className="font-bold text-[#092f45]">
+                                {app.primaryLanguage} - Mandarin Chinese
                               </span>
-                              <p className="text-[10px] text-[#77919e]">
+                              <p className="text-[10px] text-slate-400 mt-0.5">
                                 +{app.spokenLanguages.length - 1} other language(s)
                               </p>
                             </td>
 
                             {/* Specialty Domains */}
-                            <td className="py-3 px-3">
+                            <td className="px-3.5 py-3.5">
                               <div className="flex flex-wrap gap-1">
                                 {app.specialtyCategories.map((spec) => (
                                   <span
                                     key={spec}
-                                    className="rounded-md bg-[#edf7f5] px-2 py-0.5 text-[10px] font-bold text-[#087f80]"
+                                    className="rounded-md bg-[#edf7f5] px-2 py-0.5 text-[10px] font-bold text-[#087f80] border border-teal-200/50"
                                   >
                                     {spec}
                                   </span>
@@ -1168,34 +1415,34 @@ export default function ManagerDashboard() {
                             </td>
 
                             {/* Background Check */}
-                            <td className="py-3 px-3">
+                            <td className="px-3.5 py-3.5 text-center">
                               <span
-                                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                                className={`inline-flex items-center justify-center gap-1 min-w-[84px] rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${
                                   app.backgroundCheck === "Passed"
-                                    ? "bg-[#e8f5f1] text-[#087557]"
-                                    : "bg-[#fef5e8] text-[#b56e18]"
+                                    ? "bg-[#e8f5f1] text-[#087557] border-[#087557]/20"
+                                    : "bg-[#fef5e8] text-[#b56e18] border-[#b56e18]/20"
                                 }`}
                               >
-                                <ShieldCheckIcon className="h-3.5 w-3.5" />
-                                {app.backgroundCheck}
+                                <ShieldCheckIcon className="h-3 w-3 shrink-0" />
+                                <span>{app.backgroundCheck}</span>
                               </span>
                             </td>
 
                             {/* Status with Dot Indicator */}
-                            <td className="py-3 px-3">
+                            <td className="px-3.5 py-3.5 text-center">
                               <span
-                                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-extrabold ${
+                                className={`inline-flex items-center justify-center gap-1.5 min-w-[92px] rounded-full px-2.5 py-1 text-[10px] font-extrabold border ${
                                   app.status === "Approved"
-                                    ? "bg-[#e7f5f0] text-[#087557]"
+                                    ? "bg-[#e7f5f0] text-[#087557] border-[#087557]/20"
                                     : app.status === "Rejected"
-                                    ? "bg-[#fff1ef] text-[#d93829]"
+                                    ? "bg-[#fff1ef] text-[#d93829] border-[#d93829]/20"
                                     : app.status === "Under Review"
-                                    ? "bg-[#e8f2f8] text-[#1a5b82]"
-                                    : "bg-[#fef4e8] text-[#b36916]"
+                                    ? "bg-[#e8f2f8] text-[#1a5b82] border-[#1a5b82]/20"
+                                    : "bg-[#fef4e8] text-[#b36916] border-[#b36916]/20"
                                 }`}
                               >
                                 <span
-                                  className={`h-1.5 w-1.5 rounded-full ${
+                                  className={`h-1.5 w-1.5 rounded-full shrink-0 ${
                                     app.status === "Approved"
                                       ? "bg-[#087557]"
                                       : app.status === "Rejected"
@@ -1205,12 +1452,12 @@ export default function ManagerDashboard() {
                                       : "bg-[#b36916]"
                                   }`}
                                 />
-                                {app.status}
+                                <span>{app.status}</span>
                               </span>
                             </td>
 
                             {/* Action Buttons */}
-                            <td className="py-3 pr-5 pl-3 text-right">
+                            <td className="py-3.5 pr-5 pl-3 text-right">
                               <div
                                 className="flex items-center justify-end gap-1"
                                 onClick={(e) => e.stopPropagation()}
@@ -1247,7 +1494,7 @@ export default function ManagerDashboard() {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={6} className="py-12 text-center text-xs text-[#708996]">
+                          <td colSpan={6} className="py-12 text-center text-xs text-slate-400">
                             No applicants found matching this criteria.
                           </td>
                         </tr>
@@ -1260,7 +1507,7 @@ export default function ManagerDashboard() {
 
             {/* Tickets View (Support Desk - FR-51, FR-52, BR-08) */}
             {navSection === "tickets" && (
-              <div className="rounded-2xl border border-[#d8e3e7] bg-white p-6 shadow-xs space-y-4">
+              <div className="min-h-[480px] rounded-2xl border border-[#d8e3e7] bg-white p-6 shadow-xs space-y-4">
                 <div className="flex items-center justify-between border-b border-[#edf2f4] pb-4">
                   <div>
                     <h2 className="text-base font-extrabold text-[#112d3f]">
@@ -1384,7 +1631,7 @@ export default function ManagerDashboard() {
 
             {/* Reports & Disputes View (FR-53) */}
             {navSection === "reports" && (
-              <div className="rounded-2xl border border-[#d8e3e7] bg-white p-6 shadow-xs space-y-4">
+              <div className="min-h-[480px] rounded-2xl border border-[#d8e3e7] bg-white p-6 shadow-xs space-y-4">
                 <div className="flex items-center justify-between border-b border-[#edf2f4] pb-4">
                   <div>
                     <h2 className="text-base font-extrabold text-[#112d3f]">
@@ -1468,7 +1715,31 @@ export default function ManagerDashboard() {
               </div>
             )}
           </main>
+
+          {/* FOOTER inside right column */}
+          <SiteFooter
+            copy={{
+              description: "KHVI Operational Management Portal for authorized managers and team leads.",
+              note: "Internal Operations Hub",
+              explore: "Console",
+              safety: "Security Policy",
+              needHelp: "Operations Support",
+              needHelpBody: "For system administrator escalation, contact the root admin channel.",
+              footerCta: "View Audit Log",
+              privacy: "All manager actions are strictly logged for compliance and security audit.",
+              links: {
+                map: "Overview",
+                how: "Verification SOP",
+                roles: "Role Hierarchy",
+                privacy: "Privacy Standard",
+                request: "Support Desk",
+                signIn: "Switch Account",
+              },
+            }}
+            brandSubtitle="Operations Console"
+          />
         </div>
+      </div>
 
       {/* ================= CENTERED POP-UP MODAL (30% / 70% SPLIT) ================= */}
       {detailModalOpen && selectedApplicant && (
@@ -1761,29 +2032,6 @@ export default function ManagerDashboard() {
           </div>
         </div>
       )}
-
-      {/* FOOTER */}
-      <SiteFooter
-        copy={{
-          description: "KHVI Operational Management Portal for authorized managers and team leads.",
-          note: "Internal Operations Hub",
-          explore: "Console",
-          safety: "Security Policy",
-          needHelp: "Operations Support",
-          needHelpBody: "For system administrator escalation, contact the root admin channel.",
-          footerCta: "View Audit Log",
-          privacy: "All manager actions are strictly logged for compliance and security audit.",
-          links: {
-            map: "Overview",
-            how: "Verification SOP",
-            roles: "Role Hierarchy",
-            privacy: "Privacy Standard",
-            request: "Support Desk",
-            signIn: "Switch Account",
-          },
-        }}
-        brandSubtitle="Operations Console"
-      />
     </div>
   );
 }
