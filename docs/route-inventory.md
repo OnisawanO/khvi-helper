@@ -35,7 +35,7 @@ parameter ที่ผิดรูปแบบหรือไม่พบข้�
 | `/register` | Static auth route | Public | Supabase Auth, user profile | Redirect authenticated user by role | Planned |
 | `/profile` | Static private route | Authenticated | User profile | Redirect to login | Planned |
 | `/welcome` | Static private route | Authenticated User | User profile | Redirect to login | Planned |
-| `/map` | Resource map/list | Approved Interpreter | `bookings`, interpreter skills | Empty state or `403` | Planned |
+| `/map` | Resource map/list | Approved Interpreter (ยังไม่บังคับใน mock) | Mock open requests (วางแผนเปลี่ยนเป็น `bookings`, interpreter skills) | Empty state; `403` เมื่อเชื่อม auth จริง | Implemented (mock) |
 | `/volunteer/apply` | Resource create route | Authenticated User | `interpreter_profiles`, `languages`, `categories` | Redirect to current application status | Planned |
 | `/volunteer/status` | Resource detail route | Authenticated User | `interpreter_profiles` | Empty state if no application | Planned |
 | `/volunteer/dashboard` | Resource dashboard | Approved Interpreter | `bookings`, interpreter skills | `403` if not approved | Planned |
