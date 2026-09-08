@@ -719,6 +719,7 @@ export default function ManagerDashboard() {
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
               <p className="font-semibold text-slate-700 text-[11px]">Regional Hub: Bangkok Central</p>
               <p className="text-[10px]">Verified Active Pool: 48 interpreters</p>
+              <p className="text-[10px]">Approved Pool: {approvedCount} Active Interpreters</p>
               <p className="text-[10px]">Compliance: PDPA / ISO 27001</p>
             </div>
           </aside>
@@ -731,15 +732,7 @@ export default function ManagerDashboard() {
         <aside className="hidden w-64 flex-shrink-0 border-r border-slate-200 bg-white p-4 md:flex md:flex-col justify-between">
           <div className="space-y-6">
             {/* Hub Header Card */}
-            <div className="flex items-center gap-3 px-2 py-1">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#092f45] font-extrabold text-white shadow-xs">
-                KH
-              </div>
-              <div>
-                <h3 className="text-sm font-extrabold text-[#112d3f]">Regional Hub</h3>
-                <p className="text-[11px] text-slate-500">Bangkok Operations</p>
-              </div>
-            </div>
+            
 
             {/* Group 1: Verification Hub */}
             <div>
@@ -887,6 +880,7 @@ export default function ManagerDashboard() {
             <p className="font-semibold text-slate-700">Environment: Operational</p>
             <p className="text-[11px]">KHVI Node: BKK-CORE-01</p>
             <p className="text-[11px]">Pool: 48 Interpreters on Duty</p>
+            <p className="text-[11px]">Approved Pool: {approvedCount} Active Interpreters</p>
           </div>
         </aside>
 
@@ -1152,7 +1146,7 @@ export default function ManagerDashboard() {
                             {/* Primary Pair */}
                             <td className="py-3 px-3">
                               <span className="font-bold text-[#1f3e4f]">
-                                {app.primaryLanguage} - English
+                                {app.primaryLanguage} - 	Mandarin Chinese
                               </span>
                               <p className="text-[10px] text-[#77919e]">
                                 +{app.spokenLanguages.length - 1} other language(s)
