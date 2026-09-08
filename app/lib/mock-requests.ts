@@ -50,8 +50,9 @@ export type HelpRequest = {
   areaName: string;
   /** Exact meeting point, unlocked only after a claim (BR-04). */
   exactAddress: string;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
+  expiresAt?: string;
   createdAtLabel: string;
   scheduledAtLabel: string | null;
   /** Countdown seconds for open urgent pins (BR-07). Null once a pin leaves `Open`. */
@@ -284,9 +285,11 @@ export function categoryLabel(categoryId: CategoryId, copyLocale: CopyLocale): s
 
 /** Rough coordinates for the pre-claim map view, matching BR-04. */
 export function approximateCoordinates(request: HelpRequest): string {
+  if (request.latitude === null || request.longitude === null) return "Coordinates not provided";
   return `${request.latitude.toFixed(2)}, ${request.longitude.toFixed(2)}`;
 }
 
 export function exactCoordinates(request: HelpRequest): string {
+  if (request.latitude === null || request.longitude === null) return "Coordinates not provided";
   return `${request.latitude.toFixed(5)}, ${request.longitude.toFixed(5)}`;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { updateRequest } from "@/app/lib/request-store";
 import { useState } from "react";
 import {
   ArrowLeftIcon,
@@ -25,7 +26,6 @@ import {
   exactCoordinates,
   isContactUnlocked,
   languageLabel,
-  type CancelledBy,
   type HelpRequest,
   type RequestStatus,
 } from "@/app/lib/mock-requests";
@@ -145,7 +145,7 @@ function stepStates(status: RequestStatus): Record<(typeof TIMELINE_STEPS)[numbe
     (states, step, index) => {
       if (isClosed) {
         states[step] = index === 0 ? "done" : "stopped";
-      } else if (index < reachedIndex) {
+      } else if (status === "Completed" || index < reachedIndex) {
         states[step] = "done";
       } else if (index === reachedIndex) {
         states[step] = "current";
@@ -166,13 +166,11 @@ export function RequestDetail({ request }: { request: HelpRequest }) {
   const copyLocale = useCopyLocale();
   const t = copy[copyLocale];
 
-  const [status, setStatus] = useState<RequestStatus>(request.status);
-  const [cancelledBy, setCancelledBy] = useState<CancelledBy | null>(request.cancelledBy);
-  const [cancelReason, setCancelReason] = useState(request.cancelReason ?? "");
+  const { status, cancelledBy, cancelReason } = request;
   const [cancelDraft, setCancelDraft] = useState("");
   const [cancelFormOpen, setCancelFormOpen] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
-  const [userConfirmedAt, setUserConfirmedAt] = useState(request.userConfirmedDoneAtLabel);
+  const userConfirmedAt = request.userConfirmedDoneAtLabel;
 
   const interpreterConfirmedAt = request.interpreterConfirmedDoneAtLabel;
   const contactUnlocked = isContactUnlocked(status) && request.interpreter !== null;
@@ -192,25 +190,23 @@ export function RequestDetail({ request }: { request: HelpRequest }) {
       return;
     }
 
-    setCancelError(null);
-    setCancelReason(cancelDraft.trim());
-    setCancelledBy("User");
-    setStatus("Cancelled");
-    setCancelFormOpen(false);
+    try {
+      updateRequest(request.requestId, "cancel", cancelDraft);
+      setCancelError(null);
+      setCancelFormOpen(false);
+    } catch { setCancelError("Could not save this change. Please try again."); }
   }
 
   /** BR-05: the request only reaches Completed once both sides confirm. */
   function confirmDone() {
-    setUserConfirmedAt(t.justNow);
-
-    if (interpreterConfirmedAt) {
-      setStatus("Completed");
-    }
+    try { updateRequest(request.requestId, "confirm"); }
+    catch { setCancelError("Could not save your confirmation. Please try again."); }
   }
 
   return (
     <main id="main-content" className="flex-1 px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
       <div className="mx-auto max-w-[1180px]">
+        {cancelError && <p role="alert" className="mb-4 text-(--khvi-coral)">{cancelError}</p>}
         <Link
           className="inline-flex items-center gap-2 text-sm font-extrabold text-[#087f80] transition-colors hover:text-[#0a6465]"
           href="/my-requests"
@@ -240,8 +236,8 @@ export function RequestDetail({ request }: { request: HelpRequest }) {
               {t.scheduled}: {request.scheduledAtLabel}
             </span>
           )}
-          {status === "Open" && request.expiresInSeconds !== null && (
-            <ExpiryCountdown seconds={request.expiresInSeconds} copyLocale={copyLocale} compact />
+          {status === "Open" && request.expiresAt && (
+            <ExpiryCountdown seconds={0} expiresAt={request.expiresAt} copyLocale={copyLocale} compact />
           )}
         </div>
 
@@ -332,7 +328,7 @@ export function RequestDetail({ request }: { request: HelpRequest }) {
             <section className={sectionClass}>
               <h2 className={sectionTitleClass}>{t.detailsTitle}</h2>
               <p className="mt-4 text-xs font-extrabold text-[#087f80]">{t.descriptionLabel}</p>
-              <p className="mt-1.5 text-sm leading-7 text-[#52676f]">{request.description}</p>
+              <p className="mt-1.5 text-sm leading-7 text-[#52676f]">{request.description || (copyLocale === "zh" ? "无补充说明" : "No additional notes.")}</p>
             </section>
 
             <section className={sectionClass}>
@@ -356,7 +352,7 @@ export function RequestDetail({ request }: { request: HelpRequest }) {
                 </div>
               </dl>
 
-              {!contactUnlocked && (
+              {status === "Open" && (
                 <div className="mt-5 border-t border-[#e3ebef] pt-4">
                   <p className="flex items-center gap-2 text-xs font-extrabold text-[#b5680b]">
                     <LockClosedIcon aria-hidden="true" className="h-4 w-4" />
@@ -411,7 +407,7 @@ export function RequestDetail({ request }: { request: HelpRequest }) {
                   </p>
                 </div>
               </section>
-            ) : (
+            ) : status === "Open" ? (
               <section className={sectionClass}>
                 <h2 className="flex items-center gap-2 text-base font-extrabold text-[#173646]">
                   <LockClosedIcon aria-hidden="true" className="h-5 w-5 text-[#b5680b]" />
@@ -419,7 +415,7 @@ export function RequestDetail({ request }: { request: HelpRequest }) {
                 </h2>
                 <p className="mt-3 text-sm leading-7 text-[#64777e]">{t.lockedBody}</p>
               </section>
-            )}
+            ) : null}
 
             <section className={sectionClass}>
               <h2 className={sectionTitleClass}>{t.actionsTitle}</h2>
