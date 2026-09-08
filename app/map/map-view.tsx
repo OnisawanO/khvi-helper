@@ -13,12 +13,18 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { useCopyLocale } from "@/app/components/app-shell";
 import { type CategoryId, type LanguageId } from "@/app/lib/mock-requests";
 
+const LeafletMap = dynamic(() => import("@/app/components/map/leaflet-map").then((module) => module.LeafletMap), {
+  ssr: false,
+  loading: () => <div className="flex min-h-[450px] items-center justify-center bg-[#e7efec] text-sm font-semibold text-[#52676f] lg:min-h-[680px]">Loading map…</div>,
+});
+
 type JobUrgency = "Immediate" | "Scheduled";
 
-type MapJob = {
+export type MapJob = {
   requestId: string;
   languageId: LanguageId;
   categoryId: CategoryId;
@@ -27,8 +33,8 @@ type MapJob = {
   urgency: JobUrgency;
   timeLabel: string;
   expiryLabel: string;
-  x: number;
-  y: number;
+  latitude: number;
+  longitude: number;
 };
 
 const MAP_JOBS: readonly MapJob[] = [
@@ -41,8 +47,8 @@ const MAP_JOBS: readonly MapJob[] = [
     urgency: "Immediate",
     timeLabel: "Help needed now",
     expiryLabel: "22 min left",
-    x: 28,
-    y: 31,
+    latitude: 8.64,
+    longitude: 99.9,
   },
   {
     requestId: "1047",
@@ -53,8 +59,8 @@ const MAP_JOBS: readonly MapJob[] = [
     urgency: "Scheduled",
     timeLabel: "Today at 14:30",
     expiryLabel: "Appointment",
-    x: 66,
-    y: 47,
+    latitude: 8.43,
+    longitude: 99.96,
   },
   {
     requestId: "1048",
@@ -65,8 +71,8 @@ const MAP_JOBS: readonly MapJob[] = [
     urgency: "Immediate",
     timeLabel: "Help needed now",
     expiryLabel: "18 min left",
-    x: 75,
-    y: 68,
+    latitude: 8.44,
+    longitude: 99.94,
   },
   {
     requestId: "1049",
@@ -77,8 +83,8 @@ const MAP_JOBS: readonly MapJob[] = [
     urgency: "Scheduled",
     timeLabel: "Today at 16:00",
     expiryLabel: "Appointment",
-    x: 23,
-    y: 76,
+    latitude: 8.67,
+    longitude: 99.9,
   },
 ] as const;
 
@@ -124,7 +130,7 @@ const copy = {
     close: "Close request details",
     reload: "Reset map view",
     resetDone: "Map filters reset",
-    mockNotice: "Design preview · open requests are mock data",
+    mockNotice: "Open requests are mock data · map tiles from OpenStreetMap",
     claimNotice: (id: string) => `Request #${id} is ready for the claim flow.`,
   },
   zh: {
@@ -168,12 +174,12 @@ const copy = {
     close: "关闭请求详情",
     reload: "重置地图视图",
     resetDone: "地图筛选已重置",
-    mockNotice: "设计预览 · 开放请求为模拟数据",
+    mockNotice: "开放请求为模拟数据 · 地图来自 OpenStreetMap",
     claimNotice: (id: string) => `请求 #${id} 已准备进入接取流程。`,
   },
 } as const;
 
-type MapCopy = {
+export type MapCopy = {
   [Key in keyof typeof copy.en]: (typeof copy.en)[Key] extends (...args: infer Arguments) => infer Result
     ? (...args: Arguments) => Result
     : string;
@@ -199,50 +205,6 @@ function StatusBadge({ job, labels }: { job: MapJob; labels: MapCopy }) {
       {urgent ? <ExclamationTriangleIcon aria-hidden="true" className="h-3.5 w-3.5" /> : <CalendarDaysIcon aria-hidden="true" className="h-3.5 w-3.5" />}
       {urgent ? labels.urgent : labels.appointment}
     </span>
-  );
-}
-
-function MapSurface({ jobs, selectedId, labels, onSelect }: { jobs: readonly MapJob[]; selectedId: string | null; labels: MapCopy; onSelect: (id: string) => void }) {
-  return (
-    <section className="neighborhood-scene relative min-h-[440px] overflow-hidden border border-[#d8e1e6] bg-[#eef4f6] lg:min-h-[620px]" aria-label="SOS map">
-      <div className="scene-road scene-road-major absolute -left-[8%] top-[24%] h-12 w-[118%] rotate-[10deg]" aria-hidden="true" />
-      <div className="scene-road absolute -left-[10%] top-[57%] h-9 w-[120%] -rotate-[8deg]" aria-hidden="true" />
-      <div className="scene-road absolute left-[42%] top-[-15%] h-[130%] w-8 rotate-[25deg]" aria-hidden="true" />
-      <div className="absolute right-[15%] top-[-15%] h-[130%] w-20 rotate-[13deg] bg-[#7ccde033]" aria-hidden="true" />
-      <span className="absolute left-[12%] top-[17%] rounded-md bg-white/75 px-2.5 py-1 text-[11px] font-bold text-[#65757b]">Walailak University</span>
-      <span className="absolute right-[14%] top-[46%] rounded-md bg-white/75 px-2.5 py-1 text-[11px] font-bold text-[#65757b]">Tha Sala</span>
-      <span className="absolute bottom-[14%] left-[15%] rounded-md bg-white/75 px-2.5 py-1 text-[11px] font-bold text-[#65757b]">Moklan community</span>
-      <div className="absolute left-[48%] top-[53%] h-3 w-3 rounded-full border-2 border-white bg-[#4d8a93] shadow-[0_0_0_9px_rgba(77,138,147,0.18)]" aria-hidden="true" />
-      <span className="absolute left-[48%] top-[calc(53%+18px)] -translate-x-1/2 whitespace-nowrap text-[10px] font-bold text-[#294554]">{labels.myLocation}</span>
-      <div className="absolute left-4 right-4 top-4 flex items-center gap-2 rounded-lg border border-[#d8e1e6] bg-white/90 px-3 py-2 text-xs font-semibold text-[#52676f] shadow-[0_10px_24px_rgba(20,55,72,0.09)]">
-        <LockClosedIcon aria-hidden="true" className="h-4 w-4 shrink-0 text-[#087f80]" />
-        {labels.roughLocation}
-      </div>
-      {jobs.map((job) => {
-        const urgent = job.urgency === "Immediate";
-        const selected = selectedId === job.requestId;
-
-        return (
-          <button
-            key={job.requestId}
-            type="button"
-            aria-label={`${urgent ? labels.urgent : labels.appointment}, ${getLanguageLabel(job.languageId, labels)}, ${getCategoryLabel(job.categoryId, labels)}, ${job.areaName}`}
-            aria-pressed={selected}
-            className={`group absolute grid h-12 w-12 -translate-x-1/2 -translate-y-1/2 rotate-45 place-items-center rounded-[50%_50%_50%_9px] border-[3px] border-white text-white shadow-[0_0_0_13px_rgba(77,138,147,0.15)] transition-transform hover:scale-110 ${
-              urgent ? "bg-[#f04f3e]" : "bg-[#092f45]"
-            } ${selected ? "z-10 scale-110 ring-4 ring-white/75" : ""}`}
-            style={{ left: `${job.x}%`, top: `${job.y}%` }}
-            onClick={() => onSelect(job.requestId)}
-          >
-            <span className="-rotate-45 text-base font-extrabold" aria-hidden="true">{urgent ? "!" : "◷"}</span>
-          </button>
-        );
-      })}
-      <div className="absolute bottom-4 left-4 flex items-center gap-3 rounded-lg border border-[#d8e1e6] bg-white/90 px-3 py-2 text-[11px] font-semibold text-[#52676f]">
-        <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[#f04f3e]" />{labels.urgent}</span>
-        <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[#092f45]" />{labels.appointment}</span>
-      </div>
-    </section>
   );
 }
 
@@ -305,7 +267,7 @@ export function MapView() {
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3"><button type="button" className="inline-flex min-h-10 items-center gap-2 rounded-lg px-2 text-xs font-extrabold text-[#52676f] underline decoration-[#b2c1c5] underline-offset-4 transition-colors hover:text-[#087f80]" onClick={resetFilters}><ArrowPathIcon aria-hidden="true" className="h-4 w-4" />{labels.clear}</button>{claimNotice && <p className="text-xs font-semibold text-[#087f80]" aria-live="polite">{claimNotice}</p>}</div>
         </section>
 
-        <div className="mt-5 grid overflow-hidden border border-[#d6e0e4] bg-white lg:grid-cols-[minmax(240px,0.78fr)_minmax(380px,1.45fr)_minmax(285px,0.9fr)]">
+        <div className="mt-5 grid overflow-hidden border border-[#d6e0e4] bg-white lg:grid-cols-[minmax(220px,0.64fr)_minmax(500px,1.9fr)_minmax(275px,0.86fr)] xl:grid-cols-[minmax(240px,0.62fr)_minmax(560px,2.05fr)_minmax(280px,0.83fr)]">
           <section className="order-2 border-t border-[#d6e0e4] lg:order-1 lg:border-r lg:border-t-0" aria-label="Open request list">
             <div className="flex items-center justify-between gap-3 border-b border-[#d6e0e4] px-4 py-4"><span className="text-sm font-extrabold text-[#294554]">{labels.results(visibleJobs.length)}</span><span className="text-[11px] text-[#73848a]">{labels.nearby}</span></div>
             {visibleJobs.length ? visibleJobs.map((job) => {
@@ -314,7 +276,7 @@ export function MapView() {
             }) : <div className="px-4 py-7 text-sm text-[#64777e]"><p className="font-extrabold text-[#294554]">{labels.noResults}</p><p className="mt-1 text-xs leading-5">{labels.noResultsHint}</p></div>}
           </section>
 
-          <MapSurface jobs={visibleJobs} selectedId={selectedJob?.requestId ?? null} labels={labels} onSelect={(id) => { setSelectedId(id); setClaimNotice(null); }} />
+          <LeafletMap jobs={visibleJobs} selectedId={selectedJob?.requestId ?? null} labels={labels} onSelect={(id) => { setSelectedId(id); setClaimNotice(null); }} />
 
           <aside className="order-3 border-t border-[#d6e0e4] p-5 lg:order-3 lg:border-l lg:border-t-0" aria-label="Request details">
             {selectedJob ? <><div className="flex items-center justify-between gap-3"><StatusBadge job={selectedJob} labels={labels} /><button type="button" className="flex h-10 w-10 items-center justify-center rounded-lg border border-transparent text-[#52676f] transition-colors hover:border-[#cbd7dc] hover:bg-[#f7f9fa]" aria-label={labels.close} onClick={() => { setSelectedId(null); setClaimNotice(null); }}><XMarkIcon aria-hidden="true" className="h-5 w-5" /></button></div><h2 className="mt-5 text-xl font-extrabold leading-8 text-[#173646]">{labels.needed} {getLanguageLabel(selectedJob.languageId, labels)}<br />{getCategoryLabel(selectedJob.categoryId, labels)}</h2><p className="mt-1 text-xs text-[#73848a]">{labels.request(selectedJob.requestId)}</p><p className="mt-4 flex items-center gap-2 text-xs font-bold text-[#3f6655]"><CheckCircleIcon aria-hidden="true" className="h-4 w-4" />{labels.matching}</p><dl className="mt-5"><div className="border-t border-[#e3ebef] py-3"><dt className="text-[11px] text-[#73848a]">{labels.area}</dt><dd className="mt-1 text-sm font-bold text-[#294554]">{selectedJob.areaName}</dd></div><div className="border-t border-[#e3ebef] py-3"><dt className="text-[11px] text-[#73848a]">{labels.distance}</dt><dd className="mt-1 text-sm font-bold text-[#294554]">{labels.fromYou(selectedJob.distanceKm)}</dd></div><div className="border-t border-[#e3ebef] py-3"><dt className="text-[11px] text-[#73848a]">{labels.needed}</dt><dd className="mt-1 flex items-center gap-2 text-sm font-bold text-[#294554]"><ClockIcon aria-hidden="true" className="h-4 w-4 text-[#b5680b]" />{selectedJob.timeLabel}</dd></div></dl><div className="mt-4 rounded-lg bg-[#f7f9fa] p-4"><p className="flex items-center gap-2 text-xs font-extrabold text-[#294554]"><LockClosedIcon aria-hidden="true" className="h-4 w-4 text-[#087f80]" />{labels.hiddenTitle}</p><p className="mt-2 text-xs leading-5 text-[#64777e]">{labels.hiddenBody}</p></div><div className="mt-5 lg:mt-8"><button type="button" className="flex min-h-12 w-full items-center justify-center rounded-lg bg-[#092f45] px-4 py-3 text-sm font-extrabold text-white shadow-[0_8px_18px_rgba(9,47,69,0.18)] transition-colors hover:bg-[#0c4960]" onClick={() => setClaimNotice(labels.claimNotice(selectedJob.requestId))}>{labels.continue}</button><p className="mt-2 text-center text-[11px] leading-5 text-[#73848a]">{labels.handoff}</p></div></> : <div className="flex min-h-[280px] flex-col items-center justify-center text-center text-sm text-[#64777e]"><MapPinIcon aria-hidden="true" className="h-8 w-8 text-[#4d8a93]" /><p className="mt-3 font-bold text-[#294554]">{labels.noResults}</p></div>}

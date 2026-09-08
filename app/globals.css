@@ -132,3 +132,49 @@ html {
   background: rgba(247, 217, 157, 0.78);
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.86);
 }
+
+.khvi-leaflet-marker {
+  border: 0;
+  background: transparent;
+}
+
+.khvi-leaflet-marker-shape {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  transform: rotate(45deg);
+  border: 3px solid #fff;
+  border-radius: 50% 50% 50% 8px;
+  color: #fff;
+  box-shadow: 0 0 0 12px rgba(77, 138, 147, 0.18);
+  font-size: 16px;
+  font-weight: 800;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.khvi-leaflet-marker-shape > span {
+  transform: rotate(-45deg);
+}
+
+.khvi-leaflet-marker-urgent {
+  background: var(--khvi-coral);
+  box-shadow: 0 0 0 12px rgba(240, 79, 62, 0.18);
+}
+
+.khvi-leaflet-marker-scheduled {
+  background: var(--khvi-navy);
+}
+
+.khvi-leaflet-marker-selected {
+  transform: rotate(45deg) scale(1.14);
+  box-shadow: 0 0 0 4px #fff, 0 0 0 17px rgba(77, 138, 147, 0.35);
+}
+
+.leaflet-control-zoom a {
+  color: var(--khvi-navy) !important;
+}
+
+.leaflet-control-attribution {
+  font-size: 10px;
+}
