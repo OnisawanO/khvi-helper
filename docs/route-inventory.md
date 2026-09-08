@@ -20,6 +20,7 @@
 | `/request-help` | Resource create route | Authenticated User (ยังไม่บังคับ) | `app/lib/mock-requests.ts` | Not applicable | Implemented (mock) |
 | `/my-requests` | Resource list | Authenticated User, เจ้าของคำขอ (ยังไม่บังคับ) | `app/lib/mock-requests.ts` | Empty state | Implemented (mock) |
 | `/my-requests/[requestId]` | Dynamic resource | เจ้าของคำขอ (ยังไม่บังคับ) | `app/lib/mock-requests.ts` | `notFound()` | Implemented (mock) |
+| `/admin` | Static dashboard (Mockup) | Admin | Mock data (Users, bookings, system summary) | Not applicable | Implemented (mock) |
 
 `/my-requests` รับ query parameter `status` ค่าเดียวเท่านั้น: `open`, `claimed`, `in-progress`, `completed`, `closed`
 ค่าที่ไม่รู้จักจะถูกลดรูปเป็น `all` โดยไม่ตอบ 404 เพราะ query parameter ไม่ใช่ตัวระบุ resource
@@ -41,7 +42,6 @@ parameter ที่ผิดรูปแบบหรือไม่พบข้�
 | `/volunteer/dashboard` | Resource dashboard | Approved Interpreter | `bookings`, interpreter skills | `403` if not approved | Planned |
 | `/mission/[id]` | Dynamic resource | Booking requester or claimed interpreter | `bookings` | `notFound()` or `403` | Planned |
 | `/manager/verify-volunteers` | Resource list/detail | Manager/Admin | `interpreter_profiles`, user profile | Empty state or `403` | Planned |
-| `/admin` | Static dashboard | Admin | Users, bookings, reviews summary | `403` | Planned |
 | `/admin/users` | Resource list/detail | Admin | User profile and roles | Empty state or `403` | Planned |
 
 `/request-help` และ `/my-requests` ย้ายจากตารางนี้ขึ้นไปอยู่ตาราง implemented แล้ว โดย path ตรงกับที่ทีมวางแผนไว้เดิม
