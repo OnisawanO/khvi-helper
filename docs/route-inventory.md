@@ -20,6 +20,7 @@
 | `/request-help` | Resource create route | Authenticated User (ยังไม่บังคับ) | `app/lib/mock-requests.ts` | Not applicable | Implemented (mock) |
 | `/my-requests` | Resource list | Authenticated User, เจ้าของคำขอ (ยังไม่บังคับ) | `app/lib/mock-requests.ts` | Empty state | Implemented (mock) |
 | `/my-requests/[requestId]` | Dynamic resource | เจ้าของคำขอ (ยังไม่บังคับ) | `app/lib/mock-requests.ts` | `notFound()` | Implemented (mock) |
+| `/register` | Static auth route | Public | `app/lib/mock-auth.ts` (Mock session) | Not applicable | Implemented (mock) |
 
 `/my-requests` รับ query parameter `status` ค่าเดียวเท่านั้น: `open`, `claimed`, `in-progress`, `completed`, `closed`
 ค่าที่ไม่รู้จักจะถูกลดรูปเป็น `all` โดยไม่ตอบ 404 เพราะ query parameter ไม่ใช่ตัวระบุ resource
@@ -27,12 +28,13 @@
 `/my-requests/[requestId]` ตรวจ parameter ด้วย `isValidRequestId()` (ตัวเลขล้วน ตรงกับ `bookings.booking_id` ที่วางแผนไว้)
 parameter ที่ผิดรูปแบบหรือไม่พบข้อมูลจะเรียก `notFound()` ทั้งสองกรณี เพื่อไม่เปิดเผยว่ามี id นั้นอยู่จริงหรือไม่
 
+`/register` เป็นหน้าสมัครสมาชิกบัญชีผู้ใช้ใหม่ รับข้อมูลตาม Schema ตาราง `USER` ใน `detail.md` (ชื่อ-นามสกุล, อีเมล, รหัสผ่าน, เบอร์โทรศัพท์, วันเดือนปีเกิด, ภาษาหน้าจอ) โดยสามารถเข้าถึงได้ทั้งเป็น Modal Overlay ซ้อนบนหน้าแรก (`/`) และเข้าผ่าน Direct URL `/register`
+
 ## Routes ที่วางแผนไว้
 
 | Path | Type | Access | Data source | Not found behavior | Status |
 |---|---|---|---|---|---|
 | `/login` | Static auth route | Public | Supabase Auth | Redirect authenticated user by role | Planned |
-| `/register` | Static auth route | Public | Supabase Auth, user profile | Redirect authenticated user by role | Planned |
 | `/profile` | Static private route | Authenticated | User profile | Redirect to login | Planned |
 | `/welcome` | Static private route | Authenticated User | User profile | Redirect to login | Planned |
 | `/map` | Resource map/list | Approved Interpreter | `bookings`, interpreter skills | Empty state or `403` | Planned |
@@ -44,7 +46,7 @@ parameter ที่ผิดรูปแบบหรือไม่พบข้�
 | `/admin` | Static dashboard | Admin | Users, bookings, reviews summary | `403` | Planned |
 | `/admin/users` | Resource list/detail | Admin | User profile and roles | Empty state or `403` | Planned |
 
-`/request-help` และ `/my-requests` ย้ายจากตารางนี้ขึ้นไปอยู่ตาราง implemented แล้ว โดย path ตรงกับที่ทีมวางแผนไว้เดิม
+`/request-help`, `/my-requests` และ `/register` ย้ายจากตารางนี้ขึ้นไปอยู่ตาราง implemented แล้ว โดย path ตรงกับที่ทีมวางแผนไว้เดิม
 
 ### ประเด็นค้าง: `/my-requests/[requestId]` ทับซ้อนกับ `/mission/[id]`
 

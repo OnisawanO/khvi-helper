@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentType, SVGProps } from "react";
+import { useEffect, useState, type ComponentType, type SVGProps } from "react";
 import {
   CalendarDaysIcon,
   CheckBadgeIcon,
@@ -14,10 +14,12 @@ import {
   ShieldCheckIcon,
   UserCircleIcon,
   UserGroupIcon,
+  UserPlusIcon,
 } from "@heroicons/react/24/outline";
 import { SiteFooter } from "./components/site-footer";
 import { SiteHeader, type Locale } from "./components/site-header";
 import { resolveCopyLocale, useStoredLocale } from "./lib/locale";
+import { RegisterModal } from "./register/register-modal";
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 type RequestCardContent = {
@@ -430,13 +432,32 @@ function RequestCard({ card, icon: IconComponent }: { card: RequestCardContent; 
 export default function Home() {
   const [locale, setLocale] = useStoredLocale();
   const t = copy[resolveCopyLocale(locale)];
+  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+
+  useEffect(() => {
+    const checkUrl = () => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("register") === "true" || window.location.hash === "#register") {
+        queueMicrotask(() => setIsRegisterOpen(true));
+      }
+    };
+
+    checkUrl();
+    window.addEventListener("hashchange", checkUrl);
+    return () => window.removeEventListener("hashchange", checkUrl);
+  }, []);
 
   return (
     <main id="top" className="min-h-screen bg-[#f7f9fa] text-[#10283a]">
       <a className="skip-link" href="#main-content">
         {t.skip}
       </a>
-      <SiteHeader copy={t.header} locale={locale} onLocaleChange={setLocale} />
+      <SiteHeader
+        copy={t.header}
+        locale={locale}
+        onLocaleChange={setLocale}
+        onOpenRegister={() => setIsRegisterOpen(true)}
+      />
 
       <section id="main-content" className="mx-auto grid max-w-[1440px] scroll-mt-24 gap-8 px-5 pb-10 pt-8 sm:px-8 lg:grid-cols-[0.76fr_1.24fr] lg:items-center lg:px-12 lg:py-12">
         <div>
@@ -454,10 +475,20 @@ export default function Home() {
               <MapPinIcon aria-hidden="true" className="h-5 w-5" />
               {t.hero.primaryCta}
             </a>
-            <a className="flex min-h-14 flex-1 items-center justify-center gap-2 rounded-lg border-2 border-[#087f80] px-4 py-3 text-center text-[13px] font-extrabold leading-5 text-[#087f80] transition-colors hover:bg-[#edf7f5] sm:px-5 sm:text-sm" href="/volunteer/apply">
-              <UserGroupIcon aria-hidden="true" className="h-5 w-5" />
-              {t.hero.secondaryCta}
-            </a>
+            <div className="flex gap-2">
+              <a className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg border-2 border-[#087f80] px-3 py-2 text-center text-xs font-extrabold leading-5 text-[#087f80] transition-colors hover:bg-[#edf7f5] sm:px-4 sm:text-sm" href="/volunteer/apply">
+                <UserGroupIcon aria-hidden="true" className="h-4 w-4 shrink-0" />
+                {t.hero.secondaryCta}
+              </a>
+              <button
+                type="button"
+                onClick={() => setIsRegisterOpen(true)}
+                className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg border border-[#cbd7dc] bg-white px-3 py-2 text-center text-xs font-extrabold leading-5 text-[#173646] shadow-xs transition-colors hover:border-[#087f80] hover:text-[#087f80] hover:bg-[#edf7f5] sm:px-4 sm:text-sm"
+              >
+                <UserPlusIcon aria-hidden="true" className="h-4 w-4 shrink-0 text-[#0d8587]" />
+                {locale === "zh" ? "注册账号" : "สมัครสมาชิก"}
+              </button>
+            </div>
           </div>
           <StatusFlow labels={t.statuses} title={t.hero.statusTitle} />
         </div>
@@ -565,6 +596,11 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <RegisterModal
+        isOpen={isRegisterOpen}
+        onClose={() => setIsRegisterOpen(false)}
+      />
 
       <SiteFooter copy={t.footer} brandSubtitle={t.header.brandSubtitle} />
     </main>
