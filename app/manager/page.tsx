@@ -489,59 +489,60 @@ export default function ManagerDashboard() {
           />
 
           {/* Drawer content sliding from left */}
-          <aside className="relative z-10 flex h-full w-[80%] max-w-xs flex-col justify-between bg-white p-5 shadow-2xl animate-in slide-in-from-left duration-250 border-r border-slate-200">
-            <div className="space-y-6">
-              {/* Drawer Top Header */}
+          <aside className="relative z-10 flex h-full w-[80%] max-w-xs flex-col justify-between bg-white p-4 shadow-2xl animate-in slide-in-from-left duration-250 border-r border-slate-200">
+            <div className="space-y-4">
+              {/* Drawer Top Header (Aligned with Desktop Brand) */}
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <Link
                   href="/"
                   onClick={() => setIsMobileDrawerOpen(false)}
-                  className="flex items-center gap-2.5 group"
+                  className="group flex items-center gap-3 rounded-2xl transition-transform hover:scale-105"
                   title="KHVI Home (กลับสู่หน้าหลัก)"
                 >
-                  <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#087f80]/30 bg-[#092f45] shadow-xs">
+                  <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#087f80]/30 bg-[#092f45] shadow-xs group-hover:border-[#087f80]">
                     <Image
                       src="/khvi-logo.jpg"
                       alt="KHVI logo"
                       fill
-                      sizes="36px"
+                      sizes="40px"
                       className="scale-[2.2] object-cover object-[50%_54%]"
+                      priority
                     />
                   </div>
                   <div>
-                    <h3 className="text-xs font-extrabold text-[#092f45] group-hover:text-[#087f80] transition-colors">KHVI Helper</h3>
-                    <p className="text-[10px] text-slate-400">Manager Console</p>
+                    <span className="block text-base font-black tracking-tight text-[#092f45]">KHVI</span>
+                    <span className="block truncate text-[10px] font-bold text-[#087f80]">Interpreter Hub</span>
                   </div>
                 </Link>
                 <button
                   type="button"
                   onClick={() => setIsMobileDrawerOpen(false)}
-                  className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+                  className="flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
                   aria-label="Close menu"
                 >
                   <XMarkIcon className="h-5 w-5" />
                 </button>
               </div>
 
-              {/* Navigation Links in Mobile Drawer */}
+              {/* Navigation Links in Mobile Drawer (Exact Theme Matching Desktop) */}
               <div>
                 <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Interpreter Verification
+                  Verification
                 </p>
-                <nav className="mt-2 space-y-1.5">
+                <nav className="mt-1 space-y-1">
                   <button
                     onClick={() => {
                       setNavSection("queue");
                       setIsMobileDrawerOpen(false);
                     }}
-                    className={`flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${
+                    className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
                       navSection === "queue"
-                        ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
+                        ? "bg-[#092f45] text-white shadow-sm"
                         : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <InboxStackIcon className="h-4 w-4" />
+                      <InboxStackIcon className="h-5 w-5" />
                       <span>Application Queue</span>
                     </div>
                     {pendingCount > 0 && (
@@ -549,7 +550,7 @@ export default function ManagerDashboard() {
                         className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
                           navSection === "queue"
                             ? "bg-white/20 text-white"
-                            : "bg-amber-100 text-amber-800"
+                            : "bg-[#1e3a4b]/15 text-[#092f45]"
                         }`}
                       >
                         {formatBadgeCount(pendingCount)}
@@ -562,14 +563,14 @@ export default function ManagerDashboard() {
                       setNavSection("approved");
                       setIsMobileDrawerOpen(false);
                     }}
-                    className={`flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${
+                    className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
                       navSection === "approved"
-                        ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
+                        ? "bg-[#092f45] text-white shadow-sm"
                         : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <CheckCircleIcon className="h-4 w-4" />
+                      <CheckCircleIcon className="h-5 w-5" />
                       <span>Approved Volunteers</span>
                     </div>
                     <span
@@ -588,15 +589,15 @@ export default function ManagerDashboard() {
                       setNavSection("rejected");
                       setIsMobileDrawerOpen(false);
                     }}
-                    className={`flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${
+                    className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
                       navSection === "rejected"
-                        ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
+                        ? "bg-[#092f45] text-white shadow-sm"
                         : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <ArchiveBoxXMarkIcon className="h-4 w-4" />
-                      <span>Rejected Applications</span>
+                      <ArchiveBoxXMarkIcon className="h-5 w-5" />
+                      <span>Rejected Archive</span>
                     </div>
                     <span
                       className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
@@ -612,25 +613,25 @@ export default function ManagerDashboard() {
               </div>
 
               {/* Group 2 in Mobile Drawer */}
-              <div className="border-t border-slate-100 pt-3">
+              <div>
                 <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Support & Escalations
+                  Escalation Desk
                 </p>
-                <nav className="mt-2 space-y-1.5">
+                <nav className="mt-1 space-y-1">
                   <button
                     onClick={() => {
                       setNavSection("tickets");
                       setIsMobileDrawerOpen(false);
                     }}
-                    className={`flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${
+                    className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
                       navSection === "tickets"
-                        ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
+                        ? "bg-[#092f45] text-white shadow-sm"
                         : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <ChatBubbleLeftRightIcon className="h-4 w-4" />
-                      <span>Help Requests (Live)</span>
+                      <ChatBubbleLeftRightIcon className="h-5 w-5" />
+                      <span>Live Help Requests</span>
                     </div>
                     {openTicketCount > 0 && (
                       <span
@@ -650,14 +651,14 @@ export default function ManagerDashboard() {
                       setNavSection("reports");
                       setIsMobileDrawerOpen(false);
                     }}
-                    className={`flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${
+                    className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
                       navSection === "reports"
-                        ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
+                        ? "bg-[#092f45] text-white shadow-sm"
                         : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <ShieldExclamationIcon className="h-4 w-4" />
+                      <ShieldExclamationIcon className="h-5 w-5" />
                       <span>Incident Reports</span>
                     </div>
                     <span
@@ -674,54 +675,74 @@ export default function ManagerDashboard() {
               </div>
             </div>
 
-            {/* Quick KPI & Environment in Mobile Drawer */}
-            <div className="space-y-3">
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
-                <p className="font-semibold text-slate-700 text-[11px]">Regional Hub: Bangkok Central</p>
-                <p className="text-[10px]">Verified Active Pool: 48 interpreters</p>
-                <p className="text-[10px]">Approved Pool: {approvedCount} Active Interpreters</p>
-              </div>
+            {/* Bottom Section in Mobile Drawer (Settings + Profile + Status matching Desktop) */}
+            <div className="mt-auto space-y-2 pt-3 border-t border-slate-100">
+              {/* Settings Button */}
+              <button
+                type="button"
+                onClick={() => alert("Manager System Settings & Preferences")}
+                className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 hover:text-[#092f45] transition-colors cursor-pointer"
+                title="Manager Settings"
+              >
+                <Cog6ToothIcon className="h-5 w-5 shrink-0" />
+                <span>Settings & SOP</span>
+              </button>
 
               {/* Bottom Profile in Mobile Drawer */}
-              <div className="border-t border-slate-200 pt-3">
-                <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-2.5 shadow-xs">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#092f45] text-xs font-black text-white">
-                      TY
-                    </div>
-                    <div className="min-w-0 truncate">
-                      <p className="text-xs font-black text-[#092f45] truncate">Taofix yayueri</p>
-                      <p className="text-[10px] text-[#087f80] font-bold">Regional Manager</p>
-                    </div>
+              <div className="flex items-center justify-between rounded-2xl border border-[#d6e0e4] bg-white p-2 shadow-xs">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#087f80] bg-[#092f45] text-xs font-black text-white shadow-xs">
+                    TY
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => alert("Simulating sign out")}
-                    className="rounded-lg p-1.5 text-[#d93829] hover:bg-[#fff2f0] transition-colors"
-                    title="Sign out"
-                  >
-                    <ArrowLeftOnRectangleIcon className="h-4 w-4" />
-                  </button>
+                  <div className="min-w-0 truncate">
+                    <p className="text-xs font-bold leading-tight text-[#092f45] truncate">Taofix yayueri</p>
+                    <p className="text-[10px] font-bold text-[#087f80] truncate">Regional Manager</p>
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => alert("Simulating sign out")}
+                  className="rounded-xl p-1.5 text-[#d93829] hover:bg-[#fff2f0] transition-colors"
+                  title="Sign out"
+                >
+                  <ArrowLeftOnRectangleIcon className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Hub Operational Status in Mobile Drawer */}
+              <div className="rounded-xl border border-emerald-200/70 bg-emerald-50/50 p-2.5 text-[10px]">
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1.5 font-extrabold text-emerald-800">
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                    </span>
+                    Hub Operational · Active
+                  </span>
+                  <span className="text-[9px] font-bold text-emerald-600">BKK-CORE-01</span>
+                </div>
+                <p className="mt-1 text-slate-500">Bangkok Central · 48 Active Pool</p>
               </div>
             </div>
           </aside>
         </div>
       )}
 
-      {/* Left Sidebar (Desktop - Gemini Style, Full Height Top-to-Bottom, Smooth Expansion & Collapse) */}
+      {/* Left Sidebar (Desktop - Gemini Style, Full Height Top-to-Bottom, Smooth Natural Cubic Expansion & Collapse) */}
       <aside
-        className={`hidden h-full flex-shrink-0 border-r border-slate-200 bg-white transition-[width,padding] duration-300 ease-in-out md:flex md:flex-col justify-between ${
-          isSidebarCollapsed ? "w-16 px-2 py-3.5" : "w-64 p-4"
+        className={`hidden h-full flex-shrink-0 border-r border-slate-200 bg-white transition-[width,padding] duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] md:flex md:flex-col justify-between ${
+          isSidebarCollapsed ? "w-16 px-2.5 py-3.5" : "w-64 p-4"
         }`}
       >
         {/* Top Section: Brand Logo (Link to Home /) & Navigation */}
         <div className="space-y-4 overflow-hidden">
           {/* Top KHVI Brand / Home Navigation (Gemini Style) */}
-          <div className={`flex items-center transition-all duration-300 ${isSidebarCollapsed ? "justify-center" : "justify-between px-2"}`}>
+          <div className={`flex items-center transition-all duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] ${isSidebarCollapsed ? "justify-center" : "justify-between px-1"}`}>
             <Link
               href="/"
-              className="group relative flex items-center gap-3 rounded-2xl transition-transform hover:scale-105"
+              className={`group relative flex items-center rounded-2xl transition-transform hover:scale-105 ${
+                isSidebarCollapsed ? "justify-center w-10 h-10 p-0" : "gap-3"
+              }`}
               title="KHVI Home (กลับสู่หน้าหลัก)"
             >
               {/* Brand Icon (Round like Gemini Sparkle) */}
@@ -736,8 +757,8 @@ export default function ManagerDashboard() {
                 />
               </div>
               <div
-                className={`min-w-0 transition-all duration-300 overflow-hidden whitespace-nowrap ${
-                  isSidebarCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"
+                className={`min-w-0 transition-all duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] overflow-hidden whitespace-nowrap ${
+                  isSidebarCollapsed ? "max-w-0 opacity-0 pointer-events-none" : "max-w-[140px] opacity-100 ml-0"
                 }`}
               >
                 <span className="block text-base font-black tracking-tight text-[#092f45]">KHVI</span>
@@ -760,11 +781,11 @@ export default function ManagerDashboard() {
 
           {/* In collapsed mode, show Gemini-like hamburger below logo */}
           {isSidebarCollapsed && (
-            <div className="flex justify-center pt-1 animate-in fade-in duration-200">
+            <div className="flex justify-center pt-1 animate-in fade-in duration-300">
               <button
                 type="button"
                 onClick={() => setIsSidebarCollapsed(false)}
-                className="flex h-10 w-10 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-[#092f45] transition-colors cursor-pointer"
+                className="flex h-10 w-10 items-center justify-center rounded-2xl text-slate-500 hover:bg-slate-100 hover:text-[#092f45] transition-colors cursor-pointer"
                 title="Expand sidebar (เปิดแถบข้าง)"
               >
                 <Bars3Icon className="h-5 w-5" />
@@ -778,7 +799,7 @@ export default function ManagerDashboard() {
           {/* Navigation Group 1: Verification */}
           <div>
             <div
-              className={`overflow-hidden transition-all duration-300 ${
+              className={`overflow-hidden transition-all duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] ${
                 isSidebarCollapsed ? "h-0 opacity-0 pointer-events-none" : "h-5 opacity-100"
               }`}
             >
@@ -790,7 +811,7 @@ export default function ManagerDashboard() {
               <button
                 type="button"
                 onClick={() => setNavSection("queue")}
-                className={`group relative flex items-center rounded-2xl transition-all duration-300 ease-in-out cursor-pointer ${
+                className={`group relative flex items-center rounded-2xl transition-all duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] cursor-pointer ${
                   isSidebarCollapsed ? "h-10 w-10 justify-center mx-auto p-0" : "w-full h-10 justify-between px-3"
                 } ${
                   navSection === "queue"
@@ -807,28 +828,30 @@ export default function ManagerDashboard() {
                     </span>
                   )}
                 </div>
-                {!isSidebarCollapsed && (
-                  <div className="flex items-center justify-between min-w-0 flex-1 ml-3 transition-opacity duration-200">
-                    <span className="text-xs font-bold truncate">Application Queue</span>
-                    {pendingCount > 0 && (
-                      <span
-                        className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                          navSection === "queue"
-                            ? "bg-white/20 text-white"
-                            : "bg-[#1e3a4b]/15 text-[#092f45]"
-                        }`}
-                      >
-                        {formatBadgeCount(pendingCount)}
-                      </span>
-                    )}
-                  </div>
-                )}
+                <div
+                  className={`flex items-center justify-between min-w-0 flex-1 overflow-hidden transition-all duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] ${
+                    isSidebarCollapsed ? "max-w-0 opacity-0 pointer-events-none ml-0" : "max-w-[200px] opacity-100 ml-3"
+                  }`}
+                >
+                  <span className="text-xs font-bold truncate">Application Queue</span>
+                  {pendingCount > 0 && (
+                    <span
+                      className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                        navSection === "queue"
+                          ? "bg-white/20 text-white"
+                          : "bg-[#1e3a4b]/15 text-[#092f45]"
+                      }`}
+                    >
+                      {formatBadgeCount(pendingCount)}
+                    </span>
+                  )}
+                </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => setNavSection("approved")}
-                className={`group relative flex items-center rounded-2xl transition-all duration-300 ease-in-out cursor-pointer ${
+                className={`group relative flex items-center rounded-2xl transition-all duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] cursor-pointer ${
                   isSidebarCollapsed ? "h-10 w-10 justify-center mx-auto p-0" : "w-full h-10 justify-between px-3"
                 } ${
                   navSection === "approved"
@@ -845,26 +868,28 @@ export default function ManagerDashboard() {
                     </span>
                   )}
                 </div>
-                {!isSidebarCollapsed && (
-                  <div className="flex items-center justify-between min-w-0 flex-1 ml-3 transition-opacity duration-200">
-                    <span className="text-xs font-bold truncate">Approved Volunteers</span>
-                    <span
-                      className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                        navSection === "approved"
-                          ? "bg-white/20 text-white"
-                          : "bg-teal-100 text-[#087f80]"
-                      }`}
-                    >
-                      {formatBadgeCount(approvedCount)}
-                    </span>
-                  </div>
-                )}
+                <div
+                  className={`flex items-center justify-between min-w-0 flex-1 overflow-hidden transition-all duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] ${
+                    isSidebarCollapsed ? "max-w-0 opacity-0 pointer-events-none ml-0" : "max-w-[200px] opacity-100 ml-3"
+                  }`}
+                >
+                  <span className="text-xs font-bold truncate">Approved Volunteers</span>
+                  <span
+                    className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                      navSection === "approved"
+                        ? "bg-white/20 text-white"
+                        : "bg-teal-100 text-[#087f80]"
+                    }`}
+                  >
+                    {formatBadgeCount(approvedCount)}
+                  </span>
+                </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => setNavSection("rejected")}
-                className={`group relative flex items-center rounded-2xl transition-all duration-300 ease-in-out cursor-pointer ${
+                className={`group relative flex items-center rounded-2xl transition-all duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] cursor-pointer ${
                   isSidebarCollapsed ? "h-10 w-10 justify-center mx-auto p-0" : "w-full h-10 justify-between px-3"
                 } ${
                   navSection === "rejected"
@@ -881,20 +906,22 @@ export default function ManagerDashboard() {
                     </span>
                   )}
                 </div>
-                {!isSidebarCollapsed && (
-                  <div className="flex items-center justify-between min-w-0 flex-1 ml-3 transition-opacity duration-200">
-                    <span className="text-xs font-bold truncate">Rejected Archive</span>
-                    <span
-                      className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                        navSection === "rejected"
-                          ? "bg-white/20 text-white"
-                          : "bg-red-100 text-[#d93829]"
-                      }`}
-                    >
-                      {formatBadgeCount(rejectedCount)}
-                    </span>
-                  </div>
-                )}
+                <div
+                  className={`flex items-center justify-between min-w-0 flex-1 overflow-hidden transition-all duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] ${
+                    isSidebarCollapsed ? "max-w-0 opacity-0 pointer-events-none ml-0" : "max-w-[200px] opacity-100 ml-3"
+                  }`}
+                >
+                  <span className="text-xs font-bold truncate">Rejected Archive</span>
+                  <span
+                    className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                      navSection === "rejected"
+                        ? "bg-white/20 text-white"
+                        : "bg-red-100 text-[#d93829]"
+                    }`}
+                  >
+                    {formatBadgeCount(rejectedCount)}
+                  </span>
+                </div>
               </button>
             </nav>
           </div>
@@ -902,7 +929,7 @@ export default function ManagerDashboard() {
           {/* Navigation Group 2: Support & Live Desk */}
           <div>
             <div
-              className={`overflow-hidden transition-all duration-300 ${
+              className={`overflow-hidden transition-all duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] ${
                 isSidebarCollapsed ? "h-0 opacity-0 pointer-events-none" : "h-5 opacity-100"
               }`}
             >
@@ -914,7 +941,7 @@ export default function ManagerDashboard() {
               <button
                 type="button"
                 onClick={() => setNavSection("tickets")}
-                className={`group relative flex items-center rounded-2xl transition-all duration-300 ease-in-out cursor-pointer ${
+                className={`group relative flex items-center rounded-2xl transition-all duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] cursor-pointer ${
                   isSidebarCollapsed ? "h-10 w-10 justify-center mx-auto p-0" : "w-full h-10 justify-between px-3"
                 } ${
                   navSection === "tickets"
@@ -931,28 +958,30 @@ export default function ManagerDashboard() {
                     </span>
                   )}
                 </div>
-                {!isSidebarCollapsed && (
-                  <div className="flex items-center justify-between min-w-0 flex-1 ml-3 transition-opacity duration-200">
-                    <span className="text-xs font-bold truncate">Live Help Requests</span>
-                    {openTicketCount > 0 && (
-                      <span
-                        className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                          navSection === "tickets"
-                            ? "bg-white/20 text-white"
-                            : "bg-red-100 text-[#f04f3e]"
-                        }`}
-                      >
-                        {formatBadgeCount(openTicketCount)}
-                      </span>
-                    )}
-                  </div>
-                )}
+                <div
+                  className={`flex items-center justify-between min-w-0 flex-1 overflow-hidden transition-all duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] ${
+                    isSidebarCollapsed ? "max-w-0 opacity-0 pointer-events-none ml-0" : "max-w-[200px] opacity-100 ml-3"
+                  }`}
+                >
+                  <span className="text-xs font-bold truncate">Live Help Requests</span>
+                  {openTicketCount > 0 && (
+                    <span
+                      className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                        navSection === "tickets"
+                          ? "bg-white/20 text-white"
+                          : "bg-red-100 text-[#f04f3e]"
+                      }`}
+                    >
+                      {formatBadgeCount(openTicketCount)}
+                    </span>
+                  )}
+                </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => setNavSection("reports")}
-                className={`group relative flex items-center rounded-2xl transition-all duration-300 ease-in-out cursor-pointer ${
+                className={`group relative flex items-center rounded-2xl transition-all duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] cursor-pointer ${
                   isSidebarCollapsed ? "h-10 w-10 justify-center mx-auto p-0" : "w-full h-10 justify-between px-3"
                 } ${
                   navSection === "reports"
@@ -969,22 +998,24 @@ export default function ManagerDashboard() {
                     </span>
                   )}
                 </div>
-                {!isSidebarCollapsed && (
-                  <div className="flex items-center justify-between min-w-0 flex-1 ml-3 transition-opacity duration-200">
-                    <span className="text-xs font-bold truncate">Incident Reports</span>
-                    {pendingReportCount > 0 && (
-                      <span
-                        className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                          navSection === "reports"
-                            ? "bg-white/20 text-white"
-                            : "bg-amber-100 text-amber-800"
-                        }`}
-                      >
-                        {formatBadgeCount(pendingReportCount)}
-                      </span>
-                    )}
-                  </div>
-                )}
+                <div
+                  className={`flex items-center justify-between min-w-0 flex-1 overflow-hidden transition-all duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] ${
+                    isSidebarCollapsed ? "max-w-0 opacity-0 pointer-events-none ml-0" : "max-w-[200px] opacity-100 ml-3"
+                  }`}
+                >
+                  <span className="text-xs font-bold truncate">Incident Reports</span>
+                  {pendingReportCount > 0 && (
+                    <span
+                      className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                        navSection === "reports"
+                          ? "bg-white/20 text-white"
+                          : "bg-amber-100 text-amber-800"
+                      }`}
+                    >
+                      {formatBadgeCount(pendingReportCount)}
+                    </span>
+                  )}
+                </div>
               </button>
             </nav>
           </div>
@@ -996,17 +1027,19 @@ export default function ManagerDashboard() {
           <button
             type="button"
             onClick={() => alert("Manager System Settings & Preferences")}
-            className={`flex items-center rounded-2xl text-slate-500 hover:bg-slate-100 hover:text-[#092f45] transition-colors cursor-pointer ${
+            className={`flex items-center rounded-2xl text-slate-500 hover:bg-slate-100 hover:text-[#092f45] transition-all duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] cursor-pointer ${
               isSidebarCollapsed ? "h-10 w-10 justify-center mx-auto p-0" : "w-full gap-3 px-3 py-2 text-xs font-bold"
             }`}
             title="Manager Settings (ตั้งค่าระบบ)"
           >
             <Cog6ToothIcon className="h-5 w-5 shrink-0" />
-            {!isSidebarCollapsed && (
-              <span className="whitespace-nowrap transition-opacity duration-200">
-                Settings & SOP
-              </span>
-            )}
+            <div
+              className={`min-w-0 overflow-hidden transition-all duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] ${
+                isSidebarCollapsed ? "max-w-0 opacity-0 pointer-events-none" : "max-w-[140px] opacity-100"
+              }`}
+            >
+              <span className="whitespace-nowrap">Settings & SOP</span>
+            </div>
           </button>
 
           {/* Profile Avatar Card with Pop-up Menu (Gemini Style) */}
@@ -1014,7 +1047,7 @@ export default function ManagerDashboard() {
             <button
               type="button"
               onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-              className={`group flex items-center rounded-2xl transition-all duration-300 hover:bg-slate-100 cursor-pointer ${
+              className={`group flex items-center rounded-2xl transition-all duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] hover:bg-slate-100 cursor-pointer ${
                 isSidebarCollapsed ? "h-10 w-10 justify-center mx-auto p-0" : "w-full justify-between p-1.5"
               }`}
               title="Taofix yayueri (Regional Manager)"
@@ -1025,20 +1058,20 @@ export default function ManagerDashboard() {
                 <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#087f80] bg-[#092f45] text-xs font-black text-white shadow-xs">
                   TY
                 </div>
-                {!isSidebarCollapsed && (
-                  <div className="min-w-0 text-left whitespace-nowrap transition-opacity duration-200">
-                    <p className="text-xs font-bold leading-tight text-[#092f45] truncate">Taofix yayueri</p>
-                    <p className="text-[10px] font-bold text-[#087f80]">Regional Manager</p>
-                  </div>
-                )}
-              </div>
-              {!isSidebarCollapsed && (
-                <ChevronDownIcon
-                  className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-300 ${
-                    profileMenuOpen ? "rotate-180" : ""
+                <div
+                  className={`min-w-0 text-left overflow-hidden transition-all duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] ${
+                    isSidebarCollapsed ? "max-w-0 opacity-0 pointer-events-none" : "max-w-[130px] opacity-100"
                   }`}
-                />
-              )}
+                >
+                  <p className="text-xs font-bold leading-tight text-[#092f45] truncate">Taofix yayueri</p>
+                  <p className="text-[10px] font-bold text-[#087f80] truncate">Regional Manager</p>
+                </div>
+              </div>
+              <ChevronDownIcon
+                className={`h-4 w-4 shrink-0 text-slate-400 transition-all duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] ${
+                  isSidebarCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-4 opacity-100"
+                } ${profileMenuOpen ? "rotate-180" : ""}`}
+              />
             </button>
 
             {/* Profile Dropdown Pop-up Menu (Gemini flyout when collapsed vs dropup when expanded) */}
