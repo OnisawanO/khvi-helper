@@ -188,11 +188,6 @@ export function MissionRoomView({ initialBooking }: { initialBooking: Booking })
     window.localStorage.setItem("khvi-locale", locale);
   }, [locale]);
 
-  useEffect(() => {
-    const role = searchParams.get("role");
-    if (role === "user" || role === "interpreter") setViewerRole(role);
-  }, [searchParams]);
-
   const handleStart = () => {
     setBooking((current) => {
       if (current.status !== "Claimed") return current;
