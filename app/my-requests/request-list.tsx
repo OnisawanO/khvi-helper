@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRequests } from "@/app/lib/request-store";
 import { ChevronRightIcon, InboxIcon, MapPinIcon, PlusIcon, UserCircleIcon } from "@heroicons/react/24/outline";
 import { useCopyLocale } from "@/app/components/app-shell";
 import { ExpiryCountdown } from "@/app/components/expiry-countdown";
@@ -10,7 +11,6 @@ import {
   isContactUnlocked,
   languageLabel,
   STATUS_FILTERS,
-  type HelpRequest,
   type StatusFilterId,
 } from "@/app/lib/mock-requests";
 
@@ -74,14 +74,17 @@ const copy = {
 } as const;
 
 export function RequestList({
-  requests,
   activeFilter,
-  counts,
 }: {
-  requests: HelpRequest[];
   activeFilter: StatusFilterId;
-  counts: Record<string, number>;
 }) {
+  const { requests: allRequests, ready } = useRequests();
+  const matching = (id: StatusFilterId) => {
+    const statuses: readonly string[] | null = STATUS_FILTERS.find((f) => f.id === id)?.statuses ?? null;
+    return allRequests.filter((r) => !statuses || statuses.includes(r.status));
+  };
+  const requests = matching(activeFilter);
+  const counts = Object.fromEntries(STATUS_FILTERS.map((f) => [f.id, matching(f.id).length]));
   const copyLocale = useCopyLocale();
   const t = copy[copyLocale];
 
@@ -126,7 +129,7 @@ export function RequestList({
           })}
         </nav>
 
-        {requests.length === 0 ? (
+        {!ready ? <p role="status" className="mt-6">Loading your requests…</p> : requests.length === 0 ? (
           <section className="mt-6 border border-[#d6e0e4] bg-white p-10 text-center">
             <InboxIcon aria-hidden="true" className="mx-auto h-10 w-10 text-[#9aa9ae]" />
             <h2 className="mt-4 text-lg font-extrabold text-[#203d4d]">{t.emptyTitle}</h2>
@@ -176,8 +179,8 @@ export function RequestList({
                   </div>
 
                   <div className="flex shrink-0 items-center justify-between gap-4 border-t border-[#eef2f4] pt-4 lg:w-64 lg:flex-col lg:items-end lg:border-t-0 lg:pt-0">
-                    {request.status === "Open" && request.expiresInSeconds !== null ? (
-                      <ExpiryCountdown seconds={request.expiresInSeconds} copyLocale={copyLocale} compact />
+                    {request.status === "Open" && request.expiresAt ? (
+                      <ExpiryCountdown seconds={0} expiresAt={request.expiresAt} copyLocale={copyLocale} compact />
                     ) : isContactUnlocked(request.status) && request.interpreter ? (
                       <span className="inline-flex items-center gap-2 text-xs font-extrabold text-[#294554]">
                         <UserCircleIcon aria-hidden="true" className="h-5 w-5 text-[#087557]" />

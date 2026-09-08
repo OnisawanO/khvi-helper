@@ -1,5 +1,19 @@
 # KHVI Route Inventory
 
+## Requester preview flow update
+
+- Entry: `/welcome`; `/wellcom` redirects to `/welcome`.
+- Flow: welcome → `/request-help` → `/my-requests/[requestId]`; the list and welcome link back to the saved request.
+- Requester pages now share browser-local storage (`khvi-requester-v1`) and start empty. Example records are not presented as the user's requests.
+- Creation, cancellation reasons and completion confirmations persist across reloads in the same browser. Storage errors leave the form available for retry.
+- Urgent requests expire 30 minutes after creation; scheduled requests expire at their appointment if still open. Absolute deadlines survive navigation.
+- Missing GPS stays empty, without invented coordinates. A meeting-point description can be saved; map placement still needs map integration.
+- These pages remain public previews, not authenticated production features. No request reaches a real interpreter. Server authorization, Supabase storage and interpreter actions remain pending.
+- Malformed IDs return server 404. Unknown numeric IDs show a browser-local missing-request screen after loading (HTTP 200, because the server cannot read browser storage).
+- Verification: `node --test app/lib/request-store.test.mjs`, `npm run lint`, `npm run build`.
+
+This update supersedes the older mock-source and state-only behavior notes below.
+
 เอกสารนี้เป็นรายการกลางของ path ในระบบ ใช้ตรวจสอบชื่อ route, สิทธิ์, data source และ behavior เมื่อไม่พบข้อมูล
 
 ## กติกา
@@ -16,23 +30,27 @@
 |---|---|---|---|---|---|
 | `/` | Static | Public | None | Not applicable | Implemented |
 | `/_not-found` | Framework fallback | Public | None | Framework fallback | Implemented |
-| `/manager` | Static Mockup | Manager Role | Mock data (FR-40–46, FR-51–52) | Not applicable | Implemented |
+| `/manager` | Static Mockup | Manager Role | Mock data (FR-14–18) | Not applicable | Implemented |
 | `/request-help` | Resource create route | Authenticated User (ยังไม่บังคับ) | `app/lib/mock-requests.ts` | Not applicable | Implemented (mock) |
 | `/my-requests` | Resource list | Authenticated User, เจ้าของคำขอ (ยังไม่บังคับ) | `app/lib/mock-requests.ts` | Empty state | Implemented (mock) |
 | `/my-requests/[requestId]` | Dynamic resource | เจ้าของคำขอ (ยังไม่บังคับ) | `app/lib/mock-requests.ts` | `notFound()` | Implemented (mock) |
+| `/register` | Static auth route | Public | `app/lib/mock-auth.ts` (Mock session) | Not applicable | Implemented (mock) |
+| `/login` | Static auth route | Public | `app/lib/mock-auth.ts` (Mock session) | Not applicable | Implemented (mock) |
 
-`/my-requests` รับ query parameter `status` ค่าเดียวเท่านั้น: `open`, `claimed`, `in-progress`, `completed`, `closed`
+`/my-requests` รับ query parameter `status` ค่าเดียวเท่านั้น: `open`, `claimed`, `in-progress`, `completed`, `cancelled`
 ค่าที่ไม่รู้จักจะถูกลดรูปเป็น `all` โดยไม่ตอบ 404 เพราะ query parameter ไม่ใช่ตัวระบุ resource
 
 `/my-requests/[requestId]` ตรวจ parameter ด้วย `isValidRequestId()` (ตัวเลขล้วน ตรงกับ `bookings.booking_id` ที่วางแผนไว้)
 parameter ที่ผิดรูปแบบหรือไม่พบข้อมูลจะเรียก `notFound()` ทั้งสองกรณี เพื่อไม่เปิดเผยว่ามี id นั้นอยู่จริงหรือไม่
 
+`/register` เป็นระบบสมัครสมาชิกบัญชีผู้ใช้ใหม่ รับข้อมูลตาม Schema ตาราง `profiles` ใน `detail.md` ร่วมกับ Supabase Auth (ชื่อ-นามสกุล, อีเมล, รหัสผ่าน, เบอร์โทรศัพท์, วันเดือนปีเกิด, ภาษาหน้าจอ) โดยแสดงผลเป็น Modal Overlay แบบ 2 ฝั่ง (Split Card) ซ้อนบนหน้าแรก (`/`) และสามารถเข้าถึงผ่าน Direct URL `/register` ได้เช่นกัน
+
+`/login` (และ `/sign-in`) เป็นระบบลงชื่อเข้าใช้บัญชีผู้ใช้ที่มีอยู่แล้ว ตรวจสอบอีเมลและรหัสผ่าน พร้อมปุ่ม Quick Login สำหรับทดสอบ 4 บทบาท (User, Interpreter, Manager, Admin) โดยแสดงผลเป็น Modal Overlay แบบ 2 ฝั่ง (Split Card) ซ้อนบนหน้าแรก (`/`) และสามารถเข้าถึงผ่าน Direct URL ได้
+
 ## Routes ที่วางแผนไว้
 
 | Path | Type | Access | Data source | Not found behavior | Status |
 |---|---|---|---|---|---|
-| `/login` | Static auth route | Public | Supabase Auth | Redirect authenticated user by role | Planned |
-| `/register` | Static auth route | Public | Supabase Auth, user profile | Redirect authenticated user by role | Planned |
 | `/profile` | Static private route | Authenticated | User profile | Redirect to login | Planned |
 | `/welcome` | Static private route | Authenticated User | User profile | Redirect to login | Planned |
 | `/map` | Resource map/list | Approved Interpreter | `bookings`, interpreter skills | Empty state or `403` | Planned |
@@ -44,7 +62,7 @@ parameter ที่ผิดรูปแบบหรือไม่พบข้�
 | `/admin` | Static dashboard | Admin | Users, bookings, reviews summary | `403` | Planned |
 | `/admin/users` | Resource list/detail | Admin | User profile and roles | Empty state or `403` | Planned |
 
-`/request-help` และ `/my-requests` ย้ายจากตารางนี้ขึ้นไปอยู่ตาราง implemented แล้ว โดย path ตรงกับที่ทีมวางแผนไว้เดิม
+`/request-help`, `/my-requests`, `/register` และ `/login` ย้ายจากตารางนี้ขึ้นไปอยู่ตาราง implemented แล้ว โดย path ตรงกับที่ทีมวางแผนไว้เดิม
 
 ### ประเด็นค้าง: `/my-requests/[requestId]` ทับซ้อนกับ `/mission/[id]`
 
