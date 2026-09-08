@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { SiteHeader, type Locale } from "@/app/components/site-header";
 import { SiteFooter } from "@/app/components/site-footer";
-import { MissionHeader } from "@/app/components/mission/mission-header";
-import { ContactCard } from "@/app/components/mission/contact-card";
-import { ExecutionControls } from "@/app/components/mission/execution-controls";
-import { CompletionConfirm } from "@/app/components/mission/completion-confirm";
 import type { Booking } from "@/types/database.types";
+import HelperMissionView from "./helper-view";
+import InterpreterMissionView from "./interpreter-view";
 
 const copy = {
   en: {
@@ -150,6 +149,7 @@ const copy = {
   },
 } as const;
 
+
 const localeLanguageTags: Record<Locale, string> = {
   en: "en",
   th: "th",
@@ -167,17 +167,19 @@ function getCopyLocale(locale: Locale): keyof typeof copy {
 }
 
 export function MissionRoomView({ initialBooking }: { initialBooking: Booking }) {
+  const searchParams = useSearchParams();
   const [locale, setLocale] = useState<Locale>(() => {
     if (typeof window !== "undefined") {
       const savedLocale = window.localStorage.getItem("khvi-locale");
-      if (isLocale(savedLocale)) {
-        return savedLocale;
-      }
+      if (isLocale(savedLocale)) return savedLocale;
     }
     return "th";
   });
+
   const [booking, setBooking] = useState<Booking>(initialBooking);
-  const [viewerRole, setViewerRole] = useState<"user" | "interpreter">("user");
+  const [viewerRole, setViewerRole] = useState<"user" | "interpreter">(
+    searchParams.get("role") === "interpreter" ? "interpreter" : "user",
+  );
 
   const t = copy[getCopyLocale(locale)];
 
@@ -186,25 +188,51 @@ export function MissionRoomView({ initialBooking }: { initialBooking: Booking })
     window.localStorage.setItem("khvi-locale", locale);
   }, [locale]);
 
-  const showCompletionConfirm = booking.status === "InProgress" && booking.endedAt !== null;
+  useEffect(() => {
+    const role = searchParams.get("role");
+    if (role === "user" || role === "interpreter") setViewerRole(role);
+  }, [searchParams]);
 
   const handleStart = () => {
-    setBooking((current) => ({ ...current, status: "InProgress", startedAt: new Date().toISOString() }));
-  };
-
-  const handleEnd = () => {
-    setBooking((current) => ({ ...current, endedAt: new Date().toISOString() }));
-  };
-
-  const handleConfirmCompletion = () => {
     setBooking((current) => {
-      const next: Booking = {
+      if (current.status !== "Claimed") return current;
+      return {
         ...current,
-        userConfirmedDoneAt: viewerRole === "user" ? new Date().toISOString() : current.userConfirmedDoneAt,
-        interpreterConfirmedDoneAt: viewerRole === "interpreter" ? new Date().toISOString() : current.interpreterConfirmedDoneAt,
+        status: "InProgress",
+        startedAt: current.startedAt ?? new Date().toISOString(),
       };
-      const bothConfirmed = next.userConfirmedDoneAt !== null && next.interpreterConfirmedDoneAt !== null;
-      return bothConfirmed ? { ...next, status: "Completed" } : next;
+    });
+  };
+
+  const handleUserConfirm = () => {
+    setBooking((current) => {
+      if (current.status !== "InProgress") return current;
+      const next = {
+        ...current,
+        userConfirmedDoneAt: current.userConfirmedDoneAt ?? new Date().toISOString(),
+      };
+      const bothConfirmed =
+        next.userConfirmedDoneAt !== null &&
+        next.interpreterConfirmedDoneAt !== null;
+      return bothConfirmed
+        ? { ...next, status: "Completed" as const, endedAt: next.endedAt ?? new Date().toISOString() }
+        : next;
+    });
+  };
+
+  const handleInterpreterConfirm = () => {
+    setBooking((current) => {
+      if (current.status !== "InProgress") return current;
+      const next = {
+        ...current,
+        interpreterConfirmedDoneAt:
+          current.interpreterConfirmedDoneAt ?? new Date().toISOString(),
+        endedAt: current.endedAt ?? new Date().toISOString(),
+      };
+      const bothConfirmed =
+        next.userConfirmedDoneAt !== null &&
+        next.interpreterConfirmedDoneAt !== null;
+      return bothConfirmed ? { ...next, status: "Completed" as const } : next;
     });
   };
 
@@ -225,14 +253,18 @@ export function MissionRoomView({ initialBooking }: { initialBooking: Booking })
           <button
             type="button"
             onClick={() => setViewerRole("user")}
-            className={`rounded-md px-3 py-1.5 text-xs font-extrabold transition ${viewerRole === "user" ? "bg-[var(--khvi-navy)] text-white" : "text-[#52676f]"}`}
+            className={`rounded-md px-3 py-1.5 text-xs font-extrabold transition ${
+              viewerRole === "user" ? "bg-[var(--khvi-navy)] text-white" : "text-[#52676f]"
+            }`}
           >
             {t.mission.asUser}
           </button>
           <button
             type="button"
             onClick={() => setViewerRole("interpreter")}
-            className={`rounded-md px-3 py-1.5 text-xs font-extrabold transition ${viewerRole === "interpreter" ? "bg-[var(--khvi-navy)] text-white" : "text-[#52676f]"}`}
+            className={`rounded-md px-3 py-1.5 text-xs font-extrabold transition ${
+              viewerRole === "interpreter" ? "bg-[var(--khvi-navy)] text-white" : "text-[#52676f]"
+            }`}
           >
             {t.mission.asInterpreter}
           </button>
@@ -246,59 +278,23 @@ export function MissionRoomView({ initialBooking }: { initialBooking: Booking })
     <main className="min-h-screen bg-[var(--khvi-paper)] text-[var(--khvi-ink)]">
       <SiteHeader copy={t.header} locale={locale} onLocaleChange={setLocale} />
 
-      <section className="mx-auto max-w-[880px] px-5 py-8 sm:px-8 sm:py-12">
+      <section className="mx-auto max-w-[1280px] px-5 py-8 sm:px-8 sm:py-12">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">{roleToggle}</div>
 
-        <div className="space-y-6">
-          <MissionHeader
-            copy={t.mission}
-            bookingId={booking.bookingId}
-            categoryName={booking.categoryName}
-            languageName={booking.languageName}
-            status={booking.status}
+        {viewerRole === "user" ? (
+          <HelperMissionView
+            booking={booking}
+            onConfirm={handleUserConfirm}
+            onCancel={handleCancel}
           />
-
-          <ContactCard copy={t.mission.contact} booking={booking} viewerRole={viewerRole} />
-
-          {booking.status === "Cancelled" ? (
-            <section className="rounded-[var(--khvi-radius-lg)] border border-[#f04f3e] bg-[#fbe9e7] p-6 text-sm text-[#a4291d] sm:p-8">
-              <p className="font-extrabold">{t.mission.cancelledNote}</p>
-              <p className="mt-2">
-                {t.mission.cancelledBy}: {booking.cancelledBy}
-              </p>
-              {booking.cancelReason ? (
-                <p className="mt-1">
-                  {t.mission.cancelledReason}: {booking.cancelReason}
-                </p>
-              ) : null}
-            </section>
-          ) : (
-            <ExecutionControls
-              copy={t.mission.execution}
-              status={booking.status}
-              startedAt={booking.startedAt}
-              onStart={handleStart}
-              onEnd={handleEnd}
-              onCancel={handleCancel}
-            />
-          )}
-
-          {showCompletionConfirm ? (
-            <CompletionConfirm
-              copy={t.mission.completion}
-              viewerRole={viewerRole}
-              userConfirmedDoneAt={booking.userConfirmedDoneAt}
-              interpreterConfirmedDoneAt={booking.interpreterConfirmedDoneAt}
-              onConfirm={handleConfirmCompletion}
-            />
-          ) : null}
-
-          {booking.status === "Completed" ? (
-            <section className="rounded-[var(--khvi-radius-lg)] border border-[#7fbfa4] bg-[#e6f4ef] p-6 text-sm font-semibold text-[#087557] sm:p-8">
-              {t.mission.completedNote}
-            </section>
-          ) : null}
-        </div>
+        ) : (
+          <InterpreterMissionView
+            booking={booking}
+            onStart={handleStart}
+            onConfirm={handleInterpreterConfirm}
+            onWithdraw={handleCancel}
+          />
+        )}
       </section>
 
       <SiteFooter copy={t.footer} brandSubtitle={t.header.brandSubtitle} />
