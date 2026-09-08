@@ -6,6 +6,8 @@
 
 ## 1. บทบาทและขอบเขตความรับผิดชอบ (Role & Scope)
 
+ข้อกำหนดปัจจุบันใช้ `profiles` ที่เชื่อมกับ Supabase Auth และแยกชื่อเป็น `first_name` กับ `last_name` ทุกฟีเจอร์ Lock/Unlock เป็นแผนงานหลัง MVP
+
 ในระบบ KHVI Helper มีการแบ่งบทบาทผู้ใช้หลักออกเป็น 4 ระดับ:
 1. `User` (ผู้ขอรับบริการ)
 2. `Interpreter` (ล่ามจิตอาสา)
@@ -13,10 +15,10 @@
 4. `Admin` (ผู้ดูแลระบบส่วนกลางระดับสูงสุด)
 
 ### ความแตกต่างระหว่าง Admin และ Manager
-- **Manager (Role 5):** เน้นด้านการปฏิบัติการ (Operations) ประจำวัน ได้แก่ การตรวจสอบเอกสารและอนุมัติ/ปฏิเสธใบสมัครล่ามจิตอาสา (`Interpreter Application Queue`) และการตอบกลับหรือประสานงานข้อขัดข้องระหว่างปฏิบัติภารกิจ (`Support & Help Tickets`)
-- **Admin (Role 6):** เป็นผู้ถือสิทธิ์ระดับ Root/Super Admin มีความสามารถครอบคลุมความสามารถของ Manager ทั้งหมด และมีสิทธิ์สูงสุดในการควบคุมความปลอดภัยและการกำกับดูแลระบบ:
+- **Manager:** เน้นด้านการปฏิบัติการประจำวัน ได้แก่ การตรวจข้อมูลสมัครล่ามและอนุมัติ/ปฏิเสธใบสมัคร (`Interpreter Application Queue`) และการตอบกลับหรือประสานงานข้อขัดข้อง (`Support & Help Tickets`)
+- **Admin:** เป็นผู้ถือสิทธิ์ระดับสูงสุด มีความสามารถครอบคลุมความสามารถของ Manager ทั้งหมด และมีสิทธิ์สูงสุดในการควบคุมความปลอดภัยและการกำกับดูแลระบบ:
   - กำหนดและเปลี่ยนแปลงบทบาทสิทธิ์ (Role RBAC Transition) ของบัญชีผู้ใช้ทุกคนในระบบ
-  - สั่งระงับหรือล็อกบัญชีผู้ใช้ (`Account Lock/Suspension`) ชั่วคราวหรือถาวร พร้อมบังคับระบุเหตุผลเพื่อความปลอดภัย
+  - สั่งระงับหรือล็อกบัญชีผู้ใช้ (`Account Lock/Suspension`) ได้ใน phase หลัง MVP พร้อมบังคับระบุเหตุผลเพื่อความปลอดภัย
   - ตรวจสอบดัชนีคุณภาพและคะแนนรีวิวของล่ามอาสา (`Interpreter Quality & Ratings`)
   - ตรวจสอบประวัติการใช้งานและกิจกรรมของผู้ดูแลระบบอย่างละเอียดผ่านระบบบันทึกความปลอดภัยที่ไม่สามารถแก้ไขได้ (`Immutable Audit Trail`)
 
@@ -29,7 +31,7 @@
 ### 2.1 ส่วนหัวระบบ (Admin Header)
 - แสดงชื่อแบรนด์ **KHVI Helper** พร้อมคำบรรยายระบบ
 - แสดงสถานะระบบส่วนกลาง (`System Status: Normal`)
-- แสดงโปรไฟล์และตัวตนของผู้ดูแลระบบ: **Ilham Khamsikeaw** ตำแหน่ง **Super Admin**
+- แสดงโปรไฟล์และตัวตนของผู้ดูแลระบบด้วย `first_name` และ `last_name` จาก `profiles`
 - เมนู Profile Dropdown สำหรับตรวจสอบข้อมูล บันทึก Audit Log และออกจากระบบ (`Sign Out`)
 
 ### 2.2 แถบนำทางด้านซ้าย (Left Sidebar & Recent Security Activity)
@@ -38,12 +40,12 @@
 
 ### 2.3 การ์ดสรุปตัวชี้วัดสำคัญ (Key Metric Cards)
 1. **Total System Users:** จำนวนผู้ใช้งานทั้งหมดในระบบทุกบทบาท
-2. **Active Interpreters:** จำนวนล่ามจิตอาสาที่ได้รับการอนุมัติและพร้อมรับงาน
+2. **Approved Interpreters:** จำนวนล่ามจิตอาสาที่ได้รับการอนุมัติ
 3. **Suspended / Locked:** จำนวนบัญชีที่ถูกระงับการใช้งานเนื่องจากเหตุผลด้านวินัยหรือความปลอดภัย
 4. **Privileged Staff:** จำนวนเจ้าหน้าที่ระดับผู้จัดการ (Manager) และผู้ดูแลระบบ (Admin)
 
 ### 2.3 แถบแท็บที่ 1: รายชื่อผู้ใช้และการจัดการสิทธิ์ (All Users & Roles)
-- **ระบบค้นหา (Realtime Search):** รองรับการค้นหาด้วยชื่อผู้ใช้, อีเมล, เบอร์โทรศัพท์, หรือ User ID
+- **ระบบค้นหา:** รองรับการค้นหาด้วย `first_name`, `last_name`, อีเมล, เบอร์โทรศัพท์ หรือ User ID
 - **ตัวกรองสถานะและบทบาท (Filters):**
   - ตัวกรองบทบาท (All, User, Interpreter, Manager, Admin)
   - ตัวกรองสถานะบัญชี (All, Active, Locked)
@@ -94,12 +96,13 @@
 
 ```mermaid
 erDiagram
-    USER ||--o| INTERPRETER_PROFILE : "has profile"
-    USER ||--o{ AUDIT_LOG : "triggers or targets"
+    PROFILES ||--o| INTERPRETER_PROFILE : "has profile"
+    PROFILES ||--o{ AUDIT_LOG : "triggers or targets"
 
-    USER {
+    PROFILES {
         UUID user_id PK
-        VARCHAR name
+        VARCHAR first_name
+        VARCHAR last_name
         VARCHAR email UK
         VARCHAR phone
         user_role role "ENUM: User, Interpreter, Manager, Admin"

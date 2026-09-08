@@ -1,299 +1,222 @@
-# 📑 รายงานสรุปโครงการ: ระบบแพลตฟอร์มล่ามจิตอาสา (Volunteer Interpreter Platform)
+# KHVI Helper: Canonical Requirements
 
----
+เอกสารนี้เป็นข้อกำหนดฉบับใช้งานปัจจุบันของระบบ Map-based SOS Volunteer Interpreter Platform โดยยึด flow แบบ Job Pool และ Supabase Auth
 
-## 🎯 ส่วนที่ 1: การวิเคราะห์และตีความโจทย์ (Problem Analysis & Objectives)
+## 1. เป้าหมายระบบ
 
-### 1.1 ที่มาและปัญหา (Pain Points)
-* **อุปสรรคการสื่อสารในสถานการณ์สำคัญ:** ผู้รับบริการ (เช่น ผู้ป่วยต่างชาติในโรงพยาบาล, ผู้ติดต่อหน่วยงานรัฐ, นักศึกษา) ประสบปัญหาการสื่อสารทางภาษาอย่างมาก
-* **ค่าบริการล่ามมืออาชีพสูง:** ผู้เดือดร้อนส่วนใหญ่ไม่สามารถแบกรับค่าจ้างล่ามมืออาชีพได้ ขณะที่ผู้มีทักษะทางภาษาและจิตสาธารณะไม่มีช่องทางที่เป็นระบบในการเข้าช่วยเหลือ
-* **ขาดระบบคัดกรองและความปลอดภัย:** การติดต่อล่ามทั่วไปขาดการยืนยันตัวตน ไม่มีระบบตรวจสอบประวัติ และไม่มีศูนย์กลางในการติดตามสถานะงาน
+ระบบเชื่อมผู้ขอความช่วยเหลือด้านภาษากับล่ามจิตอาสาที่อยู่ใกล้เคียง ผู้ขอสร้างหมุดคำขอ ส่วนล่ามที่มีภาษาและหมวดหมู่ตรงกันเลือกกด Claim จากแผนที่
 
-### 1.2 วัตถุประสงค์ของระบบ (Objectives)
-1. **สร้างแพลตฟอร์มกลาง (Central Platform):** จับคู่ผู้ต้องการความช่วยเหลือกับล่ามจิตอาสาตามภาษาและหมวดหมู่งานที่ตรงกัน
-2. **ระบบคัดกรองและตรวจสอบคุณสมบัติ (Verification System):** ให้ผู้ประสานงาน (Manager) ตรวจสอบประวัติและความสามารถของล่ามจิตอาสาก่อนเปิดให้รับงาน เพื่อความน่าเชื่อถือและความปลอดภัย
-3. **ศูนย์กลางติดตามการนัดหมาย (Booking & Status Tracking Hub):** ติดตามสถานะงานอย่างเป็นระบบ แสดงวัน-เวลานัดหมาย พิกัดสถานที่ ข้อมูลติดต่อ พร้อมปุ่มบันทึกเวลาเริ่มงานและจบงาน
+ระบบไม่ใช่การค้นหาและจองล่ามรายบุคคลแบบ marketplace และไม่มีระบบ Chat ใน MVP
 
----
+## 2. Role และสิทธิ์
 
-## ⚖️ ส่วนที่ 2: กฎทางธุรกิจและข้อกำหนดระบบ (Business Rules, FR & NFR)
+| Role | สิทธิ์หลัก |
+|---|---|
+| `User` | สร้างคำขอ ดูสถานะ ยืนยันล่าม ยืนยันจบงาน และรีวิวล่าม |
+| `Interpreter` | ดูหมุดที่ตรงความสามารถ Claim งาน เริ่มงาน ยืนยันจบงาน และยกเลิกงานตามกฎ |
+| `Manager` | ตรวจใบสมัครล่าม ดูแล Help Request/Report และเห็นข้อมูลตาม permission ที่ได้รับ |
+| `Admin` | จัดการผู้ใช้ role ข้อมูลระบบ และเห็นข้อมูลทั้งหมดตามสิทธิ์ Admin |
 
-### 2.1 กฎทางธุรกิจ (Business Rules)
-* **BR-01 (No Self-Booking):** ผู้ใช้งานไม่สามารถส่งคำขอจองตัวเองในฐานะล่ามได้ (`CHECK: user_id <> interpreter_id`)
-* **BR-02 (Interpreter Approval):** ล่ามจิตอาสาต้องได้รับการอนุมัติสถานะเป็น `Approved` จาก Manager ก่อน จึงจะสามารถเปิดสิทธิ์รับงานได้
-* **BR-03 (Availability Control):** ล่ามสามารถเปิด-ปิดสวิตช์ความพร้อมรับงาน (`is_available`) ได้ตลอดเวลาจาก Dashboard
-* **BR-04 (Contact Privacy):** ระบบจะไม่เปิดเผยข้อมูลติดต่อส่วนตัวของล่าม (`extra_contact`, `phone`) จนกว่าล่ามจะกด "รับงาน (Accepted)" แล้วเท่านั้น
-* **BR-05 (Execution Lifecycle):** การกดปุ่ม "เริ่มงาน" (`started_at`) และ "จบงาน" (`ended_at`) ทำได้เฉพาะในภารกิจที่อยู่ในสถานะ `Accepted` และ `InProgress` ตามลำดับ
-* **BR-06 (Review Eligibility):** การให้คะแนนรีวิว (1–5 ดาว) ทำได้เฉพาะภารกิจที่สถานะเป็น `Completed` และจำกัดให้รีวิวได้ 1 ครั้งต่องาน (`UNIQUE: booking_id, reviewer_id`)
-* **BR-07 (Cancellation Transparency):** การยกเลิกงานต้องระบุฝ่ายที่ยกเลิก (`cancelled_by: User/Interpreter`) พร้อมบันทึกเหตุผล (`cancel_reason`)
-* **BR-08 (Support & Reporting):** ผู้ใช้และล่ามสามารถส่งคำร้องขอความช่วยเหลือ (Help Request) หรือรายงานปัญหาพฤติกรรมไม่เหมาะสม (Report) ไปยัง Manager ได้
+กฎ role:
 
----
+- ผู้สมัครใหม่มี role เป็น `User`
+- ผู้ใช้ที่สมัครล่ามอยู่สถานะ `Pending` และยังรับงานไม่ได้
+- เมื่อ Manager/Admin อนุมัติ `application_status` ระบบเปลี่ยน role เป็น `Interpreter`
+- Manager ไม่สามารถเปลี่ยน role หรือ Lock/Unlock
+- Admin เปลี่ยน role ได้
+- Lock/Unlock มีไว้สำหรับ phase หลัง MVP
 
-### 2.2 ข้อกำหนดเชิงฟังก์ชัน (Functional Requirements - FR)
+## 3. Flow หลัก
 
-| รหัส FR | กลุ่มฟังก์ชัน | รายละเอียดความต้องการ | ผู้ใช้งาน (Actor) |
-| :--- | :--- | :--- | :--- |
-| **FR-01 – 07** | **Account & Auth** | สมัครสมาชิก, กรอกข้อมูลส่วนตัว, ล็อกอิน/ล็อกเอาต์, แก้ไขโปรไฟล์, กำหนด Role และสิทธิ์การใช้งาน | All Roles / Admin |
-| **FR-08 – 16** | **Discovery & Search** | ค้นหาล่ามตามภาษา, หมวดหมู่งาน, คะแนนรีวิว, สถานะความพร้อม และดูโปรไฟล์สาธารณะของล่าม | User |
-| **FR-17 – 20** | **Booking Request** | สร้างคำขอจองล่าม, ปักหมุดพิกัดนัดพบ (`lat/lng`), กำหนดวัน-เวลา และติดตามสถานะการจอง | User / System |
-| **FR-21 – 26** | **Interpreter Ops** | ดูรายการงานที่ขอเข้ามา, กดรับ/ปฏิเสธงาน, ดูข้อมูลนัดหมาย, สวิตช์เปิด-ปิดความพร้อมรับงาน | Interpreter |
-| **FR-27 – 30** | **Job Execution** | กดบันทึกเวลาเริ่มงาน (`started_at`), กดจบงาน (`ended_at`), บันทึกประวัติงานและยอดงานสำเร็จ | User / Interpreter |
-| **FR-31 – 39** | **Volunteer Onboard**| สมัครเป็นล่าม, ระบุภาษาหลัก/ภาษาที่สื่อสารได้, หมวดหมู่งาน, ประวัติการทำงาน, รอสถานะอนุมัติ | Interpreter / System |
-| **FR-40 – 46** | **Manager Review** | ผู้จัดการดูรายชื่อผู้สมัคร, ตรวจสอบประวัติ, กดอนุมัติ (Approve) หรือปฏิเสธ (Reject พร้อมระบุเหตุผล) | Manager / System |
-| **FR-47 – 53** | **Contact & Support**| แสดงข้อมูลติดต่อหลังรับงาน, ส่งคำร้องขอความช่วยเหลือ (Help Request), ตอบกลับคำร้อง, ส่งรายงานปัญหา (Report) | All Roles / Manager |
-| **FR-54 – 60** | **Review & Rating** | ให้คะแนน 1–5 ดาว พร้อมข้อคิดเห็นหลังจบงาน, คำนวณคะแนนเฉลี่ยอัตโนมัติลงโปรไฟล์ล่าม | User / System |
-| **FR-65 – 69** | **Cancellation** | ยกเลิกการจอง, ระบุเหตุผลการยกเลิก, เปลี่ยนสถานะเป็น Cancelled และบันทึกประวัติ | User / Interpreter |
-| **FR-70 – 75** | **Notification** | แจ้งเตือนเมื่อมีคำขอจองใหม่, เมื่อล่ามรับงาน, สถานะงานเปลี่ยน, ผลการสมัครล่าม และการตอบกลับคำร้อง | System |
-| **FR-76 – 83** | **Admin Control** | ค้นหา/แก้ไขข้อมูลบัญชี, ระงับ/ล็อกบัญชี (`is_locked`), จัดการ Role, ดูประวัติการกระทำ (Audit Log) | Admin |
-| **FR-84 – 87** | **Multilingual UI** | รองรับการเปลี่ยนภาษาแสดงผลของหน้าจอ (UI Language) แยกอิสระจากภาษาที่ล่ามให้บริการ | All Roles / System |
+1. User Login ด้วย Supabase Auth
+2. ระบบตรวจ role และพาไปยังหน้าที่ตรงกับ role
+3. User เห็นหน้า Welcome
+4. User สร้างคำขอ เลือกภาษา 1 ภาษา หมวดหมู่ 1 หมวด ระบุรายละเอียด และตำแหน่ง
+5. ระบบสร้างคำขอสถานะ `open`
+6. Interpreter ที่ Approved เห็นหมุด `open` ที่ตรงกับภาษา หมวดหมู่ และระยะทางที่เลือก
+7. ก่อน Claim แสดงเฉพาะชื่อสถานที่แบบกว้าง ๆ
+8. Interpreter กด Claim แบบ atomic
+9. ระบบเปลี่ยนสถานะเป็น `claimed` และนำหมุดออกจากรายการของ Interpreter คนอื่น
+10. User ดูโปรไฟล์ล่ามและกดยืนยันล่าม
+11. หลังยืนยัน ระบบเปิดข้อมูลติดต่อและพิกัดจริงตาม permission
+12. Interpreter เริ่มงาน ระบบเปลี่ยนเป็น `in_progress`
+13. User และ Interpreter ยืนยันจบงาน
+14. ระบบเปลี่ยนเป็น `completed` เมื่อทั้งสองฝ่ายยืนยัน
+15. User ส่ง Review หลังงานเป็น `completed`
 
----
+## 4. ประเภทคำขอและเวลา
 
-### 2.3 ข้อกำหนดที่ไม่ใช่เชิงฟังก์ชัน (Non-Functional Requirements - NFR)
+### Immediate
 
-* **NFR-01 (Role-Based Authorization):** ควบคุมสิทธิ์การเข้าถึงหน้าจอและ API อย่างเข้มงวดตาม Role (`User`, `Interpreter`, `Manager`, `Admin`)
-* **NFR-02 (Data Privacy & Contact Security):** ปกป้องข้อมูลส่วนบุคคล และซ่อนช่องทางติดต่อส่วนตัวของล่ามจนกว่าจะมีการตอบรับงาน
-* **NFR-03 (Performance):** ระบบตอบสนองการโหลดข้อมูลและค้นหาภายใน 3 วินาทีภายใต้โหลดการใช้งานปกติ
-* **NFR-04 (Data Integrity & Reliability):** ฐานข้อมูลมี Integrity Constraints ป้องกันข้อมูลขัดแย้ง (เช่น จองซ้ำ, จองตัวเอง, รีวิวซ้ำ)
-* **NFR-05 (Usability & Accessibility):** หน้าจอออกแบบเรียบง่าย ชัดเจน ใช้งานสะดวกแม้ผู้ใช้จะไม่เชี่ยวชาญเทคโนโลยี
-* **NFR-06 (Responsive Design & Compatibility):** รองรับการแสดงผลทุกขนาดหน้าจอ (Desktop, Tablet, Mobile) บนเบราว์เซอร์มาตรฐาน (Chrome, Edge, Safari, Firefox)
-* **NFR-07 (Auditability):** บันทึกประวัติกิจกรรมสำคัญของ Admin ลงตาราง `audit_log` เพื่อความโปร่งใสและตรวจสอบย้อนหลังได้
+- เป็นคำขอเร่งด่วน
+- แสดงข้อความระดับความเร่งด่วน เช่น “ต้องการความช่วยเหลือภายใน 15 นาที”
+- ข้อความ 15 นาทีใช้สำหรับแสดงระดับความเร่งด่วน ไม่ใช่สถานะหรือเวลาบังคับเริ่มงาน
+- หมดอายุ 30 นาทีหลังสร้างถ้ายังไม่มีล่าม Claim
 
----
+### Scheduled
 
-## 👥 ส่วนที่ 3: การวิเคราะห์ User Stories (User Roles & Stories)
+- แสดงบนแผนที่ทันทีหลังสร้าง
+- นัดหมายล่วงหน้าได้ไม่เกิน 1 วัน
+- หมดอายุ 24 ชั่วโมงหลังสร้าง
+- ต้องแสดงผลแตกต่างจากงาน Immediate
 
+## 5. สถานะและการยกเลิก
+
+```text
+open -> claimed -> in_progress -> completed
+  |        |             |
+  |        |             +-> cancelled เมื่อ Interpreter ยกเลิกหลังเริ่มงาน
+  |        +-> open เมื่อ Interpreter ยกเลิกก่อนเริ่มงานและยังไม่หมดอายุ
+  +-> expired เมื่อหมดอายุ
+  +-> cancelled เมื่อ User ยกเลิกก่อน completed
 ```
-┌─────────────────┐      ┌──────────────────────────┐      ┌─────────────────────────┐      ┌─────────────────────┐
-│ 1. User         │      │ 2. Volunteer Interpreter │      │ 3. Manager              │      │ 4. Admin            │
-│ (ผู้ขอรับบริการ) │      │ (ล่ามจิตอาสา)            │      │ (ผู้ประสานงาน/ตรวจสอบ)   │      │ (ผู้ดูแลระบบส่วนกลาง) │
-└─────────────────┘      └──────────────────────────┘      └─────────────────────────┘      └─────────────────────┘
-```
 
-* **👤 User:**
-  * *ค้นหาล่าม:* ต้องการค้นหาล่ามตามภาษาและหมวดหมู่ความช่วยเหลือ เพื่อให้ได้ล่ามที่ตรงกับบริบทงาน
-  * *จองนัดหมาย:* ต้องการระบุวัน เวลา พิกัดสถานที่ และรายละเอียดงาน เพื่อให้ล่ามทราบข้อมูลนัดหมายชัดเจน
-  * *ติดตามงาน & รีวิว:* ต้องการดูสถานะงาน ข้อมูลติดต่อ และให้คะแนนรีวิว 1–5 ดาวหลังจบงาน
-* **🧑‍💼 Volunteer Interpreter:**
-  * *สมัครล่าม:* ต้องการกรอกภาษา หมวดหมู่ และประวัติการทำงาน เพื่อรอการตรวจสอบและอนุมัติ
-  * *จัดการงาน:* ต้องการเปิด-ปิดความพร้อมรับงาน และกดตอบรับ/ปฏิเสธงานที่ร้องขอเข้ามา
-  * *ปฏิบัติงาน:* ต้องการกดเริ่มงานและจบงานเพื่ออัปเดตสถานะงานให้เป็นปัจจุบัน
-* **🛡️ Manager:**
-  * *ตรวจสอบล่าม:* ต้องการดูประวัติผู้สมัครและอนุมัติ/ปฏิเสธใบสมัคร เพื่อรักษามาตรฐานและความปลอดภัย
-  * *ประสานงานช่วยเหลือ:* ต้องการตอบกลับคำร้องขอความช่วยเหลือและตรวจสอบเรื่องร้องเรียน (Report)
-* **⚙️ Admin:**
-  * *ควบคุมภาพรวม:* ต้องการดู Dashboard สถิติระบบ จัดการระงับบัญชีผู้ทำผิดกฎ และตรวจสอบ Audit Log
+- User ยกเลิกได้ทุกสถานะก่อน `completed`
+- Interpreter รับงานได้ครั้งละหนึ่งงาน
+- Interpreter ไม่ต้องมีปุ่ม Reject งาน
+- การ Claim ต้องป้องกันการรับงานเดียวกันซ้ำ
+- งานที่ผู้ใช้สร้างค้างอยู่หลายรายการให้จำกัดเหลือหนึ่งรายการที่ยังไม่จบ (`open`, `claimed` หรือ `in_progress`)
 
----
+## 6. Functional Requirements
 
-## 🔄 ส่วนที่ 4: Use-case Diagram & กระบวนการทำงานหลัก (Core Workflow)
+| รหัส | กลุ่ม | Requirement | Actor |
+|---|---|---|---|
+| FR-01 | Auth | สมัคร Login Logout และใช้ Supabase Auth จริง | ทุก role |
+| FR-02 | Profile | แก้ไข `first_name`, `last_name`, phone และข้อมูล profile | ทุก role |
+| FR-03 | Role Routing | พาไป UI ตาม role หลัง Login | System |
+| FR-04 | Welcome | แสดงข้อมูลบริการและปุ่มไปหน้าสร้างคำขอ | User |
+| FR-05 | Create Request | สร้างคำขอพร้อมภาษา หมวดหมู่ รายละเอียด และสถานที่ | User |
+| FR-06 | Request Type | รองรับ Immediate และ Scheduled ตามกฎเวลา | User/System |
+| FR-07 | Interpreter Map | แสดงเฉพาะหมุดที่ตรงภาษา หมวดหมู่ และระยะทาง | Interpreter |
+| FR-08 | Location Privacy | ก่อน Claim แสดงเฉพาะชื่อสถานที่กว้าง ๆ | System |
+| FR-09 | Claim | Claim งานแบบ atomic และกำหนดล่ามหนึ่งคนต่องาน | Interpreter/System |
+| FR-10 | Requester Confirm | User ยืนยันล่ามหลัง Claim | User |
+| FR-11 | Contact | เปิดข้อมูลติดต่อและพิกัดจริงหลังยืนยันตาม permission | System |
+| FR-12 | Execution | เริ่มงาน ยืนยันจบงาน และยกเลิกตาม state machine | User/Interpreter |
+| FR-13 | Dual Completion | เปลี่ยนเป็น Completed เมื่อทั้งสองฝ่ายยืนยัน | System |
+| FR-14 | Interpreter Apply | สมัครล่ามพร้อมภาษา หมวดหมู่ ช่องทางติดต่อ และประสบการณ์ | User |
+| FR-15 | Approval | Approve/Reject ใบสมัครพร้อมเหตุผล | Manager/Admin |
+| FR-16 | Review | User รีวิว Interpreter หลัง Completed | User |
+| FR-17 | Help Request | Manager ดูแลและตอบ Help Request | Manager |
+| FR-18 | Report | เริ่มทำหลัง Help Request | Manager/Admin |
+| FR-19 | Audit | บันทึก action สำคัญของ Manager และ Admin ใน phase ที่กำหนด | System |
+| FR-20 | Admin | Admin จัดการ role และข้อมูลผู้ใช้ | Admin |
 
-### 4.1 แผนภาพ Use-case Diagram
+## 7. Non-functional Requirements
+
+- ใช้ `auth.users.id` เป็น UUID สำหรับเชื่อมข้อมูลผู้ใช้
+- ห้ามเก็บ `password_hash` ในตารางธุรกิจ
+- ต้องตรวจ role และ permission ฝั่ง Server
+- ใช้ atomic update หรือ RPC สำหรับ Claim
+- ช่วงพัฒนาเริ่มจากการดึงข้อมูลจาก Database หรือ refresh หน้าได้ ยังไม่บังคับ Realtime
+- ช่วงพัฒนาอาจเลื่อน RLS ได้ แต่ต้องเพิ่ม RLS ก่อนใช้งานจริง
+- ต้องปกป้องข้อมูลติดต่อและพิกัดตาม permission
+- รองรับ Mobile, Tablet และ Desktop
+
+## 8. Use-case Diagram
 
 ```mermaid
 flowchart LR
-    subgraph Actors
-        U["👤 User (ผู้ขอรับบริการ)"]
-        V["🧑‍💼 Volunteer (ล่ามจิตอาสา)"]
-        M["🛡️ Manager (ผู้ประสานงาน)"]
-        A["⚙️ Admin (ผู้ดูแลระบบ)"]
-    end
+    U[User]
+    I[Interpreter]
+    M[Manager]
+    A[Admin]
 
-    subgraph "Use Cases"
-        UC1(["เข้าสู่ระบบ / แก้ไขโปรไฟล์"])
-        UC2(["ค้นหา & ดูโปรไฟล์ล่าม"])
-        UC3(["ส่งคำขอรับบริการล่าม"])
-        UC4(["สมัครล่าม & ระบุภาษา/หมวดหมู่/ประวัติ"])
-        UC5(["เปิด-ปิดสถานะ / ตอบรับ-ปฏิเสธงาน"])
-        UC6(["หน้ารายละเอียด & ติดตามสถานะงาน"])
-        UC7(["กดเริ่มงาน - จบงาน"])
-        UC8(["ส่งคะแนนรีวิว & ข้อคิดเห็น"])
-        UC9(["ตรวจอนุมัติใบสมัครล่าม"])
-        UC10(["ตอบคำร้องช่วยเหลือ & ตรวจสอบ Report"])
-        UC11(["Admin Dashboard, จัดการสิทธิ์ & Audit Log"])
-    end
+    UC1([Login / Manage Profile])
+    UC2([View Welcome])
+    UC3([Create Help Request])
+    UC4([View Matching Map])
+    UC5([Claim Request])
+    UC6([Confirm Interpreter])
+    UC7([Track Status / Contact])
+    UC8([Start / Complete / Cancel])
+    UC9([Apply as Interpreter])
+    UC10([Review Application])
+    UC11([Review Completed Job])
+    UC12([Manage Help Request / Report])
+    UC13([Manage Users / Roles])
 
     U --> UC1
     U --> UC2
     U --> UC3
     U --> UC6
+    U --> UC7
     U --> UC8
+    U --> UC11
+    U --> UC9
 
-    V --> UC1
-    V --> UC4
-    V --> UC5
-    V --> UC6
-    V --> UC7
+    I --> UC1
+    I --> UC4
+    I --> UC5
+    I --> UC7
+    I --> UC8
 
-    M --> UC9
     M --> UC10
+    M --> UC12
 
-    A --> UC11
+    A --> UC10
+    A --> UC12
+    A --> UC13
 ```
 
-### 4.2 วงจรสถานะงาน (Booking Lifecycle)
-```
-[1. Requested] ──(ล่ามกดรับ)──► [2. Accepted] ──(กดเริ่มงาน)──► [3. InProgress] ──(กดจบงาน)──► [4. Completed]
-      │                                                                                             │
-      ├──(ล่ามกดปฏิเสธ)──► [Rejected]                                                          └─► ส่งรีวิว (1-5 ดาว)
-      │
-      └──(ฝ่ายใดยกเลิก)──► [Cancelled] (ระบุ cancel_reason & cancelled_by)
-```
-
----
-
-## 🗄️ ส่วนที่ 5: สถาปัตยกรรมข้อมูล & ER Diagram (Database Architecture)
+## 9. Database Relationship
 
 ```mermaid
 erDiagram
-    USER ||--o| INTERPRETER_PROFILE : "1 : 0..1 has profile"
-    USER ||--o{ BOOKING : "1 : N makes request (user_id)"
-    INTERPRETER_PROFILE ||--o{ BOOKING : "1 : N assigned volunteer (interpreter_id)"
-    
-    INTERPRETER_PROFILE ||--o{ WORK_HISTORY : "1 : N experience history"
-    INTERPRETER_PROFILE ||--o{ LANGUAGE : "1 : N speaks languages"
-    INTERPRETER_PROFILE ||--o{ CATEGORY : "1 : N service categories"
-    
-    BOOKING ||--o{ REVIEW : "1 : N ratings & comments"
-    USER ||--o{ REVIEW : "1 : N reviewer / reviewee"
-    
-    USER ||--o{ HELP_REQUEST : "1 : N requester / manager"
-    USER ||--o{ REPORT : "1 : N reporter / reported"
-    BOOKING ||--o{ REPORT : "1 : N booking reference"
-    
-    USER ||--o{ NOTIFICATION : "1 : N notifications"
-    USER ||--o{ AUDIT_LOG : "1 : N admin activity trail"
+    AUTH_USERS ||--|| PROFILES : owns
+    PROFILES ||--o| INTERPRETER_PROFILES : applies
+    PROFILES ||--o{ BOOKINGS : creates
+    INTERPRETER_PROFILES ||--o{ BOOKINGS : claims
+    LANGUAGES ||--o{ BOOKINGS : requested
+    CATEGORIES ||--o{ BOOKINGS : classifies
+    INTERPRETER_PROFILES ||--o{ INTERPRETER_LANGUAGES : has
+    LANGUAGES ||--o{ INTERPRETER_LANGUAGES : includes
+    INTERPRETER_PROFILES ||--o{ INTERPRETER_CATEGORIES : has
+    CATEGORIES ||--o{ INTERPRETER_CATEGORIES : includes
+    BOOKINGS ||--o{ REVIEWS : receives
+    PROFILES ||--o{ REVIEWS : writes
 
-    USER {
-        BIGSERIAL user_id PK
-        VARCHAR name
-        SMALLINT age "CHECK >= 0"
+    AUTH_USERS {
+        UUID id PK
+    }
+    PROFILES {
+        UUID user_id PK,FK
+        VARCHAR first_name
+        VARCHAR last_name
+        VARCHAR email
         VARCHAR phone
-        VARCHAR email UK
-        TEXT password_hash
-        user_role role "ENUM"
-        BOOLEAN is_locked
-        VARCHAR preferred_ui_language
-        TIMESTAMPTZ created_at
+        user_role role
+        DATE date_of_birth
     }
-
-    INTERPRETER_PROFILE {
-        BIGINT interpreter_id PK,FK
-        VARCHAR primary_language
+    INTERPRETER_PROFILES {
+        UUID user_id PK,FK
+        BIGINT primary_language_id FK
         VARCHAR extra_contact
-        application_status application_status "ENUM"
-        TEXT reject_reason
-        BIGINT reviewed_by_manager_id FK
-        NUMERIC average_rating "Trigger-updated"
-        INT completed_job_count
-        BOOLEAN is_available
-        TIMESTAMPTZ created_at
+        TEXT experience_summary
+        application_status application_status
+        UUID reviewed_by_user_id FK
+        TIMESTAMPTZ approved_at
     }
-
-    LANGUAGE {
-        BIGSERIAL language_id PK
-        BIGINT interpreter_id FK
-        VARCHAR language_name
-    }
-
-    CATEGORY {
-        BIGSERIAL category_id PK
-        BIGINT interpreter_id FK
-        VARCHAR category_name
-    }
-
-    WORK_HISTORY {
-        BIGSERIAL history_id PK
-        BIGINT interpreter_id FK
-        TEXT description
-        DATE start_date
-        DATE end_date
-    }
-
-    BOOKING {
+    BOOKINGS {
         BIGSERIAL booking_id PK
-        BIGINT user_id FK
-        BIGINT interpreter_id FK
-        DOUBLE meeting_lat
-        DOUBLE meeting_lng
-        DATE scheduled_date
-        TIME scheduled_time
-        booking_status status "ENUM"
-        cancelled_by_type cancelled_by "ENUM"
-        TEXT cancel_reason
+        UUID user_id FK
+        UUID interpreter_id FK
+        BIGINT language_id FK
+        BIGINT category_id FK
+        TEXT description
+        VARCHAR location_name
+        NUMERIC latitude
+        NUMERIC longitude
+        urgency_level urgency
+        booking_status status
+        TIMESTAMPTZ scheduled_at
+        TIMESTAMPTZ expires_at
+        TIMESTAMPTZ claimed_at
+        TIMESTAMPTZ requester_confirmed_at
         TIMESTAMPTZ started_at
-        TIMESTAMPTZ ended_at
-        TIMESTAMPTZ created_at
-    }
-
-    REVIEW {
-        BIGSERIAL review_id PK
-        BIGINT booking_id FK
-        BIGINT reviewer_id FK
-        BIGINT reviewee_id FK
-        SMALLINT rating "CHECK 1..5"
-        TEXT comment
-        TIMESTAMPTZ created_at
-    }
-
-    HELP_REQUEST {
-        BIGSERIAL request_id PK
-        BIGINT requester_id FK
-        BIGINT manager_id FK
-        TEXT message
-        TEXT response
-        help_request_status status "ENUM"
-        TIMESTAMPTZ created_at
-    }
-
-    REPORT {
-        BIGSERIAL report_id PK
-        BIGINT reporter_id FK
-        BIGINT reported_user_id FK
-        BIGINT booking_id FK
-        TEXT reason
-        TIMESTAMPTZ created_at
-    }
-
-    NOTIFICATION {
-        BIGSERIAL notification_id PK
-        BIGINT user_id FK
-        notification_type type "ENUM"
-        TEXT message
-        BOOLEAN is_read
-        TIMESTAMPTZ created_at
-    }
-
-    AUDIT_LOG {
-        BIGSERIAL log_id PK
-        BIGINT admin_id FK
-        VARCHAR action
-        BIGINT target_user_id FK
-        TEXT details
-        TIMESTAMPTZ created_at
+        TIMESTAMPTZ user_confirmed_done_at
+        TIMESTAMPTZ interpreter_confirmed_done_at
     }
 ```
 
----
-
-## 🚀 ส่วนที่ 6: แผนการพัฒนาและการแบ่งงานภายในทีม 6 คน (Roadmap & Team Division)
-
-### 6.1 แผนพัฒนา 4 ระยะ (Development Sprints)
-* **Sprint 1 (ฐานราก & Auth):** ติดตั้ง Database Schema บน Supabase, Next.js Setup, Authentication, จัดการสิทธิ์ 4 Roles (FR-01 – FR-07, FR-84 – FR-87)
-* **Sprint 2 (โปรไฟล์ล่าม & การค้นหา):** ใบสมัครล่ามจิตอาสา (ภาษา/หมวดหมู่/ประวัติ), อนุมัติล่าม, หน้าค้นหาและกรองล่าม, ฟอร์มจองล่าม (FR-08 – FR-20, FR-31 – FR-46)
-* **Sprint 3 (การติดตามงาน & รีวิว):** หน้าติดตามสถานะงาน (ปุ่มเริ่ม-จบงาน/ยกเลิก/พิกัดนัดหมาย), ระบบรีวิวและคำนวณคะแนนเฉลี่ย, กล่องแจ้งเตือน (FR-21 – FR-30, FR-54 – FR-75)
-* **Sprint 4 (ระบบหลังบ้าน & สรุปผล):** Manager Portal (ตรวจใบสมัคร/ตอบ Help Request), Admin Dashboard & Audit Log, ทดสอบ End-to-End, Deployment (FR-76 – FR-83, NFR-01 – NFR-15)
-
----
-
-### 6.2 ตารางแบ่งหน้าที่รับผิดชอบสำหรับ 6 คน (Responsibility Matrix)
-
-| สมาชิก | บทบาทหลัก | หน้าจอและฟีเจอร์ที่รับผิดชอบ | รหัส FR/NFR ที่ดูแล |
-| :---: | :--- | :--- | :--- |
-| **คนที่ 1** | **User Discovery & Auth** | • ระบบ Auth & User Profile (Login, Register, ภาษา UI)<br>• หน้าค้นหาและกรองรายชื่อล่าม (ตามภาษา, หมวดหมู่งาน, เรตติ้ง)<br>• หน้าโปรไฟล์สาธารณะของล่าม (Public Profile + ภาษา + หมวดหมู่ + ประวัติ) | FR-01 – 16, FR-84 – 87<br>NFR-05, NFR-08 |
-| **คนที่ 2** | **Booking Request & History** | • หน้าแบบฟอร์มส่งคำขอจองล่าม (วัน-เวลานัดหมาย, ปักหมุดแผนที่พิกัด `lat/lng`)<br>• ระบบตรวจสอบเงื่อนไขการจอง (Validation Rules เช่น ห้ามจองตัวเอง)<br>• หน้าประวัติการจองทั้งหมดของ User (กรองตามสถานะงาน) | FR-17 – 20, FR-65 – 69<br>BR-01, NFR-04 |
-| **คนที่ 3** | **Booking Status & Tracking Hub** | • **Component กลาง "หน้ารายละเอียดและติดตามสถานะงาน" (Shared Room)**<br>• ระบบควบคุมสถานะงาน (ปุ่มกดเริ่มงาน `started_at`, จบงาน `ended_at`, ยกเลิกงาน)<br>• แสดงข้อมูลนัดหมาย แผนที่พิกัดจุดนัดพบ และข้อมูลติดต่อระหว่างทั้งสองฝ่าย | FR-27 – 30, FR-47 – 48<br>BR-04, BR-05, NFR-02 |
-| **คนที่ 4** | **Volunteer Portal & Operations** | • หน้าใบสมัครล่ามจิตอาสา (กรอกภาษา `language`, หมวดหมู่ `category`, ประวัติ `work_history`)<br>• หน้าติดตามสถานะใบสมัคร (Pending / Under Review / Approved / Rejected)<br>• Dashboard ล่ามจิตอาสา (Toggle สวิตช์ `is_available` พร้อมรับงาน, หน้ารับ/ปฏิเสธงาน) | FR-21 – 26, FR-31 – 39<br>BR-02, BR-03, NFR-01 |
-| **คนที่ 5** | **Review, Notification & Support** | • **หน้าระบบประเมินรีวิว (Review & Rating 1-5 ดาว + ข้อคิดเห็น)**<br>• ศูนย์การแจ้งเตือนผู้ใช้ (Notification Center กรอง `is_read = FALSE`)<br>• หน้าส่งคำร้องขอความช่วยเหลือ (Help Request) และหน้าแจ้งรายงานปัญหา (Report) | FR-49 – 60, FR-70 – 75<br>BR-06, BR-08, NFR-04 |
-| **คนที่ 6** | **Manager & Admin Backoffice** | • **Manager Portal:** ตรวจสอบและอนุมัติ/ปฏิเสธใบสมัครล่าม + ตอบคำร้องขอความช่วยเหลือ<br>• **Admin Portal:** Dashboard สถิติภาพรวมระบบ, จัดการสิทธิ์/ล็อกบัญชีผู้ใช้, บันทึก Audit Log | FR-40 – 46, FR-76 – 83<br>NFR-01, NFR-07 |
+ตาราง `NOTIFICATIONS`, `REPORTS`, `HELP_REQUESTS` และ `AUDIT_LOGS` เป็นงานตาม phase ที่แยกจาก Core Flow โดยไม่เพิ่มใน MVP แรกจนกว่าจะเริ่มทำ feature นั้น

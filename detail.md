@@ -16,8 +16,8 @@
 | :--- | :--- |
 | `User` | บทบาทเริ่มต้นของผู้สมัครทุกคน เข้าสู่หน้าต้อนรับ สร้างคำขอ ปักหมุด ติดตามสถานะ และดูข้อมูลติดต่อล่ามหลังมีการรับงาน |
 | `Interpreter` | ผู้ใช้ที่สมัครเป็นล่ามและได้รับการอนุมัติแล้ว เห็นเฉพาะหมุดที่ตรงกับภาษาและหมวดหมู่ความถนัดของตนเอง และกดรับงานได้ |
-| `Manager` | บทบาทย่อยของฝ่ายดูแลระบบ ใช้ตรวจสอบและอนุมัติ/ปฏิเสธใบสมัครล่าม รวมถึงดูสิทธิ์พื้นฐานที่ได้รับมอบหมาย โดยความสามารถเป็นสับเซตของ `Admin` |
-| `Admin` | จัดการผู้ใช้และสิทธิ์โดยรวม รวมถึงดู/เปลี่ยน role และจัดการ lock/unlock เมื่อเปิดใช้ฟีเจอร์นี้ |
+| `Manager` | บทบาทย่อยของฝ่ายดูแลระบบ ใช้ตรวจสอบใบสมัครและดูแลคำร้อง/รายงานตามสิทธิ์ที่ได้รับ โดยความสามารถเป็นสับเซตของ `Admin` และไม่สามารถเปลี่ยน role หรือ Lock/Unlock |
+| `Admin` | จัดการผู้ใช้ สิทธิ์ และข้อมูลระบบโดยรวม รวมถึงดู/เปลี่ยน role และจัดการ Lock/Unlock เมื่อเปิดใช้ฟีเจอร์นี้ |
 
 - ใช้ Supabase Auth จริงสำหรับสมัครสมาชิกและเข้าสู่ระบบ
 - หลัง login ระบบต้องพาไปยัง UI ตาม role
@@ -30,12 +30,12 @@
 
 1. ผู้ใช้ login แล้วเห็นหน้าต้อนรับที่อธิบายบริการและข้อมูลสำคัญ พร้อมปุ่มไปหน้าปักหมุดขอความช่วยเหลือ
 2. ผู้ใช้สร้างคำขอโดยเลือกภาษาหลัก 1 ภาษา เลือกหมวดหมู่หลัก 1 หมวด ระบุรายละเอียดเพิ่มเติม และระบุตำแหน่ง
-3. คำขอมีสองรูปแบบที่ต้องแสดงแตกต่างกันบนแผนที่: งานเร่งด่วน และงานนัดหมายล่วงหน้าไม่เกิน 1 วัน
-4. งานเร่งด่วน เช่น ต้องการความช่วยเหลือภายใน 15 นาที และหมดอายุภายใน 30 นาทีหากไม่มีล่ามรับ
+3. คำขอมีสองรูปแบบที่ต้องแสดงแตกต่างกันบนแผนที่: งาน `Immediate` และงาน `Scheduled` ล่วงหน้าไม่เกิน 1 วัน โดยงาน Scheduled แสดงทันทีหลังสร้าง
+4. งาน Immediate ใช้ข้อความ “ต้องการความช่วยเหลือภายใน 15 นาที” เป็นระดับความเร่งด่วนสำหรับแสดงผล และหมดอายุภายใน 30 นาทีหากไม่มีล่ามรับ ส่วนงาน Scheduled หมดอายุ 24 ชั่วโมงหลังสร้าง
 5. ล่ามที่ได้รับอนุมัติเห็น dashboard แผนที่งานใกล้เคียง เฉพาะคำขอที่ตรงกับภาษาและหมวดหมู่ความถนัดของตนเอง โดยสามารถเลือกตัวกรองระยะทางได้
-6. ก่อนกดรับงาน แผนที่แสดงตำแหน่งแบบคร่าว ๆ; เมื่อมีล่ามกดรับแล้ว หมุดจะหายจากรายการของล่ามคนอื่น และผู้ขอสามารถดูโปรไฟล์ล่ามพร้อมข้อมูลติดต่อได้
+6. ก่อนกดรับงาน แผนที่แสดงเฉพาะชื่อสถานที่แบบกว้าง ๆ; เมื่อมีล่ามกดรับแล้ว หมุดจะหายจากรายการของล่ามคนอื่น ผู้ขอสามารถดูโปรไฟล์ล่ามและกดยืนยันล่ามได้ จากนั้นจึงเปิดเผยข้อมูลติดต่อและพิกัดจริงตามสิทธิ์
 7. ไม่รับงานที่เห็นได้โดยการปล่อยผ่าน ไม่ต้องมีสถานะปฏิเสธสำหรับล่าม
-8. หากล่ามยกเลิกหลังรับงาน และยังไม่พ้นเวลาหมดอายุเดิม คำขอจะกลับเป็น `Open`; หากผู้ใช้ยกเลิกให้เป็น `Cancelled`
+8. หากล่ามยกเลิกในสถานะ `Claimed` และยังไม่พ้นเวลาหมดอายุเดิม คำขอจะกลับเป็น `Open`; หากล่ามยกเลิกในสถานะ `InProgress` ให้เป็น `Cancelled`; หากผู้ใช้ยกเลิกก่อน `Completed` ให้เป็น `Cancelled`
 9. งานจะเป็น `Completed` ได้เมื่อทั้งผู้ขอและล่ามยืนยันจบงาน
 
 ### ขอบเขตขั้นต่ำและสิ่งที่ไม่รวมใน MVP
@@ -51,6 +51,7 @@ MVP ต้อง login ได้ด้วย Supabase Auth, ปักหมุ�
 - ใช้ Supabase Auth เป็นแหล่งจัดการอีเมลและรหัสผ่าน ไม่สร้างหรือเก็บ `password_hash` ในตารางธุรกิจ
 - `auth.users.id` คือ UUID ที่ Supabase สร้างให้ผู้ใช้แต่ละคนหลังสมัครสมาชิก ควรใช้เป็น `user_id` ในตาราง profile/user เพื่อเชื่อมข้อมูลผู้ใช้กับ Auth แบบ 1:1
 - ข้อมูล role, profile, ใบสมัครล่าม และข้อมูลธุรกิจเก็บในตารางของแอป โดยอ้างอิง `auth.users.id`
+- ข้อมูลชื่อของทุก role ใช้ฟิลด์ `first_name` และ `last_name` แยกจากกันในตาราง `profiles` เดียวกัน ไม่สร้างชื่อชุดใหม่สำหรับแต่ละ role
 - คำขอหนึ่งรายการมีภาษาหลักหนึ่งภาษาและหมวดหมู่หลักหนึ่งหมวด ส่วนความสามารถของล่ามยังรองรับหลายภาษาและหลายหมวดหมู่ผ่าน junction tables
 - ไม่ให้ `CATEGORY` เป็นลูกของ `LANGUAGE`; ภาษาและหมวดหมู่เป็นข้อมูลอ้างอิงคนละชุด
 - ตำแหน่งจริงและข้อมูลติดต่อควรถูกเปิดเผยหลัง claim เท่านั้น ส่วนก่อน claim ใช้ข้อมูลตำแหน่งแบบคร่าว ๆ
@@ -60,15 +61,15 @@ MVP ต้อง login ได้ด้วย Supabase Auth, ปักหมุ�
 
 ควรเก็บเป็นการปรับจาก ER เดิม ไม่ต้องรื้อแนวคิดทั้งหมด:
 
-- เอา `password_hash` ออกจาก `USER` และเปลี่ยน `user_id` เป็น UUID ที่อ้างอิง `auth.users.id`
-- เปลี่ยน `INTERPRETER_PROFILE.interpreter_id` ให้เป็น `user_id` ที่เป็นทั้ง PK และ FK ไปยัง profile/user
+- เอา `password_hash` ออกจาก `profiles` และใช้ `user_id` เป็น UUID ที่อ้างอิง `auth.users.id`
+- ใช้ `interpreter_profiles.user_id` เป็นทั้ง PK และ FK ไปยัง `profiles`
 - ใช้ `language_id` เป็น FK ใน `INTERPRETER_PROFILE.primary_language` แทนการเก็บชื่อภาษาโดยตรง และใช้ `interpreter_languages` กับ `interpreter_categories` สำหรับความสามารถหลายรายการ
 - เพิ่ม `category_id` ใน `BOOKING` โดยตรง เพราะคำขอหนึ่งรายการเลือกเพียงหนึ่งหมวดหลัก และถอด `booking_categories` ออกจาก MVP
-- เพิ่ม/คงไว้ซึ่ง `description`, `latitude`, `longitude`, `location_name`, `scheduled_at`, `expires_at`, `claimed_at`, `started_at`, `ended_at`, `cancelled_by`, `cancel_reason` และสถานะงาน
+- เพิ่ม/คงไว้ซึ่ง `description`, `latitude`, `longitude`, `location_name`, `scheduled_at`, `expires_at`, `claimed_at`, `requester_confirmed_at`, `started_at`, `ended_at`, `cancelled_by`, `cancel_reason` และสถานะงาน
 - เพิ่มเวลา/ธงยืนยันจบงานของทั้งสองฝ่าย เช่น `user_confirmed_done_at` และ `interpreter_confirmed_done_at`
 - แยก `REVIEW` เป็นตารางของตัวเอง ไม่เก็บ review เป็นคอลัมน์เดียวในคำขอ
 - ตัดสถานะ `UnderReview` และ `is_available` ออกจาก MVP; ใช้ `application_status` เพียง `Pending`, `Approved`, `Rejected`
-- `reviewed_by_manager_id` ควรอ้างถึงผู้ใช้ที่เป็น Manager/Admin และควรมี `approved_at` กับ `rejected_reason`
+- `reviewed_by_user_id` ควรอ้างถึงผู้ใช้ที่เป็น Manager/Admin และควรมี `approved_at` กับ `rejected_reason`
 - `user_languages` ไม่จำเป็นต่อการ matching ใน MVP หากผู้ขอเลือกภาษาที่ต้องการในคำขอโดยตรง
 - `NOTIFICATION`, `REPORT` และ `HELP_REQUEST` เป็นตารางที่ควรเพิ่มเมื่อทีมเริ่มทำฟีเจอร์ส่วนนั้น ส่วน `AUDIT_LOG` คือประวัติการกระทำสำคัญของผู้ดูแล เช่น เปลี่ยน role หรืออนุมัติใบสมัคร และเลื่อนไปหลัง MVP ได้
 
@@ -96,13 +97,13 @@ MVP ต้อง login ได้ด้วย Supabase Auth, ปักหมุ�
 * **BR-01 (No Self-Claim):** ล่ามจิตอาสาไม่สามารถกดรับ (Claim) หมุดขอความช่วยเหลือที่ตนเองเป็นผู้สร้างในฐานะ User ได้ (`CHECK: user_id <> interpreter_id`)
 * **BR-02 (Interpreter Approval Required):** ล่ามต้องได้รับการอนุมัติสถานะเป็น `Approved` จาก Manager/Admin ก่อน จึงจะมองเห็นหมุดและรับงานได้ โดยไม่ต้องมีสวิตช์ availability ใน MVP
 * **BR-03 (Language & Category Match):** หมุดจะแสดงเฉพาะล่ามที่มีทั้งภาษาที่ตรงกับคำขอและหมวดหมู่ความถนัดที่ตรงกับคำขอ
-* **BR-04 (Location & Contact Privacy):** ก่อนการรับงาน ข้อมูลบนแผนที่จะแสดงเฉพาะ **"ภาษา + หมวดหมู่งาน + ชื่อสถานที่กว้างๆ"** เท่านั้น เมื่อล่ามกดรับงาน (`Claimed`) ระบบจึงจะปลดล็อกพิกัดแม่นยำและข้อมูลติดต่อส่วนตัว (`phone`, `extra_contact`)
+* **BR-04 (Location & Contact Privacy):** ก่อนการรับงาน ข้อมูลบนแผนที่จะแสดงเฉพาะ **"ภาษา + หมวดหมู่งาน + ชื่อสถานที่กว้างๆ"** เท่านั้น หลังล่ามกดรับและผู้ใช้ยืนยันล่าม ระบบจึงจะเปิดพิกัดแม่นยำและข้อมูลติดต่อส่วนตัว (`phone`, `extra_contact`) ตาม permission
 * **BR-05 (Execution Lifecycle):** การบันทึกเวลาต้องเป็นไปตามลำดับสถานะ และงานจะจบสมบูรณ์เมื่อทั้งสองฝ่ายยืนยัน:
-  * กด **"เริ่มงาน"** (`started_at`) ได้เฉพาะสถานะ `Claimed` $\rightarrow$ เปลี่ยนเป็น `InProgress`
+  * กด **"เริ่มงาน"** (`started_at`) ได้เฉพาะสถานะ `Claimed` หลัง `requester_confirmed_at` มีค่า $\rightarrow$ เปลี่ยนเป็น `InProgress`
   * เมื่อผู้ใช้และล่ามยืนยันจบงานทั้งคู่ จึงเปลี่ยนเป็น `Completed`
 * **BR-06 (Review Eligibility):** การประเมินคะแนน (1–5 ดาว) ทำได้เฉพาะภารกิจที่สถานะเป็น `Completed` โดยเชื่อมโยงทั้ง `booking_id`, `reviewer_id` และ `reviewee_id` พร้อมคำนวณคะแนนเฉลี่ย (`average_rating`) อัปเดตลงโปรไฟล์ล่าม
 * **BR-07 (Pin Timeout & Auto-Expire):** หมุดเร่งด่วนที่ไม่มีล่ามกดรับภายใน 30 นาทีจะถูกเปลี่ยนสถานะเป็น `Expired` อัตโนมัติ ส่วนงานนัดหมายต้องสร้างล่วงหน้าไม่เกิน 1 วันและแสดงรูปแบบแตกต่างจากหมุดเร่งด่วน
-* **BR-08 (Cancellation & Re-pooling):** การยกเลิกหมุดต้องระบุฝ่ายที่ยกเลิก (`cancelled_by`) และเหตุผล (`cancel_reason`) หากล่ามเกิดเหตุฉุกเฉินขอยกเลิก หมุดสามารถถูกเปิดกลับเข้าสู่แผนที่ (`Re-open`) ให้ล่ามคนอื่นเห็นใหม่ได้
+* **BR-08 (Cancellation & Re-pooling):** การยกเลิกหมุดต้องระบุฝ่ายที่ยกเลิก (`cancelled_by`) และเหตุผล (`cancel_reason`) หากล่ามยกเลิกใน `Claimed` และยังไม่หมดอายุ หมุดจะกลับเข้าสู่แผนที่ (`Open`); หากล่ามยกเลิกใน `InProgress` ให้เป็น `Cancelled`
 * **BR-09 (Support & Reporting):** ผู้ใช้และล่ามสามารถส่งรายงานปัญหา (Report) หรือส่งคำร้องขอความช่วยเหลือ (Help Request) ไปยัง Manager ได้
 
 ---
@@ -115,7 +116,7 @@ MVP ต้อง login ได้ด้วย Supabase Auth, ปักหมุ�
 | **FR-08 – 16** | **Interactive SOS Map** | แสดงหมุดที่ตรงกับภาษาและหมวดหมู่ของล่าม แสดงตำแหน่งโดยประมาณก่อน claim แยกการแสดงผลระหว่างงานเร่งด่วนกับงานนัดหมาย และมีตัวกรองระยะทาง | Interpreter |
 | **FR-17 – 24** | **Help Request / SOS Request**| สร้างคำขอและปักหมุด ดึงพิกัด GPS อัตโนมัติหรือปักหมุดเอง เลือกภาษา 1 ภาษา หมวดหมู่ 1 หมวด ระบุรายละเอียด รูปแบบความเร่งด่วน และเวลานัดหมาย | User / System |
 | **FR-25 – 30** | **Matching & Claiming** | แสดงงานให้ล่ามที่ได้รับอนุมัติและมีภาษา/หมวดหมู่ตรงกัน ปุ่มกดรับงานพร้อม Concurrency Lock และนำหมุดออกจากรายการของล่ามคนอื่นหลัง claim | Interpreter / System |
-| **FR-31 – 36** | **Status & Contact Tracking** | ผู้ใช้ดูโปรไฟล์ล่ามหลังรับงาน ดูข้อมูลติดต่อและติดตามสถานะงาน ทั้งสองฝ่ายยืนยันจบงานได้ โดยไม่รวมระบบแชท | User / Interpreter |
+| **FR-31 – 36** | **Status & Contact Tracking** | ผู้ใช้ดูโปรไฟล์ล่ามหลังรับงานและยืนยันล่าม จากนั้นดูข้อมูลติดต่อ/พิกัดตาม permission และติดตามสถานะงาน ทั้งสองฝ่ายยืนยันจบงานได้ โดยไม่รวมระบบแชท | User / Interpreter |
 | **FR-37 – 44** | **Volunteer Onboarding** | สมัครเป็นล่ามจิตอาสา, ระบุภาษาหลัก/ภาษาที่สื่อสารได้ ($M:N$), หมวดหมู่ความเชี่ยวชาญ ($M:N$), ประวัติการทำงาน และติดตามสถานะใบสมัคร | Interpreter / System |
 | **FR-45 – 50** | **Manager Verification** | หน้าตรวจอนุมัติ/ปฏิเสธใบสมัครล่ามจิตอาสา (Approve/Reject + เหตุผล) และดูสิทธิ์พื้นฐานที่รับผิดชอบ โดยฟีเจอร์ Help Request/Report แยกพัฒนาตาม domain | Manager |
 | **FR-51 – 56** | **Review & Rating** | ประเมินความพึงพอใจ 1–5 ดาว พร้อมข้อคิดเห็นหลังจบภารกิจ (ระบุผู้รีวิวและผู้ถูกรีวิว), คำนวณคะแนนเรตติ้งเฉลี่ยสะสมลงโปรไฟล์ล่ามอัตโนมัติ | User / System |
@@ -180,7 +181,7 @@ flowchart LR
         UC3(["ดูแผนที่ & กรองหมุดตามภาษา/หมวดหมู่/ระยะทาง"])
         UC4(["กดรับหมุดงาน (Claim Pin)"])
         UC5(["สมัครล่ามจิตอาสา & ระบุภาษา/หมวดหมู่"])
-        UC6(["ติดตามสถานะ/ข้อมูลติดต่อ & ยืนยันเริ่ม-จบงาน"])
+        UC6(["ดูโปรไฟล์และยืนยันล่าม & ติดตามสถานะ/ข้อมูลติดต่อ"])
         UC7(["ส่งคะแนนรีวิว 1-5 ดาว & ข้อคิดเห็น"])
         UC8(["ตรวจอนุมัติ/ปฏิเสธใบสมัครล่าม"])
         UC9(["ตอบคำร้องช่วยเหลือ & ตรวจสอบ Report"])
@@ -206,9 +207,9 @@ flowchart LR
 
 ### 4.2 วงจรสถานะงาน (Booking Lifecycle)
 ```
-[1. Open] ───(ล่ามกด Claim)───► [2. Claimed] ───(เริ่มงาน)───► [3. InProgress] ───(ทั้งสองฝ่ายยืนยันจบ)───► [4. Completed]
+[1. Open] ───(ล่ามกด Claim)───► [2. Claimed] ───(ผู้ใช้ยืนยันล่าม/เริ่มงาน)───► [3. InProgress] ───(ทั้งสองฝ่ายยืนยันจบ)───► [4. Completed]
     │                                    │                                                                   │
-    ├──(หมดเวลา Timeout)──► [Expired]    └──(ล่ามยกเลิกก่อนหมดอายุ)──► [Open อีกครั้ง]                     └─► ส่งรีวิว (1-5 ดาว)
+    ├──(หมดเวลา Timeout)──► [Expired]    └──(ล่ามยกเลิก)──► [Open เมื่ออยู่ Claimed / Cancelled เมื่ออยู่ InProgress] └─► ส่งรีวิว (1-5 ดาว)
     │
     └──(ผู้ใช้กดยกเลิก)───► [Cancelled] (ระบุ cancel_reason & cancelled_by)
 ```
@@ -221,9 +222,9 @@ flowchart LR
 
 ```mermaid
 erDiagram
-    USER ||--o| INTERPRETER_PROFILE : "1 : 0..1 has"
-    USER ||--o{ BOOKING : "1 : N requests"
-    USER ||--o{ REVIEW : "1 : N writes"
+    PROFILES ||--o| INTERPRETER_PROFILE : "1 : 0..1 has"
+    PROFILES ||--o{ BOOKING : "1 : N requests"
+    PROFILES ||--o{ REVIEW : "1 : N writes"
     
     INTERPRETER_PROFILE }|--|{ LANGUAGE : "M : N speaks"
     INTERPRETER_PROFILE }|--|{ CATEGORY : "M : N has"
@@ -233,9 +234,10 @@ erDiagram
     CATEGORY ||--o{ BOOKING : "1 : N classifies"
     BOOKING ||--o{ REVIEW : "1 : N has"
 
-    USER {
+    PROFILES {
         UUID user_id PK "= auth.users.id"
-        VARCHAR name "ชื่อ-นามสกุล"
+        VARCHAR first_name "ชื่อ"
+        VARCHAR last_name "นามสกุล"
         DATE date_of_birth "วันเดือนปีเกิด (ถ้าจำเป็น)"
         VARCHAR phone "เบอร์โทรศัพท์"
         VARCHAR email UK "อีเมลจาก Supabase Auth"
@@ -246,9 +248,10 @@ erDiagram
     }
 
     INTERPRETER_PROFILE {
-        UUID user_id PK,FK "เชื่อมกับ USER.user_id / auth.users.id"
+        UUID user_id PK,FK "เชื่อมกับ profiles.user_id / auth.users.id"
         BIGINT primary_language_id FK "ภาษาหลัก"
         VARCHAR extra_contact "LINE ID / Telegram (ซ่อนจนกว่าจะรับงาน)"
+        TEXT experience_summary "รายละเอียดประสบการณ์"
         application_status application_status "ENUM: Pending, Approved, Rejected"
         TEXT rejected_reason "เหตุผลกรณีถูกปฏิเสธ"
         UUID reviewed_by_user_id FK "Manager/Admin ผู้ตรวจ"
@@ -283,6 +286,7 @@ erDiagram
         TIMESTAMPTZ scheduled_at "เวลานัดหมาย (ไม่เกิน 1 วัน)"
         TIMESTAMPTZ expires_at "เวลาหมดอายุของหมุด (เช่น +30 นาที)"
         TIMESTAMPTZ claimed_at "เวลาที่ล่ามกดรับ"
+        TIMESTAMPTZ requester_confirmed_at "เวลาที่ผู้ใช้ยืนยันล่าม"
         TIMESTAMPTZ started_at "เวลาที่กดเริ่มงาน"
         TIMESTAMPTZ ended_at "เวลาที่กดจบงาน"
         TIMESTAMPTZ user_confirmed_done_at "ผู้ใช้ยืนยันจบงาน"
@@ -305,17 +309,21 @@ erDiagram
 
 ### 5.2 พจนานุกรมข้อมูล (Data Dictionary & Attributes Detail)
 
+ชื่อที่ใช้ใน implementation ให้ยึด `profiles`, `interpreter_profiles`, `bookings`, `languages`, `categories`, `reviews` และ junction tables แบบพหูพจน์ โดย `profiles.user_id` เป็น UUID ที่อ้างถึง `auth.users.id`; `bookings` ต้องมี `requester_confirmed_at` เพื่อบันทึกการยืนยันล่ามของผู้ขอ
+
 | Entity / Table | Attributes | Data Type | Key / Constraint | คำอธิบาย |
 | :--- | :--- | :--- | :---: | :--- |
-| **`USER`** | `user_id`<br>`name`<br>`date_of_birth`<br>`phone`<br>`email`<br>`role`<br>`is_locked`<br>`preferred_ui_language`<br>`created_at` | UUID<br>VARCHAR<br>DATE<br>VARCHAR<br>VARCHAR<br>ENUM<br>BOOLEAN<br>VARCHAR<br>TIMESTAMPTZ | **PK, FK** $\rightarrow$ `auth.users.id`<br>-<br>-<br>-<br>**UK / Auth**<br>User, Interpreter, Manager, Admin<br>DEFAULT FALSE (ฟีเจอร์ถัดไป)<br>DEFAULT 'th'<br>DEFAULT NOW() | รหัสผู้ใช้จาก Supabase Auth<br>ชื่อ-นามสกุล<br>วันเดือนปีเกิด (ถ้าจำเป็น)<br>เบอร์โทรศัพท์ติดต่อ<br>อีเมลจาก Supabase Auth<br>บทบาทและสิทธิ์การใช้งาน<br>สถานะล็อกบัญชีในอนาคต<br>ภาษาหน้าจอที่ต้องการ<br>วันเวลาที่สร้างบัญชี |
-| **`INTERPRETER_PROFILE`** | `user_id`<br>`primary_language_id`<br>`extra_contact`<br>`application_status`<br>`rejected_reason`<br>`reviewed_by_user_id`<br>`approved_at`<br>`average_rating`<br>`completed_job_count`<br>`created_at` | UUID<br>BIGINT<br>VARCHAR<br>ENUM<br>TEXT<br>UUID<br>TIMESTAMPTZ<br>NUMERIC(3,2)<br>INT<br>TIMESTAMPTZ | **PK, FK** $\rightarrow$ `USER`<br>**FK** $\rightarrow$ `LANGUAGE`<br>-<br>Pending, Approved, Rejected<br>-<br>**FK** $\rightarrow$ `USER` (Manager/Admin)<br>-<br>DEFAULT 0.00<br>DEFAULT 0<br>DEFAULT NOW() | รหัสผู้ใช้ที่สมัครล่าม<br>ภาษาหลัก<br>ช่องทางติดต่อเสริม (ซ่อนจนกว่าจะรับงาน)<br>สถานะใบสมัคร<br>เหตุผลที่ไม่อนุมัติ<br>ผู้ตรวจใบสมัคร<br>เวลาที่อนุมัติ<br>คะแนนรีวิวเฉลี่ยสะสม<br>จำนวนงานที่ช่วยเหลือสำเร็จ<br>วันเวลาที่ยื่นสมัคร |
+| **`PROFILES`** | `user_id`<br>`first_name`<br>`last_name`<br>`date_of_birth`<br>`phone`<br>`email`<br>`role`<br>`is_locked`<br>`preferred_ui_language`<br>`created_at` | UUID<br>VARCHAR<br>VARCHAR<br>DATE<br>VARCHAR<br>VARCHAR<br>ENUM<br>BOOLEAN<br>VARCHAR<br>TIMESTAMPTZ | **PK, FK** $\rightarrow$ `auth.users.id`<br>-<br>-<br>-<br>-<br>**UK / Auth**<br>User, Interpreter, Manager, Admin<br>DEFAULT FALSE (ฟีเจอร์ถัดไป)<br>DEFAULT 'th'<br>DEFAULT NOW() | รหัสผู้ใช้จาก Supabase Auth<br>ชื่อ<br>นามสกุล<br>วันเดือนปีเกิด<br>เบอร์โทรศัพท์ติดต่อ<br>อีเมลจาก Supabase Auth<br>บทบาทและสิทธิ์การใช้งาน<br>สถานะล็อกบัญชีในอนาคต<br>ภาษาหน้าจอที่ต้องการ<br>วันเวลาที่สร้างบัญชี |
+| **`INTERPRETER_PROFILE`** | `user_id`<br>`primary_language_id`<br>`extra_contact`<br>`experience_summary`<br>`application_status`<br>`rejected_reason`<br>`reviewed_by_user_id`<br>`approved_at`<br>`average_rating`<br>`completed_job_count`<br>`created_at` | UUID<br>BIGINT<br>VARCHAR<br>TEXT<br>ENUM<br>TEXT<br>UUID<br>TIMESTAMPTZ<br>NUMERIC(3,2)<br>INT<br>TIMESTAMPTZ | **PK, FK** $\rightarrow$ `profiles`<br>**FK** $\rightarrow$ `LANGUAGE`<br>-<br>-<br>Pending, Approved, Rejected<br>-<br>**FK** $\rightarrow$ `profiles` (Manager/Admin)<br>-<br>DEFAULT 0.00<br>DEFAULT 0<br>DEFAULT NOW() | รหัสผู้ใช้ที่สมัครล่าม<br>ภาษาหลัก<br>ช่องทางติดต่อเสริม (เปิดหลังยืนยันล่าม)<br>รายละเอียดประสบการณ์<br>สถานะใบสมัคร<br>เหตุผลที่ไม่อนุมัติ<br>ผู้ตรวจใบสมัคร<br>เวลาที่อนุมัติ<br>คะแนนรีวิวเฉลี่ยสะสม<br>จำนวนงานที่ช่วยเหลือสำเร็จ<br>วันเวลาที่ยื่นสมัคร |
 | **`LANGUAGE`** | `language_id`<br>`language_name` | BIGSERIAL<br>VARCHAR | **PK**<br>**UK** | รหัสภาษา<br>ชื่อภาษา (เช่น Burmese, Chinese, Sign) |
 | **`CATEGORY`** | `category_id`<br>`category_name` | BIGSERIAL<br>VARCHAR | **PK**<br>**UK** | รหัสหมวดหมู่<br>ชื่อหมวดหมู่ (เช่น การแพทย์, สถานีตำรวจ) |
-| **`BOOKING`** | `booking_id`<br>`user_id`<br>`interpreter_id`<br>`language_id`<br>`category_id`<br>`description`<br>`latitude`<br>`longitude`<br>`location_name`<br>`urgency`<br>`status`<br>`scheduled_at`<br>`expires_at`<br>`claimed_at`<br>`started_at`<br>`ended_at`<br>`user_confirmed_done_at`<br>`interpreter_confirmed_done_at`<br>`cancelled_by`<br>`cancel_reason`<br>`created_at` | BIGSERIAL<br>UUID<br>UUID<br>BIGINT<br>BIGINT<br>TEXT<br>DOUBLE PRECISION<br>DOUBLE PRECISION<br>VARCHAR<br>ENUM<br>ENUM<br>TIMESTAMPTZ<br>TIMESTAMPTZ<br>TIMESTAMPTZ<br>TIMESTAMPTZ<br>TIMESTAMPTZ<br>TIMESTAMPTZ<br>TIMESTAMPTZ<br>ENUM<br>TEXT<br>TIMESTAMPTZ | **PK**<br>**FK** $\rightarrow$ `USER`<br>**FK** $\rightarrow$ `INTERPRETER_PROFILE` (NULLable)<br>**FK** $\rightarrow$ `LANGUAGE`<br>**FK** $\rightarrow$ `CATEGORY`<br>-<br>-<br>-<br>-<br>Immediate, Scheduled<br>Open, Claimed, InProgress, Completed, Cancelled, Expired<br>-<br>-<br>-<br>-<br>-<br>-<br>User, Interpreter, Manager, System<br>-<br>DEFAULT NOW() | รหัสคำขอความช่วยเหลือ<br>ผู้ขอความช่วยเหลือ<br>ล่ามที่รับงาน (ว่างเมื่อยังเป็น Open)<br>ภาษาที่ต้องการ 1 ภาษา<br>หมวดหมู่หลัก 1 หมวด<br>รายละเอียดเพิ่มเติม<br>พิกัด GPS ละติจูด<br>พิกัด GPS ลองจิจูด<br>ชื่อสถานที่/จุดนัดพบ<br>รูปแบบงานเร่งด่วนหรือนัดหมาย<br>สถานะของคำขอ<br>เวลานัดหมาย (ไม่เกิน 1 วัน)<br>เวลาหมดอายุ เช่น 30 นาทีสำหรับงานเร่งด่วน<br>เวลาที่ล่ามกดรับ<br>เวลาที่เริ่มงาน<br>เวลาที่จบงาน<br>เวลาผู้ใช้ยืนยันจบ<br>เวลาล่ามยืนยันจบ<br>ฝ่ายที่ยกเลิก<br>เหตุผลการยกเลิก<br>วันเวลาที่สร้างคำขอ |
-| **`REVIEW`** | `review_id`<br>`booking_id`<br>`reviewer_id`<br>`reviewee_id`<br>`rating`<br>`comment`<br>`created_at` | BIGSERIAL<br>BIGINT<br>BIGINT<br>BIGINT<br>SMALLINT<br>TEXT<br>TIMESTAMPTZ | **PK**<br>**FK** $\rightarrow$ `BOOKING`<br>**FK** $\rightarrow$ `USER`<br>**FK** $\rightarrow$ `USER`<br>CHECK 1..5<br>-<br>DEFAULT NOW() | รหัสการประเมิน<br>รหัสภารกิจที่ถูกรีวิว<br>ผู้ประเมิน (User)<br>ผู้ถูกประเมิน (Interpreter)<br>คะแนนดาว (1 ถึง 5)<br>ข้อคิดเห็น/คำชม<br>วันเวลาที่ส่งรีวิว (create_at) |
+| **`BOOKING`** | `booking_id`<br>`user_id`<br>`interpreter_id`<br>`language_id`<br>`category_id`<br>`description`<br>`latitude`<br>`longitude`<br>`location_name`<br>`urgency`<br>`status`<br>`scheduled_at`<br>`expires_at`<br>`claimed_at`<br>`requester_confirmed_at`<br>`started_at`<br>`ended_at`<br>`user_confirmed_done_at`<br>`interpreter_confirmed_done_at`<br>`cancelled_by`<br>`cancel_reason`<br>`created_at` | BIGSERIAL<br>UUID<br>UUID<br>BIGINT<br>BIGINT<br>TEXT<br>DOUBLE PRECISION<br>DOUBLE PRECISION<br>VARCHAR<br>ENUM<br>ENUM<br>TIMESTAMPTZ<br>TIMESTAMPTZ<br>TIMESTAMPTZ<br>TIMESTAMPTZ<br>TIMESTAMPTZ<br>TIMESTAMPTZ<br>TIMESTAMPTZ<br>TIMESTAMPTZ<br>ENUM<br>TEXT<br>TIMESTAMPTZ | **PK**<br>**FK** $\rightarrow$ `profiles`<br>**FK** $\rightarrow$ `interpreter_profiles` (NULLable)<br>**FK** $\rightarrow$ `languages`<br>**FK** $\rightarrow$ `categories`<br>-<br>-<br>-<br>-<br>Immediate, Scheduled<br>Open, Claimed, InProgress, Completed, Cancelled, Expired<br>-<br>-<br>-<br>-<br>-<br>-<br>-<br>-<br>User, Interpreter, Manager, System<br>-<br>DEFAULT NOW() | รหัสคำขอความช่วยเหลือ<br>ผู้ขอความช่วยเหลือ<br>ล่ามที่รับงาน (ว่างเมื่อยังเป็น Open)<br>ภาษาที่ต้องการ 1 ภาษา<br>หมวดหมู่หลัก 1 หมวด<br>รายละเอียดเพิ่มเติม<br>พิกัด GPS ละติจูด<br>พิกัด GPS ลองจิจูด<br>ชื่อสถานที่/จุดนัดพบ<br>รูปแบบงานเร่งด่วนหรือนัดหมาย<br>สถานะของคำขอ<br>เวลานัดหมาย (ไม่เกิน 1 วัน)<br>เวลาหมดอายุ เช่น 30 นาทีสำหรับงานเร่งด่วน<br>เวลาที่ล่ามกดรับ<br>เวลาที่ผู้ใช้ยืนยันล่าม<br>เวลาที่เริ่มงาน<br>เวลาที่จบงาน<br>เวลาผู้ใช้ยืนยันจบ<br>เวลาล่ามยืนยันจบ<br>ฝ่ายที่ยกเลิก<br>เหตุผลการยกเลิก<br>วันเวลาที่สร้างคำขอ |
+| **`REVIEW`** | `review_id`<br>`booking_id`<br>`reviewer_id`<br>`reviewee_id`<br>`rating`<br>`comment`<br>`created_at` | BIGSERIAL<br>BIGINT<br>UUID<br>UUID<br>SMALLINT<br>TEXT<br>TIMESTAMPTZ | **PK**<br>**FK** $\rightarrow$ `bookings`<br>**FK** $\rightarrow$ `profiles`<br>**FK** $\rightarrow$ `interpreter_profiles`<br>CHECK 1..5<br>-<br>DEFAULT NOW() | รหัสการประเมิน<br>รหัสภารกิจที่ถูกรีวิว<br>ผู้ประเมิน (User)<br>ผู้ถูกประเมิน (Interpreter)<br>คะแนนดาว (1 ถึง 5)<br>ข้อคิดเห็น/คำชม<br>วันเวลาที่ส่งรีวิว (create_at) |
 
 ### 5.3 ตารางเชื่อมความสัมพันธ์ Many-to-Many (Junction Tables)
-* **`interpreter_languages`:** (`interpreter_id`/`user_id` FK, `language_id` FK) — ภาษาที่ล่ามให้บริการได้หลายภาษา
+หมายเหตุ: `BOOKING` ต้องมี `requester_confirmed_at` สำหรับบันทึกเวลาที่ผู้ใช้ยืนยันล่ามหลังการ Claim
+
+* **`interpreter_languages`:** (`interpreter_id`/`user_id` FK, `language_id` FK) — ภาษาที่ล่ามให้บริการได้หลายภาษา และ `primary_language_id` ต้องเป็นหนึ่งในรายการนี้
 * **`interpreter_categories`:** (`interpreter_id`/`user_id` FK, `category_id` FK) — หมวดหมู่งานที่ล่ามมีความเชี่ยวชาญหลายหมวด
 * ไม่ต้องมี `booking_categories` ใน MVP เพราะ `BOOKING` มี `category_id` หลักเพียงหนึ่งค่า
 * ไม่ต้องมี `user_languages` ใน MVP เว้นแต่ภายหลังต้องการเก็บภาษาที่ผู้ขอสื่อสารได้หลายภาษา
