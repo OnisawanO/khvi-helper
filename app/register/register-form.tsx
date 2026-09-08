@@ -108,7 +108,7 @@ export function RegisterForm({
         if (onSuccess) {
           onSuccess();
         } else {
-          router.push("/request-help");
+          router.push("/welcome");
         }
       }, 1000);
     } catch {
@@ -164,7 +164,7 @@ export function RegisterForm({
             สมัครสมาชิกสำเร็จ
           </h3>
           <p className="mt-1 text-xs text-[#186a55]">
-            ระบบกำลังเข้าสู่ระบบและนำท่านไปยังหน้าส่งคำขอความช่วยเหลือ...
+            ระบบกำลังเข้าสู่ระบบและนำท่านไปยังหน้า Welcome...
           </p>
         </div>
       ) : (

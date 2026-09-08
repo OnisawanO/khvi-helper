@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ComponentType, type SVGProps } from "react";
+import { useRouter } from "next/navigation";
 import {
   CalendarDaysIcon,
   CheckBadgeIcon,
@@ -19,6 +20,7 @@ import {
 import { SiteFooter } from "./components/site-footer";
 import { SiteHeader, type Locale } from "./components/site-header";
 import { resolveCopyLocale, useStoredLocale } from "./lib/locale";
+import { getMockUserSession } from "./lib/mock-auth";
 import { RegisterModal } from "./register/register-modal";
 import { LoginModal } from "./login/login-modal";
 
@@ -396,7 +398,7 @@ function MapPreview({ locale }: { locale: Locale }) {
               </p>
             </div>
           </div>
-          <a className="inline-flex h-12 shrink-0 items-center justify-center rounded-lg bg-[#087f80] px-6 text-sm font-extrabold text-white shadow-[0_10px_18px_rgba(8,127,128,0.2)] transition-colors hover:bg-[#096f70]" href="/request-help">
+          <a className="inline-flex h-12 shrink-0 items-center justify-center rounded-lg bg-[#087f80] px-6 text-sm font-extrabold text-white shadow-[0_10px_18px_rgba(8,127,128,0.2)] transition-colors hover:bg-[#096f70]" href="/request-help#main-content">
             {t.mapCard.action}
           </a>
         </div>
@@ -431,12 +433,18 @@ function RequestCard({ card, icon: IconComponent }: { card: RequestCardContent; 
 }
 
 export default function Home() {
+  const router = useRouter();
   const [locale, setLocale] = useStoredLocale();
   const t = copy[resolveCopyLocale(locale)];
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
 
   useEffect(() => {
+    if (getMockUserSession()) {
+      router.replace("/welcome");
+      return;
+    }
+
     const checkUrl = () => {
       const params = new URLSearchParams(window.location.search);
       if (params.get("register") === "true" || window.location.hash === "#register") {
@@ -460,7 +468,7 @@ export default function Home() {
     checkUrl();
     window.addEventListener("hashchange", checkUrl);
     return () => window.removeEventListener("hashchange", checkUrl);
-  }, []);
+  }, [router]);
 
   return (
     <main id="top" className="min-h-screen bg-[#f7f9fa] text-[#10283a]">
@@ -493,7 +501,7 @@ export default function Home() {
             {t.hero.body}
           </p>
           <div className="mt-8 flex max-w-[430px] flex-col gap-3">
-            <a className="flex min-h-14 flex-1 items-center justify-center gap-2 rounded-lg bg-[#f04f3e] px-4 py-3 text-center text-[13px] font-extrabold leading-5 text-white shadow-[0_10px_20px_rgba(240,79,62,0.22)] transition-colors hover:bg-[#d94334] sm:px-5 sm:text-sm" href="/request-help">
+            <a className="flex min-h-14 flex-1 items-center justify-center gap-2 rounded-lg bg-[#f04f3e] px-4 py-3 text-center text-[13px] font-extrabold leading-5 text-white shadow-[0_10px_20px_rgba(240,79,62,0.22)] transition-colors hover:bg-[#d94334] sm:px-5 sm:text-sm" href="/request-help#main-content">
               <MapPinIcon aria-hidden="true" className="h-5 w-5" />
               {t.hero.primaryCta}
             </a>

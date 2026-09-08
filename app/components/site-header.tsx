@@ -1,6 +1,7 @@
 "use client";
 
 import { Bars3Icon, CheckIcon, ChevronDownIcon, LanguageIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { BrandMark } from "./brand-mark";
 
@@ -156,6 +157,9 @@ function getRegisterLabel(locale: Locale) {
 
 export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpenSignIn }: SiteHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
+  const isRequesterPage = pathname === "/request-help" || pathname.startsWith("/my-requests");
+  const navItems = isRequesterPage ? copy.nav.slice(0, 2) : copy.nav;
 
   useEffect(() => {
     const handleHashLinkClick = (event: MouseEvent) => {
@@ -218,7 +222,7 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
       <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-5 py-3.5 sm:px-8 lg:gap-6 lg:px-12">
         <BrandMark subtitle={copy.brandSubtitle} />
         <nav className="hidden items-center gap-7 text-[13px] font-extrabold text-[#39525d] lg:flex" aria-label="Primary navigation">
-          {copy.nav.map(([label, href]) => (
+          {navItems.map(([label, href]) => (
             <a key={href} className="transition-colors hover:text-[#0d8587]" href={href}>
               {label}
             </a>
@@ -255,9 +259,11 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
               {copy.signIn}
             </a>
           )}
-          <a className="flex h-10 items-center rounded-lg bg-[#092f45] px-4 text-xs font-extrabold text-white shadow-[0_6px_14px_rgba(9,47,69,0.16)] transition-colors hover:bg-[#0c4960] sm:px-5" href="/request-help">
-            {primaryActionLabel}
-          </a>
+          {!isRequesterPage && (
+            <a className="flex h-10 items-center rounded-lg bg-[#092f45] px-4 text-xs font-extrabold text-white shadow-[0_6px_14px_rgba(9,47,69,0.16)] transition-colors hover:bg-[#0c4960] sm:px-5" href="/request-help#main-content">
+              {primaryActionLabel}
+            </a>
+          )}
           <button
             type="button"
             className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#cbd7dc] bg-white text-lg text-[#123b4f] transition-colors hover:border-[#8fbfc1] hover:text-[#0d8587] lg:hidden"
@@ -273,7 +279,7 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
       {menuOpen && (
         <nav id="mobile-navigation" className="border-t border-[#e3eaed] bg-white px-5 py-3 lg:hidden" aria-label="Mobile navigation">
           <div className="mx-auto flex max-w-[1440px] flex-col gap-1 sm:px-3">
-            {copy.nav.map(([label, href]) => (
+            {navItems.map(([label, href]) => (
               <a key={href} className="rounded-lg px-3 py-3 text-sm font-extrabold text-[#39525d] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587]" href={href} onClick={() => setMenuOpen(false)}>
                 {label}
               </a>

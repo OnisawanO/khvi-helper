@@ -12,7 +12,6 @@ import {
   SparklesIcon,
 } from "@heroicons/react/24/outline";
 import {
-  getRedirectPathByRole,
   loginMockUser,
   quickLoginAsRole,
   type UserProfile,
@@ -47,8 +46,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
       if (onSuccess) {
         onSuccess(user);
       } else {
-        const path = getRedirectPathByRole(user.role);
-        router.push(path);
+        router.push("/welcome");
       }
     }, 900);
   }

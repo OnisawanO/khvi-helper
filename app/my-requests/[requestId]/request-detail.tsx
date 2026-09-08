@@ -209,7 +209,7 @@ export function RequestDetail({ request }: { request: HelpRequest }) {
         {cancelError && <p role="alert" className="mb-4 text-(--khvi-coral)">{cancelError}</p>}
         <Link
           className="inline-flex items-center gap-2 text-sm font-extrabold text-[#087f80] transition-colors hover:text-[#0a6465]"
-          href="/my-requests"
+          href="/my-requests#main-content"
         >
           <ArrowLeftIcon aria-hidden="true" className="h-4 w-4" />
           {t.back}
@@ -254,7 +254,7 @@ export function RequestDetail({ request }: { request: HelpRequest }) {
             )}
             <Link
               className="mt-4 inline-flex h-11 items-center gap-2 rounded-lg border-2 border-[#087f80] bg-white px-4 text-sm font-extrabold text-[#087f80] transition-colors hover:bg-[#edf7f5]"
-              href="/request-help"
+              href="/request-help#main-content"
             >
               <PlusIcon aria-hidden="true" className="h-5 w-5" />
               {t.newRequest}

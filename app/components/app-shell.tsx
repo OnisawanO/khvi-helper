@@ -15,8 +15,8 @@ const shellCopy = {
       signIn: "Sign in",
       primaryAction: "Create pin",
       nav: [
-        ["New request", "/request-help"],
-        ["My requests", "/my-requests"],
+        ["New request", "/request-help#main-content"],
+        ["My requests", "/my-requests#main-content"],
         ["How it works", "/#how-it-works"],
         ["Safety", "/#safety"],
       ],
@@ -48,8 +48,8 @@ const shellCopy = {
       signIn: "登录",
       primaryAction: "创建求助点",
       nav: [
-        ["新建求助", "/request-help"],
-        ["我的求助", "/my-requests"],
+        ["新建求助", "/request-help#main-content"],
+        ["我的求助", "/my-requests#main-content"],
         ["使用流程", "/#how-it-works"],
         ["安全机制", "/#safety"],
       ],

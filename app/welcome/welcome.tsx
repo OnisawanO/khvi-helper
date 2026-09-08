@@ -12,8 +12,8 @@ export function Welcome() {
     <h1 className="mt-3 text-3xl font-bold sm:text-4xl">{zh ? "您需要语言帮助吗？" : "Need help communicating?"}</h1>
     <p className="mt-4 max-w-2xl leading-7">{zh ? "选择语言、事项和见面地点，然后查看请求进度。" : "Choose the language, situation and meeting point. Track your request and contact your interpreter once they accept."}</p>
     <div className="mt-8 flex flex-wrap gap-3">
-      <Link href="/request-help" className="rounded-lg bg-(--khvi-navy) px-6 py-3 font-bold text-white">{zh ? "创建求助请求" : "Create a help request"}</Link>
-      <Link href="/my-requests" className="rounded-lg border border-(--khvi-teal) px-6 py-3 font-bold">{zh ? "我的请求" : "My requests"}</Link>
+      <Link href="/request-help#main-content" className="rounded-lg bg-(--khvi-navy) px-6 py-3 font-bold text-white">{zh ? "创建求助请求" : "Create a help request"}</Link>
+      <Link href="/my-requests#main-content" className="rounded-lg border border-(--khvi-teal) px-6 py-3 font-bold">{zh ? "我的请求" : "My requests"}</Link>
     </div>
     {ready && active.length > 0 && <section className="mt-10 border-y border-(--khvi-teal)/30 py-6">
       <h2 className="text-xl font-bold">{zh ? "继续查看请求" : "Continue your request"} ({active.length})</h2>
