@@ -2,7 +2,7 @@
 
 import { Bars3Icon, CheckIcon, ChevronDownIcon, LanguageIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BrandMark } from "./brand-mark";
 
 export type Locale = "en" | "th" | "zh" | "my" | "vi";
@@ -21,6 +21,7 @@ type SiteHeaderProps = {
   onLocaleChange: (locale: Locale) => void;
   onOpenRegister?: () => void;
   onOpenSignIn?: () => void;
+  accountActions?: ReactNode;
 };
 
 const languageOptions = [
@@ -155,11 +156,16 @@ function getRegisterLabel(locale: Locale) {
   }
 }
 
-export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpenSignIn }: SiteHeaderProps) {
+export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpenSignIn, accountActions }: SiteHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
-  const isRequesterPage = pathname === "/request-help" || pathname.startsWith("/my-requests");
-  const navItems = isRequesterPage ? copy.nav.slice(0, 2) : copy.nav;
+  const isLandingPage = pathname === "/";
+  const isRequestWorkspacePage =
+    pathname === "/request-help" ||
+    pathname.startsWith("/my-requests") ||
+    pathname === "/find-requests" ||
+    pathname.startsWith("/my-assignments");
+  const navItems = isRequestWorkspacePage ? copy.nav.slice(0, 2) : copy.nav;
 
   useEffect(() => {
     const handleHashLinkClick = (event: MouseEvent) => {
@@ -230,7 +236,7 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
         </nav>
         <div className="flex items-center gap-2 sm:gap-3">
           <LanguageSwitcher copy={copy} locale={locale} onLocaleChange={onLocaleChange} />
-          {onOpenRegister ? (
+          {accountActions ?? <>{onOpenRegister ? (
             <button
               type="button"
               onClick={onOpenRegister}
@@ -259,11 +265,12 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
               {copy.signIn}
             </a>
           )}
-          {!isRequesterPage && (
+          {!isLandingPage && !isRequestWorkspacePage && (
             <a className="flex h-10 items-center rounded-lg bg-[#092f45] px-4 text-xs font-extrabold text-white shadow-[0_6px_14px_rgba(9,47,69,0.16)] transition-colors hover:bg-[#0c4960] sm:px-5" href="/request-help#main-content">
               {primaryActionLabel}
             </a>
           )}
+          </>}
           <button
             type="button"
             className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#cbd7dc] bg-white text-lg text-[#123b4f] transition-colors hover:border-[#8fbfc1] hover:text-[#0d8587] lg:hidden"
@@ -285,7 +292,7 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
               </a>
             ))}
             <LanguageSwitcher copy={copy} locale={locale} onLocaleChange={onLocaleChange} compact />
-            {onOpenRegister ? (
+            {accountActions ?? <>{onOpenRegister ? (
               <button
                 type="button"
                 className="rounded-lg px-3 py-3 text-left text-sm font-extrabold text-[#087f80] transition-colors hover:bg-[#eef5f7]"
@@ -321,6 +328,7 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
                 {copy.signIn}
               </a>
             )}
+            </>}
           </div>
         </nav>
       )}

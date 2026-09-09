@@ -108,7 +108,7 @@ export function RegisterForm({
         if (onSuccess) {
           onSuccess();
         } else {
-          router.push("/welcome");
+          router.push("/welcome#welcome-user");
         }
       }, 1000);
     } catch {

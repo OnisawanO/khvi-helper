@@ -20,7 +20,7 @@ import {
 import { SiteFooter } from "./components/site-footer";
 import { SiteHeader, type Locale } from "./components/site-header";
 import { resolveCopyLocale, useStoredLocale } from "./lib/locale";
-import { getMockUserSession } from "./lib/mock-auth";
+import { getMockUserSession, getRedirectPathByRole } from "./lib/mock-auth";
 import { RegisterModal } from "./register/register-modal";
 import { LoginModal } from "./login/login-modal";
 
@@ -440,8 +440,9 @@ export default function Home() {
   const [isSignInOpen, setIsSignInOpen] = useState(false);
 
   useEffect(() => {
-    if (getMockUserSession()) {
-      router.replace("/welcome");
+    const user = getMockUserSession();
+    if (user) {
+      router.replace(getRedirectPathByRole(user.role));
       return;
     }
 

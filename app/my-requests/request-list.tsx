@@ -95,7 +95,7 @@ export function RequestList({
       <div className="mx-auto max-w-[1180px]">
         <Link
           className="inline-flex items-center gap-2 text-sm font-extrabold text-[#087f80] transition-colors hover:text-[#0a6465]"
-          href="/welcome#top"
+          href="/welcome#welcome-user"
         >
           <ArrowLeftIcon aria-hidden="true" className="h-4 w-4" />
           {t.back}

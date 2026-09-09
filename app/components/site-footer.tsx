@@ -23,9 +23,21 @@ type FooterCopy = {
 type SiteFooterProps = {
   copy: FooterCopy;
   brandSubtitle: string;
+  workspace?: boolean;
 };
 
-export function SiteFooter({ copy, brandSubtitle }: SiteFooterProps) {
+export function SiteFooter({ copy, brandSubtitle, workspace = false }: SiteFooterProps) {
+  if (workspace) return (
+    <footer className="border-t border-(--khvi-teal)/20 bg-(--khvi-surface) px-5 py-7 sm:px-8 lg:px-12">
+      <div className="mx-auto flex max-w-[1224px] flex-wrap items-center justify-between gap-6">
+        <BrandMark subtitle={brandSubtitle} />
+        <nav aria-label="Footer" className="flex flex-wrap gap-5 text-sm font-semibold text-(--khvi-ink)">
+          <Link className="underline underline-offset-4" href="/welcome#welcome-steps">{copy.links.how}</Link>
+          <Link className="underline underline-offset-4" href="/welcome#welcome-safety">{copy.links.privacy}</Link>
+        </nav>
+      </div>
+    </footer>
+  );
   return (
     <footer className="border-t border-white/10 bg-[#06273a] px-5 py-10 text-white sm:px-8 lg:px-12 lg:py-12">
       <div className="mx-auto max-w-[1320px]">
