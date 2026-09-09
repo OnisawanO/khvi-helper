@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRequests } from "@/app/lib/request-store";
-import { ChevronRightIcon, InboxIcon, MapPinIcon, PlusIcon, UserCircleIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon, ChevronRightIcon, InboxIcon, MapPinIcon, PlusIcon, UserCircleIcon } from "@heroicons/react/24/outline";
 import { useCopyLocale } from "@/app/components/app-shell";
 import { ExpiryCountdown } from "@/app/components/expiry-countdown";
 import { StatusBadge, UrgencyBadge } from "@/app/components/request-badges";
@@ -16,6 +16,7 @@ import {
 
 const copy = {
   en: {
+    back: "Back to main",
     label: "Requester hub",
     title: "My requests",
     intro: "Every pin you created, newest first. Open one to track its status and see interpreter contact details.",
@@ -44,6 +45,7 @@ const copy = {
     emptyBody: "No request matches this filter. Create a pin when you need language help.",
   },
   zh: {
+    back: "返回主页",
     label: "求助中心",
     title: "我的求助",
     intro: "你创建的全部求助点，最新的排在前面。点开可查看状态和口译员联系方式。",
@@ -91,7 +93,14 @@ export function RequestList({
   return (
     <main id="main-content" className="flex-1 px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
       <div className="mx-auto max-w-[1180px]">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <Link
+          className="inline-flex items-center gap-2 text-sm font-extrabold text-[#087f80] transition-colors hover:text-[#0a6465]"
+          href="/welcome#welcome-user"
+        >
+          <ArrowLeftIcon aria-hidden="true" className="h-4 w-4" />
+          {t.back}
+        </Link>
+        <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-extrabold text-[#087f80]">{t.label}</p>
             <h1 className="mt-1.5 text-3xl font-extrabold tracking-normal text-[#122b3e] sm:text-4xl">{t.title}</h1>
@@ -99,7 +108,7 @@ export function RequestList({
           </div>
           <Link
             className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-lg bg-(--khvi-coral) px-5 text-sm font-extrabold text-white shadow-[0_10px_20px_rgba(240,79,62,0.22)] transition-colors hover:bg-[#d94334]"
-            href="/request-help"
+            href="/request-help#main-content"
           >
             <PlusIcon aria-hidden="true" className="h-5 w-5" />
             {t.newRequest}
@@ -109,7 +118,7 @@ export function RequestList({
         <nav aria-label={t.filterLabel} className="mt-7 flex flex-wrap gap-2">
           {STATUS_FILTERS.map((filter) => {
             const isActive = filter.id === activeFilter;
-            const href = filter.id === "all" ? "/my-requests" : `/my-requests?status=${filter.id}`;
+            const href = filter.id === "all" ? "/my-requests#main-content" : `/my-requests?status=${filter.id}#main-content`;
 
             return (
               <Link
@@ -136,7 +145,7 @@ export function RequestList({
             <p className="mx-auto mt-2 max-w-sm text-sm leading-7 text-[#64777e]">{t.emptyBody}</p>
             <Link
               className="mt-5 inline-flex h-12 items-center justify-center gap-2 rounded-lg border-2 border-[#087f80] px-5 text-sm font-extrabold text-[#087f80] transition-colors hover:bg-[#edf7f5]"
-              href="/request-help"
+              href="/request-help#main-content"
             >
               <PlusIcon aria-hidden="true" className="h-5 w-5" />
               {t.newRequest}

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AppShell } from "@/app/components/app-shell";
+import { WorkspaceShell } from "@/app/components/workspace-shell";
 import { resolveStatusFilter } from "@/app/lib/mock-requests";
 import { RequestList } from "./request-list";
 
@@ -13,8 +13,8 @@ export default async function MyRequestsPage(props: PageProps<"/my-requests">) {
   const activeFilter = resolveStatusFilter(status);
 
   return (
-    <AppShell>
+    <WorkspaceShell requiredRole="User" alternatePath="/my-assignments#main-content">
       <RequestList activeFilter={activeFilter} />
-    </AppShell>
+    </WorkspaceShell>
   );
 }

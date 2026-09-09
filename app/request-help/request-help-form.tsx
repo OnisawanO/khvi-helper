@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createRequest } from "@/app/lib/request-store";
-import { useRef, useState, type SubmitEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type SubmitEvent } from "react";
 import {
   ArrowLeftIcon,
   BoltIcon,
@@ -17,29 +17,33 @@ import {
 import { useCopyLocale } from "@/app/components/app-shell";
 import { CATEGORIES, LANGUAGES, type CategoryId, type LanguageId, type Urgency } from "@/app/lib/mock-requests";
 
-const SCHEDULE_WINDOW_HOURS = 24;
+const SCHEDULE_MINIMUM_MINUTES = 30;
+const SCHEDULE_MAXIMUM_HOURS = 24;
 
 const copy = {
   en: {
-    back: "Back to my requests",
+    back: "Back to main",
     label: "New help request",
     title: "Create a help request pin",
     intro: "One language and one category per request. Interpreters who match both can claim it.",
     urgencyLegend: "How soon is help needed?",
     urgency: {
       Immediate: { title: "Urgent", detail: "Help needed within about 15 minutes. The pin expires after 30 minutes without a claim." },
-      Scheduled: { title: "Scheduled", detail: `An appointment within the next ${SCHEDULE_WINDOW_HOURS} hours.` },
+      Scheduled: { title: "Scheduled", detail: `Choose a time from ${SCHEDULE_MINIMUM_MINUTES} minutes to ${SCHEDULE_MAXIMUM_HOURS} hours ahead.` },
     },
     scheduleLabel: "Appointment time",
-    scheduleHint: `Choose a time within the next ${SCHEDULE_WINDOW_HOURS} hours.`,
+    scheduleHint: `Choose a time more than ${SCHEDULE_MINIMUM_MINUTES} minutes ahead, up to ${SCHEDULE_MAXIMUM_HOURS} hours from now.`,
+    scheduleToday: "Today",
+    scheduleTomorrow: "Tomorrow",
+    scheduleDay: "Day",
+    scheduleTime: "Time",
     languageLabel: "Language needed",
     languagePlaceholder: "Select one language",
     categoryLabel: "Category",
     categoryPlaceholder: "Select one category",
     descriptionLabel: "What should the interpreter know?",
     descriptionHint: "Symptoms, documents, landmarks, or anything that helps them prepare. Optional.",
-    locationLegend: "Where is help needed?",
-    placeLabel: "Place or meeting point",
+    placeLabel: "Where is help needed? (Place or meeting point)",
     placePlaceholder: "Hospital name, building, counter number",
     gpsButton: "Use my current location",
     gpsLoading: "Reading location",
@@ -59,7 +63,7 @@ const copy = {
       category: "Select one category.",
       place: "Describe the place where help is needed.",
       scheduleMissing: "Choose the appointment time.",
-      scheduleRange: `The appointment must be within the next ${SCHEDULE_WINDOW_HOURS} hours.`,
+      scheduleUnavailable: "No appointment times are available. Choose Urgent instead.",
     },
     createdTitle: "Request pin created",
     createdBody: "Matching interpreters nearby can see it now. You will see contact details as soon as one claims it.",
@@ -67,25 +71,28 @@ const copy = {
     createdList: "See all my requests",
   },
   zh: {
-    back: "返回我的求助",
+    back: "返回主页",
     label: "新建求助",
     title: "创建语言求助点",
     intro: "每个求助只选一种语言和一个类别。语言与类别都匹配的口译员才能接取。",
     urgencyLegend: "多久需要帮助？",
     urgency: {
       Immediate: { title: "紧急", detail: "约 15 分钟内需要帮助。30 分钟内无人接取则自动过期。" },
-      Scheduled: { title: "预约", detail: `未来 ${SCHEDULE_WINDOW_HOURS} 小时内的预约。` },
+      Scheduled: { title: "预约", detail: `可选择 ${SCHEDULE_MINIMUM_MINUTES} 分钟后至 ${SCHEDULE_MAXIMUM_HOURS} 小时内的时间。` },
     },
     scheduleLabel: "预约时间",
-    scheduleHint: `请选择未来 ${SCHEDULE_WINDOW_HOURS} 小时内的时间。`,
+    scheduleHint: `请选择超过 ${SCHEDULE_MINIMUM_MINUTES} 分钟后且不超过 ${SCHEDULE_MAXIMUM_HOURS} 小时的时间。`,
+    scheduleToday: "今天",
+    scheduleTomorrow: "明天",
+    scheduleDay: "日期",
+    scheduleTime: "时间",
     languageLabel: "需要的语言",
     languagePlaceholder: "选择一种语言",
     categoryLabel: "类别",
     categoryPlaceholder: "选择一个类别",
     descriptionLabel: "口译员需要了解什么？",
     descriptionHint: "症状、文件、地标等有助于准备的信息。可选填。",
-    locationLegend: "在哪里需要帮助？",
-    placeLabel: "地点或碰面处",
+    placeLabel: "在哪里需要帮助？（地点或碰面处）",
     placePlaceholder: "医院名称、楼栋、柜台号",
     gpsButton: "使用我的当前位置",
     gpsLoading: "正在读取位置",
@@ -105,7 +112,7 @@ const copy = {
       category: "请选择一个类别。",
       place: "请描述需要帮助的地点。",
       scheduleMissing: "请选择预约时间。",
-      scheduleRange: `预约时间必须在未来 ${SCHEDULE_WINDOW_HOURS} 小时内。`,
+      scheduleUnavailable: "暂无可预约时间，请选择紧急求助。",
     },
     createdTitle: "求助点已创建",
     createdBody: "附近匹配的口译员现在可以看到它。一旦有人接取，你就会看到联系方式。",
@@ -121,17 +128,33 @@ type GpsState =
   | { kind: "ready"; latitude: number; longitude: number }
   | { kind: "denied" }
   | { kind: "unavailable" };
-
-function toDateTimeInputValue(date: Date): string {
-  const pad = (value: number) => String(value).padStart(2, "0");
-
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
+type AppointmentSlot = { value: string; dateKey: string; dayOffset: 0 | 1; time: string };
 
 const fieldClass =
   "w-full rounded-lg border border-[#cbd7dc] bg-white px-3.5 py-3 text-sm font-semibold text-(--khvi-ink) transition-colors hover:border-[#8fbfc1]";
 const labelClass = "block text-sm font-extrabold text-[#294554]";
 const hintClass = "mt-1.5 text-xs leading-5 text-[#73848a]";
+
+function getAvailableTimeSlots(now: Date): AppointmentSlot[] {
+  const earliest = new Date(now.getTime() + SCHEDULE_MINIMUM_MINUTES * 60 * 1000);
+  const latest = new Date(now.getTime() + SCHEDULE_MAXIMUM_HOURS * 60 * 60 * 1000);
+  const slot = new Date(earliest);
+  slot.setSeconds(0, 0);
+  slot.setMinutes(slot.getMinutes() + (30 - (slot.getMinutes() % 30)) % 30);
+  if (slot.getTime() <= earliest.getTime()) slot.setMinutes(slot.getMinutes() + 30);
+
+  const slots: AppointmentSlot[] = [];
+  while (slot.getTime() <= latest.getTime()) {
+    slots.push({
+      value: slot.toISOString(),
+      dateKey: `${slot.getFullYear()}-${slot.getMonth()}-${slot.getDate()}`,
+      dayOffset: slot.getDate() === now.getDate() ? 0 : 1,
+      time: `${String(slot.getHours()).padStart(2, "0")}:${String(slot.getMinutes()).padStart(2, "0")}`,
+    });
+    slot.setMinutes(slot.getMinutes() + 30);
+  }
+  return slots;
+}
 
 export function RequestHelpForm() {
   const saving = useRef(false);
@@ -145,20 +168,27 @@ export function RequestHelpForm() {
   const [description, setDescription] = useState("");
   const [place, setPlace] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
-  const [scheduleBounds, setScheduleBounds] = useState<{ min: string; max: string } | null>(null);
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [gps, setGps] = useState<GpsState>({ kind: "idle" });
   const [errors, setErrors] = useState<Errors>({});
   const [saveError, setSaveError] = useState("");
+  const availableTimeSlots = useMemo(() => currentTime ? getAvailableTimeSlots(currentTime) : [], [currentTime]);
+  const selectedSlot = availableTimeSlots.find((slot) => slot.value === scheduledAt) ?? availableTimeSlots[0];
+  const selectedScheduledAt = selectedSlot?.value ?? "";
+  const appointmentDays = Array.from(new Map(availableTimeSlots.map((slot) => [slot.dateKey, slot])).values());
+  const slotsForSelectedDay = availableTimeSlots.filter((slot) => slot.dateKey === selectedSlot?.dateKey);
 
-  /** Bounds are read when the user picks "Scheduled" so the window starts from the real current time. */
+  useEffect(() => {
+    const refreshCurrentTime = () => setCurrentTime(new Date());
+    refreshCurrentTime();
+    const timer = window.setInterval(refreshCurrentTime, 30000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   function selectUrgency(option: Urgency) {
     setUrgency(option);
-
-    if (option === "Scheduled") {
-      const now = new Date();
-      const limit = new Date(now.getTime() + SCHEDULE_WINDOW_HOURS * 60 * 60 * 1000);
-
-      setScheduleBounds({ min: toDateTimeInputValue(now), max: toDateTimeInputValue(limit) });
+    if (option === "Scheduled" && !scheduledAt && availableTimeSlots[0]) {
+      setScheduledAt(availableTimeSlots[0].value);
     }
   }
 
@@ -196,10 +226,10 @@ export function RequestHelpForm() {
     }
 
     if (urgency === "Scheduled") {
-      if (!scheduledAt) {
+      if (availableTimeSlots.length === 0) {
+        nextErrors.schedule = t.errors.scheduleUnavailable;
+      } else if (!selectedScheduledAt) {
         nextErrors.schedule = t.errors.scheduleMissing;
-      } else if (!Number.isFinite(Date.parse(scheduledAt)) || Date.parse(scheduledAt) <= Date.now() || Date.parse(scheduledAt) > Date.now() + 86400000) {
-        nextErrors.schedule = t.errors.scheduleRange;
       }
     }
 
@@ -210,7 +240,7 @@ export function RequestHelpForm() {
       try {
         const id = createRequest({ languageId, categoryId, description: description.trim(), urgency,
           exactAddress: place.trim(), latitude: gps.kind === "ready" ? gps.latitude : null,
-          longitude: gps.kind === "ready" ? gps.longitude : null }, scheduledAt);
+          longitude: gps.kind === "ready" ? gps.longitude : null }, selectedScheduledAt);
         router.push(`/my-requests/${id}`);
       } catch {
         saving.current = false;
@@ -225,7 +255,7 @@ export function RequestHelpForm() {
       <div className="mx-auto max-w-[1180px]">
         <Link
           className="inline-flex items-center gap-2 text-sm font-extrabold text-[#087f80] transition-colors hover:text-[#0a6465]"
-          href="/my-requests"
+          href="/welcome#welcome-user"
         >
           <ArrowLeftIcon aria-hidden="true" className="h-4 w-4" />
           {t.back}
@@ -280,17 +310,56 @@ export function RequestHelpForm() {
                   <label className={labelClass} htmlFor="scheduled-at">
                     {t.scheduleLabel}
                   </label>
-                  <input
-                    id="scheduled-at"
-                    type="datetime-local"
-                    className={`mt-2 ${fieldClass}`}
-                    value={scheduledAt}
-                    min={scheduleBounds?.min}
-                    max={scheduleBounds?.max}
-                    aria-describedby="scheduled-at-hint"
-                    aria-invalid={Boolean(errors.schedule)}
-                    onChange={(event) => setScheduledAt(event.target.value)}
-                  />
+                  {availableTimeSlots.length > 0 ? (
+                    <>
+                      <div className="mt-2 grid grid-cols-[0.8fr_1.2fr] gap-3 rounded-[var(--khvi-radius-md)] bg-[#edf3f4] p-3">
+                        <div>
+                          <p className="px-2 text-xs font-extrabold text-[#52676f]">{t.scheduleDay}</p>
+                          <div className="mt-2 space-y-1" role="group" aria-label={t.scheduleDay}>
+                            {appointmentDays.map((day) => (
+                              <button
+                                key={day.dateKey}
+                                type="button"
+                                className={`w-full rounded-lg px-3 py-3 text-left text-sm font-extrabold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f80] ${
+                                  selectedSlot?.dateKey === day.dateKey
+                                    ? "bg-white text-[#087f80] shadow-[var(--khvi-shadow-soft)]"
+                                    : "text-[#52676f] hover:bg-white/70"
+                                }`}
+                                aria-pressed={selectedSlot?.dateKey === day.dateKey}
+                                onClick={() => setScheduledAt(day.value)}
+                              >
+                                {day.dayOffset === 0 ? t.scheduleToday : t.scheduleTomorrow}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="px-2 text-xs font-extrabold text-[#52676f]">{t.scheduleTime}</p>
+                          <div className="mt-2 h-40 snap-y snap-mandatory overflow-y-auto rounded-lg bg-white p-1 shadow-[inset_0_0_0_1px_#d6e0e4]" role="group" aria-label={t.scheduleTime}>
+                            {slotsForSelectedDay.map((slot) => (
+                              <button
+                                id={slot.value === selectedScheduledAt ? "scheduled-at" : undefined}
+                                key={slot.value}
+                                type="button"
+                                className={`block w-full snap-center rounded-md px-3 py-2 text-center text-lg font-extrabold tabular-nums transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f80] ${
+                                  slot.value === selectedScheduledAt
+                                    ? "bg-[#087f80] text-white"
+                                    : "text-[#52676f] hover:bg-[#edf7f5]"
+                                }`}
+                                aria-describedby="scheduled-at-hint"
+                                aria-pressed={slot.value === selectedScheduledAt}
+                                onClick={() => setScheduledAt(slot.value)}
+                              >
+                                {slot.time}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <Notice message={t.errors.scheduleUnavailable} />
+                  )}
                   <p className={hintClass} id="scheduled-at-hint">
                     {t.scheduleHint}
                   </p>
@@ -360,10 +429,8 @@ export function RequestHelpForm() {
                 </p>
               </div>
 
-              <fieldset className="mt-6 border-t border-[#e3ebef] pt-5">
-                <legend className={labelClass}>{t.locationLegend}</legend>
-
-                <div className="mt-3">
+              <div className="mt-6 border-t border-[#e3ebef] pt-5">
+                <div>
                   <label className={labelClass} htmlFor="place">
                     {t.placeLabel}
                   </label>
@@ -400,7 +467,7 @@ export function RequestHelpForm() {
                   {gps.kind === "unavailable" && <Notice message={t.gpsUnavailable} />}
                   {(gps.kind === "idle" || gps.kind === "loading") && <p className={hintClass}>{t.gpsHint}</p>}
                 </div>
-              </fieldset>
+              </div>
 
               {saveError && <FieldError message={saveError} />}
               <button

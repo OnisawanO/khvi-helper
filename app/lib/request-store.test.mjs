@@ -4,9 +4,15 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import ts from "typescript";
 
-function environment() {
+function environment(now = null) {
   const data = new Map();
   const localStorage = { getItem: (key) => data.get(key) ?? null, setItem: (key, value) => data.set(key, value) };
+  const DateImpl = now
+    ? class extends Date {
+      constructor(...args) { super(...(args.length === 0 ? [now.getTime()] : args)); }
+      static now() { return now.getTime(); }
+    }
+    : Date;
   function load() {
     const cache = {};
     function loadModule(name) {
@@ -14,7 +20,7 @@ function environment() {
       const source = readFileSync(new URL(name + ".ts", import.meta.url), "utf8");
       const js = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
       const exports = {};
-      const context = { exports, localStorage, Date, Event,
+      const context = { exports, localStorage, Date: DateImpl, Event,
         window: { dispatchEvent() {} },
         require: (path) => path === "react"
           ? { useSyncExternalStore: (_subscribe, snapshot) => snapshot() }
@@ -60,18 +66,28 @@ test("cancellation requires a reason and survives reload", () => {
 });
 
 test("schedule uses current time and expires at appointment; urgent expiry never resets", () => {
-  const env = environment();
+  const currentTime = new Date(2026, 8, 8, 22, 10, 0, 0);
+  const env = environment(currentTime);
   const store = env.load();
   assert.throws(() => store.createRequest({ ...input, urgency: "Scheduled" }, "bad-date"));
-  assert.throws(() => store.createRequest({ ...input, urgency: "Scheduled" }, new Date(Date.now() - 1000).toISOString()));
-  assert.throws(() => store.createRequest({ ...input, urgency: "Scheduled" }, new Date(Date.now() + 90000000).toISOString()));
-  const date = new Date(Date.now() + 3600000).toISOString();
-  store.createRequest({ ...input, urgency: "Scheduled" }, date);
-  assert.equal(store.useRequests().requests[0].expiresAt, date);
-  const expired = store.expireRequests(store.useRequests().requests, Date.parse(date) + 1);
+  const tooSoon = new Date(currentTime);
+  tooSoon.setHours(22, 30, 0, 0);
+  assert.throws(() => store.createRequest({ ...input, urgency: "Scheduled" }, tooSoon.toISOString()));
+  const appointment = new Date(currentTime);
+  appointment.setHours(23, 0, 0, 0);
+  store.createRequest({ ...input, urgency: "Scheduled" }, appointment.toISOString());
+  assert.equal(store.useRequests().requests[0].expiresAt, appointment.toISOString());
+  const expired = store.expireRequests(store.useRequests().requests, appointment.getTime() + 1);
   assert.equal(expired[0].status, "Expired");
   assert.equal(expired[0].cancelledBy, "System");
-  assert.equal(env.load().useRequests().requests[0].expiresAt, date);
+  assert.equal(env.load().useRequests().requests[0].expiresAt, appointment.toISOString());
+});
+
+test("scheduled appointments cannot exceed 24 hours", () => {
+  const currentTime = new Date(2026, 8, 8, 22, 10, 0, 0);
+  const env = environment(currentTime);
+  const appointment = new Date(currentTime.getTime() + 24 * 60 * 60 * 1000 + 1);
+  assert.throws(() => env.load().createRequest({ ...input, urgency: "Scheduled" }, appointment.toISOString()));
 });
 
 test("completion requires started work and both confirmations", () => {

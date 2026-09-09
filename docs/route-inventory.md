@@ -1,5 +1,13 @@
 # KHVI Route Inventory
 
+## Role-specific request workspaces
+
+- `User` uses `/request-help` to create a request and `/my-requests` to track requests created in the browser preview.
+- `Interpreter` uses `/find-requests` to review open request summaries and `/my-assignments` to track claimed, in-progress or completed assignments.
+- All four routes read the mock signed-in session and redirect to the equivalent route when the signed-in role does not match.
+- Interpreter lists reuse browser-local preview records. Profile matching, account ownership, claim actions and server authorization remain planned.
+- Both roles use the same signed-in header and footer as `/welcome`; the navigation labels and paths change with the role.
+
 ## Requester preview flow update
 
 - Entry: `/welcome`; `/wellcom` redirects to `/welcome`.
@@ -31,14 +39,19 @@ This update supersedes the older mock-source and state-only behavior notes below
 | `/` | Static | Public | None | Not applicable | Implemented |
 | `/_not-found` | Framework fallback | Public | None | Framework fallback | Implemented |
 | `/manager` | Static Mockup | Manager Role | Mock data (FR-14–18) | Not applicable | Implemented |
-| `/request-help` | Resource create route | Authenticated User (ยังไม่บังคับ) | `app/lib/mock-requests.ts` | Not applicable | Implemented (mock) |
-| `/my-requests` | Resource list | Authenticated User, เจ้าของคำขอ (ยังไม่บังคับ) | `app/lib/mock-requests.ts` | Empty state | Implemented (mock) |
+| `/request-help` | Resource create route | Authenticated User (mock session; ยังไม่บังคับฝั่ง server) | `app/lib/request-store.ts` | Redirect Interpreter to `/find-requests` | Implemented (mock) |
+| `/my-requests` | Requester resource list | Authenticated User (mock session; ยังไม่บังคับฝั่ง server) | `app/lib/request-store.ts` | Redirect Interpreter to `/my-assignments`; empty state | Implemented (mock) |
 | `/my-requests/[requestId]` | Dynamic resource | เจ้าของคำขอ (ยังไม่บังคับ) | `app/lib/mock-requests.ts` | `notFound()` | Implemented (mock) |
+| `/find-requests` | Interpreter open-request list | Authenticated Interpreter (mock session; ยังไม่บังคับฝั่ง server) | `app/lib/request-store.ts` request summaries | Redirect User to `/request-help`; empty state | Implemented (mock UI) |
+| `/my-assignments` | Interpreter assignment list | Authenticated Interpreter (mock session; ยังไม่บังคับฝั่ง server) | `app/lib/request-store.ts` non-open statuses | Redirect User to `/my-requests`; empty state | Implemented (mock UI) |
 | `/register` | Static auth route | Public | `app/lib/mock-auth.ts` (Mock session) | Not applicable | Implemented (mock) |
 | `/login` | Static auth route | Public | `app/lib/mock-auth.ts` (Mock session) | Not applicable | Implemented (mock) |
 
 `/my-requests` รับ query parameter `status` ค่าเดียวเท่านั้น: `open`, `claimed`, `in-progress`, `completed`, `cancelled`
 ค่าที่ไม่รู้จักจะถูกลดรูปเป็น `all` โดยไม่ตอบ 404 เพราะ query parameter ไม่ใช่ตัวระบุ resource
+
+`/my-assignments` รับ `status` เฉพาะ `claimed`, `in-progress` และ `completed` ค่าอื่นจะถูกลดรูปเป็น `all`
+ส่วน `/find-requests` ใช้ตัวกรอง `All`, `Urgent` และ `Scheduled` ใน client โดยไม่เปลี่ยน URL
 
 `/my-requests/[requestId]` ตรวจ parameter ด้วย `isValidRequestId()` (ตัวเลขล้วน ตรงกับ `bookings.booking_id` ที่วางแผนไว้)
 parameter ที่ผิดรูปแบบหรือไม่พบข้อมูลจะเรียก `notFound()` ทั้งสองกรณี เพื่อไม่เปิดเผยว่ามี id นั้นอยู่จริงหรือไม่
@@ -62,7 +75,7 @@ parameter ที่ผิดรูปแบบหรือไม่พบข้�
 | `/admin` | Static dashboard | Admin | Users, bookings, reviews summary | `403` | Planned |
 | `/admin/users` | Resource list/detail | Admin | User profile and roles | Empty state or `403` | Planned |
 
-`/request-help`, `/my-requests`, `/register` และ `/login` ย้ายจากตารางนี้ขึ้นไปอยู่ตาราง implemented แล้ว โดย path ตรงกับที่ทีมวางแผนไว้เดิม
+`/request-help`, `/my-requests`, `/find-requests`, `/my-assignments`, `/register` และ `/login` อยู่ในตาราง implemented แล้ว
 
 ### ประเด็นค้าง: `/my-requests/[requestId]` ทับซ้อนกับ `/mission/[id]`
 

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AppShell } from "@/app/components/app-shell";
+import { WorkspaceShell } from "@/app/components/workspace-shell";
 import { RequestHelpForm } from "./request-help-form";
 
 export const metadata: Metadata = {
@@ -10,8 +10,8 @@ export const metadata: Metadata = {
 
 export default function RequestHelpPage() {
   return (
-    <AppShell>
+    <WorkspaceShell requiredRole="User" alternatePath="/find-requests#main-content">
       <RequestHelpForm />
-    </AppShell>
+    </WorkspaceShell>
   );
 }

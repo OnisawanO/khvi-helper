@@ -15,8 +15,8 @@ const shellCopy = {
       signIn: "Sign in",
       primaryAction: "Create pin",
       nav: [
-        ["New request", "/request-help"],
-        ["My requests", "/my-requests"],
+        ["New request", "/request-help#main-content"],
+        ["My requests", "/my-requests#main-content"],
         ["How it works", "/#how-it-works"],
         ["Safety", "/#safety"],
       ],
@@ -48,8 +48,8 @@ const shellCopy = {
       signIn: "登录",
       primaryAction: "创建求助点",
       nav: [
-        ["新建求助", "/request-help"],
-        ["我的求助", "/my-requests"],
+        ["新建求助", "/request-help#main-content"],
+        ["我的求助", "/my-requests#main-content"],
         ["使用流程", "/#how-it-works"],
         ["安全机制", "/#safety"],
       ],
@@ -87,20 +87,27 @@ export function useCopyLocale(): CopyLocale {
  * language switcher, and the site footer. Pages render their own `<main>` so the
  * skip link keeps working.
  */
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ children, accountActions, welcomeRole }: {
+  children: ReactNode;
+  accountActions?: ReactNode;
+  welcomeRole?: "User" | "Interpreter";
+}) {
   const [locale, setLocale] = useStoredLocale();
   const copyLocale = resolveCopyLocale(locale);
   const t = shellCopy[copyLocale];
+  const welcomeNav = welcomeRole === "Interpreter"
+    ? [[copyLocale === "zh" ? "寻找求助" : "Find requests", "/find-requests#main-content"], [copyLocale === "zh" ? "我的任务" : "My assignments", "/my-assignments#main-content"]] as const
+    : [[copyLocale === "zh" ? "新建求助" : "New request", "/request-help#main-content"], [copyLocale === "zh" ? "我的求助" : "My requests", "/my-requests#main-content"]] as const;
 
   return (
     <CopyLocaleContext.Provider value={copyLocale}>
       <a className="skip-link" href="#main-content">
         {t.skip}
       </a>
-      <SiteHeader copy={t.header} locale={locale} onLocaleChange={setLocale} />
+      <SiteHeader copy={welcomeRole ? { ...t.header, nav: welcomeNav } : t.header} locale={locale} onLocaleChange={setLocale} accountActions={accountActions} />
       <RequestNavigation />
       {children}
-      <SiteFooter copy={t.footer} brandSubtitle={t.header.brandSubtitle} />
+      <SiteFooter copy={t.footer} brandSubtitle={t.header.brandSubtitle} workspace={Boolean(welcomeRole)} />
     </CopyLocaleContext.Provider>
   );
 }

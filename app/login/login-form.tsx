@@ -47,8 +47,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
       if (onSuccess) {
         onSuccess(user);
       } else {
-        const path = getRedirectPathByRole(user.role);
-        router.push(path);
+        router.push(getRedirectPathByRole(user.role));
       }
     }, 900);
   }
