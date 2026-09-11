@@ -11,7 +11,7 @@
 
 ## Requester preview flow update
 
-- Entry: `/welcome`; `/wellcom` redirects to `/welcome`.
+- Entry: `/welcome`.
 - Flow: welcome → `/request-help` → `/my-requests/[requestId]`; the list and welcome link back to the saved request.
 - Requester pages now share browser-local storage (`khvi-requester-v1`) and start empty. Example records are not presented as the user's requests.
 - Creation, cancellation reasons and completion confirmations persist across reloads in the same browser. Storage errors leave the form available for retry.
@@ -49,7 +49,6 @@ This update supersedes the older mock-source and state-only behavior notes below
 | `/register` | Static auth route | Public | `app/lib/mock-auth.ts` (Mock session) | Not applicable | Implemented at `app/(auth)/register/page.tsx` |
 | `/login` | Static auth route | Public | `app/lib/mock-auth.ts` (Mock session) | Not applicable | Implemented at `app/(auth)/login/page.tsx` |
 | `/sign-in` | Static auth redirect | Public | None | Redirects to `/?signin=true` | Implemented at `app/(auth)/sign-in/page.tsx` |
-| `/wellcom` | Static redirect | Public | None | Redirects to `/welcome` | Implemented at `app/(public)/wellcom/page.tsx` |
 
 `/my-requests` รับ query parameter `status` ค่าเดียวเท่านั้น: `open`, `claimed`, `in-progress`, `completed`, `cancelled`
 ค่าที่ไม่รู้จักจะถูกลดรูปเป็น `all` โดยไม่ตอบ 404 เพราะ query parameter ไม่ใช่ตัวระบุ resource
