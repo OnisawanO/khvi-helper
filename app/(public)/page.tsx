@@ -17,12 +17,12 @@ import {
   UserGroupIcon,
   UserPlusIcon,
 } from "@heroicons/react/24/outline";
-import { SiteFooter } from "./components/site-footer";
-import { SiteHeader, type Locale } from "./components/site-header";
-import { resolveCopyLocale, useStoredLocale } from "./lib/locale";
-import { getMockUserSession, getRedirectPathByRole } from "./lib/mock-auth";
-import { RegisterModal } from "./register/register-modal";
-import { LoginModal } from "./login/login-modal";
+import { SiteFooter } from "@/app/components/site-footer";
+import { SiteHeader, type Locale } from "@/app/components/site-header";
+import { resolveCopyLocale, useStoredLocale } from "@/app/lib/locale";
+import { getMockUserSession, getRedirectPathByRole } from "@/app/lib/mock-auth";
+import { RegisterModal } from "@/app/components/auth/register-modal";
+import { LoginModal } from "@/app/components/auth/login-modal";
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 type RequestCardContent = {

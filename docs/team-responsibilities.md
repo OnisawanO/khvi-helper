@@ -21,16 +21,18 @@
 
 - `/login` หรือ `app/(auth)/login/page.tsx`
 - `/register` หรือ `app/(auth)/register/page.tsx`
-- `/profile` หรือ `app/profile/page.tsx`
+- `/sign-in` หรือ `app/(auth)/sign-in/page.tsx`
+- `/profile` หรือ `app/(auth)/profile/page.tsx` ในอนาคต
 - Language Switcher ใน header/layout
 - หน้า redirect หลัง login ตาม role
 
 **Component ที่ต้องทำ**
 
-- `components/auth/LoginForm.tsx`
-- `components/auth/RegisterForm.tsx`
-- `components/auth/ProfileForm.tsx`
-- `components/layout/LanguageSwitcher.tsx`
+- `app/components/auth/login-form.tsx`
+- `app/components/auth/login-modal.tsx`
+- `app/components/auth/register-form.tsx`
+- `app/components/auth/register-modal.tsx`
+- `app/components/site-header.tsx` สำหรับ Language Switcher
 - Auth error/empty/loading states
 
 **Logic ที่เกี่ยวข้อง**
@@ -58,15 +60,17 @@
 
 **ขอบเขต UI**
 
-- `/welcome` หรือ `app/welcome/page.tsx`
-- `/request-help` หรือ `app/request-help/page.tsx`
-- `/my-requests` หรือ `app/my-requests/page.tsx`
+- `/welcome` หรือ `app/(workspace)/welcome/page.tsx`
+- `/request-help` หรือ `app/(user)/request-help/page.tsx`
+- `/my-requests` หรือ `app/(user)/my-requests/page.tsx`
+- `/my-requests/[requestId]` หรือ `app/(user)/my-requests/[requestId]/page.tsx`
 - หน้ารอผลหลังสร้างหมุด
 - รายการคำขอของผู้ใช้ แยกตามสถานะ `Open`, `Claimed`, `InProgress`, `Completed`, `Cancelled`, `Expired`
 
 **Component ที่ต้องทำ**
 
-- `components/pin-request/PinForm.tsx`
+- `app/(user)/request-help/request-help-form.tsx`
+- `components/pin-request/PinForm.tsx` ในอนาคตเมื่อแยก component กลาง
 - `components/pin-request/SOSButton.tsx`
 - `components/pin-request/LocationPicker.tsx`
 - `components/pin-request/RequestStatus.tsx`
@@ -98,7 +102,8 @@
 
 **ขอบเขต UI**
 
-- `/map` หรือ `app/map/page.tsx`
+- `/find-requests` หรือ `app/(interpreter)/find-requests/page.tsx` ใน preview ปัจจุบัน
+- `/map` หรือ `app/(interpreter)/map/page.tsx` ในอนาคตเมื่อเพิ่ม Leaflet เต็มรูปแบบ
 - แผนที่ Leaflet สำหรับล่ามที่ได้รับอนุมัติ
 - แถบ filter ภาษา, หมวดหมู่, ระยะทาง, ความเร่งด่วน
 - marker งานเร่งด่วนและงานนัดหมาย
@@ -106,6 +111,7 @@
 
 **Component ที่ต้องทำ**
 
+- `app/(interpreter)/find-requests/find-requests-list.tsx`
 - `components/map/LeafletMap.tsx`
 - `components/map/CustomMarkers.tsx`
 - `components/map/MapFilterBar.tsx`
@@ -137,15 +143,17 @@
 
 **ขอบเขต UI**
 
-- `/volunteer/apply` หรือ `app/volunteer/apply/page.tsx`
-- `/volunteer/status` หรือ `app/volunteer/status/page.tsx`
-- `/volunteer/dashboard` หรือ `app/volunteer/dashboard/page.tsx`
+- `/my-assignments` หรือ `app/(interpreter)/my-assignments/page.tsx` ใน preview ปัจจุบัน
+- `/volunteer/apply` หรือ `app/(interpreter)/volunteer/apply/page.tsx` ในอนาคต
+- `/volunteer/status` หรือ `app/(interpreter)/volunteer/status/page.tsx` ในอนาคต
+- `/volunteer/dashboard` หรือ `app/(interpreter)/volunteer/dashboard/page.tsx` ในอนาคต
 - ส่วนแสดงงานที่ตรงความสามารถ
 - ปุ่ม claim งาน
 
 **Component ที่ต้องทำ**
 
-- `components/volunteer/ApplicationForm.tsx`
+- `app/(interpreter)/my-assignments/my-assignments-list.tsx`
+- `components/volunteer/ApplicationForm.tsx` ในอนาคต
 - `components/volunteer/ApplicationStatus.tsx`
 - `components/volunteer/VolunteerDashboard.tsx`
 - `components/volunteer/SkillSelector.tsx`
@@ -179,7 +187,8 @@
 
 **ขอบเขต UI**
 
-- `/mission/[id]` หรือ `app/mission/[id]/page.tsx`
+- `/my-requests/[requestId]` หรือ `app/(user)/my-requests/[requestId]/page.tsx` ใน preview ปัจจุบัน
+- `/mission/[id]` หรือ `app/(workspace)/mission/[id]/page.tsx` ในอนาคต
 - หน้ารายละเอียดภารกิจที่ใช้ร่วมกันระหว่าง User และ Interpreter
 - Timeline สถานะงาน
 - ข้อมูลติดต่อหลัง claim
@@ -220,10 +229,10 @@
 
 **ขอบเขต UI**
 
-- `/manager` หรือ `app/manager/page.tsx`
-- `/manager/verify-volunteers` หรือ `app/manager/verify-volunteers/page.tsx`
-- `/admin` หรือ `app/admin/page.tsx`
-- `/admin/users` หรือ `app/admin/users/page.tsx`
+- `/manager` หรือ `app/(manager)/manager/page.tsx`
+- `/manager/verify-volunteers` หรือ `app/(manager)/manager/verify-volunteers/page.tsx` ในอนาคต
+- `/admin` หรือ `app/(admin)/admin/page.tsx`
+- `/admin/users` หรือ `app/(admin)/admin/users/page.tsx` ในอนาคต
 - Review modal หรือหน้า review หลัง mission completed
 - หน้า report/help request เมื่อเริ่มทำฟีเจอร์ support
 

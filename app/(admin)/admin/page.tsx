@@ -21,8 +21,8 @@ import {
   UserGroupIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { BrandMark } from "../components/brand-mark";
-import { SiteFooter } from "../components/site-footer";
+import { BrandMark } from "@/app/components/brand-mark";
+import { SiteFooter } from "@/app/components/site-footer";
 
 export type SystemRole = "User" | "Interpreter" | "Manager" | "Admin";
 

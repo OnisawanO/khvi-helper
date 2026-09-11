@@ -2,6 +2,7 @@
 
 ## Role-specific request workspaces
 
+- Source routes now use Next.js route groups to keep role ownership visible in the file tree without changing public URLs: `(public)`, `(auth)`, `(workspace)`, `(user)`, `(interpreter)`, `(manager)`, and `(admin)`.
 - `User` uses `/request-help` to create a request and `/my-requests` to track requests created in the browser preview.
 - `Interpreter` uses `/find-requests` to review open request summaries and `/my-assignments` to track claimed, in-progress or completed assignments.
 - All four routes read the mock signed-in session and redirect to the equivalent route when the signed-in role does not match.
@@ -36,16 +37,19 @@ This update supersedes the older mock-source and state-only behavior notes below
 
 | Path | Type | Access | Data source | Not found behavior | Status |
 |---|---|---|---|---|---|
-| `/` | Static | Public | None | Not applicable | Implemented |
-| `/_not-found` | Framework fallback | Public | None | Framework fallback | Implemented |
-| `/manager` | Static Mockup | Manager Role | Mock data (FR-14–18) | Not applicable | Implemented |
-| `/request-help` | Resource create route | Authenticated User (mock session; ยังไม่บังคับฝั่ง server) | `app/lib/request-store.ts` | Redirect Interpreter to `/find-requests` | Implemented (mock) |
-| `/my-requests` | Requester resource list | Authenticated User (mock session; ยังไม่บังคับฝั่ง server) | `app/lib/request-store.ts` | Redirect Interpreter to `/my-assignments`; empty state | Implemented (mock) |
-| `/my-requests/[requestId]` | Dynamic resource | เจ้าของคำขอ (ยังไม่บังคับ) | `app/lib/mock-requests.ts` | `notFound()` | Implemented (mock) |
-| `/find-requests` | Interpreter open-request list | Authenticated Interpreter (mock session; ยังไม่บังคับฝั่ง server) | `app/lib/request-store.ts` request summaries | Redirect User to `/request-help`; empty state | Implemented (mock UI) |
-| `/my-assignments` | Interpreter assignment list | Authenticated Interpreter (mock session; ยังไม่บังคับฝั่ง server) | `app/lib/request-store.ts` non-open statuses | Redirect User to `/my-requests`; empty state | Implemented (mock UI) |
-| `/register` | Static auth route | Public | `app/lib/mock-auth.ts` (Mock session) | Not applicable | Implemented (mock) |
-| `/login` | Static auth route | Public | `app/lib/mock-auth.ts` (Mock session) | Not applicable | Implemented (mock) |
+| `/` | Static | Public | None | Not applicable | Implemented at `app/(public)/page.tsx` |
+| `/_not-found` | Framework fallback | Public | None | Framework fallback | Implemented at `app/not-found.tsx` |
+| `/manager` | Static Mockup | Manager Role | Mock data (FR-14–18) | Not applicable | Implemented at `app/(manager)/manager/page.tsx` |
+| `/admin` | Static Mockup | Admin Role | Mock data | Not applicable | Implemented at `app/(admin)/admin/page.tsx` |
+| `/request-help` | Resource create route | Authenticated User (mock session; ยังไม่บังคับฝั่ง server) | `app/lib/request-store.ts` | Redirect Interpreter to `/find-requests` | Implemented at `app/(user)/request-help/page.tsx` |
+| `/my-requests` | Requester resource list | Authenticated User (mock session; ยังไม่บังคับฝั่ง server) | `app/lib/request-store.ts` | Redirect Interpreter to `/my-assignments`; empty state | Implemented at `app/(user)/my-requests/page.tsx` |
+| `/my-requests/[requestId]` | Dynamic resource | เจ้าของคำขอ (ยังไม่บังคับ) | `app/lib/mock-requests.ts` | `notFound()` | Implemented at `app/(user)/my-requests/[requestId]/page.tsx` |
+| `/find-requests` | Interpreter open-request list | Authenticated Interpreter (mock session; ยังไม่บังคับฝั่ง server) | `app/lib/request-store.ts` request summaries | Redirect User to `/request-help`; empty state | Implemented at `app/(interpreter)/find-requests/page.tsx` |
+| `/my-assignments` | Interpreter assignment list | Authenticated Interpreter (mock session; ยังไม่บังคับฝั่ง server) | `app/lib/request-store.ts` non-open statuses | Redirect User to `/my-requests`; empty state | Implemented at `app/(interpreter)/my-assignments/page.tsx` |
+| `/register` | Static auth route | Public | `app/lib/mock-auth.ts` (Mock session) | Not applicable | Implemented at `app/(auth)/register/page.tsx` |
+| `/login` | Static auth route | Public | `app/lib/mock-auth.ts` (Mock session) | Not applicable | Implemented at `app/(auth)/login/page.tsx` |
+| `/sign-in` | Static auth redirect | Public | None | Redirects to `/?signin=true` | Implemented at `app/(auth)/sign-in/page.tsx` |
+| `/wellcom` | Static redirect | Public | None | Redirects to `/welcome` | Implemented at `app/(public)/wellcom/page.tsx` |
 
 `/my-requests` รับ query parameter `status` ค่าเดียวเท่านั้น: `open`, `claimed`, `in-progress`, `completed`, `cancelled`
 ค่าที่ไม่รู้จักจะถูกลดรูปเป็น `all` โดยไม่ตอบ 404 เพราะ query parameter ไม่ใช่ตัวระบุ resource
@@ -65,7 +69,7 @@ parameter ที่ผิดรูปแบบหรือไม่พบข้�
 | Path | Type | Access | Data source | Not found behavior | Status |
 |---|---|---|---|---|---|
 | `/profile` | Static private route | Authenticated | User profile | Redirect to login | Planned |
-| `/welcome` | Static private route | Authenticated User | User profile | Redirect to login | Planned |
+| `/welcome` | Static private route | Authenticated User/Interpreter | Browser mock session | Redirect by mock role | Implemented at `app/(workspace)/welcome/page.tsx` |
 | `/map` | Resource map/list | Approved Interpreter | `bookings`, interpreter skills | Empty state or `403` | Planned |
 | `/volunteer/apply` | Resource create route | Authenticated User | `interpreter_profiles`, `languages`, `categories` | Redirect to current application status | Planned |
 | `/volunteer/status` | Resource detail route | Authenticated User | `interpreter_profiles` | Empty state if no application | Planned |

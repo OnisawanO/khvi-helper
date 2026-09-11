@@ -33,7 +33,7 @@ import {
   XCircleIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { SiteFooter } from "../components/site-footer";
+import { SiteFooter } from "@/app/components/site-footer";
 
 type ApplicantDocument = {
   name: string;

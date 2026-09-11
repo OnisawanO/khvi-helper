@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { AppShell } from "@/app/components/app-shell";
-import { RegisterForm } from "./register-form";
+import { RegisterForm } from "@/app/components/auth/register-form";
 
 export const metadata: Metadata = {
   title: "สมัครสมาชิกผู้ใช้ใหม่ · KHVI Helper",
