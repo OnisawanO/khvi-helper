@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import {
   ArrowLeftOnRectangleIcon,
@@ -23,6 +24,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { BrandMark } from "@/app/components/brand-mark";
 import { SiteFooter } from "@/app/components/site-footer";
+import { clearMockUserSession, getMockUserSession, getRedirectPathByRole } from "@/app/lib/mock-auth";
 
 export type SystemRole = "User" | "Interpreter" | "Manager" | "Admin";
 
@@ -255,7 +257,7 @@ const AVAILABLE_CATEGORIES = [
   "General Help",
 ];
 
-function AdminHeader({ onMenuClick }: { onMenuClick?: () => void }) {
+function AdminHeader({ onMenuClick, onSignOut }: { onMenuClick?: () => void; onSignOut: () => void }) {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
@@ -343,14 +345,17 @@ function AdminHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                   </Link>
                 </div>
                 <div className="border-t border-[#eef3f5] pt-1">
-                  <Link
-                    href="/"
-                    onClick={() => setProfileMenuOpen(false)}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      onSignOut();
+                    }}
                     className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-bold text-[#d93829] transition-colors hover:bg-[#fff2f0]"
                   >
                     <ArrowLeftOnRectangleIcon className="h-4 w-4" />
                     Sign out
-                  </Link>
+                  </button>
                 </div>
               </div>
             )}
@@ -362,6 +367,8 @@ function AdminHeader({ onMenuClick }: { onMenuClick?: () => void }) {
 }
 
 export default function AdminPage() {
+  const router = useRouter();
+  const [authChecked, setAuthChecked] = useState(false);
   const [activeTab, setActiveTab] = useState<"users" | "interpreters" | "audit">("users");
   const [users, setUsers] = useState<AdminUserRecord[]>(initialUsers);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(initialAuditLogs);
@@ -408,6 +415,17 @@ export default function AdminPage() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    const session = getMockUserSession();
+
+    if (session?.role !== "Admin") {
+      router.replace(session ? getRedirectPathByRole(session.role) : "/#top");
+      return;
+    }
+
+    queueMicrotask(() => setAuthChecked(true));
+  }, [router]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -546,6 +564,14 @@ export default function AdminPage() {
   const lockedUsersCount = users.filter((u) => u.isLocked).length;
   const totalAdminsCount = users.filter((u) => u.role === "Admin" || u.role === "Manager").length;
 
+  if (!authChecked) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#f7f9fa] text-[#092f45]" aria-busy="true">
+        <p role="status" className="text-sm font-bold">Checking admin session…</p>
+      </main>
+    );
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-[#f7f9fa] text-[#092f45] antialiased">
       {/* Toast Notification */}
@@ -562,7 +588,14 @@ export default function AdminPage() {
       )}
 
       {/* Top Header with Hamburger for Mobile Drawer */}
-      <AdminHeader onMenuClick={() => setIsMobileDrawerOpen(true)} />
+      <AdminHeader
+        onMenuClick={() => setIsMobileDrawerOpen(true)}
+        onSignOut={() => {
+          clearMockUserSession();
+          setAuthChecked(false);
+          router.replace("/#top");
+        }}
+      />
 
       {/* Mobile Slide-out Sidebar Drawer (Pop-up from left) */}
       {isMobileDrawerOpen && (

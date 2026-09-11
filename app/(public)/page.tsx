@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, type ComponentType, type SVGProps } from "react";
-import { useRouter } from "next/navigation";
 import {
   CalendarDaysIcon,
   CheckBadgeIcon,
@@ -20,7 +19,6 @@ import {
 import { SiteFooter } from "@/app/components/site-footer";
 import { SiteHeader, type Locale } from "@/app/components/site-header";
 import { resolveCopyLocale, useStoredLocale } from "@/app/lib/locale";
-import { getMockUserSession, getRedirectPathByRole } from "@/app/lib/mock-auth";
 import { RegisterModal } from "@/app/components/auth/register-modal";
 import { LoginModal } from "@/app/components/auth/login-modal";
 
@@ -433,19 +431,12 @@ function RequestCard({ card, icon: IconComponent }: { card: RequestCardContent; 
 }
 
 export default function Home() {
-  const router = useRouter();
   const [locale, setLocale] = useStoredLocale();
   const t = copy[resolveCopyLocale(locale)];
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
 
   useEffect(() => {
-    const user = getMockUserSession();
-    if (user) {
-      router.replace(getRedirectPathByRole(user.role));
-      return;
-    }
-
     const checkUrl = () => {
       const params = new URLSearchParams(window.location.search);
       if (params.get("register") === "true" || window.location.hash === "#register") {
@@ -469,7 +460,7 @@ export default function Home() {
     checkUrl();
     window.addEventListener("hashchange", checkUrl);
     return () => window.removeEventListener("hashchange", checkUrl);
-  }, [router]);
+  }, []);
 
   return (
     <main id="top" className="min-h-screen bg-[#f7f9fa] text-[#10283a]">
