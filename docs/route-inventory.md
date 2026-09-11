@@ -43,7 +43,7 @@ This update supersedes the older mock-source and state-only behavior notes below
 | `/admin` | Static Mockup | Admin Role | Mock data | Not applicable | Implemented at `app/(admin)/admin/page.tsx` |
 | `/request-help` | Resource create route | Authenticated User (mock session; ยังไม่บังคับฝั่ง server) | `app/lib/request-store.ts` | Redirect Interpreter to `/find-requests` | Implemented at `app/(user)/request-help/page.tsx` |
 | `/my-requests` | Requester resource list | Authenticated User (mock session; ยังไม่บังคับฝั่ง server) | `app/lib/request-store.ts` | Redirect Interpreter to `/my-assignments`; empty state | Implemented at `app/(user)/my-requests/page.tsx` |
-| `/my-requests/[requestId]` | Dynamic resource | เจ้าของคำขอ (ยังไม่บังคับ) | `app/lib/mock-requests.ts` | `notFound()` | Implemented at `app/(user)/my-requests/[requestId]/page.tsx` |
+| `/my-requests/[requestId]` | Dynamic resource | เจ้าของคำขอ หรือ Interpreter ที่ Claim แล้ว (server authorization ยังไม่บังคับ) | `app/lib/mock-requests.ts` | `notFound()` | Implemented preview at `app/(user)/my-requests/[requestId]/page.tsx` |
 | `/find-requests` | Interpreter open-request list | Authenticated Interpreter (mock session; ยังไม่บังคับฝั่ง server) | `app/lib/request-store.ts` request summaries | Redirect User to `/request-help`; empty state | Implemented at `app/(interpreter)/find-requests/page.tsx` |
 | `/my-assignments` | Interpreter assignment list | Authenticated Interpreter (mock session; ยังไม่บังคับฝั่ง server) | `app/lib/request-store.ts` non-open statuses | Redirect User to `/my-requests`; empty state | Implemented at `app/(interpreter)/my-assignments/page.tsx` |
 | `/register` | Static auth route | Public | `app/lib/mock-auth.ts` (Mock session) | Not applicable | Implemented at `app/(auth)/register/page.tsx` |
@@ -74,21 +74,17 @@ parameter ที่ผิดรูปแบบหรือไม่พบข้�
 | `/volunteer/apply` | Resource create route | Authenticated User | `interpreter_profiles`, `languages`, `categories` | Redirect to current application status | Planned |
 | `/volunteer/status` | Resource detail route | Authenticated User | `interpreter_profiles` | Empty state if no application | Planned |
 | `/volunteer/dashboard` | Resource dashboard | Approved Interpreter | `bookings`, interpreter skills | `403` if not approved | Planned |
-| `/mission/[id]` | Dynamic resource | Booking requester or claimed interpreter | `bookings` | `notFound()` or `403` | Planned |
 | `/manager/verify-volunteers` | Resource list/detail | Manager/Admin | `interpreter_profiles`, user profile | Empty state or `403` | Planned |
 | `/admin` | Static dashboard | Admin | Users, bookings, reviews summary | `403` | Planned |
 | `/admin/users` | Resource list/detail | Admin | User profile and roles | Empty state or `403` | Planned |
 
 `/request-help`, `/my-requests`, `/find-requests`, `/my-assignments`, `/register` และ `/login` อยู่ในตาราง implemented แล้ว
 
-### ประเด็นค้าง: `/my-requests/[requestId]` ทับซ้อนกับ `/mission/[id]`
+### Route สำหรับติดตามภารกิจ
 
-route inventory วางแผน `/mission/[id]` เป็นหน้าติดตามภารกิจที่ใช้ร่วมกันทั้งฝ่ายผู้ขอและล่ามที่รับงาน
-ส่วน `/my-requests/[requestId]` ที่เพิ่มเข้ามาเป็นหน้าติดตามสถานะสำหรับผู้ขอเท่านั้น
-ทั้งสอง path จึงอ่านข้อมูลชุดเดียวกันและแสดงสถานะเดียวกัน ต่างกันแค่ขอบเขตผู้ดู
+`/my-requests/[requestId]` เป็น canonical route สำหรับรายละเอียดคำขอและภารกิจ โดยผู้ขอและ Interpreter ที่ Claim งานแล้วจะใช้ resource เดียวกันตาม server authorization ใน production
 
-ยังไม่ตัดสินใจว่าจะเก็บทั้งสอง path หรือรวมเป็นอันเดียว ต้องตกลงกับเจ้าของงาน mission ก่อน
-ถ้ารวมเป็น `/mission/[id]` อันเดียว ต้องกำหนด redirect จาก `/my-requests/[requestId]` และย้าย component ที่เกี่ยวข้อง
+ไม่สร้าง `/mission/[id]` แยกใน scope ปัจจุบัน เพื่อลด route ซ้ำและให้ `requestId` เป็น stable resource ID เดียวของคำขอ
 
 ## งานที่เหลือของ requester routes
 

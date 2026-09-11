@@ -89,7 +89,7 @@
 - ผู้ใช้เลือกภาษา 1 ภาษาและหมวดหมู่ 1 หมวด
 - งานเร่งด่วนต้องมีเวลาหมดอายุ
 - งานนัดหมายต้องอยู่ในกรอบไม่เกิน 1 วันตาม requirement ล่าสุด
-- ผู้ใช้เห็นรายการคำขอของตัวเองและกดเข้า `/mission/[id]` ได้
+- ผู้ใช้เห็นรายการคำขอของตัวเองและกดเข้า `/my-requests/[requestId]` ได้
 
 **จุดส่งต่องาน**
 
@@ -135,7 +135,7 @@
 
 - รับ interpreter profile และ skill set จากคนที่ 4
 - ส่ง `booking_id` ที่เลือกให้คนที่ 4 ทำ claim
-- เมื่อ claim สำเร็จ ให้พาไป `/mission/[id]` ของคนที่ 5
+- เมื่อ claim สำเร็จ ให้พาไป `/my-requests/[requestId]` ของคนที่ 5
 
 ---
 
@@ -187,9 +187,8 @@
 
 **ขอบเขต UI**
 
-- `/my-requests/[requestId]` หรือ `app/(user)/my-requests/[requestId]/page.tsx` ใน preview ปัจจุบัน
-- `/mission/[id]` หรือ `app/(workspace)/mission/[id]/page.tsx` ในอนาคต
-- หน้ารายละเอียดภารกิจที่ใช้ร่วมกันระหว่าง User และ Interpreter
+- `/my-requests/[requestId]` หรือ `app/(user)/my-requests/[requestId]/page.tsx` เป็น canonical route
+- หน้ารายละเอียดคำขอและภารกิจที่ใช้ร่วมกันระหว่าง User และ Interpreter ตามสิทธิ์
 - Timeline สถานะงาน
 - ข้อมูลติดต่อหลัง claim
 - ปุ่มเริ่มงาน, ยืนยันจบงาน, ยกเลิกงาน
