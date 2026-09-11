@@ -104,7 +104,13 @@ export function AppShell({ children, accountActions, welcomeRole }: {
       <a className="skip-link" href="#main-content">
         {t.skip}
       </a>
-      <SiteHeader copy={welcomeRole ? { ...t.header, nav: welcomeNav } : t.header} locale={locale} onLocaleChange={setLocale} accountActions={accountActions} />
+      <SiteHeader
+        copy={welcomeRole ? { ...t.header, nav: welcomeNav } : t.header}
+        locale={locale}
+        onLocaleChange={setLocale}
+        accountActions={accountActions}
+        workspaceRole={welcomeRole}
+      />
       <RequestNavigation />
       {children}
       <SiteFooter copy={t.footer} brandSubtitle={t.header.brandSubtitle} workspace={Boolean(welcomeRole)} />
