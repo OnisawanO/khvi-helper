@@ -16,6 +16,9 @@
 |---|---|---|---|---|---|
 | `/` | Static | Public | None | Not applicable | Implemented |
 | `/_not-found` | Framework fallback | Public | None | Framework fallback | Implemented |
+| `/volunteer/status` | Static status | Role: Interpreter | Mock / Volunteer Profile | Empty state | Implemented |
+| `/volunteer/apply` | Static form | Authenticated | Mock / Applications | Empty state | Implemented |
+| `/manager/dashboard` | Static dashboard | Role: Manager | Mock / Interpreter Applications | Empty state | Implemented |
 
 ## Routes ที่วางแผนไว้
 

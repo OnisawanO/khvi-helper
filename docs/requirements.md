@@ -148,6 +148,7 @@ flowchart LR
 ```mermaid
 erDiagram
     USER ||--o| INTERPRETER_PROFILE : "1 : 0..1 has profile"
+    USER ||--o{ INTERPRETER_APPLICATIONS : "1 : N submits application"
     USER ||--o{ BOOKING : "1 : N makes request (user_id)"
     INTERPRETER_PROFILE ||--o{ BOOKING : "1 : N assigned volunteer (interpreter_id)"
     
@@ -189,6 +190,17 @@ erDiagram
         INT completed_job_count
         BOOLEAN is_available
         TIMESTAMPTZ created_at
+    }
+
+    INTERPRETER_APPLICATIONS {
+        BIGSERIAL application_id PK
+        BIGINT user_id FK
+        application_status status "ENUM: Pending, Under Review, Approved, Rejected"
+        TEXT reject_reason
+        VARCHAR certificate_url
+        TIMESTAMPTZ submitted_at
+        TIMESTAMPTZ reviewed_at
+        BIGINT reviewed_by_manager_id FK
     }
 
     LANGUAGE {
