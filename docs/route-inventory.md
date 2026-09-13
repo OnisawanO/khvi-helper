@@ -1,8 +1,17 @@
 # KHVI Route Inventory
 
+## Role-specific request workspaces
+
+- Source routes now use Next.js route groups to keep role ownership visible in the file tree without changing public URLs: `(public)`, `(auth)`, `(workspace)`, `(user)`, `(interpreter)`, `(manager)`, and `(admin)`.
+- `User` uses `/request-help` to create a request and `/my-requests` to track requests created in the browser preview.
+- `Interpreter` uses `/find-requests` to review open request summaries and `/my-assignments` to track claimed, in-progress or completed assignments.
+- All four routes read the mock signed-in session and redirect to the equivalent route when the signed-in role does not match.
+- Interpreter lists reuse browser-local preview records. Profile matching, account ownership, claim actions and server authorization remain planned.
+- Both roles use the same signed-in header and footer as `/welcome`; the navigation labels and paths change with the role.
+
 ## Requester preview flow update
 
-- Entry: `/welcome`; `/wellcom` redirects to `/welcome`.
+- Entry: `/welcome`.
 - Flow: welcome → `/request-help` → `/my-requests/[requestId]`; the list and welcome link back to the saved request.
 - Requester pages now share browser-local storage (`khvi-requester-v1`) and start empty. Example records are not presented as the user's requests.
 - Creation, cancellation reasons and completion confirmations persist across reloads in the same browser. Storage errors leave the form available for retry.
@@ -28,17 +37,24 @@ This update supersedes the older mock-source and state-only behavior notes below
 
 | Path | Type | Access | Data source | Not found behavior | Status |
 |---|---|---|---|---|---|
-| `/` | Static | Public | None | Not applicable | Implemented |
-| `/_not-found` | Framework fallback | Public | None | Framework fallback | Implemented |
-| `/manager` | Static Mockup | Manager Role | Mock data (FR-14–18) | Not applicable | Implemented |
-| `/request-help` | Resource create route | Authenticated User (ยังไม่บังคับ) | `app/lib/mock-requests.ts` | Not applicable | Implemented (mock) |
-| `/my-requests` | Resource list | Authenticated User, เจ้าของคำขอ (ยังไม่บังคับ) | `app/lib/mock-requests.ts` | Empty state | Implemented (mock) |
-| `/my-requests/[requestId]` | Dynamic resource | เจ้าของคำขอ (ยังไม่บังคับ) | `app/lib/mock-requests.ts` | `notFound()` | Implemented (mock) |
-| `/register` | Static auth route | Public | `app/lib/mock-auth.ts` (Mock session) | Not applicable | Implemented (mock) |
-| `/login` | Static auth route | Public | `app/lib/mock-auth.ts` (Mock session) | Not applicable | Implemented (mock) |
+| `/` | Static | Public | None | Not applicable | Implemented at `app/(public)/page.tsx` |
+| `/_not-found` | Framework fallback | Public | None | Framework fallback | Implemented at `app/not-found.tsx` |
+| `/manager` | Static Mockup | Manager Role | Mock data (FR-14–18) | Not applicable | Implemented at `app/(manager)/manager/page.tsx` |
+| `/admin` | Static Mockup | Admin Role | Mock data | Not applicable | Implemented at `app/(admin)/admin/page.tsx` |
+| `/request-help` | Resource create route | Authenticated User (mock session; ยังไม่บังคับฝั่ง server) | `app/lib/request-store.ts` | Redirect Interpreter to `/find-requests` | Implemented at `app/(user)/request-help/page.tsx` |
+| `/my-requests` | Requester resource list | Authenticated User (mock session; ยังไม่บังคับฝั่ง server) | `app/lib/request-store.ts` | Redirect Interpreter to `/my-assignments`; empty state | Implemented at `app/(user)/my-requests/page.tsx` |
+| `/my-requests/[requestId]` | Dynamic resource | เจ้าของคำขอ หรือ Interpreter ที่ Claim แล้ว (server authorization ยังไม่บังคับ) | `app/lib/mock-requests.ts` | `notFound()` | Implemented preview at `app/(user)/my-requests/[requestId]/page.tsx` |
+| `/find-requests` | Interpreter open-request list | Authenticated Interpreter (mock session; ยังไม่บังคับฝั่ง server) | `app/lib/request-store.ts` request summaries | Redirect User to `/request-help`; empty state | Implemented at `app/(interpreter)/find-requests/page.tsx` |
+| `/my-assignments` | Interpreter assignment list | Authenticated Interpreter (mock session; ยังไม่บังคับฝั่ง server) | `app/lib/request-store.ts` non-open statuses | Redirect User to `/my-requests`; empty state | Implemented at `app/(interpreter)/my-assignments/page.tsx` |
+| `/register` | Static auth route | Public | `app/lib/mock-auth.ts` (Mock session) | Not applicable | Implemented at `app/(auth)/register/page.tsx` |
+| `/login` | Static auth route | Public | `app/lib/mock-auth.ts` (Mock session) | Not applicable | Implemented at `app/(auth)/login/page.tsx` |
+| `/sign-in` | Static auth redirect | Public | None | Redirects to `/?signin=true` | Implemented at `app/(auth)/sign-in/page.tsx` |
 
 `/my-requests` รับ query parameter `status` ค่าเดียวเท่านั้น: `open`, `claimed`, `in-progress`, `completed`, `cancelled`
 ค่าที่ไม่รู้จักจะถูกลดรูปเป็น `all` โดยไม่ตอบ 404 เพราะ query parameter ไม่ใช่ตัวระบุ resource
+
+`/my-assignments` รับ `status` เฉพาะ `claimed`, `in-progress` และ `completed` ค่าอื่นจะถูกลดรูปเป็น `all`
+ส่วน `/find-requests` ใช้ตัวกรอง `All`, `Urgent` และ `Scheduled` ใน client โดยไม่เปลี่ยน URL
 
 `/my-requests/[requestId]` ตรวจ parameter ด้วย `isValidRequestId()` (ตัวเลขล้วน ตรงกับ `bookings.booking_id` ที่วางแผนไว้)
 parameter ที่ผิดรูปแบบหรือไม่พบข้อมูลจะเรียก `notFound()` ทั้งสองกรณี เพื่อไม่เปิดเผยว่ามี id นั้นอยู่จริงหรือไม่
@@ -52,26 +68,22 @@ parameter ที่ผิดรูปแบบหรือไม่พบข้�
 | Path | Type | Access | Data source | Not found behavior | Status |
 |---|---|---|---|---|---|
 | `/profile` | Static private route | Authenticated | User profile | Redirect to login | Planned |
-| `/welcome` | Static private route | Authenticated User | User profile | Redirect to login | Planned |
+| `/welcome` | Static private route | Authenticated User/Interpreter | Browser mock session | Redirect by mock role | Implemented at `app/(workspace)/welcome/page.tsx` |
 | `/map` | Resource map/list | Approved Interpreter | `bookings`, interpreter skills | Empty state or `403` | Planned |
 | `/volunteer/apply` | Resource create route | Authenticated User | `interpreter_profiles`, `languages`, `categories` | Redirect to current application status | Planned |
 | `/volunteer/status` | Resource detail route | Authenticated User | `interpreter_profiles` | Empty state if no application | Planned |
 | `/volunteer/dashboard` | Resource dashboard | Approved Interpreter | `bookings`, interpreter skills | `403` if not approved | Planned |
-| `/mission/[id]` | Dynamic resource | Booking requester or claimed interpreter | `bookings` | `notFound()` or `403` | Planned |
 | `/manager/verify-volunteers` | Resource list/detail | Manager/Admin | `interpreter_profiles`, user profile | Empty state or `403` | Planned |
 | `/admin` | Static dashboard | Admin | Users, bookings, reviews summary | `403` | Planned |
 | `/admin/users` | Resource list/detail | Admin | User profile and roles | Empty state or `403` | Planned |
 
-`/request-help`, `/my-requests`, `/register` และ `/login` ย้ายจากตารางนี้ขึ้นไปอยู่ตาราง implemented แล้ว โดย path ตรงกับที่ทีมวางแผนไว้เดิม
+`/request-help`, `/my-requests`, `/find-requests`, `/my-assignments`, `/register` และ `/login` อยู่ในตาราง implemented แล้ว
 
-### ประเด็นค้าง: `/my-requests/[requestId]` ทับซ้อนกับ `/mission/[id]`
+### Route สำหรับติดตามภารกิจ
 
-route inventory วางแผน `/mission/[id]` เป็นหน้าติดตามภารกิจที่ใช้ร่วมกันทั้งฝ่ายผู้ขอและล่ามที่รับงาน
-ส่วน `/my-requests/[requestId]` ที่เพิ่มเข้ามาเป็นหน้าติดตามสถานะสำหรับผู้ขอเท่านั้น
-ทั้งสอง path จึงอ่านข้อมูลชุดเดียวกันและแสดงสถานะเดียวกัน ต่างกันแค่ขอบเขตผู้ดู
+`/my-requests/[requestId]` เป็น canonical route สำหรับรายละเอียดคำขอและภารกิจ โดยผู้ขอและ Interpreter ที่ Claim งานแล้วจะใช้ resource เดียวกันตาม server authorization ใน production
 
-ยังไม่ตัดสินใจว่าจะเก็บทั้งสอง path หรือรวมเป็นอันเดียว ต้องตกลงกับเจ้าของงาน mission ก่อน
-ถ้ารวมเป็น `/mission/[id]` อันเดียว ต้องกำหนด redirect จาก `/my-requests/[requestId]` และย้าย component ที่เกี่ยวข้อง
+ไม่สร้าง `/mission/[id]` แยกใน scope ปัจจุบัน เพื่อลด route ซ้ำและให้ `requestId` เป็น stable resource ID เดียวของคำขอ
 
 ## งานที่เหลือของ requester routes
 

@@ -62,17 +62,23 @@ export function useRequests() {
   return { requests, ready };
 }
 
+export function appointmentFromValue(value: string): Date | null {
+  const appointment = new Date(value);
+  return Number.isFinite(appointment.getTime()) ? appointment : null;
+}
+
 export function createRequest(input: Pick<HelpRequest, "languageId" | "categoryId" | "description" | "urgency" | "exactAddress" | "latitude" | "longitude">, scheduledAt: string): string {
-  const now = Date.now();
+  const currentTime = new Date();
+  const now = currentTime.getTime();
   const current = read();
   const requestId = String(Math.max(1000, ...current.map((r) => Number(r.requestId))) + 1);
-  const appointment = input.urgency === "Scheduled" ? Date.parse(scheduledAt) : null;
-  if (appointment !== null && (!Number.isFinite(appointment) || appointment <= now || appointment > now + 86400000)) throw new Error("Choose an appointment within the next 24 hours.");
+  const appointment = input.urgency === "Scheduled" ? appointmentFromValue(scheduledAt) : null;
+  if (input.urgency === "Scheduled" && (appointment === null || appointment.getTime() <= now + 30 * 60 * 1000 || appointment.getTime() > now + 24 * 60 * 60 * 1000)) throw new Error("Choose an appointment between 30 minutes and 24 hours from now.");
   const request: HelpRequest = {
     ...input, requestId, status: "Open", areaName: "Meeting point provided",
     createdAtLabel: new Date(now).toLocaleString(),
-    scheduledAtLabel: appointment === null ? null : new Date(appointment).toLocaleString(),
-    expiresAt: new Date(appointment ?? now + 1800000).toISOString(),
+    scheduledAtLabel: appointment === null ? null : appointment.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    expiresAt: new Date(appointment?.getTime() ?? now + 1800000).toISOString(),
     expiresInSeconds: null, claimedAtLabel: null, startedAtLabel: null,
     userConfirmedDoneAtLabel: null, interpreterConfirmedDoneAtLabel: null,
     cancelledBy: null, cancelReason: null, interpreter: null,

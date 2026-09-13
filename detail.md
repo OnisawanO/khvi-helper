@@ -17,7 +17,7 @@
 | `User` | บทบาทเริ่มต้นของผู้สมัครทุกคน เข้าสู่หน้าต้อนรับ สร้างคำขอ ปักหมุด ติดตามสถานะ และดูข้อมูลติดต่อล่ามหลังมีการรับงาน |
 | `Interpreter` | ผู้ใช้ที่สมัครเป็นล่ามและได้รับการอนุมัติแล้ว เห็นเฉพาะหมุดที่ตรงกับภาษาและหมวดหมู่ความถนัดของตนเอง และกดรับงานได้ |
 | `Manager` | บทบาทย่อยของฝ่ายดูแลระบบ ใช้ตรวจสอบใบสมัครและดูแลคำร้อง/รายงานตามสิทธิ์ที่ได้รับ โดยความสามารถเป็นสับเซตของ `Admin` และไม่สามารถเปลี่ยน role หรือ Lock/Unlock |
-| `Admin` | จัดการผู้ใช้ สิทธิ์ และข้อมูลระบบโดยรวม รวมถึงดู/เปลี่ยน role และจัดการ Lock/Unlock เมื่อเปิดใช้ฟีเจอร์นี้ |
+| `Admin` | จัดการผู้ใช้ สิทธิ์ และข้อมูลระบบโดยรวม รวมถึงดู/เปลี่ยน role และจัดการ Lock/Unlock ใน MVP |
 
 - ใช้ Supabase Auth จริงสำหรับสมัครสมาชิกและเข้าสู่ระบบ
 - หลัง login ระบบต้องพาไปยัง UI ตาม role
@@ -31,7 +31,7 @@
 1. ผู้ใช้ login แล้วเห็นหน้าต้อนรับที่อธิบายบริการและข้อมูลสำคัญ พร้อมปุ่มไปหน้าปักหมุดขอความช่วยเหลือ
 2. ผู้ใช้สร้างคำขอโดยเลือกภาษาหลัก 1 ภาษา เลือกหมวดหมู่หลัก 1 หมวด ระบุรายละเอียดเพิ่มเติม และระบุตำแหน่ง
 3. คำขอมีสองรูปแบบที่ต้องแสดงแตกต่างกันบนแผนที่: งาน `Immediate` และงาน `Scheduled` ล่วงหน้าไม่เกิน 1 วัน โดยงาน Scheduled แสดงทันทีหลังสร้าง
-4. งาน Immediate ใช้ข้อความ “ต้องการความช่วยเหลือภายใน 15 นาที” เป็นระดับความเร่งด่วนสำหรับแสดงผล และหมดอายุภายใน 30 นาทีหากไม่มีล่ามรับ ส่วนงาน Scheduled หมดอายุ 24 ชั่วโมงหลังสร้าง
+4. งาน Immediate ใช้ข้อความ “ต้องการความช่วยเหลือภายใน 15 นาที” เป็นระดับความเร่งด่วนสำหรับแสดงผล และหมดอายุภายใน 30 นาทีหากไม่มีล่ามรับ ส่วนงาน Scheduled หมดอายุเมื่อถึงเวลานัดหมาย
 5. ล่ามที่ได้รับอนุมัติเห็น dashboard แผนที่งานใกล้เคียง เฉพาะคำขอที่ตรงกับภาษาและหมวดหมู่ความถนัดของตนเอง โดยสามารถเลือกตัวกรองระยะทางได้
 6. ก่อนกดรับงาน แผนที่แสดงเฉพาะชื่อสถานที่แบบกว้าง ๆ; เมื่อมีล่ามกดรับแล้ว หมุดจะหายจากรายการของล่ามคนอื่น ผู้ขอสามารถดูโปรไฟล์ล่ามและกดยืนยันล่ามได้ จากนั้นจึงเปิดเผยข้อมูลติดต่อและพิกัดจริงตามสิทธิ์
 7. ไม่รับงานที่เห็นได้โดยการปล่อยผ่าน ไม่ต้องมีสถานะปฏิเสธสำหรับล่าม
@@ -42,7 +42,7 @@
 
 MVP ต้อง login ได้ด้วย Supabase Auth, ปักหมุดส่งคำขอได้, สมัครเป็นล่ามได้, มี Manager/Admin อนุมัติใบสมัครและจัดการ role ได้, ล่ามเห็นงานที่ตรงความสามารถและกดรับได้, ผู้ขอติดตามสถานะและดูข้อมูลติดต่อได้
 
-ยังไม่รวมระบบแชท, availability toggle, ระบบ lock/unlock บัญชีในช่วงแรก และการบังคับใช้ RLS อย่างเต็มรูปแบบ เพื่อให้พัฒนาและแก้ไขได้ง่ายก่อน โดย RLS และความปลอดภัยเชิงลึกจะต้องวางก่อนนำไปใช้งานจริงในวงกว้าง
+ยังไม่รวมระบบแชท, availability toggle และการบังคับใช้ RLS อย่างเต็มรูปแบบ เพื่อให้พัฒนาและแก้ไขได้ง่ายก่อน โดย RLS และความปลอดภัยเชิงลึกจะต้องวางก่อนนำไปใช้งานจริงในวงกว้าง ส่วน Lock/Unlock อยู่ใน MVP และต้องมี server authorization, เหตุผล และ Audit Log
 
 ฟีเจอร์รีวิว/คะแนน, การแจ้งเตือน, การรายงานปัญหา และคำร้องขอความช่วยเหลือยังถือว่าจำเป็นต่อระบบ แต่สามารถแยกเป็น feature/domain ให้สมาชิกทีมรับผิดชอบได้ ไม่จำเป็นต้องทำให้เสร็จในหน้าหลักชุดเดียวกัน
 
@@ -71,7 +71,7 @@ MVP ต้อง login ได้ด้วย Supabase Auth, ปักหมุ�
 - ตัดสถานะ `UnderReview` และ `is_available` ออกจาก MVP; ใช้ `application_status` เพียง `Pending`, `Approved`, `Rejected`
 - `reviewed_by_user_id` ควรอ้างถึงผู้ใช้ที่เป็น Manager/Admin และควรมี `approved_at` กับ `rejected_reason`
 - `user_languages` ไม่จำเป็นต่อการ matching ใน MVP หากผู้ขอเลือกภาษาที่ต้องการในคำขอโดยตรง
-- `NOTIFICATION`, `REPORT` และ `HELP_REQUEST` เป็นตารางที่ควรเพิ่มเมื่อทีมเริ่มทำฟีเจอร์ส่วนนั้น ส่วน `AUDIT_LOG` คือประวัติการกระทำสำคัญของผู้ดูแล เช่น เปลี่ยน role หรืออนุมัติใบสมัคร และเลื่อนไปหลัง MVP ได้
+- `NOTIFICATION`, `REPORT` และ `HELP_REQUEST` เป็นตารางที่ควรเพิ่มเมื่อทีมเริ่มทำฟีเจอร์ส่วนนั้น ส่วน `AUDIT_LOG` เป็นตารางใน MVP สำหรับบันทึกการกระทำสำคัญของผู้ดูแล เช่น เปลี่ยน role, อนุมัติใบสมัคร และ Lock/Unlock
 
 ---
 
@@ -122,7 +122,7 @@ MVP ต้อง login ได้ด้วย Supabase Auth, ปักหมุ�
 | **FR-51 – 56** | **Review & Rating** | ประเมินความพึงพอใจ 1–5 ดาว พร้อมข้อคิดเห็นหลังจบภารกิจ (ระบุผู้รีวิวและผู้ถูกรีวิว), คำนวณคะแนนเรตติ้งเฉลี่ยสะสมลงโปรไฟล์ล่ามอัตโนมัติ | User / System |
 | **FR-57 – 62** | **Cancellation & Timeout** | กดยกเลิกหมุดพร้อมระบุเหตุผล, ระบบนับถอยหลังหมดอายุ (Timeout Auto-Expire) และระบบส่งหมุดกลับเข้า Pool กรณีล่ามสละสิทธิ์ | User / Interpreter / System |
 | **FR-63 – 68** | **Realtime Notifications** | แจ้งเตือนล่ามเมื่อมีหมุดใหม่อยู่ใกล้เคียง, แจ้งเตือนผู้ใช้เมื่อมีคนกดรับหมุด, แจ้งเตือนการเปลี่ยนสถานะงาน และแจ้งเตือนผลการสมัครล่าม | System |
-| **FR-69 – 74** | **Admin Control** | ดูผู้ใช้และจัดการ role โดยมี Manager เป็นสิทธิ์ย่อยของ Admin; การ lock/unlock จัดเตรียมไว้เป็นฟีเจอร์ถัดไป | Admin |
+| **FR-69 – 74** | **Admin Control** | ดูผู้ใช้ จัดการ role และ Lock/Unlock โดยมี Manager เป็นสิทธิ์ย่อยของ Admin พร้อมเหตุผลและ Audit Log | Admin |
 
 ---
 
@@ -313,7 +313,7 @@ erDiagram
 
 | Entity / Table | Attributes | Data Type | Key / Constraint | คำอธิบาย |
 | :--- | :--- | :--- | :---: | :--- |
-| **`PROFILES`** | `user_id`<br>`first_name`<br>`last_name`<br>`date_of_birth`<br>`phone`<br>`email`<br>`role`<br>`is_locked`<br>`preferred_ui_language`<br>`created_at` | UUID<br>VARCHAR<br>VARCHAR<br>DATE<br>VARCHAR<br>VARCHAR<br>ENUM<br>BOOLEAN<br>VARCHAR<br>TIMESTAMPTZ | **PK, FK** $\rightarrow$ `auth.users.id`<br>-<br>-<br>-<br>-<br>**UK / Auth**<br>User, Interpreter, Manager, Admin<br>DEFAULT FALSE (ฟีเจอร์ถัดไป)<br>DEFAULT 'th'<br>DEFAULT NOW() | รหัสผู้ใช้จาก Supabase Auth<br>ชื่อ<br>นามสกุล<br>วันเดือนปีเกิด<br>เบอร์โทรศัพท์ติดต่อ<br>อีเมลจาก Supabase Auth<br>บทบาทและสิทธิ์การใช้งาน<br>สถานะล็อกบัญชีในอนาคต<br>ภาษาหน้าจอที่ต้องการ<br>วันเวลาที่สร้างบัญชี |
+| **`PROFILES`** | `user_id`<br>`first_name`<br>`last_name`<br>`date_of_birth`<br>`phone`<br>`email`<br>`role`<br>`is_locked`<br>`preferred_ui_language`<br>`created_at` | UUID<br>VARCHAR<br>VARCHAR<br>DATE<br>VARCHAR<br>VARCHAR<br>ENUM<br>BOOLEAN<br>VARCHAR<br>TIMESTAMPTZ | **PK, FK** $\rightarrow$ `auth.users.id`<br>-<br>-<br>-<br>-<br>**UK / Auth**<br>User, Interpreter, Manager, Admin<br>DEFAULT FALSE (ใช้ใน MVP)<br>DEFAULT 'th'<br>DEFAULT NOW() | รหัสผู้ใช้จาก Supabase Auth<br>ชื่อ<br>นามสกุล<br>วันเดือนปีเกิด<br>เบอร์โทรศัพท์ติดต่อ<br>อีเมลจาก Supabase Auth<br>บทบาทและสิทธิ์การใช้งาน<br>สถานะล็อกบัญชีใน MVP<br>ภาษาหน้าจอที่ต้องการ<br>วันเวลาที่สร้างบัญชี |
 | **`INTERPRETER_PROFILE`** | `user_id`<br>`primary_language_id`<br>`extra_contact`<br>`experience_summary`<br>`application_status`<br>`rejected_reason`<br>`reviewed_by_user_id`<br>`approved_at`<br>`average_rating`<br>`completed_job_count`<br>`created_at` | UUID<br>BIGINT<br>VARCHAR<br>TEXT<br>ENUM<br>TEXT<br>UUID<br>TIMESTAMPTZ<br>NUMERIC(3,2)<br>INT<br>TIMESTAMPTZ | **PK, FK** $\rightarrow$ `profiles`<br>**FK** $\rightarrow$ `LANGUAGE`<br>-<br>-<br>Pending, Approved, Rejected<br>-<br>**FK** $\rightarrow$ `profiles` (Manager/Admin)<br>-<br>DEFAULT 0.00<br>DEFAULT 0<br>DEFAULT NOW() | รหัสผู้ใช้ที่สมัครล่าม<br>ภาษาหลัก<br>ช่องทางติดต่อเสริม (เปิดหลังยืนยันล่าม)<br>รายละเอียดประสบการณ์<br>สถานะใบสมัคร<br>เหตุผลที่ไม่อนุมัติ<br>ผู้ตรวจใบสมัคร<br>เวลาที่อนุมัติ<br>คะแนนรีวิวเฉลี่ยสะสม<br>จำนวนงานที่ช่วยเหลือสำเร็จ<br>วันเวลาที่ยื่นสมัคร |
 | **`LANGUAGE`** | `language_id`<br>`language_name` | BIGSERIAL<br>VARCHAR | **PK**<br>**UK** | รหัสภาษา<br>ชื่อภาษา (เช่น Burmese, Chinese, Sign) |
 | **`CATEGORY`** | `category_id`<br>`category_name` | BIGSERIAL<br>VARCHAR | **PK**<br>**UK** | รหัสหมวดหมู่<br>ชื่อหมวดหมู่ (เช่น การแพทย์, สถานีตำรวจ) |
@@ -341,22 +341,22 @@ erDiagram
 ```text
 khvi/
 ├── app/                              <── หน้าจอแยกตาม Route
-│   ├── (auth)/                       <── [คนที่ 1] หน้า Login, Register
-│   ├── profile/                      <── [คนที่ 1] หน้าจัดการโปรไฟล์ผู้ใช้
-│   ├── request-help/                 <── [คนที่ 2] หน้าฟอร์มปักหมุด SOS & หน้ารอคิว
-│   ├── my-requests/                  <── [คนที่ 2] หน้าประวัติคำขอของผู้ใช้
-│   ├── map/                          <── [คนที่ 3] หน้าแผนที่หลัก Interactive SOS Map
-│   ├── volunteer/                    <── [คนที่ 4] Dashboard ล่าม & หน้ากดรับงาน
-│   ├── mission/[id]/                 <── [คนที่ 5] หน้ารายละเอียดคำขอ/ติดตามการช่วยเหลือ
-│   ├── manager/                      <── [คนที่ 6] หน้าตรวจอนุมัติล่าม & ตอบ Help Request
-│   └── admin/                        <── [คนที่ 6] หน้าจัดการผู้ใช้และ role
+│   ├── (public)/                     <── หน้าแรกและ redirect สาธารณะ
+│   ├── (auth)/                       <── [คนที่ 1] หน้า Login, Register, Sign in redirect
+│   ├── (workspace)/welcome/          <── หน้า workspace หลัง login ที่ใช้แยก entry ตาม role
+│   ├── (user)/request-help/          <── [คนที่ 2] หน้าฟอร์มปักหมุด SOS & หน้ารอคิว
+│   ├── (user)/my-requests/           <── [คนที่ 2] หน้าประวัติคำขอของผู้ใช้
+│   ├── (interpreter)/find-requests/  <── [คนที่ 3] รายการ/แผนที่งานเปิดสำหรับล่าม
+│   ├── (interpreter)/my-assignments/ <── [คนที่ 4] งานที่ล่ามรับและติดตามอยู่
+│   ├── (manager)/manager/            <── [คนที่ 6] หน้าตรวจอนุมัติล่าม & ตอบ Help Request
+│   └── (admin)/admin/                <── [คนที่ 6] หน้าจัดการผู้ใช้และ role
 │
 ├── components/                       <── UI Components แยกตามฟีเจอร์
 │   ├── auth/                         <── [คนที่ 1] LoginForm, RegisterForm, LanguageSwitcher
 │   ├── pin-request/                  <── [คนที่ 2] SOSButton, PinForm, RadarWaiting
 │   ├── map/                          <── [คนที่ 3] LeafletMap, CustomMarkers, MapFilterBar
 │   ├── volunteer/                    <── [คนที่ 4] ApplicationForm, ClaimButton
-│   ├── mission/                      <── [คนที่ 5] ContactCard, ExecutionControls, CompletionConfirm
+│   ├── mission/                      <── [คนที่ 5] ContactCard, ExecutionControls, CompletionConfirm สำหรับ `/my-requests/[requestId]`
 │   ├── manager/                      <── [คนที่ 6] VolunteerVerifyCard, HelpRequestList
 │   ├── review/                       <── [คนที่ 6] ReviewModal, StarRating
 │   └── admin/                        <── [คนที่ 6] UserTable
@@ -408,11 +408,11 @@ gantt
 
 | สมาชิก | ฟีเจอร์ที่รับผิดชอบ (Feature Domain) | ไฟล์ Routes & UI Components | Supabase Tables & Server Actions |
 | :---: | :--- | :--- | :--- |
-| **คนที่ 1** | **Identity, Auth & Localization**<br>*(ระบบสมาชิก, สิทธิ์ Roles & ภาษาหน้าจอ)* | • `app/(auth)/login/page.tsx`<br>• `app/(auth)/register/page.tsx`<br>• `app/profile/page.tsx`<br>• `components/auth/LoginForm.tsx`<br>• `components/layout/LanguageSwitcher.tsx` | • **Supabase Auth** และตาราง `users/profiles` ที่อ้าง `auth.users.id`<br>• Next.js `middleware.ts` (RBAC 4 Roles)<br>• `actions/auth-actions.ts` |
-| **คนที่ 2** | **SOS Pin Creation & Requester Hub**<br>*(ระบบปักหมุดและจัดการคำขอ)* | • `app/welcome/page.tsx`<br>• `app/request-help/page.tsx`<br>• `app/my-requests/page.tsx`<br>• `components/pin-request/PinForm.tsx`<br>• `components/pin-request/RequestStatus.tsx` | • ตาราง `bookings` (Insert `status = 'Open'`)<br>• Geolocation API (ดึง GPS)<br>• `actions/pin-actions.ts` |
-| **คนที่ 3** | **Interactive SOS Map & Visual Discovery**<br>*(ระบบแผนที่และตัวกรองตามความสามารถ)* | • `app/map/page.tsx`<br>• `components/map/LeafletMap.tsx`<br>• `components/map/CustomMarkers.tsx`<br>• `components/map/MapFilterBar.tsx`<br>• `components/map/PinSummaryModal.tsx` | • Query `bookings` (`status = 'Open'`) โดย match `language_id`, `category_id`<br>• แสดงตำแหน่งคร่าว ๆ ก่อน claim และแยกประเภทงานเร่งด่วน/นัดหมาย |
-| **คนที่ 4** | **Volunteer Portal & Matching Engine**<br>*(ระบบรับสมัครล่ามและรับงาน)* | • `app/volunteer/apply/page.tsx`<br>• `app/volunteer/dashboard/page.tsx`<br>• `app/volunteer/status/page.tsx`<br>• `components/volunteer/ApplicationForm.tsx`<br>• `components/volunteer/ClaimButton.tsx` | • ตาราง `interpreter_profiles`, `languages`, `categories`, `interpreter_languages`, `interpreter_categories`<br>• **Postgres RPC `claim_booking`** (Atomic Concurrency Lock)<br>• `actions/volunteer-actions.ts` |
-| **คนที่ 5** | **Status & Contact Tracking**<br>*(ติดตามสถานะ ข้อมูลติดต่อ และการยืนยันจบงาน)* | • `app/mission/[id]/page.tsx`<br>• `components/mission/MissionHeader.tsx`<br>• `components/mission/ContactCard.tsx`<br>• `components/mission/ExecutionControls.tsx`<br>• `components/mission/CompletionConfirm.tsx` | • อัปเดต `bookings` (`claimed_at`, `started_at`, `ended_at`, `user_confirmed_done_at`, `interpreter_confirmed_done_at`)<br>• `actions/mission-actions.ts` |
-| **คนที่ 6** | **Manager & Admin Backoffice**<br>*(ตรวจอนุมัติล่าม, จัดการระบบ & รีวิว)* | • `app/manager/verify-volunteers/page.tsx`<br>• `app/admin/users/page.tsx`<br>• `components/manager/VolunteerVerifyCard.tsx`<br>• `components/admin/UserTable.tsx`<br>• `components/review/ReviewModal.tsx` | • ตาราง `reviews`, `notifications`, `reports`, `help_requests`<br>• Postgres Trigger คำนวณ `average_rating`<br>• `actions/manager-actions.ts`<br>• `actions/admin-actions.ts`<br>• `actions/review-actions.ts` |
+| **คนที่ 1** | **Identity, Auth & Localization**<br>*(ระบบสมาชิก, สิทธิ์ Roles & ภาษาหน้าจอ)* | • `app/(auth)/login/page.tsx`<br>• `app/(auth)/register/page.tsx`<br>• `app/(auth)/sign-in/page.tsx`<br>• `app/components/auth/login-form.tsx`<br>• `app/components/auth/register-form.tsx` | • **Supabase Auth** และตาราง `users/profiles` ที่อ้าง `auth.users.id`<br>• Next.js `middleware.ts` (RBAC 4 Roles)<br>• `actions/auth-actions.ts` |
+| **คนที่ 2** | **SOS Pin Creation & Requester Hub**<br>*(ระบบปักหมุดและจัดการคำขอ)* | • `app/(workspace)/welcome/page.tsx`<br>• `app/(user)/request-help/page.tsx`<br>• `app/(user)/my-requests/page.tsx`<br>• `app/(user)/my-requests/[requestId]/page.tsx`<br>• `components/pin-request/PinForm.tsx` | • ตาราง `bookings` (Insert `status = 'Open'`)<br>• Geolocation API (ดึง GPS)<br>• `actions/pin-actions.ts` |
+| **คนที่ 3** | **Interactive SOS Map & Visual Discovery**<br>*(ระบบแผนที่และตัวกรองตามความสามารถ)* | • `app/(interpreter)/find-requests/page.tsx`<br>• `components/map/LeafletMap.tsx`<br>• `components/map/CustomMarkers.tsx`<br>• `components/map/MapFilterBar.tsx`<br>• `components/map/PinSummaryModal.tsx` | • Query `bookings` (`status = 'Open'`) โดย match `language_id`, `category_id`<br>• แสดงตำแหน่งคร่าว ๆ ก่อน claim และแยกประเภทงานเร่งด่วน/นัดหมาย |
+| **คนที่ 4** | **Volunteer Portal & Matching Engine**<br>*(ระบบรับสมัครล่ามและรับงาน)* | • `app/(interpreter)/my-assignments/page.tsx`<br>• `app/volunteer/apply/page.tsx` *(planned)*<br>• `app/volunteer/dashboard/page.tsx` *(planned)*<br>• `app/volunteer/status/page.tsx` *(planned)*<br>• `components/volunteer/ClaimButton.tsx` | • ตาราง `interpreter_profiles`, `languages`, `categories`, `interpreter_languages`, `interpreter_categories`<br>• **Postgres RPC `claim_booking`** (Atomic Concurrency Lock)<br>• `actions/volunteer-actions.ts` |
+| **คนที่ 5** | **Status & Contact Tracking**<br>*(ติดตามสถานะ ข้อมูลติดต่อ และการยืนยันจบงาน)* | • `app/(user)/my-requests/[requestId]/page.tsx` *(canonical route)*<br>• `components/mission/MissionHeader.tsx`<br>• `components/mission/ContactCard.tsx`<br>• `components/mission/ExecutionControls.tsx` | • อัปเดต `bookings` (`claimed_at`, `started_at`, `ended_at`, `user_confirmed_done_at`, `interpreter_confirmed_done_at`)<br>• `actions/mission-actions.ts` |
+| **คนที่ 6** | **Manager & Admin Backoffice**<br>*(ตรวจอนุมัติล่าม, จัดการระบบ & รีวิว)* | • `app/(manager)/manager/page.tsx`<br>• `app/(admin)/admin/page.tsx`<br>• `components/manager/VolunteerVerifyCard.tsx`<br>• `components/admin/UserTable.tsx`<br>• `components/review/ReviewModal.tsx` | • ตาราง `reviews`, `notifications`, `reports`, `help_requests`<br>• Postgres Trigger คำนวณ `average_rating`<br>• `actions/manager-actions.ts`<br>• `actions/admin-actions.ts`<br>• `actions/review-actions.ts` |
 
 รายละเอียดแบบแยกคนต่อคนอยู่ที่ [`docs/team-responsibilities.md`](docs/team-responsibilities.md) โดยแยกหน้า UI, component, logic, ขอบเขต MVP และจุดส่งต่องานของสมาชิกแต่ละคน

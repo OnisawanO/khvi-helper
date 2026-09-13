@@ -23,9 +23,21 @@ type FooterCopy = {
 type SiteFooterProps = {
   copy: FooterCopy;
   brandSubtitle: string;
+  workspace?: boolean;
 };
 
-export function SiteFooter({ copy, brandSubtitle }: SiteFooterProps) {
+export function SiteFooter({ copy, brandSubtitle, workspace = false }: SiteFooterProps) {
+  if (workspace) return (
+    <footer className="border-t border-(--khvi-teal)/20 bg-(--khvi-surface) px-5 py-7 sm:px-8 lg:px-12">
+      <div className="mx-auto flex max-w-[1224px] flex-wrap items-center justify-between gap-6">
+        <BrandMark subtitle={brandSubtitle} />
+        <nav aria-label="Footer" className="flex flex-wrap gap-5 text-sm font-semibold text-(--khvi-ink)">
+          <Link className="underline underline-offset-4" href="/welcome#welcome-steps">{copy.links.how}</Link>
+          <Link className="underline underline-offset-4" href="/welcome#welcome-safety">{copy.links.privacy}</Link>
+        </nav>
+      </div>
+    </footer>
+  );
   return (
     <footer className="border-t border-white/10 bg-[#06273a] px-5 py-10 text-white sm:px-8 lg:px-12 lg:py-12">
       <div className="mx-auto max-w-[1320px]">
@@ -47,14 +59,14 @@ export function SiteFooter({ copy, brandSubtitle }: SiteFooterProps) {
             <p className="text-xs font-extrabold text-white/45">{copy.safety}</p>
             <div className="mt-4 space-y-3 text-sm font-semibold text-white/75">
               <Link className="block transition-colors hover:text-white" href="/#safety">{copy.links.privacy}</Link>
-              <Link className="block transition-colors hover:text-white" href="/request-help">{copy.links.request}</Link>
+              <Link className="block transition-colors hover:text-white" href="/request-help#main-content">{copy.links.request}</Link>
               <Link className="block transition-colors hover:text-white" href="/sign-in">{copy.links.signIn}</Link>
             </div>
           </nav>
           <div className="border-l border-white/10 pl-0 md:pl-7">
             <p className="text-xs font-extrabold text-white/45">{copy.needHelp}</p>
             <p className="mt-4 text-sm leading-6 text-white/65">{copy.needHelpBody}</p>
-            <Link className="mt-5 inline-flex h-10 items-center rounded-lg bg-[#ef6747] px-4 text-xs font-extrabold text-white transition-colors hover:bg-[#f0785b]" href="/request-help">{copy.footerCta}</Link>
+            <Link className="mt-5 inline-flex h-10 items-center rounded-lg bg-[#ef6747] px-4 text-xs font-extrabold text-white transition-colors hover:bg-[#f0785b]" href="/request-help#main-content">{copy.footerCta}</Link>
           </div>
         </div>
         <div className="mt-10 flex flex-col gap-3 border-t border-white/10 pt-5 text-xs text-white/45 sm:flex-row sm:items-center sm:justify-between">

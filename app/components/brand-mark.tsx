@@ -1,9 +1,21 @@
 import Image from "next/image";
 import Link from "next/link";
 
-export function BrandMark({ light = false, subtitle = "Community interpreter map" }: { light?: boolean; subtitle?: string }) {
+type BrandMarkProps = {
+  light?: boolean;
+  subtitle?: string;
+  href?: string;
+  ariaLabel?: string;
+};
+
+export function BrandMark({
+  light = false,
+  subtitle = "Community interpreter map",
+  href = "/#top",
+  ariaLabel = "KHVI home",
+}: BrandMarkProps) {
   return (
-    <Link className="flex items-center gap-3" href="/#top" aria-label="KHVI home">
+    <Link className="flex items-center gap-3" href={href} aria-label={ariaLabel}>
       <span className={`relative h-11 w-11 shrink-0 overflow-hidden rounded-[10px] border ${light ? "border-white/20 bg-white/10" : "border-[#d8e1e6] bg-white"}`}>
         <Image
           src="/khvi-logo.jpg"
