@@ -1,7 +1,8 @@
 "use client";
 
 import { Bars3Icon, CheckIcon, ChevronDownIcon, LanguageIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BrandMark } from "./brand-mark";
 
 export type Locale = "en" | "th" | "zh" | "my" | "vi";
@@ -18,6 +19,10 @@ type SiteHeaderProps = {
   copy: HeaderCopy;
   locale: Locale;
   onLocaleChange: (locale: Locale) => void;
+  onOpenRegister?: () => void;
+  onOpenSignIn?: () => void;
+  accountActions?: ReactNode;
+  workspaceRole?: "User" | "Interpreter";
 };
 
 const languageOptions = [
@@ -137,8 +142,31 @@ function LanguageSwitcher({ copy, locale, onLocaleChange, compact = false }: Sit
     </div>
   );
 }
-export function SiteHeader({ copy, locale, onLocaleChange }: SiteHeaderProps) {
+function getRegisterLabel(locale: Locale) {
+  switch (locale) {
+    case "zh":
+      return "注册";
+    case "th":
+      return "สมัครสมาชิก";
+    case "my":
+      return "စာရင်းသွင်းရန်";
+    case "vi":
+      return "Đăng ký";
+    default:
+      return "Sign up";
+  }
+}
+
+export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpenSignIn, accountActions, workspaceRole }: SiteHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
+  const isLandingPage = pathname === "/";
+  const isRequestWorkspacePage =
+    pathname === "/request-help" ||
+    pathname.startsWith("/my-requests") ||
+    pathname === "/find-requests" ||
+    pathname.startsWith("/my-assignments");
+  const navItems = isRequestWorkspacePage ? copy.nav.slice(0, 2) : copy.nav;
 
   useEffect(() => {
     const handleHashLinkClick = (event: MouseEvent) => {
@@ -193,12 +221,19 @@ export function SiteHeader({ copy, locale, onLocaleChange }: SiteHeaderProps) {
     };
   }, []);
 
+  const registerLabel = getRegisterLabel(locale);
+  const primaryActionLabel = copy.primaryAction;
+
   return (
     <header className="sticky top-0 z-30 border-b border-[#dbe3e7] bg-[#fbfdfc]/95 shadow-[0_8px_24px_rgba(21,52,67,0.06)] backdrop-blur">
       <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-5 py-3.5 sm:px-8 lg:gap-6 lg:px-12">
-        <BrandMark subtitle={copy.brandSubtitle} />
+        <BrandMark
+          subtitle={copy.brandSubtitle}
+          href={workspaceRole ? "/welcome" : "/#top"}
+          ariaLabel={workspaceRole ? "KHVI welcome" : "KHVI home"}
+        />
         <nav className="hidden items-center gap-7 text-[13px] font-extrabold text-[#39525d] lg:flex" aria-label="Primary navigation">
-          {copy.nav.map(([label, href]) => (
+          {navItems.map(([label, href]) => (
             <a key={href} className="transition-colors hover:text-[#0d8587]" href={href}>
               {label}
             </a>
@@ -206,12 +241,41 @@ export function SiteHeader({ copy, locale, onLocaleChange }: SiteHeaderProps) {
         </nav>
         <div className="flex items-center gap-2 sm:gap-3">
           <LanguageSwitcher copy={copy} locale={locale} onLocaleChange={onLocaleChange} />
-          <a className="hidden h-10 items-center rounded-lg border border-[#123b4f] px-4 text-xs font-extrabold text-[#123b4f] transition-colors hover:bg-[#edf3f1] sm:flex" href="/sign-in">
-            {copy.signIn}
-          </a>
-          <a className="flex h-10 items-center rounded-lg bg-[#092f45] px-4 text-xs font-extrabold text-white shadow-[0_6px_14px_rgba(9,47,69,0.16)] transition-colors hover:bg-[#0c4960] sm:px-5" href="/request-help">
-            {copy.primaryAction}
-          </a>
+          {accountActions ?? <>{onOpenRegister ? (
+            <button
+              type="button"
+              onClick={onOpenRegister}
+              className="hidden h-10 items-center rounded-lg border border-[#0d8587] bg-[#edf7f5] px-3.5 text-xs font-extrabold text-[#087f80] transition-colors hover:bg-[#d8efe9] sm:flex"
+            >
+              {registerLabel}
+            </button>
+          ) : (
+            <a
+              className="hidden h-10 items-center rounded-lg border border-[#0d8587] bg-[#edf7f5] px-3.5 text-xs font-extrabold text-[#087f80] transition-colors hover:bg-[#d8efe9] sm:flex"
+              href="/register"
+            >
+              {registerLabel}
+            </a>
+          )}
+          {onOpenSignIn ? (
+            <button
+              type="button"
+              onClick={onOpenSignIn}
+              className="hidden h-10 items-center rounded-lg border border-[#123b4f] px-4 text-xs font-extrabold text-[#123b4f] transition-colors hover:bg-[#edf3f1] sm:flex"
+            >
+              {copy.signIn}
+            </button>
+          ) : (
+            <a className="hidden h-10 items-center rounded-lg border border-[#123b4f] px-4 text-xs font-extrabold text-[#123b4f] transition-colors hover:bg-[#edf3f1] sm:flex" href="/login">
+              {copy.signIn}
+            </a>
+          )}
+          {!isLandingPage && !isRequestWorkspacePage && (
+            <a className="flex h-10 items-center rounded-lg bg-[#092f45] px-4 text-xs font-extrabold text-white shadow-[0_6px_14px_rgba(9,47,69,0.16)] transition-colors hover:bg-[#0c4960] sm:px-5" href="/request-help#main-content">
+              {primaryActionLabel}
+            </a>
+          )}
+          </>}
           <button
             type="button"
             className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#cbd7dc] bg-white text-lg text-[#123b4f] transition-colors hover:border-[#8fbfc1] hover:text-[#0d8587] lg:hidden"
@@ -227,15 +291,49 @@ export function SiteHeader({ copy, locale, onLocaleChange }: SiteHeaderProps) {
       {menuOpen && (
         <nav id="mobile-navigation" className="border-t border-[#e3eaed] bg-white px-5 py-3 lg:hidden" aria-label="Mobile navigation">
           <div className="mx-auto flex max-w-[1440px] flex-col gap-1 sm:px-3">
-            {copy.nav.map(([label, href]) => (
+            {navItems.map(([label, href]) => (
               <a key={href} className="rounded-lg px-3 py-3 text-sm font-extrabold text-[#39525d] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587]" href={href} onClick={() => setMenuOpen(false)}>
                 {label}
               </a>
             ))}
             <LanguageSwitcher copy={copy} locale={locale} onLocaleChange={onLocaleChange} compact />
-            <a className="rounded-lg px-3 py-3 text-sm font-extrabold text-[#39525d] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587]" href="/sign-in" onClick={() => setMenuOpen(false)}>
-              {copy.signIn}
-            </a>
+            {!accountActions && <>{onOpenRegister ? (
+              <button
+                type="button"
+                className="rounded-lg px-3 py-3 text-left text-sm font-extrabold text-[#087f80] transition-colors hover:bg-[#eef5f7]"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onOpenRegister();
+                }}
+              >
+                {registerLabel}
+              </button>
+            ) : (
+              <a
+                className="rounded-lg px-3 py-3 text-sm font-extrabold text-[#087f80] transition-colors hover:bg-[#eef5f7]"
+                href="/register"
+                onClick={() => setMenuOpen(false)}
+              >
+                {registerLabel}
+              </a>
+            )}
+            {onOpenSignIn ? (
+              <button
+                type="button"
+                className="rounded-lg px-3 py-3 text-left text-sm font-extrabold text-[#39525d] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587]"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onOpenSignIn();
+                }}
+              >
+                {copy.signIn}
+              </button>
+            ) : (
+              <a className="rounded-lg px-3 py-3 text-sm font-extrabold text-[#39525d] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587]" href="/login" onClick={() => setMenuOpen(false)}>
+                {copy.signIn}
+              </a>
+            )}
+            </>}
           </div>
         </nav>
       )}

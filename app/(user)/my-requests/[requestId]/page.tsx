@@ -1,0 +1,31 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { WorkspaceShell } from "@/app/components/workspace-shell";
+import { isValidRequestId } from "@/app/lib/mock-requests";
+import { StoredRequestDetail } from "./stored-request-detail";
+
+export async function generateMetadata(props: PageProps<"/my-requests/[requestId]">): Promise<Metadata> {
+  const { requestId } = await props.params;
+
+  if (!isValidRequestId(requestId)) {
+    return { title: "Request not found | K-HVI" };
+  }
+
+  return {
+    title: `Request #${requestId} | K-HVI`,
+    description: "Track the status of a help request and see interpreter contact details once the job is claimed.",
+  };
+}
+
+export default async function RequestStatusPage(props: PageProps<"/my-requests/[requestId]">) {
+  const { requestId } = await props.params;
+  if (!isValidRequestId(requestId)) {
+    notFound();
+  }
+
+  return (
+    <WorkspaceShell>
+      <StoredRequestDetail requestId={requestId} />
+    </WorkspaceShell>
+  );
+}

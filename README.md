@@ -75,7 +75,7 @@ npm ci
 
 # 3. ตั้งค่า Environment Variables (.env.local)
 cp .env.example .env.local
-# ใส่ NEXT_PUBLIC_SUPABASE_URL และ NEXT_PUBLIC_SUPABASE_ANON_KEY
+# ใส่ NEXT_PUBLIC_SUPABASE_URL และ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
 # 4. รัน Development Server
 npm run dev
@@ -139,7 +139,7 @@ npm ci
 # 3. Configure environment variables (.env.local)
 # Add your Supabase credentials:
 # NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-# NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+# NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
 
 # 4. Run the local development server
 npm run dev
@@ -171,5 +171,6 @@ feature/* → develop → main
 - พัฒนาแต่ละงานบน feature branch ที่แตกจาก `develop`
 - เปิด Pull Request เข้า `develop` หลังผ่าน lint และ build
 - ตรวจสอบงานรวมบน `develop` ก่อนเปิด Pull Request เข้า `main`
+- `develop` เป็น default integration branch สำหรับงานใหม่
 - `main` และ `develop` ควรตั้งเป็น protected branches บน GitHub
-- AI Agent ห้าม push หรือ merge เอง และต้องรอคำสั่งก่อน commit
+- AI Agent ต้องรอคำสั่งก่อน commit, push หรือ merge และหากไม่ระบุ target ให้ใช้ `develop`
