@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Locale } from "@/app/components/site-header";
 
 export const LOCALE_STORAGE_KEY = "khvi-locale";
@@ -26,17 +26,22 @@ export function resolveCopyLocale(locale: Locale): CopyLocale {
 
 /** Locale picked in the header, persisted so it survives navigation between routes. */
 export function useStoredLocale(): [Locale, (locale: Locale) => void] {
-  const [locale, setLocale] = useState<Locale>(() => {
-    if (typeof window === "undefined") {
-      return "en";
-    }
-
-    const savedLocale = window.localStorage.getItem(LOCALE_STORAGE_KEY);
-
-    return isLocale(savedLocale) ? savedLocale : "en";
-  });
+  const [locale, setLocale] = useState<Locale>("en");
+  const hasLoadedStoredLocale = useRef(false);
 
   useEffect(() => {
+    if (!hasLoadedStoredLocale.current) {
+      const savedLocale = window.localStorage.getItem(LOCALE_STORAGE_KEY);
+      const storedLocale = isLocale(savedLocale) ? savedLocale : "en";
+
+      hasLoadedStoredLocale.current = true;
+
+      if (storedLocale !== locale) {
+        queueMicrotask(() => setLocale(storedLocale));
+        return;
+      }
+    }
+
     document.documentElement.lang = localeLanguageTags[locale];
     window.localStorage.setItem(LOCALE_STORAGE_KEY, locale);
   }, [locale]);
