@@ -703,27 +703,29 @@ flowchart LR
 
 ```mermaid
 erDiagram
-    AUTH_USERS ||--|| PROFILES : owns
-    PROFILES ||--o| INTERPRETER_PROFILES : applies
-    PROFILES ||--o{ BOOKINGS : creates
-    INTERPRETER_PROFILES ||--o{ BOOKINGS : claims
-    LANGUAGES ||--o{ BOOKINGS : requested
-    CATEGORIES ||--o{ BOOKINGS : classifies
-    INTERPRETER_PROFILES ||--o{ INTERPRETER_LANGUAGES : has
-    LANGUAGES ||--o{ INTERPRETER_LANGUAGES : includes
-    INTERPRETER_PROFILES ||--o{ INTERPRETER_CATEGORIES : has
-    CATEGORIES ||--o{ INTERPRETER_CATEGORIES : includes
-    BOOKINGS ||--o{ REVIEWS : receives
-    PROFILES ||--o{ REVIEWS : writes
+    USER ||--o| INTERPRETER_PROFILE : "1 : 0..1 has profile"
+    USER ||--o{ INTERPRETER_APPLICATIONS : "1 : N submits application"
+    USER ||--o{ BOOKING : "1 : N makes request (user_id)"
+    INTERPRETER_PROFILE ||--o{ BOOKING : "1 : N assigned volunteer (interpreter_id)"
+    
+    INTERPRETER_PROFILE ||--o{ WORK_HISTORY : "1 : N experience history"
+    INTERPRETER_PROFILE ||--o{ LANGUAGE : "1 : N speaks languages"
+    INTERPRETER_PROFILE ||--o{ CATEGORY : "1 : N service categories"
+    
+    BOOKING ||--o{ REVIEW : "1 : N ratings & comments"
+    USER ||--o{ REVIEW : "1 : N reviewer / reviewee"
+    
+    USER ||--o{ HELP_REQUEST : "1 : N requester / manager"
+    USER ||--o{ REPORT : "1 : N reporter / reported"
+    BOOKING ||--o{ REPORT : "1 : N booking reference"
+    
+    USER ||--o{ NOTIFICATION : "1 : N notifications"
+    USER ||--o{ AUDIT_LOG : "1 : N admin activity trail"
 
-    AUTH_USERS {
-        UUID id PK
-    }
-    PROFILES {
-        UUID user_id PK,FK
-        VARCHAR first_name
-        VARCHAR last_name
-        VARCHAR email
+    USER {
+        BIGSERIAL user_id PK
+        VARCHAR name
+        SMALLINT age "CHECK >= 0"
         VARCHAR phone
         user_role role
         DATE date_of_birth
@@ -732,10 +734,36 @@ erDiagram
         UUID user_id PK,FK
         BIGINT primary_language_id FK
         VARCHAR extra_contact
-        TEXT experience_summary
-        application_status application_status
-        UUID reviewed_by_user_id FK
-        TIMESTAMPTZ approved_at
+        application_status application_status "ENUM"
+        TEXT reject_reason
+        BIGINT reviewed_by_manager_id FK
+        NUMERIC average_rating "Trigger-updated"
+        INT completed_job_count
+        BOOLEAN is_available
+        TIMESTAMPTZ created_at
+    }
+
+    INTERPRETER_APPLICATIONS {
+        BIGSERIAL application_id PK
+        BIGINT user_id FK
+        application_status status "ENUM: Pending, Under Review, Approved, Rejected"
+        TEXT reject_reason
+        VARCHAR certificate_url
+        TIMESTAMPTZ submitted_at
+        TIMESTAMPTZ reviewed_at
+        BIGINT reviewed_by_manager_id FK
+    }
+
+    LANGUAGE {
+        BIGSERIAL language_id PK
+        BIGINT interpreter_id FK
+        VARCHAR language_name
+    }
+
+    CATEGORY {
+        BIGSERIAL category_id PK
+        BIGINT interpreter_id FK
+        VARCHAR category_name
     }
     BOOKINGS {
         BIGSERIAL booking_id PK
