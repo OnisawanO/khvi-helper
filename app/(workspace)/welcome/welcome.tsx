@@ -57,7 +57,7 @@ export function Welcome() {
   if (!user) return <main className="flex min-h-screen items-center justify-center bg-(--khvi-paper)" aria-busy="true"><p role="status">Loading your workspace…</p></main>;
 
   return <div id={user.role === "Interpreter" ? "welcome-Interpreter" : "welcome-user"} className="min-h-screen bg-(--khvi-paper) text-(--khvi-ink)">
-    <AppShell welcomeRole={user.role === "Interpreter" ? "Interpreter" : "User"} accountActions={<WorkspaceAccountActions user={user} onSignOut={() => {
+    <AppShell welcomeRole={user.role === "Interpreter" ? "Interpreter" : "User"} accountActions={<WorkspaceAccountActions onSignOut={() => {
       clearMockUserSession();
       setUser(null);
       router.replace("/#top");
