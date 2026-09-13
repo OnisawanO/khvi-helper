@@ -75,7 +75,7 @@ npm ci
 
 # 3. ตั้งค่า Environment Variables (.env.local)
 cp .env.example .env.local
-# ใส่ NEXT_PUBLIC_SUPABASE_URL และ NEXT_PUBLIC_SUPABASE_ANON_KEY
+# ใส่ NEXT_PUBLIC_SUPABASE_URL และ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
 # 4. รัน Development Server
 npm run dev
@@ -139,7 +139,7 @@ npm ci
 # 3. Configure environment variables (.env.local)
 # Add your Supabase credentials:
 # NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-# NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+# NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
 
 # 4. Run the local development server
 npm run dev
