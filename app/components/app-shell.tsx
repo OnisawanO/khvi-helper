@@ -5,6 +5,7 @@ import { resolveCopyLocale, useStoredLocale, type CopyLocale } from "@/app/lib/l
 import { SiteFooter } from "./site-footer";
 import { SiteHeader } from "./site-header";
 import { RequestNavigation } from "./request-navigation";
+import type { Locale } from "./site-header";
 
 const shellCopy = {
   en: {
@@ -29,7 +30,7 @@ const shellCopy = {
       needHelp: "Need help?",
       needHelpBody: "Start by creating a request pin with the language, category, and location where help is needed.",
       footerCta: "Create a help request pin",
-      privacy: "Sensitive details stay hidden until a job is claimed",
+      privacy: "Sensitive details stay hidden until the requester confirms the interpreter",
       links: {
         map: "Map preview",
         how: "How it works",
@@ -62,7 +63,7 @@ const shellCopy = {
       needHelp: "需要帮助？",
       needHelpBody: "从创建求助点开始，填写所需语言、类别和需要帮助的位置。",
       footerCta: "创建语言求助点",
-      privacy: "敏感信息会在任务被接取前保持隐藏",
+      privacy: "敏感信息会在求助者确认口译员前保持隐藏",
       links: {
         map: "地图预览",
         how: "使用流程",
@@ -76,6 +77,8 @@ const shellCopy = {
 } as const;
 
 const CopyLocaleContext = createContext<CopyLocale>("en");
+const UiLocaleContext = createContext<Locale>("en");
+export function useUiLocale() { return useContext(UiLocaleContext); }
 
 /** Read the header locale from inside any client component rendered under AppShell. */
 export function useCopyLocale(): CopyLocale {
@@ -94,13 +97,24 @@ export function AppShell({ children, accountActions, welcomeRole }: {
 }) {
   const [locale, setLocale] = useStoredLocale();
   const copyLocale = resolveCopyLocale(locale);
-  const t = shellCopy[copyLocale];
+  const t = locale === "th" && welcomeRole ? {
+    ...shellCopy.en,
+    skip: "ข้ามไปเนื้อหาหลัก",
+    header: { ...shellCopy.en.header, brandSubtitle: "แผนที่ล่ามจิตอาสา", languageLabel: "ภาษาหน้าจอ", signIn: "เข้าสู่ระบบ", primaryAction: "สร้างคำขอ" },
+    footer: {
+      description: "พื้นที่เชื่อมผู้ต้องการความช่วยเหลือด้านภาษากับล่ามจิตอาสา", note: "ประสานงานด้วยความเข้าใจ",
+      explore: "สำรวจ", safety: "ความปลอดภัย", needHelp: "ต้องการความช่วยเหลือ?", needHelpBody: "ระบุภาษา หมวดหมู่ และสถานที่ที่ต้องการความช่วยเหลือ",
+      footerCta: "สร้างคำขอความช่วยเหลือ", privacy: "ข้อมูลละเอียดเปิดตามขั้นตอนยืนยันล่าม",
+      links: { map: "แผนที่ตัวอย่าง", how: "ขั้นตอนใช้งาน", roles: "บทบาท", privacy: "ความเป็นส่วนตัว", request: "สร้างคำขอ", signIn: "เข้าสู่ระบบ" },
+    },
+  } : shellCopy[copyLocale];
+  const navLabel = (th: string, en: string, zh: string) => locale === "th" ? th : copyLocale === "zh" ? zh : en;
   const welcomeNav = welcomeRole === "Interpreter"
-    ? [[copyLocale === "zh" ? "寻找求助" : "Find requests", "/find-requests#main-content"], [copyLocale === "zh" ? "我的任务" : "My assignments", "/my-assignments#main-content"]] as const
-    : [[copyLocale === "zh" ? "新建求助" : "New request", "/request-help#main-content"], [copyLocale === "zh" ? "我的求助" : "My requests", "/my-requests#main-content"]] as const;
+    ? [[navLabel("ค้นหางาน", "Find requests", "寻找求助"), "/find-requests#main-content"], [navLabel("งานของฉัน", "My assignments", "我的任务"), "/my-assignments#main-content"]] as const
+    : [[navLabel("สร้างคำขอ", "New request", "新建求助"), "/request-help#main-content"], [navLabel("คำขอของฉัน", "My requests", "我的求助"), "/my-requests#main-content"]] as const;
 
   return (
-    <CopyLocaleContext.Provider value={copyLocale}>
+    <UiLocaleContext.Provider value={locale}><CopyLocaleContext.Provider value={copyLocale}>
       <a className="skip-link" href="#main-content">
         {t.skip}
       </a>
@@ -114,6 +128,6 @@ export function AppShell({ children, accountActions, welcomeRole }: {
       <RequestNavigation />
       {children}
       <SiteFooter copy={t.footer} brandSubtitle={t.header.brandSubtitle} workspace={Boolean(welcomeRole)} />
-    </CopyLocaleContext.Provider>
+    </CopyLocaleContext.Provider></UiLocaleContext.Provider>
   );
 }

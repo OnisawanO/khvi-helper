@@ -81,6 +81,7 @@ export function WorkspaceShell({ children, requiredRole, alternatePath }: {
         welcomeRole={role}
         accountActions={
           <WorkspaceAccountActions
+            user={user}
             onSignOut={() => {
               clearMockUserSession();
               setUser(null);
