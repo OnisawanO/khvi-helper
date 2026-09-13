@@ -49,5 +49,12 @@ export type IncidentReport = {
   actionTaken?: string;
 };
 
-export type ManagerNavSection = "queue" | "approved" | "rejected" | "tickets" | "reports";
+export type ManagerNavSection = "queue" | "approved" | "rejected" | "tickets" | "reports" | "history";
 
+export type ManagerActivity = {
+  id: string;
+  timestamp: string;
+  type: "approval" | "rejection" | "ticket_reply" | "report_escalation";
+  targetName: string;
+  description: string;
+};

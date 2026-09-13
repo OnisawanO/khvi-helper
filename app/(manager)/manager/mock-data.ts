@@ -174,6 +174,37 @@ export const initialReports: IncidentReport[] = [
   },
 ];
 
+export const initialManagerActivities = [
+  {
+    id: "ACT-101",
+    timestamp: "10 mins ago",
+    type: "approval" as const,
+    targetName: "Sompong Vorakul",
+    description: "Approved volunteer interpreter application for Thai-Mandarin Chinese pair (Medical & Tourism).",
+  },
+  {
+    id: "ACT-102",
+    timestamp: "35 mins ago",
+    type: "ticket_reply" as const,
+    targetName: "David Miller (HLP-802)",
+    description: "Contacted requester via WhatsApp to resolve pinpoint location mismatch in Bang Rak.",
+  },
+  {
+    id: "ACT-103",
+    timestamp: "2 hours ago",
+    type: "rejection" as const,
+    targetName: "Pham Thi Hoa",
+    description: "Rejected application due to expired medical translation certificate (Re-apply eligible in 30 days).",
+  },
+  {
+    id: "ACT-104",
+    timestamp: "Yesterday, 14:15",
+    type: "report_escalation" as const,
+    targetName: "Tourist John D. (REP-302)",
+    description: "Escalated verbal misconduct incident to Super Admin for account suspension evaluation.",
+  },
+];
+
 export function formatBadgeCount(count: number): string {
   if (count > 99) return "99+";
   return count.toString();

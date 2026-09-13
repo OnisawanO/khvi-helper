@@ -17,6 +17,7 @@ import {
   CheckCircleIcon,
   CheckIcon,
   ChevronDownIcon,
+  ClockIcon,
   Cog6ToothIcon,
   EllipsisHorizontalIcon,
   ExclamationTriangleIcon,
@@ -31,13 +32,19 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { BrandMark } from "@/app/components/brand-mark";
-import { SiteFooter } from "@/app/components/site-footer";
 
-import { InterpreterApplicant, HelpTicket, IncidentReport } from "./types";
+import {
+  InterpreterApplicant,
+  HelpTicket,
+  IncidentReport,
+  ManagerNavSection,
+  ManagerActivity,
+} from "./types";
 import {
   initialApplicants,
   initialTickets,
   initialReports,
+  initialManagerActivities,
   formatBadgeCount,
 } from "./mock-data";
 import { ApplicantDetailModal } from "./components/applicant-detail-modal";
@@ -235,12 +242,11 @@ export default function ManagerDashboard() {
   const [applicants, setApplicants] = useState<InterpreterApplicant[]>(initialApplicants);
   const [tickets, setTickets] = useState<HelpTicket[]>(initialTickets);
   const [reports, setReports] = useState<IncidentReport[]>(initialReports);
+  const [activities, setActivities] = useState<ManagerActivity[]>(initialManagerActivities);
   const [selectedApplicantId, setSelectedApplicantId] = useState<string | null>(initialApplicants[0].id);
   
-  // Navigation & View State (Strictly Manager scope: Verification + Support)
-  const [navSection, setNavSection] = useState<
-    "queue" | "approved" | "rejected" | "tickets" | "reports"
-  >("queue");
+  // Navigation & View State (Strictly Manager scope: Verification + Support + Activity History)
+  const [navSection, setNavSection] = useState<ManagerNavSection>("queue");
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
 
@@ -342,13 +348,27 @@ export default function ManagerDashboard() {
 
   // Handle Approve (FR-43)
   const handleApprove = (id: string) => {
+    const target = applicants.find((a) => a.id === id);
     setApplicants((prev) =>
       prev.map((app) => (app.id === id ? { ...app, status: "Approved" } : app))
     );
+    if (target) {
+      setActivities((prev) => {
+        const newAct: ManagerActivity = {
+          id: `ACT-APP-${id}-${prev.length + 1}`,
+          timestamp: "Just now",
+          type: "approval",
+          targetName: target.name,
+          description: `Approved volunteer interpreter application (${target.primaryLanguage}, ${target.specialtyCategories.join(", ")}).`,
+        };
+        return [newAct, ...prev];
+      });
+    }
   };
 
   // Handle Reject (FR-44, FR-45)
   const handleReject = (id: string, reason: string) => {
+    const target = applicants.find((a) => a.id === id);
     setApplicants((prev) =>
       prev.map((app) =>
         app.id === id
@@ -356,11 +376,24 @@ export default function ManagerDashboard() {
           : app
       )
     );
+    if (target) {
+      setActivities((prev) => {
+        const newAct: ManagerActivity = {
+          id: `ACT-REJ-${id}-${prev.length + 1}`,
+          timestamp: "Just now",
+          type: "rejection",
+          targetName: target.name,
+          description: `Rejected application: ${reason}`,
+        };
+        return [newAct, ...prev];
+      });
+    }
   };
 
   // Handle Help Request Response (FR-52)
   const handleSendTicketReply = (ticketId: string) => {
     if (!ticketReplyText.trim()) return;
+    const target = tickets.find((t) => t.id === ticketId);
     setTickets((prev) =>
       prev.map((t) =>
         t.id === ticketId
@@ -372,12 +405,25 @@ export default function ManagerDashboard() {
           : t
       )
     );
+    if (target) {
+      setActivities((prev) => {
+        const newAct: ManagerActivity = {
+          id: `ACT-TCK-${ticketId}-${prev.length + 1}`,
+          timestamp: "Just now",
+          type: "ticket_reply",
+          targetName: `${target.requesterName} (${target.id})`,
+          description: `Replied & resolved help ticket: "${ticketReplyText.trim()}"`,
+        };
+        return [newAct, ...prev];
+      });
+    }
     setActiveReplyingTicketId(null);
     setTicketReplyText("");
   };
 
   // Handle Incident Report Escalation to Admin (FR-53 -> FR-76)
   const handleEscalateReport = (reportId: string) => {
+    const target = reports.find((r) => r.id === reportId);
     setReports((prev) =>
       prev.map((r) =>
         r.id === reportId
@@ -389,6 +435,18 @@ export default function ManagerDashboard() {
           : r
       )
     );
+    if (target) {
+      setActivities((prev) => {
+        const newAct: ManagerActivity = {
+          id: `ACT-REP-${reportId}-${prev.length + 1}`,
+          timestamp: "Just now",
+          type: "report_escalation",
+          targetName: `${target.reportedUserName} (${target.id})`,
+          description: `Escalated incident report regarding "${target.reason}" to Super Admin for account lock review.`,
+        };
+        return [newAct, ...prev];
+      });
+    }
   };
 
   // Counts for Badges
@@ -605,6 +663,32 @@ export default function ManagerDashboard() {
                       {formatBadgeCount(pendingReportCount)}
                     </span>
                   </button>
+
+                  <button
+                    onClick={() => {
+                      setNavSection("history");
+                      setIsMobileDrawerOpen(false);
+                    }}
+                    className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
+                      navSection === "history"
+                        ? "bg-[#087f80] text-white shadow-md"
+                        : "text-slate-200 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <ClockIcon className="h-5 w-5 text-slate-300" />
+                      <span>Operations History</span>
+                    </div>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                        navSection === "history"
+                          ? "bg-white/20 text-white"
+                          : "bg-slate-700/60 text-slate-300 border border-slate-600/50"
+                      }`}
+                    >
+                      {activities.length}
+                    </span>
+                  </button>
                 </nav>
               </div>
             </div>
@@ -619,7 +703,7 @@ export default function ManagerDashboard() {
                 title="Manager Settings"
               >
                 <Cog6ToothIcon className="h-5 w-5 shrink-0" />
-                <span>Settings</span>
+                <span>Proliles & Settings</span>
               </button>
             </div>
           </aside>
@@ -749,6 +833,21 @@ export default function ManagerDashboard() {
                     {formatBadgeCount(pendingReportCount)}
                   </span>
                 )}
+              </button>
+
+              {/* Operations History */}
+              <button
+                type="button"
+                onClick={() => setNavSection("history")}
+                className={`relative flex h-10 w-10 items-center justify-center rounded-2xl transition-all cursor-pointer ${
+                  navSection === "history"
+                    ? "bg-[#087f80] text-white shadow-md"
+                    : "text-slate-300 hover:bg-white/10 hover:text-white"
+                }`}
+                title="Operations History (ประวัติการทำงาน)"
+                aria-label="Operations History"
+              >
+                <ClockIcon className="h-5 w-5" />
               </button>
             </div>
           </div>
@@ -1363,30 +1462,92 @@ export default function ManagerDashboard() {
                 </div>
               </div>
             )}
-          </main>
 
-          {/* FOOTER inside right column */}
-          <SiteFooter
-            copy={{
-              description: "KHVI Operational Management Portal for authorized managers and team leads.",
-              note: "Internal Operations Hub",
-              explore: "Console",
-              safety: "Security Policy",
-              needHelp: "Operations Support",
-              needHelpBody: "For system administrator escalation, contact the root admin channel.",
-              footerCta: "View Audit Log",
-              privacy: "All manager actions are strictly logged for compliance and security audit.",
-              links: {
-                map: "Overview",
-                how: "Verification SOP",
-                roles: "Role Hierarchy",
-                privacy: "Privacy Standard",
-                request: "Support Desk",
-                signIn: "Switch Account",
-              },
-            }}
-            brandSubtitle="Operations Console"
-          />
+            {/* SECTION 4: Operations Activity History (ประวัติการทำงานของ Manager) */}
+            {navSection === "history" && (
+              <div className="flex-1 overflow-y-auto p-4 md:p-6">
+                <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-black tracking-tight text-[#092f45]">
+                      Operations Activity History
+                    </h2>
+                    <p className="mt-1 text-xs text-[#527082]">
+                      Log of administrative and operational actions taken by managers (Approvals, Rejections, Ticket Replies, and Admin Escalations).
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f1f5f8] px-3 py-1 text-xs font-bold text-[#2d4b5b] border border-[#dce6ed]">
+                      <ClockIcon className="h-3.5 w-3.5 text-[#087f80]" />
+                      Total Actions: {activities.length}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Activity Feed Timeline */}
+                <div className="space-y-3">
+                  {activities.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#c6d7e0] bg-white p-12 text-center">
+                      <ClockIcon className="h-10 w-10 text-slate-300" />
+                      <h4 className="mt-3 text-sm font-bold text-[#092f45]">No activity records found</h4>
+                      <p className="mt-1 text-xs text-[#6b8491]">Actions taken on applicants, help tickets, or reports will appear here in chronological order.</p>
+                    </div>
+                  ) : (
+                    activities.map((act) => {
+                      // Badge color and icon based on activity type
+                      let badgeBg = "bg-[#f0f9f5] text-[#087557] border-[#bfe5d7]";
+                      let typeLabel = "Approval";
+                      let IconComponent = CheckCircleIcon;
+
+                      if (act.type === "rejection") {
+                        badgeBg = "bg-[#fff1ef] text-[#d93829] border-[#fecac6]";
+                        typeLabel = "Rejection";
+                        IconComponent = XMarkIcon;
+                      } else if (act.type === "ticket_reply") {
+                        badgeBg = "bg-[#f0f7ff] text-[#0284c7] border-[#bae6fd]";
+                        typeLabel = "Ticket Reply";
+                        IconComponent = ChatBubbleLeftRightIcon;
+                      } else if (act.type === "report_escalation") {
+                        badgeBg = "bg-[#fffbeb] text-[#d97706] border-[#fde68a]";
+                        typeLabel = "Escalated to Admin";
+                        IconComponent = ShieldExclamationIcon;
+                      }
+
+                      return (
+                        <div
+                          key={act.id}
+                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-[#dbe6ec] bg-white p-4 transition-all hover:border-[#087f80] hover:shadow-xs"
+                        >
+                          <div className="flex items-start gap-3">
+                            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${badgeBg}`}>
+                              <IconComponent className="h-5 w-5" />
+                            </span>
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-xs font-black text-[#092f45]">
+                                  {act.targetName}
+                                </span>
+                                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-extrabold ${badgeBg}`}>
+                                  {typeLabel}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-xs text-[#4b6574] leading-relaxed">
+                                {act.description}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0 self-start sm:self-center pl-12 sm:pl-0">
+                            <span className="text-[11px] font-bold text-[#839ba8] whitespace-nowrap">
+                              {act.timestamp}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+          </main>
         </div>
       </div>
 
