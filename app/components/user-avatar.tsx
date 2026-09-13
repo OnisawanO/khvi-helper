@@ -1,13 +1,14 @@
 import type { UserProfile } from "@/app/lib/mock-auth";
 import Image from "next/image";
 
-type AvatarSize = "sm" | "md" | "lg" | "xl";
+type AvatarSize = "sm" | "md" | "lg" | "xl" | "xxl";
 
 const sizeClasses: Record<AvatarSize, string> = {
   sm: "h-8 w-8 text-xs",
   md: "h-10 w-10 text-sm",
   lg: "h-14 w-14 text-lg",
   xl: "h-20 w-20 text-2xl",
+  xxl: "h-32 w-32 text-5xl",
 };
 
 function getInitials(name: string) {

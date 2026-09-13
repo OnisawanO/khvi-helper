@@ -16,13 +16,15 @@ import {
   PhoneIcon,
   ShieldCheckIcon,
   TrashIcon,
+  XMarkIcon,
   UserCircleIcon,
   UsersIcon,
   WrenchScrewdriverIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
+import NextImage from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type PointerEvent, type ReactNode } from "react";
 import { AppShell, type WorkspaceRole } from "@/app/components/app-shell";
 import { WorkspaceAccountActions } from "@/app/components/workspace-account-actions";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
@@ -365,35 +367,80 @@ function PersonalDetailsCard({ user, onUserChange }: { user: UserProfile; onUser
   );
 }
 
-function resizeProfileImage(file: File): Promise<string> {
+const CROP_SIZE = 280;
+
+type CropSource = {
+  url: string;
+  width: number;
+  height: number;
+};
+
+type CropOffset = {
+  x: number;
+  y: number;
+};
+
+function loadCropSource(file: File): Promise<CropSource> {
   return new Promise((resolve, reject) => {
-    const objectUrl = URL.createObjectURL(file);
+    const url = URL.createObjectURL(file);
     const image = new Image();
 
-    image.onload = () => {
-      const maxSize = 256;
-      const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.max(1, Math.round(image.width * scale));
-      canvas.height = Math.max(1, Math.round(image.height * scale));
-      const context = canvas.getContext("2d");
-
-      if (!context) {
-        URL.revokeObjectURL(objectUrl);
-        reject(new Error("Canvas is not available"));
-        return;
-      }
-
-      context.drawImage(image, 0, 0, canvas.width, canvas.height);
-      URL.revokeObjectURL(objectUrl);
-      resolve(canvas.toDataURL("image/jpeg", 0.82));
-    };
-
+    image.onload = () => resolve({ url, width: image.naturalWidth, height: image.naturalHeight });
     image.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
+      URL.revokeObjectURL(url);
       reject(new Error("Image could not be read"));
     };
-    image.src = objectUrl;
+    image.src = url;
+  });
+}
+
+function getCropScale(source: CropSource, zoom: number) {
+  return Math.max(CROP_SIZE / source.width, CROP_SIZE / source.height) * zoom;
+}
+
+function clampCropOffset(source: CropSource, zoom: number, offset: CropOffset): CropOffset {
+  const scale = getCropScale(source, zoom);
+  const renderedWidth = source.width * scale;
+  const renderedHeight = source.height * scale;
+  const minX = Math.min(0, CROP_SIZE - renderedWidth);
+  const minY = Math.min(0, CROP_SIZE - renderedHeight);
+  return {
+    x: Math.min(0, Math.max(minX, offset.x)),
+    y: Math.min(0, Math.max(minY, offset.y)),
+  };
+}
+
+function getInitialCropOffset(source: CropSource, zoom: number): CropOffset {
+  const scale = getCropScale(source, zoom);
+  return clampCropOffset(source, zoom, {
+    x: (CROP_SIZE - source.width * scale) / 2,
+    y: (CROP_SIZE - source.height * scale) / 2,
+  });
+}
+
+function renderCroppedImage(source: CropSource, zoom: number, offset: CropOffset): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    const scale = getCropScale(source, zoom);
+    const canvas = document.createElement("canvas");
+    const cropSourceSize = CROP_SIZE / scale;
+    const sourceX = Math.max(0, -offset.x / scale);
+    const sourceY = Math.max(0, -offset.y / scale);
+    canvas.width = 256;
+    canvas.height = 256;
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      reject(new Error("Canvas is not available"));
+      return;
+    }
+
+    image.onload = () => {
+      context.drawImage(image, sourceX, sourceY, cropSourceSize, cropSourceSize, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", 0.82));
+    };
+    image.onerror = () => reject(new Error("Image could not be cropped"));
+    image.src = source.url;
   });
 }
 
@@ -402,6 +449,7 @@ function ProfileImagePicker({ user, onUserChange }: { user: UserProfile; onUserC
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [cropSource, setCropSource] = useState<CropSource | null>(null);
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -421,16 +469,25 @@ function ProfileImagePicker({ user, onUserChange }: { user: UserProfile; onUserC
 
     setBusy(true);
     try {
-      const avatarUrl = await resizeProfileImage(file);
-      const nextUser = { ...user, avatarUrl };
-      saveMockUserSession(nextUser);
-      onUserChange(nextUser);
-      setMessage("Profile photo updated");
+      setCropSource(await loadCropSource(file));
     } catch {
-      setError("The image could not be processed. Try another file");
+      setError("The image could not be read. Try another file");
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleCropConfirm = (avatarUrl: string) => {
+    const nextUser = { ...user, avatarUrl };
+    saveMockUserSession(nextUser);
+    onUserChange(nextUser);
+    setCropSource(null);
+    setMessage("Profile photo updated");
+  };
+
+  const handleCropCancel = () => {
+    if (cropSource) URL.revokeObjectURL(cropSource.url);
+    setCropSource(null);
   };
 
   const removePhoto = () => {
@@ -443,10 +500,10 @@ function ProfileImagePicker({ user, onUserChange }: { user: UserProfile; onUserC
 
   return (
     <div className="flex flex-col gap-4 rounded-xl border border-(--khvi-teal)/15 bg-[#f7fbfa] p-4 sm:flex-row sm:items-center sm:p-5">
-      <UserAvatar user={user} size="xl" className="rounded-2xl" />
+      <UserAvatar user={user} size="xxl" className="rounded-2xl" />
       <div className="min-w-0">
         <p className="text-sm font-black text-(--khvi-navy)">Profile photo</p>
-        <p className="mt-1 text-xs leading-5 text-(--khvi-ink)/60">Use a clear image so teammates can recognize you. Images are resized for this browser preview.</p>
+        <p className="mt-1 text-xs leading-5 text-(--khvi-ink)/60">Use a clear image, then crop it to a square before saving it to this browser preview.</p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <label htmlFor={inputId} className={`inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg bg-(--khvi-navy) px-3.5 py-2 text-xs font-extrabold text-white transition-colors hover:bg-[#0c4960] ${busy ? "pointer-events-none opacity-60" : ""}`}>
             <PhotoIcon className="h-4 w-4" aria-hidden="true" />
@@ -457,6 +514,108 @@ function ProfileImagePicker({ user, onUserChange }: { user: UserProfile; onUserC
         </div>
         {message && <p role="status" className="mt-2 text-xs font-extrabold text-(--khvi-sage)">{message}</p>}
         {error && <p role="alert" className="mt-2 text-xs font-extrabold text-(--khvi-coral)">{error}</p>}
+      </div>
+      {cropSource && <CropEditor source={cropSource} onCancel={handleCropCancel} onConfirm={handleCropConfirm} />}
+    </div>
+  );
+}
+
+function CropEditor({ source, onCancel, onConfirm }: { source: CropSource; onCancel: () => void; onConfirm: (avatarUrl: string) => void }) {
+  const [zoom, setZoom] = useState(1);
+  const [offset, setOffset] = useState<CropOffset>(() => getInitialCropOffset(source, 1));
+  const [rendering, setRendering] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const dragRef = useRef<{ pointerX: number; pointerY: number; offsetX: number; offsetY: number } | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !rendering) onCancel();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onCancel, rendering]);
+
+  useEffect(() => () => URL.revokeObjectURL(source.url), [source.url]);
+
+  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragRef.current = { pointerX: event.clientX, pointerY: event.clientY, offsetX: offset.x, offsetY: offset.y };
+  };
+
+  const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current) return;
+    const nextOffset = {
+      x: dragRef.current.offsetX + event.clientX - dragRef.current.pointerX,
+      y: dragRef.current.offsetY + event.clientY - dragRef.current.pointerY,
+    };
+    setOffset(clampCropOffset(source, zoom, nextOffset));
+  };
+
+  const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    dragRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+  };
+
+  const handleZoomChange = (value: number) => {
+    setZoom(value);
+    setOffset((current) => clampCropOffset(source, value, current));
+  };
+
+  const handleConfirm = async () => {
+    setRendering(true);
+    setError(null);
+    try {
+      onConfirm(await renderCroppedImage(source, zoom, offset));
+    } catch {
+      setError("The crop could not be saved. Try again");
+    } finally {
+      setRendering(false);
+    }
+  };
+
+  const scale = getCropScale(source, zoom);
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-(--khvi-navy)/70 p-4" role="dialog" aria-modal="true" aria-labelledby="crop-profile-photo-title">
+      <div className="w-full max-w-lg rounded-(--khvi-radius-md) border border-(--khvi-teal)/20 bg-(--khvi-surface) p-5 shadow-[0_24px_60px_rgba(9,47,69,0.28)] sm:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-(--khvi-teal)">Profile photo</p>
+            <h2 id="crop-profile-photo-title" className="mt-1 text-xl font-black text-(--khvi-navy)">Crop your photo</h2>
+            <p className="mt-1 text-sm text-(--khvi-ink)/60">Drag the image to position it inside the square.</p>
+          </div>
+          <button type="button" onClick={onCancel} disabled={rendering} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#cbd7dc] text-(--khvi-ink)/60 transition-colors hover:border-(--khvi-teal) hover:text-(--khvi-navy) disabled:opacity-50" aria-label="Close crop editor">
+            <XMarkIcon className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
+
+        <div
+          className="relative mx-auto mt-6 h-[280px] w-[280px] cursor-grab touch-none overflow-hidden rounded-2xl bg-(--khvi-ink) active:cursor-grabbing"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          aria-label="Photo crop area"
+        >
+          <NextImage src={source.url} alt="Photo being cropped" width={source.width} height={source.height} unoptimized className="pointer-events-none absolute max-w-none select-none" style={{ width: source.width * scale, height: source.height * scale, transform: `translate(${offset.x}px, ${offset.y}px)` }} />
+          <div className="pointer-events-none absolute inset-0 rounded-2xl border-2 border-white/90 shadow-[0_0_0_999px_rgba(9,47,69,0.38)]" aria-hidden="true" />
+        </div>
+
+        <div className="mt-6">
+          <div className="flex items-center justify-between text-xs font-bold text-(--khvi-ink)/60">
+            <label htmlFor="profile-photo-zoom">Zoom</label>
+            <span>{zoom.toFixed(1)}×</span>
+          </div>
+          <input id="profile-photo-zoom" type="range" min="1" max="3" step="0.05" value={zoom} onChange={(event) => handleZoomChange(Number(event.target.value))} className="mt-3 w-full accent-(--khvi-teal)" />
+        </div>
+
+        <div className="mt-6 flex flex-col-reverse gap-3 border-t border-(--khvi-teal)/15 pt-5 sm:flex-row sm:justify-end">
+          {error && <p role="alert" className="mr-auto self-center text-xs font-extrabold text-(--khvi-coral)">{error}</p>}
+          <button type="button" onClick={onCancel} disabled={rendering} className="rounded-lg border border-[#cbd7dc] px-4 py-3 text-sm font-extrabold text-(--khvi-ink)/70 transition-colors hover:border-(--khvi-teal) hover:text-(--khvi-navy) disabled:opacity-50">Cancel</button>
+          <button type="button" onClick={handleConfirm} disabled={rendering} className="rounded-lg bg-(--khvi-navy) px-4 py-3 text-sm font-extrabold text-white transition-colors hover:bg-[#0c4960] disabled:cursor-wait disabled:opacity-60">{rendering ? "Saving…" : "Use this photo"}</button>
+        </div>
       </div>
     </div>
   );

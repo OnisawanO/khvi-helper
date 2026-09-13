@@ -16,7 +16,7 @@
 - `/profile` is the shared authenticated Profile & Settings route for `User`, `Interpreter`, `Manager`, and `Admin`.
 - The page reads the current browser mock session and redirects to `/#top` when no valid active session is available. Locked sessions cannot open the page.
 - Every role can edit only their own first name, last name, phone, date of birth, and preferred UI language in the current preview. The browser-local session is updated after validation.
-- Every role can change or remove an optional profile photo in the current preview. The image is resized and stored as `avatarUrl` in the browser-local session; production storage and ownership checks remain planned.
+- Every role can change, crop, or remove an optional profile photo in the current preview. The cropped image is resized and stored as `avatarUrl` in the browser-local session; production storage and ownership checks remain planned.
 - Role, lock status, interpreter approval status, and management permissions are shown as read-only context. Production ownership checks, Supabase persistence, role-specific profile tables, and server authorization remain planned.
 
 ## Requester preview flow update
