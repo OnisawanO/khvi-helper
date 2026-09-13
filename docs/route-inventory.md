@@ -7,6 +7,8 @@
 - `Interpreter` uses `/find-requests` to review open request summaries and `/my-assignments` to track claimed, in-progress or completed assignments.
 - All four routes read the mock signed-in session and redirect to the equivalent route when the signed-in role does not match.
 - Interpreter lists reuse browser-local preview records. Profile matching, account ownership, claim actions and server authorization remain planned.
+- `/find-requests` supports preview sorting by request creation time and by distance from the interpreter's browser GPS when location access is available.
+- `/find-requests` renders an interactive Leaflet map with OpenStreetMap tiles, request markers and a browser-GPS marker when location access is available.
 - Both roles use the same signed-in header and footer as `/welcome`; the navigation labels and paths change with the role.
 
 ## Requester preview flow update
