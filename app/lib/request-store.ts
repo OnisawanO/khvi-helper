@@ -82,6 +82,7 @@ export function createRequest(input: Pick<HelpRequest, "languageId" | "categoryI
   if (input.urgency === "Scheduled" && (appointment === null || appointment.getTime() <= now + 30 * 60 * 1000 || appointment.getTime() > now + 24 * 60 * 60 * 1000)) throw new Error("Choose an appointment between 30 minutes and 24 hours from now.");
   const request: HelpRequest = {
     ...input, requestId, status: "Open", areaName: "Meeting point provided",
+    createdAt: currentTime.toISOString(),
     createdAtLabel: new Date(now).toLocaleString(),
     scheduledAtLabel: appointment === null ? null : appointment.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     expiresAt: new Date(appointment?.getTime() ?? now + 1800000).toISOString(),

@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRequests } from "@/app/lib/request-store";
-import { ArrowLeftIcon, ChevronRightIcon, InboxIcon, MapPinIcon, PlusIcon, UserCircleIcon } from "@heroicons/react/24/outline";
+import { ChevronRightIcon, InboxIcon, MapPinIcon, PlusIcon, UserCircleIcon } from "@heroicons/react/24/outline";
 import { useCopyLocale } from "@/app/components/app-shell";
 import { ExpiryCountdown } from "@/app/components/expiry-countdown";
 import { StatusBadge, UrgencyBadge } from "@/app/components/request-badges";
+import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
 import {
   categoryLabel,
   isContactUnlocked,
@@ -17,7 +18,8 @@ import {
 
 const copy = {
   en: {
-    back: "Back to main",
+    breadcrumb: "Breadcrumb",
+    main: "Main",
     label: "Requester hub",
     title: "My requests",
     intro: "Every pin you created, newest first. Open one to track its status and see interpreter contact details.",
@@ -46,7 +48,8 @@ const copy = {
     emptyBody: "No request matches this filter. Create a pin when you need language help.",
   },
   zh: {
-    back: "返回主页",
+    breadcrumb: "面包屑导航",
+    main: "主页",
     label: "求助中心",
     title: "我的求助",
     intro: "你创建的全部求助点，最新的排在前面。点开可查看状态和口译员联系方式。",
@@ -95,13 +98,12 @@ export function RequestList({
   return (
     <main id="main-content" className="flex-1 px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
       <div className="mx-auto max-w-[1180px]">
-        <Link
-          className="inline-flex items-center gap-2 text-sm font-extrabold text-[#087f80] transition-colors hover:text-[#0a6465]"
-          href="/welcome#welcome-user"
-        >
-          <ArrowLeftIcon aria-hidden="true" className="h-4 w-4" />
-          {t.back}
-        </Link>
+        <WorkspaceBreadcrumbs
+          ariaLabel={t.breadcrumb}
+          currentLabel={t.title}
+          homeHref="/welcome#welcome-user"
+          homeLabel={t.main}
+        />
         <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-extrabold text-[#087f80]">{t.label}</p>

@@ -3,14 +3,13 @@
 import Link from "next/link";
 import { useState } from "react";
 import {
-  ArrowLeftIcon,
   ClipboardDocumentListIcon,
   MapPinIcon,
 } from "@heroicons/react/24/outline";
 import { useCopyLocale } from "@/app/components/app-shell";
 import { StatusBadge, UrgencyBadge } from "@/app/components/request-badges";
-import { cancelMission, useRequests } from "@/app/lib/request-store";
-import { getMockUserSession } from "@/app/lib/mock-auth";
+import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
+import { useRequests } from "@/app/lib/request-store";
 import {
   categoryLabel,
   languageLabel,
@@ -23,7 +22,8 @@ type AssignmentFilterId = (typeof ASSIGNMENT_FILTERS)[number];
 
 const copy = {
   en: {
-    back: "Back to main",
+    breadcrumb: "Breadcrumb",
+    main: "Main",
     label: "Interpreter workspace",
     title: "My assignments",
     intro: "Assignments you have claimed, ordered from the latest activity. Check each status before continuing the work.",
@@ -48,7 +48,8 @@ const copy = {
     loading: "Loading your assignments…",
   },
   zh: {
-    back: "返回主页",
+    breadcrumb: "面包屑导航",
+    main: "主页",
     label: "口译员工作区",
     title: "我的任务",
     intro: "查看你接取的任务和最新状态，继续工作前先确认当前步骤。",
@@ -136,13 +137,12 @@ export function MyAssignmentsList({ activeFilter }: { activeFilter: StatusFilter
   return (
     <main id="main-content" className="flex-1 px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
       <div className="mx-auto max-w-[1180px]">
-        <Link
-          className="inline-flex items-center gap-2 text-sm font-extrabold text-[#087f80] transition-colors hover:text-[#0a6465]"
-          href="/welcome#welcome-Interpreter"
-        >
-          <ArrowLeftIcon aria-hidden="true" className="h-4 w-4" />
-          {t.back}
-        </Link>
+        <WorkspaceBreadcrumbs
+          ariaLabel={t.breadcrumb}
+          currentLabel={t.title}
+          homeHref="/welcome#welcome-Interpreter"
+          homeLabel={t.main}
+        />
 
         <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>

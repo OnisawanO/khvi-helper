@@ -13,10 +13,12 @@ import {
   DocumentMagnifyingGlassIcon,
   KeyIcon,
   LanguageIcon,
+  ListBulletIcon,
   LockClosedIcon,
   ShieldCheckIcon,
   SparklesIcon,
   StarIcon,
+  TableCellsIcon,
   TagIcon,
   UserCircleIcon,
   UserGroupIcon,
@@ -370,6 +372,7 @@ export default function AdminPage() {
   const router = useRouter();
   const [authChecked, setAuthChecked] = useState(false);
   const [activeTab, setActiveTab] = useState<"users" | "interpreters" | "audit">("users");
+  const [auditViewMode, setAuditViewMode] = useState<"table" | "activity">("table");
   const [users, setUsers] = useState<AdminUserRecord[]>(initialUsers);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(initialAuditLogs);
 
@@ -445,6 +448,12 @@ export default function AdminPage() {
   const handleSaveUserChanges = () => {
     if (!selectedUser) return;
 
+    // Security Business Rule: Admin accounts cannot be suspended or locked
+    if (tempRole === "Admin" && tempIsLocked) {
+      alert("บัญชีระดับผู้ดูแลระบบ (Admin) ไม่สามารถถูกระงับหรือล็อกบัญชีได้ เพื่อความปลอดภัยและความต่อเนื่องในการจัดการระบบ");
+      return;
+    }
+
     // Validation
     if (tempIsLocked && !tempLockReason.trim()) {
       alert("กรุณาระบุเหตุผลในการระงับหรือล็อกบัญชีนี้ (Required for security audit)");
@@ -456,8 +465,8 @@ export default function AdminPage() {
         return {
           ...u,
           role: tempRole,
-          isLocked: tempIsLocked,
-          lockReason: tempIsLocked ? tempLockReason.trim() : undefined,
+          isLocked: tempRole === "Admin" ? false : tempIsLocked,
+          lockReason: tempRole === "Admin" ? undefined : tempIsLocked ? tempLockReason.trim() : undefined,
         };
       }
       return u;
@@ -658,6 +667,31 @@ export default function AdminPage() {
 
                   <button
                     onClick={() => {
+                      setActiveTab("users");
+                      setSelectedStatusFilter("Locked");
+                      setIsMobileDrawerOpen(false);
+                    }}
+                    className={`flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all whitespace-nowrap ${
+                      activeTab === "users" && selectedStatusFilter === "Locked"
+                        ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
+                    }`}
+                  >
+                    <LockClosedIcon className="h-4 w-4 shrink-0" />
+                    <span className="truncate">Suspended & Locked</span>
+                    <span
+                      className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                        activeTab === "users" && selectedStatusFilter === "Locked"
+                          ? "bg-white/20 text-white"
+                          : "bg-red-50 text-[#d93829]"
+                      }`}
+                    >
+                      {lockedUsersCount}
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => {
                       setActiveTab("interpreters");
                       setIsMobileDrawerOpen(false);
                     }}
@@ -701,53 +735,6 @@ export default function AdminPage() {
                   </button>
                 </nav>
               </div>
-
-              {/* Recent Security Activity in Mobile Drawer */}
-              <div>
-                <div className="flex items-center justify-between px-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Recent Security Activity</p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab("audit");
-                      setIsMobileDrawerOpen(false);
-                    }}
-                    className="text-[10px] font-bold text-[#087f80] hover:underline"
-                  >
-                    View All
-                  </button>
-                </div>
-
-                <div className="mt-2 space-y-2">
-                  {auditLogs.slice(0, 3).map((log) => (
-                    <div
-                      key={log.id}
-                      className="rounded-xl border border-slate-200/80 bg-slate-50 p-2.5 text-[11px] transition-colors hover:bg-slate-100/70"
-                    >
-                      <div className="flex items-center justify-between gap-1">
-                        <span
-                          className={`rounded px-1.5 py-0.2 text-[9px] font-extrabold uppercase ${
-                            log.severity === "danger"
-                              ? "bg-red-100 text-[#f04f3e]"
-                              : log.severity === "warning"
-                              ? "bg-amber-100 text-amber-700"
-                              : "bg-teal-100 text-[#087f80]"
-                          }`}
-                        >
-                          {log.action}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          {log.timestamp.slice(11, 16)}
-                        </span>
-                      </div>
-                      <p className="mt-1 font-bold text-slate-700 truncate text-[11px]">{log.targetUser}</p>
-                      <p className="text-[10px] text-slate-500 line-clamp-2 leading-tight mt-0.5">
-                        {log.details}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
 
             {/* Environment Info */}
@@ -767,20 +754,23 @@ export default function AdminPage() {
           <div className="space-y-6">
             <div>
               <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Main Administration</p>
-              <nav className="mt-2 space-y-1">
+              <nav className="mt-2 space-y-1.5">
                 <button
-                  onClick={() => setActiveTab("users")}
-                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all ${
-                    activeTab === "users"
+                  onClick={() => {
+                    setActiveTab("users");
+                    if (selectedStatusFilter === "Locked") setSelectedStatusFilter("All");
+                  }}
+                  className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-bold transition-all whitespace-nowrap ${
+                    activeTab === "users" && selectedStatusFilter !== "Locked"
                       ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
                       : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
                   }`}
                 >
-                  <UserGroupIcon className="h-5 w-5" />
-                  <span>All User & Roles</span>
+                  <UserGroupIcon className="h-4 w-4 shrink-0" />
+                  <span className="truncate">All User & Roles</span>
                   <span
-                    className={`ml-auto rounded-full px-2 py-0.5 text-xs font-bold ${
-                      activeTab === "users" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
+                    className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                      activeTab === "users" && selectedStatusFilter !== "Locked" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
                     }`}
                   >
                     {totalUsersCount}
@@ -788,17 +778,39 @@ export default function AdminPage() {
                 </button>
 
                 <button
+                  onClick={() => {
+                    setActiveTab("users");
+                    setSelectedStatusFilter("Locked");
+                  }}
+                  className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-bold transition-all whitespace-nowrap ${
+                    activeTab === "users" && selectedStatusFilter === "Locked"
+                      ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
+                  }`}
+                >
+                  <LockClosedIcon className="h-4 w-4 shrink-0" />
+                  <span className="truncate">Suspended & Locked</span>
+                  <span
+                    className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                      activeTab === "users" && selectedStatusFilter === "Locked" ? "bg-white/20 text-white" : "bg-red-50 text-[#d93829]"
+                    }`}
+                  >
+                    {lockedUsersCount}
+                  </span>
+                </button>
+
+                <button
                   onClick={() => setActiveTab("interpreters")}
-                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all ${
+                  className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-bold transition-all whitespace-nowrap ${
                     activeTab === "interpreters"
                       ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
                       : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
                   }`}
                 >
-                  <SparklesIcon className="h-5 w-5" />
-                  <span>Interpreter Index</span>
+                  <SparklesIcon className="h-4 w-4 shrink-0" />
+                  <span className="truncate">Interpreter Index</span>
                   <span
-                    className={`ml-auto rounded-full px-2 py-0.5 text-xs font-bold ${
+                    className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
                       activeTab === "interpreters" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
                     }`}
                   >
@@ -808,16 +820,16 @@ export default function AdminPage() {
 
                 <button
                   onClick={() => setActiveTab("audit")}
-                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all ${
+                  className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-bold transition-all whitespace-nowrap ${
                     activeTab === "audit"
                       ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
                       : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
                   }`}
                 >
-                  <DocumentMagnifyingGlassIcon className="h-5 w-5" />
-                  <span>Audit Trail</span>
+                  <DocumentMagnifyingGlassIcon className="h-4 w-4 shrink-0" />
+                  <span className="truncate">Audit Trail</span>
                   <span
-                    className={`ml-auto rounded-full px-2 py-0.5 text-xs font-bold ${
+                    className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
                       activeTab === "audit" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
                     }`}
                   >
@@ -825,49 +837,6 @@ export default function AdminPage() {
                   </span>
                 </button>
               </nav>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between px-3">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Recent Security Activity</p>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("audit")}
-                  className="text-[10px] font-bold text-[#087f80] hover:underline"
-                >
-                  View All
-                </button>
-              </div>
-
-              <div className="mt-2 space-y-2">
-                {auditLogs.slice(0, 3).map((log) => (
-                  <div
-                    key={log.id}
-                    className="rounded-xl border border-slate-200/80 bg-slate-50 p-2.5 text-xs transition-colors hover:bg-slate-100/70"
-                  >
-                    <div className="flex items-center justify-between gap-1">
-                      <span
-                        className={`rounded px-1.5 py-0.2 text-[9px] font-extrabold uppercase ${
-                          log.severity === "danger"
-                            ? "bg-red-100 text-[#f04f3e]"
-                            : log.severity === "warning"
-                            ? "bg-amber-100 text-amber-700"
-                            : "bg-teal-100 text-[#087f80]"
-                        }`}
-                      >
-                        {log.action}
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-mono">
-                        {log.timestamp.slice(11, 16)}
-                      </span>
-                    </div>
-                    <p className="mt-1 font-bold text-slate-700 truncate text-[11px]">{log.targetUser}</p>
-                    <p className="text-[10px] text-slate-500 line-clamp-2 leading-tight mt-0.5">
-                      {log.details}
-                    </p>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
 
@@ -1113,24 +1082,25 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Users Table */}
+              {/* Users Table with Clear Column Grid & Dividers */}
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs text-slate-600">
-                    <thead className="border-b border-slate-100 bg-slate-50/80 font-bold uppercase tracking-wider text-slate-500">
-                      <tr>
-                        <th className="py-3.5 pl-6 pr-3">User & Contact</th>
-                        <th className="px-3 py-3.5">Role</th>
-                        <th className="px-3 py-3.5">Primary Language</th>
-                        <th className="px-3 py-3.5">Spoken Languages</th>
-                        <th className="px-3 py-3.5">Security Status</th>
-                        <th className="py-3.5 pl-3 pr-6 text-right">Last Active</th>
+                  <table className="w-full border-collapse text-left text-xs text-slate-600">
+                    <thead className="border-b border-slate-200 bg-slate-50/90 font-bold uppercase tracking-wider text-slate-500">
+                      <tr className="divide-x divide-slate-200">
+                        <th className="py-3.5 pl-5 pr-4 w-[24%]">User & Contact</th>
+                        <th className="px-3.5 py-3.5 w-[11%] text-center">Role</th>
+                        <th className="px-3.5 py-3.5 w-[10%] text-center">Rating</th>
+                        <th className="px-3.5 py-3.5 w-[13%]">Primary Lang</th>
+                        <th className="px-3.5 py-3.5 w-[20%]">Spoken Languages</th>
+                        <th className="px-3.5 py-3.5 w-[11%] text-center">Status</th>
+                        <th className="py-3.5 pl-3 pr-5 text-right w-[11%]">Last Active</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {filteredUsers.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="py-12 text-center text-slate-400">
+                          <td colSpan={7} className="py-12 text-center text-slate-400">
                             <UserCircleIcon className="mx-auto h-10 w-10 text-slate-300" />
                             <p className="mt-2 text-sm font-semibold">No users matching the filters</p>
                             <p className="text-xs text-slate-400">Try adjusting your search criteria or resetting filters.</p>
@@ -1141,42 +1111,58 @@ export default function AdminPage() {
                           <tr
                             key={u.id}
                             onClick={() => handleOpenUserDetail(u)}
-                            className={`cursor-pointer transition-colors hover:bg-teal-50/40 ${u.isLocked ? "bg-red-50/30 hover:bg-red-50/50" : ""}`}
+                            className={`divide-x divide-slate-100 cursor-pointer transition-colors hover:bg-teal-50/40 ${u.isLocked ? "bg-red-50/25 hover:bg-red-50/40" : ""}`}
                           >
                             {/* User & Contact */}
-                            <td className="py-4 pl-6 pr-3">
+                            <td className="py-3.5 pl-5 pr-4">
                               <div className="font-bold text-[#092f45]">{u.name}</div>
-                              <div className="text-[11px] text-slate-500">{u.email}</div>
-                              <div className="text-[10px] text-slate-400">ID: {u.id} • {u.phone}</div>
+                              <div className="text-[11px] text-slate-500 truncate">{u.email}</div>
+                              <div className="text-[10px] text-slate-400 font-mono">ID: {u.id} • {u.phone}</div>
                             </td>
 
                             {/* Role Badge */}
-                            <td className="px-3 py-4">
+                            <td className="px-3.5 py-3.5 text-center">
                               <span
-                                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                                className={`inline-flex items-center justify-center min-w-[78px] rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
                                   u.role === "Admin"
-                                    ? "bg-purple-100 text-purple-700"
+                                    ? "bg-purple-100 text-purple-700 border border-purple-200/60"
                                     : u.role === "Manager"
-                                    ? "bg-blue-100 text-blue-700"
+                                    ? "bg-blue-100 text-blue-700 border border-blue-200/60"
                                     : u.role === "Interpreter"
-                                    ? "bg-teal-100 text-[#087f80]"
-                                    : "bg-slate-100 text-slate-600"
+                                    ? "bg-teal-100 text-[#087f80] border border-teal-200/60"
+                                    : "bg-slate-100 text-slate-600 border border-slate-200/60"
                                 }`}
                               >
                                 {u.role}
                               </span>
                             </td>
 
+                            {/* Rating */}
+                            <td className="px-3.5 py-3.5 text-center">
+                              {u.interpreterStats?.rating ? (
+                                <span className="inline-flex items-center justify-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-extrabold text-amber-700 border border-amber-200">
+                                  <StarIcon className="h-3 w-3 fill-amber-500 text-amber-500" />
+                                  <span>{u.interpreterStats.rating.toFixed(1)}</span>
+                                </span>
+                              ) : (
+                                <span className="text-slate-300 font-semibold">-</span>
+                              )}
+                            </td>
+
                             {/* Primary Language */}
-                            <td className="px-3 py-4 font-semibold text-[#092f45]">{u.primaryLanguage}</td>
+                            <td className="px-3.5 py-3.5 font-semibold text-[#092f45]">
+                              <span className="inline-flex items-center gap-1">
+                                {u.primaryLanguage}
+                              </span>
+                            </td>
 
                             {/* Spoken Languages */}
-                            <td className="px-3 py-4">
+                            <td className="px-3.5 py-3.5">
                               <div className="flex flex-wrap gap-1">
                                 {u.spokenLanguages.map((lang) => (
                                   <span
                                     key={lang}
-                                    className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600"
+                                    className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 border border-slate-200/50"
                                   >
                                     {lang}
                                   </span>
@@ -1185,22 +1171,22 @@ export default function AdminPage() {
                             </td>
 
                             {/* Security Status */}
-                            <td className="px-3 py-4">
+                            <td className="px-3.5 py-3.5 text-center">
                               {u.isLocked ? (
-                                <div className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-[#f04f3e]">
-                                  <LockClosedIcon className="h-3 w-3" />
+                                <div className="inline-flex items-center justify-center gap-1 min-w-[72px] rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-[#f04f3e] border border-red-200/70">
+                                  <LockClosedIcon className="h-3 w-3 shrink-0" />
                                   <span>Locked</span>
                                 </div>
                               ) : (
-                                <div className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
-                                  <CheckCircleIcon className="h-3 w-3" />
+                                <div className="inline-flex items-center justify-center gap-1 min-w-[72px] rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200/70">
+                                  <CheckCircleIcon className="h-3 w-3 shrink-0" />
                                   <span>Active</span>
                                 </div>
                               )}
                             </td>
 
                             {/* Last Active */}
-                            <td className="py-4 pl-3 pr-6 text-right text-slate-500 text-[11px] font-medium">
+                            <td className="py-3.5 pl-3 pr-5 text-right text-slate-500 text-[11px] font-medium whitespace-nowrap">
                               {u.lastActive}
                             </td>
                           </tr>
@@ -1302,41 +1288,112 @@ export default function AdminPage() {
             </div>
           )}
 
-          {/* TAB 3: AUDIT TRAIL */}
+          {/* TAB 3: AUDIT TRAIL & RECENT SECURITY ACTIVITY */}
           {activeTab === "audit" && (
             <div className="space-y-4">
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="flex items-center justify-between">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4">
                   <div>
-                    <h3 className="text-sm font-bold text-[#092f45]">System Security Audit Trail</h3>
-                    <p className="text-xs text-slate-500">
-                      Immutable log of all administrative actions, role updates, and user account restrictions.
+                    <h3 className="text-sm sm:text-base font-bold text-[#092f45]">
+                      {auditViewMode === "table" ? "System Security Audit Trail (Full Log)" : "Recent Security Activity (Timeline Feed)"}
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {auditViewMode === "table"
+                        ? "Immutable system log of administrative role transitions, account lock actions, and system indexing."
+                        : "Dedicated live timeline cards highlighting operational events, security escalations, and user account actions."}
                     </p>
                   </div>
-                  <div className="text-xs font-semibold text-slate-500">
-                    Showing last {auditLogs.length} audit records
+
+                  {/* View Mode Toggle Button Group */}
+                  <div className="flex items-center gap-2">
+                    <div className="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1">
+                      <button
+                        type="button"
+                        onClick={() => setAuditViewMode("table")}
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                          auditViewMode === "table"
+                            ? "bg-white text-[#087f80] shadow-xs"
+                            : "text-slate-500 hover:text-slate-900"
+                        }`}
+                      >
+                        <TableCellsIcon className="h-4 w-4" />
+                        <span>Table View</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setAuditViewMode("activity")}
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                          auditViewMode === "activity"
+                            ? "bg-white text-[#087f80] shadow-xs"
+                            : "text-slate-500 hover:text-slate-900"
+                        }`}
+                      >
+                        <ListBulletIcon className="h-4 w-4" />
+                        <span>Activity Feed</span>
+                      </button>
+                    </div>
+
+                    <div className="hidden sm:block text-xs font-semibold text-slate-500 pl-2">
+                      {auditLogs.length} events
+                    </div>
                   </div>
                 </div>
 
-                <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
-                  <table className="w-full text-left text-xs text-slate-600">
-                    <thead className="border-b border-slate-100 bg-slate-50 font-bold uppercase tracking-wider text-slate-500">
-                      <tr>
-                        <th className="py-3 pl-4 pr-2">Timestamp</th>
-                        <th className="px-2 py-3">Severity</th>
-                        <th className="px-2 py-3">Actor</th>
-                        <th className="px-2 py-3">Action</th>
-                        <th className="px-2 py-3">Target Subject</th>
-                        <th className="py-3 pl-2 pr-4">Details</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {auditLogs.map((log) => (
-                        <tr key={log.id} className="hover:bg-slate-50/60 font-mono text-[11px]">
-                          <td className="py-3 pl-4 pr-2 text-slate-500 whitespace-nowrap">{log.timestamp}</td>
-                          <td className="px-2 py-3">
+                {/* VIEW 1: DATA TABLE VIEW */}
+                {auditViewMode === "table" && (
+                  <div className="overflow-hidden rounded-xl border border-slate-200">
+                    <table className="w-full text-left text-xs text-slate-600">
+                      <thead className="border-b border-slate-100 bg-slate-50 font-bold uppercase tracking-wider text-slate-500">
+                        <tr>
+                          <th className="py-3 pl-4 pr-2">Timestamp</th>
+                          <th className="px-2 py-3">Severity</th>
+                          <th className="px-2 py-3">Actor</th>
+                          <th className="px-2 py-3">Action</th>
+                          <th className="px-2 py-3">Target Subject</th>
+                          <th className="py-3 pl-2 pr-4">Details</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {auditLogs.map((log) => (
+                          <tr key={log.id} className="hover:bg-slate-50/60 font-mono text-[11px]">
+                            <td className="py-3 pl-4 pr-2 text-slate-500 whitespace-nowrap">{log.timestamp}</td>
+                            <td className="px-2 py-3">
+                              <span
+                                className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+                                  log.severity === "danger"
+                                    ? "bg-red-100 text-[#f04f3e]"
+                                    : log.severity === "warning"
+                                    ? "bg-amber-100 text-amber-700"
+                                    : "bg-teal-100 text-[#087f80]"
+                                }`}
+                              >
+                                {log.severity}
+                              </span>
+                            </td>
+                            <td className="px-2 py-3 font-semibold text-[#092f45]">{log.actor}</td>
+                            <td className="px-2 py-3 font-bold text-slate-700">{log.action}</td>
+                            <td className="px-2 py-3 text-slate-600">{log.targetUser}</td>
+                            <td className="py-3 pl-2 pr-4 text-slate-500 font-sans text-xs">{log.details}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* VIEW 2: DEDICATED RECENT ACTIVITY FEED CARDS (Matches Sidebar style expanded) */}
+                {auditViewMode === "activity" && (
+                  <div className="space-y-3">
+                    {auditLogs.map((log) => (
+                      <div
+                        key={log.id}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-slate-50/70 p-4 transition-all hover:bg-slate-100/80 hover:border-slate-300"
+                      >
+                        <div className="space-y-1.5">
+                          <div className="flex flex-wrap items-center gap-2">
                             <span
-                              className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+                              className={`rounded-md px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide ${
                                 log.severity === "danger"
                                   ? "bg-red-100 text-[#f04f3e]"
                                   : log.severity === "warning"
@@ -1344,18 +1401,32 @@ export default function AdminPage() {
                                   : "bg-teal-100 text-[#087f80]"
                               }`}
                             >
-                              {log.severity}
+                              {log.action}
                             </span>
-                          </td>
-                          <td className="px-2 py-3 font-semibold text-[#092f45]">{log.actor}</td>
-                          <td className="px-2 py-3 font-bold text-slate-700">{log.action}</td>
-                          <td className="px-2 py-3 text-slate-600">{log.targetUser}</td>
-                          <td className="py-3 pl-2 pr-4 text-slate-500 font-sans text-xs">{log.details}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                            <span className="text-xs font-black text-[#092f45]">
+                              {log.targetUser}
+                            </span>
+                            <span className="text-[11px] text-slate-400">
+                              by <strong className="text-slate-600 font-semibold">{log.actor}</strong>
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-600 leading-relaxed">
+                            {log.details}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-200/60">
+                          <span className="text-xs font-mono text-slate-400">
+                            {log.timestamp}
+                          </span>
+                          <span className="rounded bg-white border border-slate-200 px-2 py-0.5 text-[10px] font-mono text-slate-500">
+                            {log.id}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1463,7 +1534,13 @@ export default function AdminPage() {
                         <button
                           key={r}
                           type="button"
-                          onClick={() => setTempRole(r)}
+                          onClick={() => {
+                            setTempRole(r);
+                            if (r === "Admin") {
+                              setTempIsLocked(false);
+                              setTempLockReason("");
+                            }
+                          }}
                           className={`rounded-xl border p-2.5 sm:p-3 text-left transition-all ${
                             isSelected
                               ? "border-[#087f80] bg-[#087f80]/10 text-[#087f80] ring-2 ring-[#087f80]/30"
@@ -1487,29 +1564,48 @@ export default function AdminPage() {
                 </div>
 
                 {/* Section 2: Account Lock & Suspension Control */}
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs space-y-3 sm:space-y-4">
+                <div className={`rounded-2xl border p-4 sm:p-5 shadow-xs space-y-3 sm:space-y-4 ${
+                  tempRole === "Admin"
+                    ? "border-slate-200 bg-slate-50/70"
+                    : "border-slate-200 bg-white"
+                }`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <LockClosedIcon className="h-5 w-5 text-[#f04f3e]" />
+                      <LockClosedIcon className={`h-5 w-5 ${tempRole === "Admin" ? "text-slate-400" : "text-[#f04f3e]"}`} />
                       <h4 className="text-sm font-bold text-[#092f45]">Account Suspension & Lockout</h4>
                     </div>
 
-                    <label className="relative inline-flex cursor-pointer items-center">
-                      <input
-                        type="checkbox"
-                        checked={tempIsLocked}
-                        onChange={(e) => setTempIsLocked(e.target.checked)}
-                        className="peer sr-only"
-                      />
-                      <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-[#f04f3e] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-                    </label>
+                    {tempRole === "Admin" ? (
+                      <span className="rounded-full bg-slate-200/80 px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                        Admin Protected
+                      </span>
+                    ) : (
+                      <label className="relative inline-flex cursor-pointer items-center">
+                        <input
+                          type="checkbox"
+                          checked={tempIsLocked}
+                          onChange={(e) => setTempIsLocked(e.target.checked)}
+                          className="peer sr-only"
+                        />
+                        <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-[#f04f3e] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                      </label>
+                    )}
                   </div>
 
-                  <p className="text-xs text-slate-500">
-                    When suspended, the user cannot log in, initiate SOS requests, accept translator calls, or access backoffice dashboards.
-                  </p>
+                  {tempRole === "Admin" ? (
+                    <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
+                      <p className="font-semibold text-[#092f45]">🛡️ System Policy: Admin accounts cannot be suspended</p>
+                      <p className="mt-0.5 text-[11px] text-slate-500">
+                        To preserve system governance and root availability, administrators cannot be locked or suspended. If this operator requires offboarding, reassign their role to User or Manager first.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500">
+                      When suspended, the user cannot log in, initiate SOS requests, accept translator calls, or access backoffice dashboards.
+                    </p>
+                  )}
 
-                  {tempIsLocked && (
+                  {tempRole !== "Admin" && tempIsLocked && (
                     <div className="space-y-2 animate-in fade-in">
                       <label className="block text-xs font-bold text-[#f04f3e]">
                         Reason for Account Suspension (Mandatory for Audit Trail):

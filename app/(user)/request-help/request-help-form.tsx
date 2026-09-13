@@ -1,11 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
 import { createRequest } from "@/app/lib/request-store";
 import { useEffect, useMemo, useRef, useState, type SubmitEvent } from "react";
 import {
-  ArrowLeftIcon,
   BoltIcon,
   CalendarDaysIcon,
   CheckCircleIcon,
@@ -22,7 +21,8 @@ const SCHEDULE_MAXIMUM_HOURS = 24;
 
 const copy = {
   en: {
-    back: "Back to main",
+    breadcrumb: "Breadcrumb",
+    main: "Main",
     label: "New help request",
     title: "Create a help request pin",
     intro: "One language and one category per request. Interpreters who match both can claim it.",
@@ -71,7 +71,8 @@ const copy = {
     createdList: "See all my requests",
   },
   zh: {
-    back: "返回主页",
+    breadcrumb: "面包屑导航",
+    main: "主页",
     label: "新建求助",
     title: "创建语言求助点",
     intro: "每个求助只选一种语言和一个类别。语言与类别都匹配的口译员才能接取。",
@@ -253,13 +254,12 @@ export function RequestHelpForm() {
   return (
     <main id="main-content" className="flex-1 px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
       <div className="mx-auto max-w-[1180px]">
-        <Link
-          className="inline-flex items-center gap-2 text-sm font-extrabold text-[#087f80] transition-colors hover:text-[#0a6465]"
-          href="/welcome#welcome-user"
-        >
-          <ArrowLeftIcon aria-hidden="true" className="h-4 w-4" />
-          {t.back}
-        </Link>
+        <WorkspaceBreadcrumbs
+          ariaLabel={t.breadcrumb}
+          currentLabel={t.title}
+          homeHref="/welcome#welcome-user"
+          homeLabel={t.main}
+        />
 
         <p className="mt-6 text-sm font-extrabold text-[#087f80]">{t.label}</p>
         <h1 className="mt-1.5 text-3xl font-extrabold tracking-normal text-[#122b3e] sm:text-4xl">{t.title}</h1>

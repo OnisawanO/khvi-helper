@@ -21,6 +21,10 @@ import { SiteHeader, type Locale } from "@/app/components/site-header";
 import { resolveCopyLocale, useStoredLocale } from "@/app/lib/locale";
 import { RegisterModal } from "@/app/components/auth/register-modal";
 import { LoginModal } from "@/app/components/auth/login-modal";
+import { VisitorFaq, VisitorLanguages } from "@/app/components/visitor-welcome";
+import { useRouter } from "next/navigation";
+import { getMockUserSession, getRedirectPathByRole, type UserProfile } from "@/app/lib/mock-auth";
+import Image from "next/image";
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 type RequestCardContent = {
@@ -60,18 +64,18 @@ const copy = {
     mapCard: {
       title: "Matched job near you",
       meta: "Medical · Chinese · within 5 km from an approximate location",
-      privacy: "Exact contact details and location unlock after requester confirmation",
-      action: "Claim job",
+      privacy: "Contact details and exact locations unlock after requester confirmation",
+      action: "Get language help",
     },
     featureBand: [
       "Match by language and category, instead of asking one interpreter at a time",
-      "Protect exact location and contact details until the requester confirms the interpreter",
+      "Protect exact location and contact details until requester confirmation",
       "Support urgent jobs and same-day scheduled requests",
     ],
     mapSection: {
       label: "Map workflow preview",
       title: "One pin goes to every approved interpreter who matches the request",
-      body: "The platform reduces waiting time by pooling each request for qualified interpreters, while keeping sensitive details hidden until the requester confirms the assigned interpreter.",
+      body: "The platform reduces waiting time by pooling each request for qualified interpreters, while hiding sensitive details until requester confirmation.",
       cards: [
         {
           title: "Urgent request",
@@ -102,8 +106,8 @@ const copy = {
           description: "Only approved interpreters with the matching language and category can see the open pin.",
         },
         {
-          title: "Requester confirms the interpreter",
-          description: "After a claim, the requester reviews the assigned interpreter. Exact location and contact details unlock only after confirmation.",
+          title: "Confirm your interpreter",
+          description: "Review the interpreter after they claim the request. Contact details and exact locations open after your confirmation.",
         },
         {
           title: "Both sides confirm completion",
@@ -114,7 +118,7 @@ const copy = {
     safety: {
       label: "Data safety",
       title: "Reveal only what is needed, when it is needed",
-      body: "The landing page should make it clear that exact location and contact details are not visible to everyone from the start.",
+      body: "Review who you are meeting and share only the details needed for interpreting.",
       items: [
         {
           title: "Interpreter approval first",
@@ -137,7 +141,7 @@ const copy = {
       cards: [
         {
           role: "Requester",
-          detail: "Creates requests, confirms the assigned interpreter, and tracks each job through completion.",
+          detail: "Creates requests, tracks job status, and confirms the interpreter before contact details are shared.",
         },
         {
           role: "Volunteer interpreter",
@@ -157,7 +161,7 @@ const copy = {
       needHelp: "Need help?",
       needHelpBody: "Start by creating a request pin with the language, category, and location where help is needed.",
       footerCta: "Create a help request pin",
-      privacy: "Sensitive details stay hidden until the requester confirms the interpreter",
+      privacy: "Sensitive details stay hidden until requester confirmation",
       links: {
         map: "Map preview",
         how: "How it works",
@@ -196,12 +200,12 @@ const copy = {
     mapCard: {
       title: "附近匹配任务",
       meta: "医疗 · 中文 · 距大致位置 5 公里内",
-      privacy: "求助者确认口译员后才解锁准确联系方式和位置",
-      action: "接取任务",
+      privacy: "求助者确认口译员后开放联系方式和详细位置",
+      action: "获取语言帮助",
     },
     featureBand: [
       "按语言和类别匹配，不必逐个联系口译员",
-      "求助者确认口译员前保护准确位置和联系方式",
+      "求助者确认前保护准确位置和联系方式",
       "支持紧急求助和当天预约任务",
     ],
     mapSection: {
@@ -238,8 +242,8 @@ const copy = {
           description: "只有通过审核且语言和类别匹配的口译员，才能看到开放中的求助点。",
         },
         {
-          title: "求助者确认口译员",
-          description: "有人接取后，求助者先核对口译员资料；确认后才显示准确位置和联系方式。",
+          title: "确认口译员后开放详情",
+          description: "接单后先查看并确认口译员，然后开放准确位置和联系方式。",
         },
         {
           title: "双方确认完成",
@@ -273,7 +277,7 @@ const copy = {
       cards: [
         {
           role: "求助者",
-          detail: "创建请求、确认已接单的口译员，并跟踪任务直至完成。",
+          detail: "创建请求、跟踪任务状态，确认口译员后查看联系方式。",
         },
         {
           role: "志愿口译员",
@@ -293,7 +297,7 @@ const copy = {
       needHelp: "需要帮助？",
       needHelpBody: "从创建求助点开始，填写所需语言、类别和需要帮助的位置。",
       footerCta: "创建语言求助点",
-      privacy: "敏感信息会在求助者确认口译员前保持隐藏",
+      privacy: "敏感信息在求助者确认前保持隐藏",
       links: {
         map: "地图预览",
         how: "使用流程",
@@ -310,6 +314,21 @@ const statusTone = ["bg-[#f04f3e] text-white", "bg-white text-[#18384a]", "bg-wh
 const stepIcons = [MapPinIcon, LanguageIcon, LockClosedIcon, CheckCircleIcon] as const;
 const safetyIcons = [CheckBadgeIcon, ShieldCheckIcon, DocumentCheckIcon] as const;
 const roleIcons = [UserCircleIcon, UserGroupIcon, ShieldCheckIcon] as const;
+
+const thaiCopy = {
+  skip: "ข้ามไปเนื้อหาหลัก",
+  header: { brandSubtitle: "แผนที่ล่ามจิตอาสา", languageLabel: "ภาษาหน้าจอ", signIn: "เข้าสู่ระบบ", primaryAction: "สร้างคำขอ", nav: [["แผนที่ตัวอย่าง", "#map-preview"], ["ขั้นตอนใช้งาน", "#how-it-works"], ["ความปลอดภัย", "#safety"], ["บทบาทผู้ใช้", "#roles"]] },
+  hero: { label: "แพลตฟอร์มล่ามจิตอาสาใกล้ตัว", title: "สื่อสารเข้าใจ ด้วยความช่วยเหลือใกล้คุณ", body: "สร้างคำขอ เลือกภาษาและหมวดหมู่ ให้ล่ามจิตอาสาที่ผ่านการอนุมัติและตรงเงื่อนไขเลือกกดรับงาน", primaryCta: "ขอความช่วยเหลือด้านภาษา", secondaryCta: "สมัครเป็นล่าม", statusTitle: "สถานะภารกิจ" },
+  statuses: ["รอล่ามรับงาน", "ล่ามรับงานแล้ว", "กำลังดำเนินการ", "เสร็จสิ้น"],
+  filters: ["จีน", "อังกฤษ", "การแพทย์", "สถานีตำรวจ", "ภายใน 5 กม."], mapLabels: ["บางรัก", "ดินแดง", "คลองเตย"],
+  mapCard: { title: "ตัวอย่างคำขอใกล้คุณ", meta: "การแพทย์ · ภาษาจีน · พื้นที่โดยประมาณ", privacy: "ข้อมูลละเอียดเปิดหลังผู้ขอยืนยันล่าม", action: "เริ่มขอความช่วยเหลือ" },
+  featureBand: ["จับคู่ตามภาษาและหมวดหมู่ โดยล่ามเป็นผู้เลือกรับงาน", "เปิดข้อมูลติดต่อและพิกัดจริงหลังผู้ขอยืนยันล่าม", "รองรับคำขอด่วนและนัดหมายล่วงหน้าภายใน 24 ชั่วโมง"],
+  mapSection: { label: "ตัวอย่างการทำงานบนแผนที่", title: "หนึ่งคำขอ ส่งถึงล่ามที่ตรงความสามารถ", body: "ล่ามที่ผ่านการอนุมัติค้นหางานตามภาษา หมวดหมู่ และระยะทาง ก่อนยืนยันล่ามจะแสดงเฉพาะพื้นที่กว้าง ๆ", cards: [{ title: "คำขอด่วน", meta: "การแพทย์ · ภาษาจีน", location: "พื้นที่โดยประมาณเท่านั้น", action: "ตัวอย่างรอรับงาน", tone: "urgent" }, { title: "นัดหมายวันนี้", meta: "สถานีตำรวจ · ภาษาอังกฤษ", location: "ตัวอย่างนัดหมาย 14:30", action: "ตัวอย่างคำขอ", tone: "scheduled" }] },
+  how: { label: "ขั้นตอนใช้งาน", title: "จากขอความช่วยเหลือจนจบภารกิจ", steps: [{ title: "สร้างคำขอ", description: "เลือกภาษา หมวดหมู่ อธิบายเรื่องที่ต้องการให้ช่วย และระบุจุดนัดพบ" }, { title: "ล่ามที่ตรงเงื่อนไขรับงาน", description: "ล่ามที่ผ่านการอนุมัติและตรงภาษา/หมวดหมู่เลือกกดรับคำขอ" }, { title: "ผู้ขอตรวจสอบและยืนยันล่าม", description: "หลังยืนยันจึงเปิดข้อมูลติดต่อและพิกัดละเอียดเพื่อประสานงาน" }, { title: "ทั้งสองฝ่ายยืนยันจบงาน", description: "เมื่อช่วยเหลือเสร็จ ผู้ขอและล่ามยืนยันจบภารกิจ แล้วผู้ขอจึงให้รีวิว" }] },
+  safety: { label: "ความเป็นส่วนตัว", title: "แบ่งปันข้อมูลเท่าที่จำเป็น", body: "ตรวจสอบบุคคลและสถานที่ก่อนนัดพบ และแบ่งปันข้อมูลตามขั้นตอนยืนยันล่าม", items: [{ title: "ตรวจใบสมัครก่อนรับงาน", description: "ผู้ดูแลตรวจความสามารถและประสบการณ์ก่อนอนุมัติให้เป็นล่าม" }, { title: "แสดงพื้นที่โดยประมาณ", description: "ก่อนยืนยันล่าม แสดงภาษา หมวดหมู่ และพื้นที่กว้าง ๆ" }, { title: "หนึ่งงาน หนึ่งล่าม", description: "ขั้นตอนรับงานกำหนดให้มีล่ามหนึ่งคนต่อคำขอ เพื่อให้ประสานงานได้ชัดเจน" }] },
+  roles: { label: "บทบาทในระบบ", title: "ร่วมช่วยเหลือในบทบาทของคุณ", action: "เข้าสู่ระบบเพื่อเริ่มใช้งาน", cards: [{ role: "ผู้ขอความช่วยเหลือ", detail: "สร้างคำขอ ติดตามสถานะ ยืนยันล่ามและการจบงาน แล้วรีวิว" }, { role: "ล่ามจิตอาสา", detail: "สมัครและรออนุมัติ ค้นหางานที่ตรงความสามารถ แล้วรับงาน" }, { role: "ผู้จัดการ / ผู้ดูแลระบบ", detail: "ตรวจใบสมัคร ดูแลคำร้อง และจัดการผู้ใช้ตามสิทธิ์" }] },
+  footer: { description: "พื้นที่เชื่อมผู้ต้องการความช่วยเหลือด้านภาษากับล่ามจิตอาสา", note: "ประสานงานด้วยความเข้าใจ", explore: "สำรวจ", safety: "ความปลอดภัย", needHelp: "ต้องการความช่วยเหลือ?", needHelpBody: "เริ่มจากระบุภาษา หมวดหมู่ และสถานที่ที่ต้องการความช่วยเหลือ", footerCta: "สร้างคำขอความช่วยเหลือ", privacy: "ข้อมูลละเอียดเปิดหลังผู้ขอยืนยันล่าม", links: { map: "แผนที่ตัวอย่าง", how: "ขั้นตอนใช้งาน", roles: "บทบาท", privacy: "ความเป็นส่วนตัว", request: "สร้างคำขอ", signIn: "เข้าสู่ระบบ" } },
+} as const;
 
 function IconFrame({ icon: IconComponent, className = "" }: { icon: Icon; className?: string }) {
   return (
@@ -337,71 +356,25 @@ function StatusFlow({ labels, title }: { labels: readonly string[]; title: strin
   );
 }
 
-function MapPin({ className = "", sos = false }: { className?: string; sos?: boolean }) {
-  return (
-    <div className={`absolute ${className}`}>
-      <div
-        className={`relative flex h-12 w-12 items-center justify-center rounded-full border-[5px] border-white shadow-[0_12px_22px_rgba(23,54,70,0.2)] ${
-          sos ? "bg-[#f04f3e]" : "bg-[#087f80]"
-        }`}
-      >
-        {sos ? (
-          <ExclamationTriangleIcon aria-hidden="true" className="h-5 w-5 text-white" />
-        ) : (
-          <UserCircleIcon aria-hidden="true" className="h-5 w-5 text-white" />
-        )}
-        <span className={`absolute -bottom-2 h-4 w-4 rotate-45 rounded-[3px] ${sos ? "bg-[#f04f3e]" : "bg-[#087f80]"}`} />
-      </div>
-    </div>
-  );
-}
-
 function MapPreview({ locale }: { locale: Locale }) {
-  const t = copy[resolveCopyLocale(locale)];
+  const imageAlt =
+    locale === "th"
+      ? "ผู้ขอความช่วยเหลือกำลังสื่อสารกับเจ้าหน้าที่โดยมีล่ามช่วยแปลภาษา"
+      : locale === "zh"
+        ? "求助者在口译员协助下与工作人员沟通"
+        : "A requester communicating with a staff member through a volunteer interpreter";
 
   return (
-    <div className="landing-map relative min-h-[520px] overflow-hidden border border-[#d8e1e6] bg-[#eef4f6] shadow-[0_18px_45px_rgba(20,55,72,0.12)]">
-      <div className="absolute left-5 right-5 top-5 z-10 flex flex-wrap gap-2">
-        {t.filters.map((filter) => (
-          <span key={filter} className="rounded-lg border border-[#d8e4e7] bg-white/90 px-3 py-2 text-xs font-extrabold text-[#1d3b46] shadow-sm backdrop-blur">
-            {filter}
-          </span>
-        ))}
-      </div>
-
-      <div className="absolute left-[30%] top-[24%] h-[310px] w-[310px] rounded-full border border-dashed border-[#f04f3e] bg-[#f04f3e]/10" />
-      <div className="absolute left-[39%] top-[41%] z-10 flex h-24 w-24 items-center justify-center rounded-full border-[10px] border-white bg-[#f04f3e] text-xl font-extrabold text-white shadow-[0_18px_30px_rgba(240,79,62,0.28)]">
-        SOS
-      </div>
-      <MapPin className="left-[17%] top-[28%]" sos />
-      <MapPin className="left-[71%] top-[23%]" />
-      <MapPin className="left-[73%] top-[60%]" sos />
-      <MapPin className="left-[23%] top-[67%]" />
-      <MapPin className="left-[58%] top-[70%]" />
-
-      <div className="absolute left-[12%] top-[18%] rounded-lg bg-white/80 px-3 py-1.5 text-xs font-bold text-[#65757b] shadow-sm">{t.mapLabels[0]}</div>
-      <div className="absolute right-[16%] top-[36%] rounded-lg bg-white/80 px-3 py-1.5 text-xs font-bold text-[#65757b] shadow-sm">{t.mapLabels[1]}</div>
-      <div className="absolute bottom-[18%] left-[44%] rounded-lg bg-white/80 px-3 py-1.5 text-xs font-bold text-[#65757b] shadow-sm">{t.mapLabels[2]}</div>
-
-      <div className="absolute bottom-5 left-5 right-5 z-10 border border-[#d8e1e6] bg-white/95 p-4 shadow-[0_14px_28px_rgba(20,55,72,0.12)] backdrop-blur">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <IconFrame icon={UserCircleIcon} className="bg-[#e6f4ef] text-[#087557]" />
-            <div>
-              <p className="text-base font-extrabold text-[#173646]">{t.mapCard.title}</p>
-              <p className="mt-1 text-sm text-[#66777d]">{t.mapCard.meta}</p>
-              <p className="mt-2 flex items-center gap-2 text-xs font-bold text-[#73848a]">
-                <LockClosedIcon aria-hidden="true" className="h-4 w-4" />
-                {t.mapCard.privacy}
-              </p>
-            </div>
-          </div>
-          <a className="inline-flex h-12 shrink-0 items-center justify-center rounded-lg bg-[#087f80] px-6 text-sm font-extrabold text-white shadow-[0_10px_18px_rgba(8,127,128,0.2)] transition-colors hover:bg-[#096f70]" href="/request-help#main-content">
-            {t.mapCard.action}
-          </a>
-        </div>
-      </div>
-    </div>
+    <figure className="relative mx-auto aspect-[3/2] w-full max-w-[640px] self-center overflow-hidden border border-[#d8e1e6] bg-[#eef4f6] shadow-[0_18px_45px_rgba(20,55,72,0.12)] lg:aspect-square">
+      <Image
+        src="/language-help-illustration.png"
+        alt={imageAlt}
+        fill
+        priority
+        className="object-cover object-center"
+        sizes="(min-width: 1440px) 640px, (min-width: 1024px) calc((100vw - 144px) / 2), (min-width: 704px) 640px, (min-width: 640px) calc(100vw - 64px), calc(100vw - 40px)"
+      />
+    </figure>
   );
 }
 
@@ -431,10 +404,28 @@ function RequestCard({ card, icon: IconComponent }: { card: RequestCardContent; 
 }
 
 export default function Home() {
+  const router = useRouter();
+  const [intent, setIntent] = useState<"request" | "volunteer" | null>(null);
   const [locale, setLocale] = useStoredLocale();
-  const t = copy[resolveCopyLocale(locale)];
+  const t = locale === "th" ? thaiCopy : copy[resolveCopyLocale(locale)];
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
+  function continueAfterLogin(user: UserProfile | null = getMockUserSession()) {
+    if (!user) return;
+    setIsSignInOpen(false);
+    setIsRegisterOpen(false);
+    router.push(user.role === "User" && intent ? intent === "request" ? "/request-help#main-content" : "/welcome#volunteer-application" : getRedirectPathByRole(user.role));
+  }
+  function startIntent(nextIntent: "request" | "volunteer") {
+    const user = getMockUserSession();
+    if (user) {
+      router.push(user.role === "User" ? nextIntent === "request" ? "/request-help#main-content" : "/welcome#volunteer-application" : getRedirectPathByRole(user.role));
+      return;
+    }
+    setIntent(nextIntent);
+    setIsSignInOpen(true);
+    setIsRegisterOpen(false);
+  }
 
   useEffect(() => {
     const checkUrl = () => {
@@ -463,7 +454,13 @@ export default function Home() {
   }, []);
 
   return (
-    <main id="top" className="min-h-screen bg-[#f7f9fa] text-[#10283a]">
+    <main id="top" className="min-h-screen bg-[#f7f9fa] text-[#10283a]" onClick={event => {
+      const anchor = (event.target as HTMLElement).closest("a");
+      const href = anchor?.getAttribute("href");
+      if (href === "/request-help#main-content" || href === "/welcome#volunteer-application") {
+        event.preventDefault(); startIntent(href === "/welcome#volunteer-application" ? "volunteer" : "request");
+      }
+    }}>
       <a className="skip-link" href="#main-content">
         {t.skip}
       </a>
@@ -472,21 +469,23 @@ export default function Home() {
         locale={locale}
         onLocaleChange={setLocale}
         onOpenRegister={() => {
+          setIntent(null);
           setIsRegisterOpen(true);
           setIsSignInOpen(false);
         }}
         onOpenSignIn={() => {
+          setIntent(null);
           setIsSignInOpen(true);
           setIsRegisterOpen(false);
         }}
       />
 
-      <section id="main-content" className="mx-auto grid max-w-[1440px] scroll-mt-24 gap-8 px-5 pb-10 pt-8 sm:px-8 lg:grid-cols-[0.76fr_1.24fr] lg:items-center lg:px-12 lg:py-12">
+      <section id="main-content" className="mx-auto grid max-w-[1440px] scroll-mt-24 gap-8 px-5 pb-10 pt-8 sm:px-8 lg:grid-cols-2 lg:gap-12 lg:px-12 lg:py-12">
         <div>
           <p className="max-w-fit rounded-lg border border-[#b9d9d6] bg-[#edf7f5] px-3 py-2 text-sm font-extrabold text-[#087f80]">
             {t.hero.label}
           </p>
-          <h1 className="mt-6 max-w-[680px] text-[clamp(2.2rem,4.8vw,4.35rem)] font-extrabold leading-[1.12] tracking-normal text-[#122b3e]">
+          <h1 className="mt-6 max-w-[680px] text-[clamp(2.2rem,4.8vw,4.35rem)] font-extrabold leading-[1.12] tracking-normal text-balance text-[#122b3e]">
             {t.hero.title}
           </h1>
           <p className="mt-6 max-w-[560px] text-base leading-8 text-[#53656c] sm:text-lg">
@@ -498,13 +497,13 @@ export default function Home() {
               {t.hero.primaryCta}
             </a>
             <div className="flex gap-2">
-              <a className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg border-2 border-[#087f80] px-3 py-2 text-center text-xs font-extrabold leading-5 text-[#087f80] transition-colors hover:bg-[#edf7f5] sm:px-4 sm:text-sm" href="/volunteer/apply">
+              <a className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg border-2 border-[#087f80] px-3 py-2 text-center text-xs font-extrabold leading-5 text-[#087f80] transition-colors hover:bg-[#edf7f5] sm:px-4 sm:text-sm" href="/welcome#volunteer-application">
                 <UserGroupIcon aria-hidden="true" className="h-4 w-4 shrink-0" />
                 {t.hero.secondaryCta}
               </a>
               <button
                 type="button"
-                onClick={() => setIsRegisterOpen(true)}
+                onClick={() => { setIntent(null); setIsRegisterOpen(true); }}
                 className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg border border-[#cbd7dc] bg-white px-3 py-2 text-center text-xs font-extrabold leading-5 text-[#173646] shadow-xs transition-colors hover:border-[#087f80] hover:text-[#087f80] hover:bg-[#edf7f5] sm:px-4 sm:text-sm"
               >
                 <UserPlusIcon aria-hidden="true" className="h-4 w-4 shrink-0 text-[#0d8587]" />
@@ -512,6 +511,7 @@ export default function Home() {
               </button>
             </div>
           </div>
+          <VisitorLanguages locale={locale} />
           <StatusFlow labels={t.statuses} title={t.hero.statusTitle} />
         </div>
 
@@ -626,9 +626,12 @@ export default function Home() {
         </div>
       </section>
 
+      <VisitorFaq locale={locale} />
       <RegisterModal
+        onSuccess={() => continueAfterLogin()}
+        intentLabel={intent ? (locale === "th" ? intent === "request" ? "สมัครเพื่อสร้างคำขอความช่วยเหลือ" : "สมัครเพื่อดูขั้นตอนสมัครล่าม" : locale === "zh" ? intent === "request" ? "注册以创建求助请求" : "注册以查看口译员申请步骤" : intent === "request" ? "Register to create a help request" : "Register to explore interpreter applications") : undefined}
         isOpen={isRegisterOpen}
-        onClose={() => setIsRegisterOpen(false)}
+        onClose={() => { setIsRegisterOpen(false); setIntent(null); }}
         onSwitchToSignIn={() => {
           setIsRegisterOpen(false);
           setIsSignInOpen(true);
@@ -636,8 +639,10 @@ export default function Home() {
       />
 
       <LoginModal
+        onSuccess={continueAfterLogin}
+        intentLabel={intent ? (locale === "th" ? intent === "request" ? "เข้าสู่ระบบเพื่อสร้างคำขอความช่วยเหลือ" : "เข้าสู่ระบบเพื่อดูขั้นตอนสมัครล่าม" : locale === "zh" ? intent === "request" ? "登录以创建求助请求" : "登录以查看口译员申请步骤" : intent === "request" ? "Sign in to create a help request" : "Sign in to explore interpreter applications") : undefined}
         isOpen={isSignInOpen}
-        onClose={() => setIsSignInOpen(false)}
+        onClose={() => { setIsSignInOpen(false); setIntent(null); }}
         onSwitchToRegister={() => {
           setIsSignInOpen(false);
           setIsRegisterOpen(true);
