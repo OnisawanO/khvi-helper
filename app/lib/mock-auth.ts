@@ -5,6 +5,7 @@ export type UserRole = "User" | "Interpreter" | "Manager" | "Admin";
 export interface UserProfile {
   userId: string;
   name: string;
+  avatarUrl?: string;
   email: string;
   phone: string;
   dateOfBirth: string;

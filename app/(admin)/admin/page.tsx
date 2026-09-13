@@ -26,7 +26,8 @@ import {
 } from "@heroicons/react/24/outline";
 import { BrandMark } from "@/app/components/brand-mark";
 import { SiteFooter } from "@/app/components/site-footer";
-import { clearMockUserSession, getMockUserSession, getRedirectPathByRole } from "@/app/lib/mock-auth";
+import { clearMockUserSession, DEFAULT_MOCK_USERS, getMockUserSession, getRedirectPathByRole, type UserProfile } from "@/app/lib/mock-auth";
+import { UserAvatar } from "@/app/components/user-avatar";
 
 export type SystemRole = "User" | "Interpreter" | "Manager" | "Admin";
 
@@ -259,7 +260,8 @@ const AVAILABLE_CATEGORIES = [
   "General Help",
 ];
 
-function AdminHeader({ onMenuClick, onSignOut }: { onMenuClick?: () => void; onSignOut: () => void }) {
+function AdminHeader({ currentUser, onMenuClick, onSignOut }: { currentUser: UserProfile | null; onMenuClick?: () => void; onSignOut: () => void }) {
+  const displayUser = currentUser ?? DEFAULT_MOCK_USERS.Admin;
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
@@ -303,12 +305,10 @@ function AdminHeader({ onMenuClick, onSignOut }: { onMenuClick?: () => void; onS
               aria-expanded={profileMenuOpen}
               aria-haspopup="menu"
             >
-              <div className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-[#087f80] bg-[#092f45] text-xs font-extrabold text-white">
-                IK
-              </div>
+              <UserAvatar user={displayUser} size="sm" className="border border-[#087f80]" />
               <div className="text-left hidden sm:block">
-                <p className="text-xs font-extrabold leading-tight text-[#10283a]">Ilham Khamsikeaw</p>
-                <p className="text-[11px] font-semibold text-[#087f80]">Super Admin</p>
+                <p className="text-xs font-extrabold leading-tight text-[#10283a]">{displayUser.name}</p>
+                <p className="text-[11px] font-semibold text-[#087f80]">{displayUser.role}</p>
               </div>
               <ChevronDownIcon
                 className={`h-4 w-4 text-[#5e7783] transition-transform ${
@@ -321,8 +321,8 @@ function AdminHeader({ onMenuClick, onSignOut }: { onMenuClick?: () => void; onS
             {profileMenuOpen && (
               <div className="absolute right-0 mt-2 w-64 rounded-xl border border-[#d6e0e4] bg-white p-2 shadow-[0_18px_36px_rgba(19,52,68,0.16)] animate-in fade-in zoom-in-95">
                 <div className="border-b border-[#eef3f5] px-3 py-2.5">
-                  <p className="text-sm font-extrabold text-[#153447]">Ilham Khamsikeaw</p>
-                  <p className="text-xs text-[#6a808a]">ilham.k@khvi-admin.org</p>
+                  <p className="text-sm font-extrabold text-[#153447]">{displayUser.name}</p>
+                  <p className="text-xs text-[#6a808a]">{displayUser.email}</p>
                   <span className="mt-2 inline-flex items-center gap-1 rounded-md bg-[#e6f4ef] px-2 py-0.5 text-[11px] font-bold text-[#087557]">
                     <CheckBadgeIcon className="h-3.5 w-3.5" />
                     Authorized Root Admin
@@ -330,7 +330,7 @@ function AdminHeader({ onMenuClick, onSignOut }: { onMenuClick?: () => void; onS
                 </div>
                 <div className="py-1">
                   <Link
-                    href="#profile"
+                    href="/profile#main-content"
                     onClick={() => setProfileMenuOpen(false)}
                     className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-bold text-[#2d4957] transition-colors hover:bg-[#f2f7f9] hover:text-[#087f80]"
                   >
@@ -371,6 +371,7 @@ function AdminHeader({ onMenuClick, onSignOut }: { onMenuClick?: () => void; onS
 export default function AdminPage() {
   const router = useRouter();
   const [authChecked, setAuthChecked] = useState(false);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [activeTab, setActiveTab] = useState<"users" | "interpreters" | "audit">("users");
   const [auditViewMode, setAuditViewMode] = useState<"table" | "activity">("table");
   const [users, setUsers] = useState<AdminUserRecord[]>(initialUsers);
@@ -427,7 +428,10 @@ export default function AdminPage() {
       return;
     }
 
-    queueMicrotask(() => setAuthChecked(true));
+    queueMicrotask(() => {
+      setCurrentUser(session);
+      setAuthChecked(true);
+    });
   }, [router]);
 
   const showToast = (msg: string) => {
@@ -598,6 +602,7 @@ export default function AdminPage() {
 
       {/* Top Header with Hamburger for Mobile Drawer */}
       <AdminHeader
+        currentUser={currentUser}
         onMenuClick={() => setIsMobileDrawerOpen(true)}
         onSignOut={() => {
           clearMockUserSession();

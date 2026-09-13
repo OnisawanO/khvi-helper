@@ -22,7 +22,7 @@ type SiteHeaderProps = {
   onOpenRegister?: () => void;
   onOpenSignIn?: () => void;
   accountActions?: ReactNode;
-  workspaceRole?: "User" | "Interpreter";
+  workspaceRole?: "User" | "Interpreter" | "Manager" | "Admin";
 };
 
 const languageOptions = [
@@ -223,14 +223,15 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
 
   const registerLabel = getRegisterLabel(locale);
   const primaryActionLabel = copy.primaryAction;
+  const workspaceHomeHref = workspaceRole === "Manager" ? "/manager" : workspaceRole === "Admin" ? "/admin" : "/welcome";
 
   return (
     <header className="sticky top-0 z-30 border-b border-[#dbe3e7] bg-[#fbfdfc]/95 shadow-[0_8px_24px_rgba(21,52,67,0.06)] backdrop-blur">
       <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-5 py-3.5 sm:px-8 lg:gap-6 lg:px-12">
         <BrandMark
           subtitle={copy.brandSubtitle}
-          href={workspaceRole ? "/welcome" : "/#top"}
-          ariaLabel={workspaceRole ? "KHVI welcome" : "KHVI home"}
+          href={workspaceRole ? workspaceHomeHref : "/#top"}
+          ariaLabel={workspaceRole ? "KHVI workspace" : "KHVI home"}
         />
         <nav className="hidden items-center gap-7 text-[13px] font-extrabold text-[#39525d] lg:flex" aria-label="Primary navigation">
           {navItems.map(([label, href]) => (

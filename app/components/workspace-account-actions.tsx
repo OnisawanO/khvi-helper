@@ -4,6 +4,7 @@ import { ArrowRightOnRectangleIcon, ChevronDownIcon, UserCircleIcon } from "@her
 import { useEffect, useRef, useState } from "react";
 import type { UserProfile } from "@/app/lib/mock-auth";
 import { useUiLocale } from "./app-shell";
+import { UserAvatar } from "./user-avatar";
 
 const accountCopy = {
   en: { menu: "Open profile menu", profileSettings: "Profile & Settings", signOut: "Sign out" },
@@ -12,14 +13,6 @@ const accountCopy = {
   my: { menu: "ပရိုဖိုင်မီနူး ဖွင့်ရန်", profileSettings: "ပရိုဖိုင်နှင့် ဆက်တင်များ", signOut: "ထွက်ရန်" },
   vi: { menu: "Mở menu hồ sơ", profileSettings: "Hồ sơ và cài đặt", signOut: "Đăng xuất" },
 } as const;
-
-function getInitials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-
-  if (parts.length === 0) return "U";
-
-  return parts.slice(0, 2).map((part) => Array.from(part)[0]).join("").toUpperCase();
-}
 
 export function WorkspaceAccountActions({ user, onSignOut }: { user: UserProfile; onSignOut: () => void }) {
   const locale = useUiLocale();
@@ -58,9 +51,7 @@ export function WorkspaceAccountActions({ user, onSignOut }: { user: UserProfile
         aria-expanded={profileMenuOpen}
         aria-haspopup="menu"
       >
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-(--khvi-navy) text-xs font-extrabold text-white">
-          {getInitials(user.name)}
-        </span>
+        <UserAvatar user={user} size="sm" />
         <span className="hidden min-w-0 text-left md:block">
           <span className="block max-w-36 truncate text-xs font-extrabold leading-tight text-(--khvi-ink)">{user.name}</span>
           <span className="mt-0.5 block text-[11px] font-semibold text-(--khvi-teal)">{user.role}</span>
@@ -85,7 +76,7 @@ export function WorkspaceAccountActions({ user, onSignOut }: { user: UserProfile
           </div>
           <div className="py-1">
             <a
-              href="#profile"
+              href="/profile#main-content"
               role="menuitem"
               onClick={() => setProfileMenuOpen(false)}
               className="flex w-full items-center gap-2.5 rounded-(--khvi-radius-sm) px-3 py-2 text-xs font-bold text-(--khvi-ink)/80 transition-colors hover:bg-(--khvi-paper) hover:text-(--khvi-teal) focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--khvi-sun)"
