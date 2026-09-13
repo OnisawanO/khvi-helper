@@ -3,7 +3,7 @@
 import { ArrowRightOnRectangleIcon, ChevronDownIcon, UserCircleIcon } from "@heroicons/react/24/outline";
 import { useEffect, useRef, useState } from "react";
 import type { UserProfile } from "@/app/lib/mock-auth";
-import { useCopyLocale } from "./app-shell";
+import { useUiLocale } from "./app-shell";
 
 const accountCopy = {
   en: { menu: "Open profile menu", profileSettings: "Profile & Settings", signOut: "Sign out" },
@@ -22,7 +22,7 @@ function getInitials(name: string) {
 }
 
 export function WorkspaceAccountActions({ user, onSignOut }: { user: UserProfile; onSignOut: () => void }) {
-  const locale = useCopyLocale();
+  const locale = useUiLocale();
   const copy = accountCopy[locale];
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
