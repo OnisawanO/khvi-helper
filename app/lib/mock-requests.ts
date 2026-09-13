@@ -39,6 +39,12 @@ export type InterpreterContact = {
   completedJobCount: number;
 };
 
+export type RequesterContact = {
+  userId: string;
+  name: string;
+  phone: string;
+};
+
 export type HelpRequest = {
   requestId: string;
   languageId: LanguageId;
@@ -46,9 +52,9 @@ export type HelpRequest = {
   description: string;
   urgency: Urgency;
   status: RequestStatus;
-  /** Broad area shown on the map before a claim (BR-04). */
+  /** Broad area shown before requester confirmation (BR-04). */
   areaName: string;
-  /** Exact meeting point, unlocked only after a claim (BR-04). */
+  /** Exact meeting point, unlocked for the interpreter after requester confirmation (BR-04). */
   exactAddress: string;
   latitude: number | null;
   longitude: number | null;
@@ -61,6 +67,11 @@ export type HelpRequest = {
   startedAtLabel: string | null;
   userConfirmedDoneAtLabel: string | null;
   interpreterConfirmedDoneAtLabel: string | null;
+  /** Preview ownership fields used to connect requester and interpreter workspaces. */
+  requester?: RequesterContact | null;
+  interpreterId?: string | null;
+  requesterConfirmedAtLabel?: string | null;
+  endedAtLabel?: string | null;
   cancelledBy: CancelledBy | null;
   cancelReason: string | null;
   interpreter: InterpreterContact | null;
@@ -237,7 +248,7 @@ export function findRequest(requestId: string): HelpRequest | null {
   return MOCK_REQUESTS.find((request) => request.requestId === requestId) ?? null;
 }
 
-/** BR-04: exact address and interpreter contact details stay hidden until a claim. */
+/** Assignment/profile visibility begins at claim; sensitive details require requester confirmation. */
 export function isContactUnlocked(status: RequestStatus): boolean {
   return status === "Claimed" || status === "InProgress" || status === "Completed";
 }

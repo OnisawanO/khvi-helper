@@ -1,16 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   ArrowLeftIcon,
+  CheckCircleIcon,
   ClipboardDocumentListIcon,
+  ExclamationTriangleIcon,
   MapPinIcon,
 } from "@heroicons/react/24/outline";
 import { useCopyLocale } from "@/app/components/app-shell";
 import { ExpiryCountdown } from "@/app/components/expiry-countdown";
 import { StatusBadge, UrgencyBadge } from "@/app/components/request-badges";
-import { useRequests } from "@/app/lib/request-store";
+import { claimRequest, useRequests } from "@/app/lib/request-store";
+import { getMockUserSession } from "@/app/lib/mock-auth";
 import { categoryLabel, languageLabel, type Urgency } from "@/app/lib/mock-requests";
 
 const REQUEST_FILTERS = [
@@ -33,7 +37,8 @@ const copy = {
     created: "Created",
     scheduled: "Appointment",
     area: "Area",
-    claimUnavailable: "Claim coming soon",
+    claim: "Claim request",
+    claimError: "This request could not be claimed. Refresh the list and try again.",
     emptyTitle: "No matching requests",
     emptyBody: "No open request matches this filter. New requests will appear here when they are available.",
     guide: "Read the assignment guide",
@@ -50,7 +55,8 @@ const copy = {
     created: "创建时间",
     scheduled: "预约时间",
     area: "区域",
-    claimUnavailable: "接单功能即将开放",
+    claim: "接取任务",
+    claimError: "无法接取此任务。请刷新列表后重试。",
     emptyTitle: "没有匹配的求助",
     emptyBody: "没有符合此筛选条件的开放求助。新求助可用后会显示在这里。",
     guide: "查看接单指南",
@@ -59,7 +65,10 @@ const copy = {
 } as const;
 
 export function FindRequestsList() {
+  const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<RequestFilterId>("all");
+  const [claimingId, setClaimingId] = useState<string | null>(null);
+  const [claimError, setClaimError] = useState<string | null>(null);
   const { requests: allRequests, ready } = useRequests();
   const copyLocale = useCopyLocale();
   const t = copy[copyLocale];
@@ -70,6 +79,20 @@ export function FindRequestsList() {
   };
   const requests = matching(activeFilter);
   const counts = Object.fromEntries(REQUEST_FILTERS.map((filter) => [filter.id, matching(filter.id).length]));
+
+  function handleClaim(requestId: string) {
+    const actor = getMockUserSession();
+    if (!actor) return;
+    setClaimingId(requestId);
+    setClaimError(null);
+    try {
+      claimRequest(requestId, actor);
+      router.push(`/my-requests/${requestId}`);
+    } catch (error) {
+      setClaimError(error instanceof Error ? error.message : t.claimError);
+      setClaimingId(null);
+    }
+  }
 
   return (
     <main id="main-content" className="flex-1 px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
@@ -120,6 +143,13 @@ export function FindRequestsList() {
           })}
         </nav>
 
+        {claimError && (
+          <p role="alert" className="mt-5 flex items-start gap-2 border border-[#f6b8ae] bg-[#fff6f4] p-4 text-sm font-bold text-[#b93225]">
+            <ExclamationTriangleIcon aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0" />
+            {claimError}
+          </p>
+        )}
+
         {!ready ? (
           <p role="status" className="mt-6">{t.loading}</p>
         ) : requests.length === 0 ? (
@@ -157,9 +187,17 @@ export function FindRequestsList() {
                       {request.scheduledAtLabel && <span>{t.scheduled}: {request.scheduledAtLabel}</span>}
                     </div>
                   </div>
-                  <div className="flex shrink-0 items-center justify-between gap-4 border-t border-[#eef2f4] pt-4 lg:w-64 lg:flex-col lg:items-end lg:border-t-0 lg:pt-0">
+                  <div className="flex shrink-0 flex-col gap-3 border-t border-[#eef2f4] pt-4 lg:w-64 lg:border-t-0 lg:pt-0">
                     {request.expiresAt && <ExpiryCountdown seconds={0} expiresAt={request.expiresAt} copyLocale={copyLocale} compact />}
-                    <span className="text-xs font-extrabold text-[#8a9aa0]">{t.claimUnavailable}</span>
+                    <button
+                      type="button"
+                      disabled={claimingId !== null}
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-(--khvi-navy) px-4 text-sm font-extrabold text-white transition-colors hover:bg-[#0c4960] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun) disabled:cursor-wait disabled:opacity-60"
+                      onClick={() => handleClaim(request.requestId)}
+                    >
+                      <CheckCircleIcon aria-hidden="true" className="h-5 w-5" />
+                      {t.claim}
+                    </button>
                   </div>
                 </article>
               </li>

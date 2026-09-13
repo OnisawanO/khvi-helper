@@ -11,7 +11,7 @@
 | Authentication | mock-auth.ts stores sessions locally; requirements FR-01 and server authorization are future integration work. | Use the existing session for navigation and presentation. This is not a security boundary. |
 | Request activity | request-store.ts stores device-wide records with no requester or interpreter identity. | Label activity as saved on this device. Interpreter routes may show status-based request summaries for preview, but must not present them as account-owned or skill-matched data. |
 | Interpreter jobs | Map, profile matching, claims and account-scoped job history have no implemented data source. | Use `/find-requests` for open summaries and `/my-assignments` for claimed, in-progress or completed summaries. Keep Claim unavailable until its workflow exists. |
-| Privacy | FR-10/11 require requester confirmation; current request detail unlocks after claim. | Leave that workflow unchanged here. Provide practical privacy advice; describe confirmation in the planned interpreter guide. |
+| Privacy | FR-10/11 require requester confirmation before sensitive details unlock. | Explain the confirmation gate consistently in the requester and interpreter guidance. |
 | Scheduling | Current code implements strictly over 30 minutes and at most 24 hours ahead per earlier user instruction. | Describe existing appointment limits; leave expiry implementation unchanged. |
 
 No database schema, claim workflow, request ownership or server authorization is changed. Existing design tokens, header, footer, badges and navigation anchors are reused. Welcome displays name, role, sign-out and role-specific links. There is no availability switch, chat or rating data.

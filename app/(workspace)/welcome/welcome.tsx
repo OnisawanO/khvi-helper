@@ -127,9 +127,9 @@ function WelcomeContent({ user }: { user: UserProfile }) {
         <span className="inline-flex h-11 w-11 items-center justify-center rounded-(--khvi-radius-sm) bg-(--khvi-teal)/10"><MapPinIcon aria-hidden="true" className="h-6 w-6 text-(--khvi-teal)" /></span>
         <h2 className="mt-4 text-xl font-bold">{interpreter ? (zh ? "附近的匹配请求" : "Matching requests nearby") : (zh ? "按你的时间安排" : "Help on your schedule")}</h2>
         {interpreter ? <>
-          <span className="mt-4 inline-block rounded-full bg-(--khvi-sun)/20 px-3 py-1 text-xs font-semibold">{zh ? "即将开放" : "Coming soon"}</span>
-          <p className="mt-4 text-sm leading-7 text-(--khvi-ink)/75">{zh ? "接单地图尚未开放。开放后，你可以按语言、事项和距离查看合适的求助。" : "The assignment map is not available yet. When it opens, you’ll be able to find requests by language, category and distance."}</p>
-          <p className="mt-5 border-t border-(--khvi-teal)/20 pt-4 text-sm leading-6">{zh ? "目前不能从此页接单。" : "Accepting assignments is not available from this page yet."}</p>
+          <span className="mt-4 inline-block rounded-full bg-(--khvi-teal)/10 px-3 py-1 text-xs font-semibold text-(--khvi-teal)">{zh ? "已开放" : "Available now"}</span>
+          <p className="mt-4 text-sm leading-7 text-(--khvi-ink)/75">{zh ? "按语言、事项和大致区域查看开放中的求助；每次只能接取一个进行中的任务。" : "Browse open requests by language, category and approximate area. You can hold one active assignment at a time."}</p>
+          <p className="mt-5 border-t border-(--khvi-teal)/20 pt-4 text-sm leading-6">{zh ? "从“查找求助”进入任务池并接取合适的任务。" : "Open Find requests to review the pool and claim a suitable assignment."}</p>
         </> : <div className="mt-5 space-y-5">
           <div className="flex gap-3"><BoltIcon aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-(--khvi-coral)" /><div><h3 className="text-sm font-bold">{zh ? "紧急求助" : "Need help soon"}</h3><p className="mt-1 text-sm leading-6 text-(--khvi-ink)/75">{zh ? "选择紧急求助。若 30 分钟内无人接单，请求将过期。" : "Choose Urgent. Your request expires after 30 minutes if no interpreter accepts."}</p></div></div>
           <div className="flex gap-3 border-t border-(--khvi-teal)/20 pt-5"><CalendarDaysIcon aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-(--khvi-teal)" /><div><h3 className="text-sm font-bold">{zh ? "预约帮助" : "Plan a meeting"}</h3><p className="mt-1 text-sm leading-6 text-(--khvi-ink)/75">{zh ? "选择超过 30 分钟后、24 小时内的时间。" : "Choose a time more than 30 minutes ahead, within the next 24 hours."}</p></div></div>

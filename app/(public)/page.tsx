@@ -60,18 +60,18 @@ const copy = {
     mapCard: {
       title: "Matched job near you",
       meta: "Medical · Chinese · within 5 km from an approximate location",
-      privacy: "Exact contact details and location unlock after claim",
+      privacy: "Exact contact details and location unlock after requester confirmation",
       action: "Claim job",
     },
     featureBand: [
       "Match by language and category, instead of asking one interpreter at a time",
-      "Protect exact location and contact details until a job is claimed",
+      "Protect exact location and contact details until the requester confirms the interpreter",
       "Support urgent jobs and same-day scheduled requests",
     ],
     mapSection: {
       label: "Map workflow preview",
       title: "One pin goes to every approved interpreter who matches the request",
-      body: "The platform reduces waiting time by pooling each request for qualified interpreters, while still hiding sensitive details until someone claims the job.",
+      body: "The platform reduces waiting time by pooling each request for qualified interpreters, while keeping sensitive details hidden until the requester confirms the assigned interpreter.",
       cards: [
         {
           title: "Urgent request",
@@ -102,8 +102,8 @@ const copy = {
           description: "Only approved interpreters with the matching language and category can see the open pin.",
         },
         {
-          title: "Details unlock after claim",
-          description: "Before claim, only a rough area is visible. After claim, exact location and contact details are shown.",
+          title: "Requester confirms the interpreter",
+          description: "After a claim, the requester reviews the assigned interpreter. Exact location and contact details unlock only after confirmation.",
         },
         {
           title: "Both sides confirm completion",
@@ -137,7 +137,7 @@ const copy = {
       cards: [
         {
           role: "Requester",
-          detail: "Creates requests, tracks job status, and sees interpreter contact details after a claim.",
+          detail: "Creates requests, confirms the assigned interpreter, and tracks each job through completion.",
         },
         {
           role: "Volunteer interpreter",
@@ -157,7 +157,7 @@ const copy = {
       needHelp: "Need help?",
       needHelpBody: "Start by creating a request pin with the language, category, and location where help is needed.",
       footerCta: "Create a help request pin",
-      privacy: "Sensitive details stay hidden until a job is claimed",
+      privacy: "Sensitive details stay hidden until the requester confirms the interpreter",
       links: {
         map: "Map preview",
         how: "How it works",
@@ -196,18 +196,18 @@ const copy = {
     mapCard: {
       title: "附近匹配任务",
       meta: "医疗 · 中文 · 距大致位置 5 公里内",
-      privacy: "接取任务后解锁准确联系方式和位置",
+      privacy: "求助者确认口译员后才解锁准确联系方式和位置",
       action: "接取任务",
     },
     featureBand: [
       "按语言和类别匹配，不必逐个联系口译员",
-      "任务被接取前保护准确位置和联系方式",
+      "求助者确认口译员前保护准确位置和联系方式",
       "支持紧急求助和当天预约任务",
     ],
     mapSection: {
       label: "地图流程预览",
       title: "一个求助点会展示给所有符合条件的已审核口译员",
-      body: "平台把每个请求放入任务池，减少等待时间，同时在任务被接取前隐藏敏感信息。",
+      body: "平台把每个请求放入任务池，减少等待时间，同时在求助者确认已接单的口译员前隐藏敏感信息。",
       cards: [
         {
           title: "紧急求助",
@@ -238,8 +238,8 @@ const copy = {
           description: "只有通过审核且语言和类别匹配的口译员，才能看到开放中的求助点。",
         },
         {
-          title: "接取后解锁详细信息",
-          description: "接取前只显示大致区域；接取后显示准确位置和联系方式。",
+          title: "求助者确认口译员",
+          description: "有人接取后，求助者先核对口译员资料；确认后才显示准确位置和联系方式。",
         },
         {
           title: "双方确认完成",
@@ -273,7 +273,7 @@ const copy = {
       cards: [
         {
           role: "求助者",
-          detail: "创建请求、跟踪任务状态，并在任务被接取后查看口译员联系方式。",
+          detail: "创建请求、确认已接单的口译员，并跟踪任务直至完成。",
         },
         {
           role: "志愿口译员",
@@ -293,7 +293,7 @@ const copy = {
       needHelp: "需要帮助？",
       needHelpBody: "从创建求助点开始，填写所需语言、类别和需要帮助的位置。",
       footerCta: "创建语言求助点",
-      privacy: "敏感信息会在任务被接取前保持隐藏",
+      privacy: "敏感信息会在求助者确认口译员前保持隐藏",
       links: {
         map: "地图预览",
         how: "使用流程",
