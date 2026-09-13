@@ -3,11 +3,13 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState, useRef, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   AdjustmentsHorizontalIcon,
   ArchiveBoxXMarkIcon,
   ArrowLeftOnRectangleIcon,
   ArrowPathIcon,
+  ArrowsRightLeftIcon,
   Bars3Icon,
   BriefcaseIcon,
   ChatBubbleLeftRightIcon,
@@ -16,11 +18,8 @@ import {
   CheckIcon,
   ChevronDownIcon,
   Cog6ToothIcon,
-  DocumentTextIcon,
   EllipsisHorizontalIcon,
-  ExclamationCircleIcon,
   ExclamationTriangleIcon,
-  IdentificationIcon,
   InboxStackIcon,
   LanguageIcon,
   MagnifyingGlassIcon,
@@ -29,280 +28,210 @@ import {
   ShieldCheckIcon,
   ShieldExclamationIcon,
   UserCircleIcon,
-  UserPlusIcon,
-  XCircleIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
+import { BrandMark } from "@/app/components/brand-mark";
 import { SiteFooter } from "@/app/components/site-footer";
 
-type ApplicantDocument = {
-  name: string;
-  type: "id" | "cert" | "cv" | "police";
-  size: string;
-};
+import { InterpreterApplicant, HelpTicket, IncidentReport } from "./types";
+import {
+  initialApplicants,
+  initialTickets,
+  initialReports,
+  formatBadgeCount,
+} from "./mock-data";
+import { ApplicantDetailModal } from "./components/applicant-detail-modal";
+import { LoginModal } from "@/app/components/auth/login-modal";
+import {
+  getMockUserSession,
+  clearMockUserSession,
+  getRedirectPathByRole,
+  DEFAULT_MOCK_USERS,
+  type UserProfile,
+} from "@/app/lib/mock-auth";
 
-type InterpreterApplicant = {
-  id: string;
-  name: string;
-  age: number;
-  country: string;
-  primaryLanguage: string;
-  spokenLanguages: string[];
-  specialtyCategories: string[];
-  experienceSummary: string;
-  contactChannels: string;
-  appliedDate: string;
-  status: "Pending" | "Under Review" | "Approved" | "Rejected";
-  rejectionReason?: string;
-  documents: ApplicantDocument[];
-  backgroundCheck: "Passed" | "Pending" | "Requires Review";
-  proficiencyScore?: string;
-};
-
-type HelpTicket = {
-  id: string;
-  requesterName: string;
-  requesterRole: "User" | "Interpreter";
-  category: "Safety" | "Communication" | "No-Show" | "Other";
-  missionId: string;
-  title: string;
-  detail: string;
-  createdAt: string;
-  status: "Open" | "In Progress" | "Resolved";
-  urgency: "urgent" | "normal";
-  response?: string;
-};
-
-type IncidentReport = {
-  id: string;
-  reporterName: string;
-  reporterRole: "User" | "Interpreter";
-  reportedUserName: string;
-  reportedUserRole: "User" | "Interpreter";
-  bookingId: string;
-  reason: string;
-  createdAt: string;
-  status: "Pending Investigation" | "Escalated to Admin" | "Resolved";
-  actionTaken?: string;
-};
-
-const initialApplicants: InterpreterApplicant[] = [
-  {
-    id: "APP-101",
-    name: "Sompong Vorakul",
-    age: 32,
-    country: "Thailand",
-    primaryLanguage: "Thai",
-    spokenLanguages: ["Thai", "Mandarin Chinese"],
-    specialtyCategories: ["Medical", "Tourism"],
-    experienceSummary: "5 years volunteer medical translator at community clinics and emergency relief stations in Bangkok.",
-    contactChannels: "Line: sompong_v | Tel: 081-234-5678",
-    appliedDate: "2026-09-07 14:20",
-    status: "Pending",
-    backgroundCheck: "Passed",
-    proficiencyScore: "Native Thai, HSK 5 (Mandarin)",
-    documents: [
-      { name: "Thai_National_ID.pdf", type: "id", size: "1.4 MB" },
-      { name: "Medical_Interpreting_Cert.pdf", type: "cert", size: "2.1 MB" },
-      { name: "CV_Sompong_2026.pdf", type: "cv", size: "850 KB" },
-    ],
-  },
-  {
-    id: "APP-102",
-    name: "Lin Wei Chen",
-    age: 28,
-    country: "Taiwan",
-    primaryLanguage: "Mandarin Chinese",
-    spokenLanguages: ["Mandarin Chinese", "English"],
-    specialtyCategories: ["Police station", "Legal Documentation"],
-    experienceSummary: "Certified legal and administrative interpreter in Taipei, fluent in consular procedures and consular crisis aid.",
-    contactChannels: "WeChat: linwei_tw | Email: linwei@example.com",
-    appliedDate: "2026-09-07 11:05",
-    status: "Under Review",
-    backgroundCheck: "Passed",
-    proficiencyScore: "TOCFL Level 6 (Native), IELTS 8.0",
-    documents: [
-      { name: "Passport_Scan_LinWei.pdf", type: "id", size: "2.3 MB" },
-      { name: "Legal_Translation_License.pdf", type: "cert", size: "3.5 MB" },
-      { name: "Police_Clearance_Cert.pdf", type: "police", size: "1.1 MB" },
-    ],
-  },
-  {
-    id: "APP-103",
-    name: "Aung Myo Zaw",
-    age: 26,
-    country: "Myanmar",
-    primaryLanguage: "Burmese",
-    spokenLanguages: ["Burmese"],
-    specialtyCategories: ["Labour Assistance", "Medical"],
-    experienceSummary: "Active frontline interpreter for Myanmar migrant worker health clinic and hospital emergency ward in Samut Sakhon.",
-    contactChannels: "Viber: aungmyo_zaw | Tel: 089-876-5432",
-    appliedDate: "2026-09-06 18:40",
-    status: "Pending",
-    backgroundCheck: "Passed",
-    proficiencyScore: "Native Burmese Fluency",
-    documents: [
-      { name: "Alien_Registration_Card.pdf", type: "id", size: "980 KB" },
-      { name: "Community_Health_Volunteer_Cert.pdf", type: "cert", size: "1.8 MB" },
-      { name: "Resume_AungMyo.pdf", type: "cv", size: "620 KB" },
-    ],
-  },
-  {
-    id: "APP-104",
-    name: "Nguyen Thi Mai",
-    age: 30,
-    country: "Vietnam",
-    primaryLanguage: "Vietnamese",
-    spokenLanguages: ["Vietnamese"],
-    specialtyCategories: ["Tourism", "Police station"],
-    experienceSummary: "Tourism and immigration assistance coordinator for Vietnamese travelers and expatriates.",
-    contactChannels: "Zalo: mai_nguyen | Tel: 092-345-6789",
-    appliedDate: "2026-09-05 09:15",
-    status: "Under Review",
-    backgroundCheck: "Requires Review",
-    proficiencyScore: "C2 Vietnamese (Native)",
-    documents: [
-      { name: "Passport_MaiNguyen.pdf", type: "id", size: "1.9 MB" },
-      { name: "Tourism_Guild_Badge.pdf", type: "cert", size: "1.2 MB" },
-    ],
-  },
-  {
-    id: "APP-105",
-    name: "Kenji Tanaka",
-    age: 35,
-    country: "Japan",
-    primaryLanguage: "Japanese",
-    spokenLanguages: ["Japanese", "English"],
-    specialtyCategories: ["Medical", "Tourism"],
-    experienceSummary: "Former consular aid assistant in Bangkok, experienced with disaster evacuation and hospital referrals.",
-    contactChannels: "Line: kenji_t | Email: kenji.tanaka@example.jp",
-    appliedDate: "2026-09-04 16:30",
-    status: "Approved",
-    backgroundCheck: "Passed",
-    proficiencyScore: "JLPT N1 (Native), TOEIC 920",
-    documents: [
-      { name: "Consular_Affidavit.pdf", type: "id", size: "2.8 MB" },
-      { name: "Medical_Volunteering_Record.pdf", type: "cert", size: "1.5 MB" },
-    ],
-  },
-  {
-    id: "APP-106",
-    name: "Elena Rostova",
-    age: 29,
-    country: "Russia",
-    primaryLanguage: "Russian",
-    spokenLanguages: ["Russian", "English"],
-    specialtyCategories: ["Tourism"],
-    experienceSummary: "Hospitality assistance volunteer for Russian tourists in Phuket and Pattaya area.",
-    contactChannels: "Telegram: elena_rost | Tel: 095-112-2334",
-    appliedDate: "2026-09-03 13:00",
-    status: "Rejected",
-    rejectionReason: "Incomplete documentation: missing primary identity verification and criminal record clearance certificate.",
-    backgroundCheck: "Requires Review",
-    proficiencyScore: "Native Russian, IELTS 7.5",
-    documents: [
-      { name: "Resume_Draft.pdf", type: "cv", size: "450 KB" },
-    ],
-  },
-];
-
-const initialTickets: HelpTicket[] = [
-  {
-    id: "HLP-801",
-    requesterName: "Mei Ling Zhang",
-    requesterRole: "User",
-    category: "Communication",
-    missionId: "MSN-4421",
-    title: "Interpreter cannot arrive at emergency room in time",
-    detail: "Current traffic blockage around Din Daeng. Need immediate alternative interpreter or remote phone assist.",
-    createdAt: "10 mins ago",
-    status: "Open",
-    urgency: "urgent",
-  },
-  {
-    id: "HLP-802",
-    requesterName: "David Miller",
-    requesterRole: "Interpreter",
-    category: "Safety",
-    missionId: "MSN-4418",
-    title: "Requester location appears different from map coordinate",
-    detail: "Arrived at Bang Rak junction, but requester notes mention a building 1 km further east.",
-    createdAt: "35 mins ago",
-    status: "In Progress",
-    urgency: "normal",
-    response: "Manager contacted requester via WhatsApp to send real-time pinpoint location.",
-  },
-];
-
-const initialReports: IncidentReport[] = [
-  {
-    id: "REP-301",
-    reporterName: "Dr. Somchai (ER Chula)",
-    reporterRole: "User",
-    reportedUserName: "Alexei V.",
-    reportedUserRole: "Interpreter",
-    bookingId: "BKG-9920",
-    reason: "Interpreter failed to show up without prior cancellation notice during emergency patient admission.",
-    createdAt: "2026-09-07 19:40",
-    status: "Pending Investigation",
-  },
-  {
-    id: "REP-302",
-    reporterName: "Kanya S. (Volunteer)",
-    reporterRole: "Interpreter",
-    reportedUserName: "Tourist John D.",
-    reportedUserRole: "User",
-    bookingId: "BKG-9844",
-    reason: "Verbal misconduct and demanding off-platform private guiding beyond medical translation scope.",
-    createdAt: "2026-09-06 14:15",
-    status: "Escalated to Admin",
-    actionTaken: "Escalated to Admin Portal for user account lock evaluation (FR-78, FR-80).",
-  },
-];
-
-function formatBadgeCount(count: number): string {
-  if (count > 99) return "99+";
-  return count.toString();
-}
-
-function ManagerHeader({
+function ManagerTopHeader({
   onMenuClick,
+  currentUser,
+  userInitials,
+  onSignOut,
+  onChangeAccount,
 }: {
   onMenuClick?: () => void;
-  isSidebarCollapsed?: boolean;
-  onToggleSidebar?: () => void;
+  currentUser: UserProfile | null;
+  userInitials: string;
+  onSignOut: () => void;
+  onChangeAccount: () => void;
 }) {
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(event.target as Node)
+      ) {
+        setProfileMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-20 md:hidden border-b border-[#dbe3e7] bg-[#fbfdfc]/95 shadow-[0_4px_16px_rgba(21,52,67,0.03)] backdrop-blur">
-      <div className="flex w-full items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
-        {/* Mobile Drawer Toggle Button */}
-        <button
-          type="button"
-          onClick={onMenuClick}
-          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#c9d8de] bg-white text-[#092f45] shadow-xs hover:border-[#087f80] hover:bg-[#edf7f5] hover:text-[#087f80] transition-colors focus:outline-none focus:ring-2 focus:ring-[#087f80]/30 cursor-pointer"
-          aria-label="Open Navigation Menu"
-        >
-          <Bars3Icon className="h-5 w-5" />
-        </button>
+    <header className="sticky top-0 z-30 border-b border-[#dbe3e7] bg-[#fbfdfc]/95 shadow-[0_8px_24px_rgba(21,52,67,0.06)] backdrop-blur select-none">
+      <div className="flex w-full items-center justify-between gap-3 px-2.5 py-2.5 sm:px-4 md:px-5">
+        {/* Brand & Sidebar Toggle Button (Aligned with sidebar edge for unified block feel) */}
+        <div className="flex items-center gap-2.5 sm:gap-3.5">
+          {/* Unified Sidebar Pop-up / Drawer Toggle Button */}
+          <button
+            type="button"
+            onClick={onMenuClick}
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#c9d8de] bg-white text-[#092f45] shadow-xs hover:border-[#087f80] hover:bg-[#edf7f5] hover:text-[#087f80] transition-colors focus:outline-none focus:ring-2 focus:ring-[#087f80]/30 cursor-pointer"
+            aria-label="Toggle Navigation Menu"
+            title="Toggle Navigation Menu (เปิด/ปิด เมนู)"
+          >
+            <Bars3Icon className="h-5 w-5" />
+          </button>
+
+          {/* Brand Mark with Subtitle */}
+          <BrandMark
+            subtitle="Interpreter Operations Hub"
+            href="/manager"
+            ariaLabel="KHVI Manager Home"
+          />
+        </div>
+
+        {/* Right Section: Profile & Actions */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Profile Card with Dropdown Menu */}
+          <div ref={profileMenuRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setProfileMenuOpen((prev) => !prev)}
+              className="flex items-center gap-2.5 rounded-xl border border-[#c9d8de] bg-white px-3 py-1.5 shadow-2xs transition-all hover:border-[#087f80] hover:bg-[#edf7f5] focus:outline-none focus:ring-2 focus:ring-[#087f80]/30 cursor-pointer"
+              aria-expanded={profileMenuOpen}
+              aria-haspopup="menu"
+            >
+              {/* Round Initial Avatar */}
+              <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#087f80] bg-[#092f45] text-xs font-black text-white">
+                {userInitials}
+              </div>
+              <div className="text-left hidden sm:block">
+                <p className="text-xs font-extrabold leading-tight text-[#10283a]">
+                  {currentUser?.name || "วิภา ตรวจสอบ"}
+                </p>
+                <p className="text-[11px] font-semibold text-[#087f80]">
+                  {currentUser?.role === "Manager" ? "Regional Manager" : currentUser?.role || "Regional Manager"}
+                </p>
+              </div>
+              <ChevronDownIcon
+                className={`h-4 w-4 text-[#5e7783] transition-transform ${
+                  profileMenuOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {/* Profile Dropdown Menu */}
+            {profileMenuOpen && (
+              <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-[#d6e0e4] bg-white p-2 shadow-[0_18px_36px_rgba(19,52,68,0.16)] animate-in fade-in zoom-in-95 z-50">
+                <div className="border-b border-[#eef3f5] px-3 py-2.5">
+                  <p className="text-sm font-extrabold text-[#153447]">
+                    {currentUser?.name || "วิภา ตรวจสอบ"}
+                  </p>
+                  <p className="text-xs text-[#6a808a] truncate">
+                    {currentUser?.email || "manager@khvi.org"}
+                  </p>
+                  <span className="mt-2 inline-flex items-center gap-1 rounded-md bg-[#e6f4ef] px-2 py-0.5 text-[11px] font-bold text-[#087557]">
+                    <CheckBadgeIcon className="h-3.5 w-3.5" />
+                    Verified Regional Manager
+                  </span>
+                </div>
+                <div className="py-1 space-y-0.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      alert(`Manager Profile Details:\nName: ${currentUser?.name || "วิภา ตรวจสอบ"}\nEmail: ${currentUser?.email || "manager@khvi.org"}\nRole: ${currentUser?.role || "Manager"}`);
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#2d4957] transition-colors hover:bg-[#f2f7f9] hover:text-[#087f80] cursor-pointer"
+                  >
+                    <UserCircleIcon className="h-4 w-4" />
+                    Profile
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      onChangeAccount();
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#2d4957] transition-colors hover:bg-[#f2f7f9] hover:text-[#087f80] cursor-pointer"
+                  >
+                    <ArrowsRightLeftIcon className="h-4 w-4" />
+                    Change account
+                  </button>
+                </div>
+                <div className="border-t border-[#eef3f5] pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      onSignOut();
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#d93829] transition-colors hover:bg-[#fff2f0] cursor-pointer"
+                  >
+                    <ArrowLeftOnRectangleIcon className="h-4 w-4" />
+                    Sign out
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </header>
   );
 }
 
 export default function ManagerDashboard() {
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const profileMenuRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(
+    DEFAULT_MOCK_USERS.Manager
+  );
 
   useEffect(() => {
-    const handlePointerDown = (event: PointerEvent) => {
-      if (!profileMenuRef.current?.contains(event.target as Node)) {
-        setProfileMenuOpen(false);
-      }
-    };
-    document.addEventListener("pointerdown", handlePointerDown);
-    return () => document.removeEventListener("pointerdown", handlePointerDown);
+    const session = getMockUserSession();
+    if (session) {
+      queueMicrotask(() => {
+        setCurrentUser(session);
+      });
+    }
   }, []);
+
+  const handleSignOut = () => {
+    clearMockUserSession();
+    setCurrentUser(null);
+    router.push("/?signin=true");
+  };
+
+  const handleLoginSuccess = (user: UserProfile) => {
+    setCurrentUser(user);
+    setIsLoginModalOpen(false);
+    if (user.role !== "Manager") {
+      router.push(getRedirectPathByRole(user.role));
+    }
+  };
+
+  const userInitials = useMemo(() => {
+    if (!currentUser?.name) return "VP";
+    const parts = currentUser.name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return currentUser.name.slice(0, 2).toUpperCase();
+  }, [currentUser]);
 
   const [applicants, setApplicants] = useState<InterpreterApplicant[]>(initialApplicants);
   const [tickets, setTickets] = useState<HelpTicket[]>(initialTickets);
@@ -350,10 +279,6 @@ export default function ManagerDashboard() {
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, []);
-
-  // Rejection Modal State
-  const [rejectModalOpen, setRejectModalOpen] = useState(false);
-  const [rejectReason, setRejectReason] = useState("");
 
   // Filtered applicants based on current navSection + search query + languages + categories
   const displayedApplicants = useMemo(() => {
@@ -424,17 +349,14 @@ export default function ManagerDashboard() {
   };
 
   // Handle Reject (FR-44, FR-45)
-  const handleConfirmReject = () => {
-    if (!selectedApplicant || !rejectReason.trim()) return;
+  const handleReject = (id: string, reason: string) => {
     setApplicants((prev) =>
       prev.map((app) =>
-        app.id === selectedApplicant.id
-          ? { ...app, status: "Rejected", rejectionReason: rejectReason }
+        app.id === id
+          ? { ...app, status: "Rejected", rejectionReason: reason }
           : app
       )
     );
-    setRejectModalOpen(false);
-    setRejectReason("");
   };
 
   // Handle Help Request Response (FR-52)
@@ -478,70 +400,95 @@ export default function ManagerDashboard() {
   const pendingReportCount = reports.filter((r) => r.status === "Pending Investigation").length;
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[#f7f9fa] text-[#092f45] antialiased">
-      {/* Mobile Slide-out Sidebar Drawer (Pop-up from left) */}
-      {isMobileDrawerOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden animate-in fade-in duration-200">
-          {/* Backdrop overlay */}
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-[#f7f9fa] text-[#092f45] antialiased">
+      {/* 1. Global Top Header (Matching Admin portal standard) */}
+      <ManagerTopHeader
+        onMenuClick={() => setIsMobileDrawerOpen((prev) => !prev)}
+        currentUser={currentUser}
+        userInitials={userInitials}
+        onSignOut={handleSignOut}
+        onChangeAccount={() => setIsLoginModalOpen(true)}
+      />
+
+      {/* Main Container below Header: Pop-up Sidebar Drawer + Main Content Workspace */}
+      <div className="relative flex flex-1 flex-row overflow-hidden min-h-0">
+        {/* Universal Slide-out Pop-up Sidebar Drawer (Overlay across mobile, tablet, and desktop) */}
+        <div
+          className={`fixed inset-0 z-50 transition-all duration-300 ${
+            isMobileDrawerOpen
+              ? "visible pointer-events-auto"
+              : "invisible pointer-events-none delay-300"
+          }`}
+          aria-hidden={!isMobileDrawerOpen}
+        >
+          {/* Backdrop overlay with smooth fade in/out */}
           <div
             onClick={() => setIsMobileDrawerOpen(false)}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            className={`fixed inset-0 bg-slate-950/50 backdrop-blur-xs transition-opacity duration-300 ${
+              isMobileDrawerOpen ? "opacity-100" : "opacity-0"
+            }`}
           />
 
-          {/* Drawer content sliding from left */}
-          <aside className="relative z-10 flex h-full w-[80%] max-w-xs flex-col justify-between bg-white p-5 shadow-2xl animate-in slide-in-from-left duration-250 border-r border-slate-200">
-            <div className="space-y-6">
+          {/* Drawer content sliding smoothly from left with elegant shadow (Navy Dark Theme) */}
+          <aside
+            className={`relative z-10 flex h-full w-[290px] max-w-[85vw] flex-col justify-between bg-[#092f45] text-white p-4 shadow-2xl border-r border-[#16435c] transition-transform duration-300 [transition-timing-function:cubic-bezier(0.2,0,0,1)] select-none ${
+              isMobileDrawerOpen ? "translate-x-0" : "-translate-x-full"
+            }`}
+          >
+            <div className="space-y-4">
               {/* Drawer Top Header */}
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center justify-between border-b border-[#16435c] pb-3">
                 <Link
                   href="/"
                   onClick={() => setIsMobileDrawerOpen(false)}
-                  className="flex items-center gap-2.5 group"
+                  className="group flex items-center gap-3 rounded-2xl transition-transform hover:scale-105"
                   title="KHVI Home (กลับสู่หน้าหลัก)"
                 >
-                  <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#087f80]/30 bg-[#092f45] shadow-xs">
+                  <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#087f80]/40 bg-[#0d3b55] shadow-xs group-hover:border-[#087f80]">
                     <Image
                       src="/khvi-logo.jpg"
                       alt="KHVI logo"
                       fill
                       sizes="36px"
                       className="scale-[2.2] object-cover object-[50%_54%]"
+                      priority
                     />
                   </div>
                   <div>
-                    <h3 className="text-xs font-extrabold text-[#092f45] group-hover:text-[#087f80] transition-colors">KHVI Helper</h3>
-                    <p className="text-[10px] text-slate-400">Manager Console</p>
+                    <span className="block text-sm font-black tracking-tight text-white">KHVI</span>
+                    <span className="block truncate text-[10px] font-bold text-[#4d8a93]">Operations Hub</span>
                   </div>
                 </Link>
                 <button
                   type="button"
                   onClick={() => setIsMobileDrawerOpen(false)}
-                  className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+                  className="flex h-8 w-8 items-center justify-center rounded-xl text-slate-300 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
                   aria-label="Close menu"
+                  title="Close menu (ปิดเมนู)"
                 >
                   <XMarkIcon className="h-5 w-5" />
                 </button>
               </div>
 
-              {/* Navigation Links in Mobile Drawer */}
+              {/* Navigation Links (Dark Navy Inverted Theme) */}
               <div>
                 <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Interpreter Verification
+                  Verification
                 </p>
-                <nav className="mt-2 space-y-1.5">
+                <nav className="mt-1 space-y-1">
                   <button
                     onClick={() => {
                       setNavSection("queue");
                       setIsMobileDrawerOpen(false);
                     }}
-                    className={`flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${
+                    className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
                       navSection === "queue"
-                        ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
+                        ? "bg-[#087f80] text-white shadow-md"
+                        : "text-slate-200 hover:bg-white/10 hover:text-white"
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <InboxStackIcon className="h-4 w-4" />
+                      <InboxStackIcon className="h-5 w-5 text-slate-300" />
                       <span>Application Queue</span>
                     </div>
                     {pendingCount > 0 && (
@@ -549,7 +496,7 @@ export default function ManagerDashboard() {
                         className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
                           navSection === "queue"
                             ? "bg-white/20 text-white"
-                            : "bg-amber-100 text-amber-800"
+                            : "bg-[#087f80] text-white"
                         }`}
                       >
                         {formatBadgeCount(pendingCount)}
@@ -562,21 +509,21 @@ export default function ManagerDashboard() {
                       setNavSection("approved");
                       setIsMobileDrawerOpen(false);
                     }}
-                    className={`flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${
+                    className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
                       navSection === "approved"
-                        ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
+                        ? "bg-[#087f80] text-white shadow-md"
+                        : "text-slate-200 hover:bg-white/10 hover:text-white"
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <CheckCircleIcon className="h-4 w-4" />
+                      <CheckCircleIcon className="h-5 w-5 text-slate-300" />
                       <span>Approved Volunteers</span>
                     </div>
                     <span
                       className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
                         navSection === "approved"
                           ? "bg-white/20 text-white"
-                          : "bg-teal-100 text-[#087f80]"
+                          : "bg-teal-900/60 text-teal-300 border border-teal-700/50"
                       }`}
                     >
                       {formatBadgeCount(approvedCount)}
@@ -588,21 +535,21 @@ export default function ManagerDashboard() {
                       setNavSection("rejected");
                       setIsMobileDrawerOpen(false);
                     }}
-                    className={`flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${
+                    className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
                       navSection === "rejected"
-                        ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
+                        ? "bg-[#087f80] text-white shadow-md"
+                        : "text-slate-200 hover:bg-white/10 hover:text-white"
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <ArchiveBoxXMarkIcon className="h-4 w-4" />
-                      <span>Rejected Applications</span>
+                      <ArchiveBoxXMarkIcon className="h-5 w-5 text-slate-300" />
+                      <span>Rejected Archive</span>
                     </div>
                     <span
                       className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
                         navSection === "rejected"
                           ? "bg-white/20 text-white"
-                          : "bg-red-100 text-[#d93829]"
+                          : "bg-red-900/50 text-red-300 border border-red-800/50"
                       }`}
                     >
                       {formatBadgeCount(rejectedCount)}
@@ -611,33 +558,33 @@ export default function ManagerDashboard() {
                 </nav>
               </div>
 
-              {/* Group 2 in Mobile Drawer */}
-              <div className="border-t border-slate-100 pt-3">
+              {/* Group 2: Escalation Desk */}
+              <div>
                 <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Support & Escalations
+                  Escalation Desk
                 </p>
-                <nav className="mt-2 space-y-1.5">
+                <nav className="mt-1 space-y-1">
                   <button
                     onClick={() => {
                       setNavSection("tickets");
                       setIsMobileDrawerOpen(false);
                     }}
-                    className={`flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${
+                    className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
                       navSection === "tickets"
-                        ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
+                        ? "bg-[#087f80] text-white shadow-md"
+                        : "text-slate-200 hover:bg-white/10 hover:text-white"
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <ChatBubbleLeftRightIcon className="h-4 w-4" />
-                      <span>Help Requests (Live)</span>
+                      <ChatBubbleLeftRightIcon className="h-5 w-5 text-slate-300" />
+                      <span>Live Help Requests</span>
                     </div>
                     {openTicketCount > 0 && (
                       <span
                         className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
                           navSection === "tickets"
                             ? "bg-white/20 text-white"
-                            : "bg-red-100 text-[#f04f3e]"
+                            : "bg-[#f04f3e] text-white animate-pulse"
                         }`}
                       >
                         {formatBadgeCount(openTicketCount)}
@@ -650,21 +597,21 @@ export default function ManagerDashboard() {
                       setNavSection("reports");
                       setIsMobileDrawerOpen(false);
                     }}
-                    className={`flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${
+                    className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
                       navSection === "reports"
-                        ? "bg-[#087f80] text-white shadow-md shadow-[#087f80]/20"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
+                        ? "bg-[#087f80] text-white shadow-md"
+                        : "text-slate-200 hover:bg-white/10 hover:text-white"
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <ShieldExclamationIcon className="h-4 w-4" />
+                      <ShieldExclamationIcon className="h-5 w-5 text-slate-300" />
                       <span>Incident Reports</span>
                     </div>
                     <span
                       className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
                         navSection === "reports"
                           ? "bg-white/20 text-white"
-                          : "bg-amber-100 text-amber-800"
+                          : "bg-amber-900/60 text-amber-300 border border-amber-700/50"
                       }`}
                     >
                       {formatBadgeCount(pendingReportCount)}
@@ -674,462 +621,152 @@ export default function ManagerDashboard() {
               </div>
             </div>
 
-            {/* Quick KPI & Environment in Mobile Drawer */}
-            <div className="space-y-3">
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
-                <p className="font-semibold text-slate-700 text-[11px]">Regional Hub: Bangkok Central</p>
-                <p className="text-[10px]">Verified Active Pool: 48 interpreters</p>
-                <p className="text-[10px]">Approved Pool: {approvedCount} Active Interpreters</p>
-              </div>
-
-              {/* Bottom Profile in Mobile Drawer */}
-              <div className="border-t border-slate-200 pt-3">
-                <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-2.5 shadow-xs">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#092f45] text-xs font-black text-white">
-                      TY
-                    </div>
-                    <div className="min-w-0 truncate">
-                      <p className="text-xs font-black text-[#092f45] truncate">Taofix yayueri</p>
-                      <p className="text-[10px] text-[#087f80] font-bold">Regional Manager</p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => alert("Simulating sign out")}
-                    className="rounded-lg p-1.5 text-[#d93829] hover:bg-[#fff2f0] transition-colors"
-                    title="Sign out"
-                  >
-                    <ArrowLeftOnRectangleIcon className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
+            {/* Bottom Section in Drawer: Settings */}
+            <div className="mt-auto pt-3 border-t border-[#16435c]">
+              {/* Settings Button */}
+              <button
+                type="button"
+                onClick={() => alert("Manager System Settings & Preferences")}
+                className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-xs font-bold text-slate-300 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                title="Manager Settings"
+              >
+                <Cog6ToothIcon className="h-5 w-5 shrink-0" />
+                <span>Settings</span>
+              </button>
             </div>
           </aside>
         </div>
-      )}
 
-      {/* Left Sidebar (Desktop - Gemini Style, Full Height Top-to-Bottom, Smooth Expansion & Collapse) */}
-      <aside
-        className={`hidden h-full flex-shrink-0 border-r border-slate-200 bg-white transition-[width,padding] duration-300 ease-in-out md:flex md:flex-col justify-between ${
-          isSidebarCollapsed ? "w-16 px-2 py-3.5" : "w-64 p-4"
-        }`}
-      >
-        {/* Top Section: Brand Logo (Link to Home /) & Navigation */}
-        <div className="space-y-4 overflow-hidden">
-          {/* Top KHVI Brand / Home Navigation (Gemini Style) */}
-          <div className={`flex items-center transition-all duration-300 ${isSidebarCollapsed ? "justify-center" : "justify-between px-2"}`}>
-            <Link
-              href="/"
-              className="group relative flex items-center gap-3 rounded-2xl transition-transform hover:scale-105"
-              title="KHVI Home (กลับสู่หน้าหลัก)"
-            >
-              {/* Brand Icon (Round like Gemini Sparkle) */}
-              <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#087f80]/30 bg-[#092f45] shadow-xs group-hover:border-[#087f80]">
-                <Image
-                  src="/khvi-logo.jpg"
-                  alt="KHVI logo"
-                  fill
-                  sizes="40px"
-                  className="scale-[2.2] object-cover object-[50%_54%]"
-                  priority
-                />
-              </div>
-              <div
-                className={`min-w-0 transition-all duration-300 overflow-hidden whitespace-nowrap ${
-                  isSidebarCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"
-                }`}
-              >
-                <span className="block text-base font-black tracking-tight text-[#092f45]">KHVI</span>
-                <span className="block truncate text-[10px] font-bold text-[#087f80]">Interpreter Hub</span>
-              </div>
-            </Link>
-
-            {/* Sidebar Collapse Toggle Button */}
-            {!isSidebarCollapsed && (
-              <button
-                type="button"
-                onClick={() => setIsSidebarCollapsed(true)}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors cursor-pointer"
-                title="Collapse sidebar (ย่อแถบข้าง)"
-              >
-                <Bars3Icon className="h-5 w-5" />
-              </button>
-            )}
-          </div>
-
-          {/* In collapsed mode, show Gemini-like hamburger below logo */}
-          {isSidebarCollapsed && (
-            <div className="flex justify-center pt-1 animate-in fade-in duration-200">
-              <button
-                type="button"
-                onClick={() => setIsSidebarCollapsed(false)}
-                className="flex h-10 w-10 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-[#092f45] transition-colors cursor-pointer"
-                title="Expand sidebar (เปิดแถบข้าง)"
-              >
-                <Bars3Icon className="h-5 w-5" />
-              </button>
-            </div>
-          )}
-
-          {/* Divider */}
-          <div className="border-t border-slate-100" />
-
-          {/* Navigation Group 1: Verification */}
-          <div>
-            <div
-              className={`overflow-hidden transition-all duration-300 ${
-                isSidebarCollapsed ? "h-0 opacity-0 pointer-events-none" : "h-5 opacity-100"
-              }`}
-            >
-              <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
-                Verification
-              </p>
-            </div>
-            <nav className="mt-1 space-y-1">
+        {/* 2. Compact Left Rail Bar (Dark Navy Theme - Consistent & Unified) */}
+        <aside className="hidden md:flex flex-col w-[68px] shrink-0 items-center justify-between border-r border-[#16435c] bg-[#092f45] py-4 z-20 select-none shadow-[4px_0_16px_rgba(0,0,0,0.15)]">
+          {/* Top: Section Quick Buttons with Notification Badges */}
+          <div className="flex flex-col items-center gap-4 w-full px-2">
+            {/* Verification Group */}
+            <div className="flex flex-col items-center gap-2.5 w-full">
+              {/* Queue (Pending review with badge) */}
               <button
                 type="button"
                 onClick={() => setNavSection("queue")}
-                className={`group relative flex items-center rounded-2xl transition-all duration-300 ease-in-out cursor-pointer ${
-                  isSidebarCollapsed ? "h-10 w-10 justify-center mx-auto p-0" : "w-full h-10 justify-between px-3"
-                } ${
+                className={`relative flex h-10 w-10 items-center justify-center rounded-2xl transition-all cursor-pointer ${
                   navSection === "queue"
-                    ? "bg-[#092f45] text-white shadow-sm"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
+                    ? "bg-[#087f80] text-white shadow-md"
+                    : "text-slate-300 hover:bg-white/10 hover:text-white"
                 }`}
-                title={isSidebarCollapsed ? `Application Queue (${pendingCount})` : undefined}
+                title="Application Queue (Pending Review)"
+                aria-label="Application Queue"
               >
-                <div className="relative flex items-center justify-center shrink-0">
-                  <InboxStackIcon className="h-5 w-5" />
-                  {isSidebarCollapsed && pendingCount > 0 && (
-                    <span className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-[#ef4444] text-[9px] font-black text-white ring-2 ring-white shadow-xs pointer-events-none">
-                      {formatBadgeCount(pendingCount)}
-                    </span>
-                  )}
-                </div>
-                {!isSidebarCollapsed && (
-                  <div className="flex items-center justify-between min-w-0 flex-1 ml-3 transition-opacity duration-200">
-                    <span className="text-xs font-bold truncate">Application Queue</span>
-                    {pendingCount > 0 && (
-                      <span
-                        className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                          navSection === "queue"
-                            ? "bg-white/20 text-white"
-                            : "bg-[#1e3a4b]/15 text-[#092f45]"
-                        }`}
-                      >
-                        {formatBadgeCount(pendingCount)}
-                      </span>
-                    )}
-                  </div>
+                <InboxStackIcon className="h-5 w-5" />
+                {pendingCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#087f80] px-1 text-[10px] font-black text-white ring-2 ring-[#092f45]">
+                    {formatBadgeCount(pendingCount)}
+                  </span>
                 )}
               </button>
 
+              {/* Approved Volunteers */}
               <button
                 type="button"
                 onClick={() => setNavSection("approved")}
-                className={`group relative flex items-center rounded-2xl transition-all duration-300 ease-in-out cursor-pointer ${
-                  isSidebarCollapsed ? "h-10 w-10 justify-center mx-auto p-0" : "w-full h-10 justify-between px-3"
-                } ${
+                className={`relative flex h-10 w-10 items-center justify-center rounded-2xl transition-all cursor-pointer ${
                   navSection === "approved"
-                    ? "bg-[#092f45] text-white shadow-sm"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
+                    ? "bg-[#087f80] text-white shadow-md"
+                    : "text-slate-300 hover:bg-white/10 hover:text-white"
                 }`}
-                title={isSidebarCollapsed ? `Approved Volunteers (${approvedCount})` : undefined}
+                title="Approved Volunteer Interpreters"
+                aria-label="Approved Volunteer Interpreters"
               >
-                <div className="relative flex items-center justify-center shrink-0">
-                  <CheckCircleIcon className="h-5 w-5" />
-                  {isSidebarCollapsed && approvedCount > 0 && (
-                    <span className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-[#10b981] text-[9px] font-black text-white ring-2 ring-white shadow-xs pointer-events-none">
-                      {formatBadgeCount(approvedCount)}
-                    </span>
-                  )}
-                </div>
-                {!isSidebarCollapsed && (
-                  <div className="flex items-center justify-between min-w-0 flex-1 ml-3 transition-opacity duration-200">
-                    <span className="text-xs font-bold truncate">Approved Volunteers</span>
-                    <span
-                      className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                        navSection === "approved"
-                          ? "bg-white/20 text-white"
-                          : "bg-teal-100 text-[#087f80]"
-                      }`}
-                    >
-                      {formatBadgeCount(approvedCount)}
-                    </span>
-                  </div>
+                <CheckCircleIcon className="h-5 w-5" />
+                {approvedCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-teal-900/80 px-1 text-[9px] font-extrabold text-teal-300 ring-1 ring-[#092f45] border border-teal-700/50">
+                    {formatBadgeCount(approvedCount)}
+                  </span>
                 )}
               </button>
 
+              {/* Rejected Archive */}
               <button
                 type="button"
                 onClick={() => setNavSection("rejected")}
-                className={`group relative flex items-center rounded-2xl transition-all duration-300 ease-in-out cursor-pointer ${
-                  isSidebarCollapsed ? "h-10 w-10 justify-center mx-auto p-0" : "w-full h-10 justify-between px-3"
-                } ${
+                className={`relative flex h-10 w-10 items-center justify-center rounded-2xl transition-all cursor-pointer ${
                   navSection === "rejected"
-                    ? "bg-[#092f45] text-white shadow-sm"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
+                    ? "bg-[#087f80] text-white shadow-md"
+                    : "text-slate-300 hover:bg-white/10 hover:text-white"
                 }`}
-                title={isSidebarCollapsed ? `Rejected Archive (${rejectedCount})` : undefined}
+                title="Rejected Applicant Archive"
+                aria-label="Rejected Applicant Archive"
               >
-                <div className="relative flex items-center justify-center shrink-0">
-                  <ArchiveBoxXMarkIcon className="h-5 w-5" />
-                  {isSidebarCollapsed && rejectedCount > 0 && (
-                    <span className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-[#ef4444] text-[9px] font-black text-white ring-2 ring-white shadow-xs pointer-events-none">
-                      {formatBadgeCount(rejectedCount)}
-                    </span>
-                  )}
-                </div>
-                {!isSidebarCollapsed && (
-                  <div className="flex items-center justify-between min-w-0 flex-1 ml-3 transition-opacity duration-200">
-                    <span className="text-xs font-bold truncate">Rejected Archive</span>
-                    <span
-                      className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                        navSection === "rejected"
-                          ? "bg-white/20 text-white"
-                          : "bg-red-100 text-[#d93829]"
-                      }`}
-                    >
-                      {formatBadgeCount(rejectedCount)}
-                    </span>
-                  </div>
+                <ArchiveBoxXMarkIcon className="h-5 w-5" />
+                {rejectedCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-900/80 px-1 text-[9px] font-bold text-red-300 ring-1 ring-[#092f45] border border-red-800/50">
+                    {formatBadgeCount(rejectedCount)}
+                  </span>
                 )}
               </button>
-            </nav>
-          </div>
-
-          {/* Navigation Group 2: Support & Live Desk */}
-          <div>
-            <div
-              className={`overflow-hidden transition-all duration-300 ${
-                isSidebarCollapsed ? "h-0 opacity-0 pointer-events-none" : "h-5 opacity-100"
-              }`}
-            >
-              <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
-                Escalation Desk
-              </p>
             </div>
-            <nav className="mt-1 space-y-1">
+
+            <div className="h-px w-8 bg-[#16435c]" />
+
+            {/* Escalation Desk Group */}
+            <div className="flex flex-col items-center gap-2.5 w-full">
+              {/* Live Help Requests (Tickets with badge) */}
               <button
                 type="button"
                 onClick={() => setNavSection("tickets")}
-                className={`group relative flex items-center rounded-2xl transition-all duration-300 ease-in-out cursor-pointer ${
-                  isSidebarCollapsed ? "h-10 w-10 justify-center mx-auto p-0" : "w-full h-10 justify-between px-3"
-                } ${
+                className={`relative flex h-10 w-10 items-center justify-center rounded-2xl transition-all cursor-pointer ${
                   navSection === "tickets"
-                    ? "bg-[#092f45] text-white shadow-sm"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
+                    ? "bg-[#087f80] text-white shadow-md"
+                    : "text-slate-300 hover:bg-white/10 hover:text-white"
                 }`}
-                title={isSidebarCollapsed ? `Help Requests (${openTicketCount})` : undefined}
+                title="Live Help Requests"
+                aria-label="Live Help Requests"
               >
-                <div className="relative flex items-center justify-center shrink-0">
-                  <ChatBubbleLeftRightIcon className="h-5 w-5" />
-                  {isSidebarCollapsed && openTicketCount > 0 && (
-                    <span className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-[#ef4444] text-[9px] font-black text-white ring-2 ring-white shadow-xs pointer-events-none">
-                      {formatBadgeCount(openTicketCount)}
-                    </span>
-                  )}
-                </div>
-                {!isSidebarCollapsed && (
-                  <div className="flex items-center justify-between min-w-0 flex-1 ml-3 transition-opacity duration-200">
-                    <span className="text-xs font-bold truncate">Live Help Requests</span>
-                    {openTicketCount > 0 && (
-                      <span
-                        className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                          navSection === "tickets"
-                            ? "bg-white/20 text-white"
-                            : "bg-red-100 text-[#f04f3e]"
-                        }`}
-                      >
-                        {formatBadgeCount(openTicketCount)}
-                      </span>
-                    )}
-                  </div>
+                <ChatBubbleLeftRightIcon className="h-5 w-5" />
+                {openTicketCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#f04f3e] px-1 text-[10px] font-black text-white ring-2 ring-[#092f45] animate-pulse">
+                    {formatBadgeCount(openTicketCount)}
+                  </span>
                 )}
               </button>
 
+              {/* Incident Reports */}
               <button
                 type="button"
                 onClick={() => setNavSection("reports")}
-                className={`group relative flex items-center rounded-2xl transition-all duration-300 ease-in-out cursor-pointer ${
-                  isSidebarCollapsed ? "h-10 w-10 justify-center mx-auto p-0" : "w-full h-10 justify-between px-3"
-                } ${
+                className={`relative flex h-10 w-10 items-center justify-center rounded-2xl transition-all cursor-pointer ${
                   navSection === "reports"
-                    ? "bg-[#092f45] text-white shadow-sm"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-[#092f45]"
+                    ? "bg-[#087f80] text-white shadow-md"
+                    : "text-slate-300 hover:bg-white/10 hover:text-white"
                 }`}
-                title={isSidebarCollapsed ? `Incident Reports (${pendingReportCount})` : undefined}
+                title="Incident Reports"
+                aria-label="Incident Reports"
               >
-                <div className="relative flex items-center justify-center shrink-0">
-                  <ShieldExclamationIcon className="h-5 w-5" />
-                  {isSidebarCollapsed && pendingReportCount > 0 && (
-                    <span className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-[#f59e0b] text-[9px] font-black text-white ring-2 ring-white shadow-xs pointer-events-none">
-                      {formatBadgeCount(pendingReportCount)}
-                    </span>
-                  )}
-                </div>
-                {!isSidebarCollapsed && (
-                  <div className="flex items-center justify-between min-w-0 flex-1 ml-3 transition-opacity duration-200">
-                    <span className="text-xs font-bold truncate">Incident Reports</span>
-                    {pendingReportCount > 0 && (
-                      <span
-                        className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                          navSection === "reports"
-                            ? "bg-white/20 text-white"
-                            : "bg-amber-100 text-amber-800"
-                        }`}
-                      >
-                        {formatBadgeCount(pendingReportCount)}
-                      </span>
-                    )}
-                  </div>
+                <ShieldExclamationIcon className="h-5 w-5" />
+                {pendingReportCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-black text-white ring-2 ring-[#092f45]">
+                    {formatBadgeCount(pendingReportCount)}
+                  </span>
                 )}
               </button>
-            </nav>
+            </div>
           </div>
-        </div>
 
-        {/* Bottom Section (Gemini Style: Settings icon + Circular Avatar & Hub Status pinned to bottom) */}
-        <div className="mt-auto space-y-2 pt-3 border-t border-slate-100">
-          {/* Settings Button (Restored) */}
-          <button
-            type="button"
-            onClick={() => alert("Manager System Settings & Preferences")}
-            className={`flex items-center rounded-2xl text-slate-500 hover:bg-slate-100 hover:text-[#092f45] transition-colors cursor-pointer ${
-              isSidebarCollapsed ? "h-10 w-10 justify-center mx-auto p-0" : "w-full gap-3 px-3 py-2 text-xs font-bold"
-            }`}
-            title="Manager Settings (ตั้งค่าระบบ)"
-          >
-            <Cog6ToothIcon className="h-5 w-5 shrink-0" />
-            {!isSidebarCollapsed && (
-              <span className="whitespace-nowrap transition-opacity duration-200">
-                Settings & SOP
-              </span>
-            )}
-          </button>
-
-          {/* Profile Avatar Card with Pop-up Menu (Gemini Style) */}
-          <div className="relative" ref={profileMenuRef}>
+          {/* Bottom Rail Actions */}
+          <div className="flex flex-col items-center w-full px-2">
+            {/* Settings button */}
             <button
               type="button"
-              onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-              className={`group flex items-center rounded-2xl transition-all duration-300 hover:bg-slate-100 cursor-pointer ${
-                isSidebarCollapsed ? "h-10 w-10 justify-center mx-auto p-0" : "w-full justify-between p-1.5"
-              }`}
-              title="Taofix yayueri (Regional Manager)"
-              aria-expanded={profileMenuOpen}
+              onClick={() => alert("Manager System Settings & Preferences")}
+              className="flex h-10 w-10 items-center justify-center rounded-2xl text-slate-300 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+              title="Settings"
+              aria-label="Settings"
             >
-              <div className="flex items-center gap-2.5 min-w-0">
-                {/* Round Avatar with Initial (Gemini Style) */}
-                <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#087f80] bg-[#092f45] text-xs font-black text-white shadow-xs">
-                  TY
-                </div>
-                {!isSidebarCollapsed && (
-                  <div className="min-w-0 text-left whitespace-nowrap transition-opacity duration-200">
-                    <p className="text-xs font-bold leading-tight text-[#092f45] truncate">Taofix yayueri</p>
-                    <p className="text-[10px] font-bold text-[#087f80]">Regional Manager</p>
-                  </div>
-                )}
-              </div>
-              {!isSidebarCollapsed && (
-                <ChevronDownIcon
-                  className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-300 ${
-                    profileMenuOpen ? "rotate-180" : ""
-                  }`}
-                />
-              )}
+              <Cog6ToothIcon className="h-5 w-5" />
             </button>
-
-            {/* Profile Dropdown Pop-up Menu (Gemini flyout when collapsed vs dropup when expanded) */}
-            {profileMenuOpen && (
-              <div
-                className={`absolute z-50 w-64 rounded-2xl border border-[#d6e0e4] bg-white p-2 shadow-[0_18px_36px_rgba(19,52,68,0.16)] animate-in fade-in zoom-in-95 ${
-                  isSidebarCollapsed
-                    ? "left-full bottom-0 ml-3"
-                    : "bottom-full left-0 mb-2"
-                }`}
-              >
-                <div className="border-b border-[#eef3f5] px-3 py-2.5">
-                  <p className="text-sm font-extrabold text-[#153447]">Taofix yayueri</p>
-                  <p className="text-xs text-[#6a808a]">tyayuxri@gmail.com</p>
-                  <span className="mt-2 inline-flex items-center gap-1 rounded-md bg-[#e6f4ef] px-2 py-0.5 text-[11px] font-bold text-[#087557]">
-                    <CheckBadgeIcon className="h-3.5 w-3.5" />
-                    Verified Staff
-                  </span>
-                </div>
-                <div className="py-1 space-y-0.5">
-                  <a
-                    href="#profile"
-                    onClick={() => setProfileMenuOpen(false)}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#2d4957] transition-colors hover:bg-[#f2f7f9] hover:text-[#087f80]"
-                  >
-                    <UserCircleIcon className="h-4 w-4" />
-                    Profile
-                  </a>
-                  <Link
-                    href="/login"
-                    onClick={() => setProfileMenuOpen(false)}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#2d4957] transition-colors hover:bg-[#f2f7f9] hover:text-[#087f80]"
-                  >
-                    <UserPlusIcon className="h-4 w-4" />
-                    Add account
-                  </Link>
-                </div>
-                <div className="border-t border-[#eef3f5] pt-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setProfileMenuOpen(false);
-                      alert("Simulating sign out");
-                    }}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#d93829] transition-colors hover:bg-[#fff2f0]"
-                  >
-                    <ArrowLeftOnRectangleIcon className="h-4 w-4" />
-                    Sign out
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
+        </aside>
 
-          {/* Hub Operational Status in Sidebar Bottom with smooth transition */}
-          {isSidebarCollapsed ? (
-            <div className="flex justify-center py-1 animate-in fade-in duration-200">
-              <span
-                className="relative flex h-3 w-3 items-center justify-center cursor-help"
-                title="Hub Operational · Active"
-              >
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-              </span>
-            </div>
-          ) : (
-            <div className="rounded-xl border border-emerald-200/70 bg-emerald-50/50 p-2.5 text-[10px] animate-in fade-in duration-300">
-              <div className="flex items-center justify-between">
-                <span className="inline-flex items-center gap-1.5 font-extrabold text-emerald-800">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                  </span>
-                  Hub Operational · Active
-                </span>
-                <span className="text-[9px] font-bold text-emerald-600">BKK-CORE-01</span>
-              </div>
-              <p className="mt-1 text-slate-500">Bangkok Central · 48 Active Pool</p>
-            </div>
-          )}
-        </div>
-      </aside>
-
-      {/* Right Column: Header on Top + Main Content Workspace + Footer */}
-      <div className="flex flex-1 flex-col h-full overflow-hidden min-w-0">
-        <ManagerHeader
-          onMenuClick={() => setIsMobileDrawerOpen(true)}
-          isSidebarCollapsed={isSidebarCollapsed}
-          onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-        />
-
+        {/* Right Column: Main Content Workspace + Footer */}
+        <div className="flex flex-1 flex-col h-full overflow-hidden min-w-0">
         {/* Main Content Workspace (Flex column with min-h-full ensures sticky footer at bottom) */}
         <div className="flex-1 overflow-y-auto min-w-0 flex flex-col">
           <main className="flex-1 p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6">
@@ -1356,7 +993,7 @@ export default function ManagerDashboard() {
                 <div className="overflow-x-auto flex-1">
                   <table className="w-full text-left border-collapse text-xs text-slate-600">
                     <thead className="border-b border-slate-200 bg-slate-50/90 font-bold uppercase tracking-wider text-slate-500">
-                      <tr className="divide-x divide-slate-200">
+                      <tr>
                         <th className="py-3.5 pl-5 pr-4 w-[26%]">Applicant & Time</th>
                         <th className="px-3.5 py-3.5 w-[18%]">Primary Pair</th>
                         <th className="px-3.5 py-3.5 w-[22%]">Specialty Domains</th>
@@ -1371,7 +1008,7 @@ export default function ManagerDashboard() {
                           <tr
                             key={app.id}
                             onClick={() => handleOpenDetailModal(app)}
-                            className="divide-x divide-slate-100 group hover:bg-teal-50/40 transition-colors cursor-pointer"
+                            className="group hover:bg-teal-50/40 transition-colors cursor-pointer"
                           >
                             {/* Applicant & Time */}
                             <td className="py-3.5 pl-5 pr-4">
@@ -1740,298 +1377,23 @@ export default function ManagerDashboard() {
           />
         </div>
       </div>
+    </div>
 
-      {/* ================= CENTERED POP-UP MODAL (30% / 70% SPLIT) ================= */}
-      {detailModalOpen && selectedApplicant && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-in fade-in">
-          <div className="relative flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[#d6e0e4] bg-white shadow-[0_24px_56px_rgba(15,38,54,0.25)] sm:flex-row max-h-[90vh]">
-            {/* Close Button */}
-            <button
-              type="button"
-              onClick={() => setDetailModalOpen(false)}
-              className="absolute right-3.5 top-3.5 z-10 rounded-lg p-1.5 text-[#6c8591] hover:bg-[#edf3f6] hover:text-[#112d3e] transition-colors cursor-pointer"
-            >
-              <XMarkIcon className="h-5 w-5" />
-            </button>
+      {/* Centered Pop-up Modal (30% / 70% Split) & Reject Dialog */}
+      <ApplicantDetailModal
+        isOpen={detailModalOpen}
+        applicant={selectedApplicant}
+        onClose={() => setDetailModalOpen(false)}
+        onApprove={handleApprove}
+        onReject={handleReject}
+      />
 
-            {/* LEFT COLUMN: 30% (Profile, Photo, Contacts, Demographics) */}
-            <div className="w-full sm:w-[32%] border-b sm:border-b-0 sm:border-r border-[#e3ebef] bg-[#f8fbfc] p-6 flex flex-col justify-between">
-              <div>
-                {/* Avatar & Name */}
-                <div className="flex flex-col items-center text-center">
-                  <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-[#092f45] text-2xl font-black text-white shadow-md">
-                    {selectedApplicant.name.slice(0, 2).toUpperCase()}
-                  </div>
-                  <h3 className="mt-3 text-base font-black text-[#102d3f]">
-                    {selectedApplicant.name}
-                  </h3>
-                  <p className="text-xs text-[#637d8a]">
-                    Application ID: <strong className="text-[#087f80]">#{selectedApplicant.id}</strong>
-                  </p>
-                  <span
-                    className={`mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${
-                      selectedApplicant.status === "Approved"
-                        ? "bg-[#e7f5f0] text-[#087557]"
-                        : selectedApplicant.status === "Rejected"
-                        ? "bg-[#fff1ef] text-[#d93829]"
-                        : "bg-[#fef4e8] text-[#b36916]"
-                    }`}
-                  >
-                    {selectedApplicant.status}
-                  </span>
-                </div>
-
-                {/* Demographics & Check Badges */}
-                <div className="mt-6 space-y-3 text-xs border-t border-[#e8f0f3] pt-4">
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#8198a4]">
-                      Nationality & Age
-                    </span>
-                    <p className="font-extrabold text-[#17384a]">
-                      {selectedApplicant.country} · {selectedApplicant.age} years old
-                    </p>
-                  </div>
-
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#8198a4]">
-                      Background Validation
-                    </span>
-                    <div className="mt-1 flex items-center gap-1.5">
-                      <ShieldCheckIcon className="h-4 w-4 text-[#087557]" />
-                      <span className="font-extrabold text-[#087557]">
-                        {selectedApplicant.backgroundCheck}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Direct Contact Channels */}
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#8198a4]">
-                      Contact Channels
-                    </span>
-                    <div className="mt-1.5 space-y-1.5 text-xs text-[#2b4857]">
-                      <div className="flex items-center gap-2 rounded-lg bg-white p-2 border border-[#e1ebef]">
-                        <PhoneIcon className="h-3.5 w-3.5 text-[#087f80]" />
-                        <span className="font-bold truncate">{selectedApplicant.contactChannels}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 text-[10px] text-[#869caa]">
-                Submission timestamp: {selectedApplicant.appliedDate}
-              </div>
-            </div>
-
-            {/* RIGHT COLUMN: 70% (Qualifications, Attachments, Experience, Decision Actions) */}
-            <div className="w-full sm:w-[68%] p-6 flex flex-col justify-between overflow-y-auto">
-              <div className="space-y-5">
-                {/* 1. Language Competencies */}
-                <div>
-                  <h4 className="text-xs font-black uppercase tracking-wider text-[#637f8d] flex items-center gap-1.5">
-                    <LanguageIcon className="h-4 w-4 text-[#087f80]" />
-                    Language Qualifications & Proficiency
-                  </h4>
-                  <div className="mt-2 rounded-xl border border-[#e2ecf0] bg-[#fafcfd] p-3">
-                    <p className="text-xs text-[#204051]">
-                      Primary Language: <strong className="text-[#092f45]">{selectedApplicant.primaryLanguage}</strong>
-                    </p>
-                    <p className="mt-1 text-xs text-[#204051]">
-                      Proficiency Scores: <strong className="text-[#087f80]">{selectedApplicant.proficiencyScore || "Verified Native"}</strong>
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {selectedApplicant.spokenLanguages.map((l) => (
-                        <span
-                          key={l}
-                          className="rounded-md border border-[#d6e3e8] bg-white px-2 py-0.5 text-[11px] font-semibold text-[#224050]"
-                        >
-                          {l}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* 2. Submitted Credential Files */}
-                <div>
-                  <h4 className="text-xs font-black uppercase tracking-wider text-[#637f8d] flex items-center gap-1.5">
-                    <IdentificationIcon className="h-4 w-4 text-[#087f80]" />
-                    Submitted Credential Documents ({selectedApplicant.documents.length})
-                  </h4>
-                  <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {selectedApplicant.documents.map((doc) => (
-                      <div
-                        key={doc.name}
-                        className="flex items-center justify-between rounded-xl border border-[#dce6eb] bg-white p-2.5 transition-colors hover:border-[#087f80]"
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <DocumentTextIcon className="h-4 w-4 text-[#087f80] shrink-0" />
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold text-[#143242] truncate">{doc.name}</p>
-                            <p className="text-[10px] text-[#7b93a0]">{doc.size}</p>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => alert(`Opening preview of ${doc.name}`)}
-                          className="text-[11px] font-extrabold text-[#087f80] hover:underline px-2 py-1 cursor-pointer"
-                        >
-                          Preview
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 3. Work Experience & Field Specialization */}
-                <div>
-                  <h4 className="text-xs font-black uppercase tracking-wider text-[#637f8d] flex items-center gap-1.5">
-                    <BriefcaseIcon className="h-4 w-4 text-[#087f80]" />
-                    Field Specialization & Background Summary
-                  </h4>
-                  <p className="mt-2 rounded-xl border border-[#e2ecf0] bg-[#fafcfd] p-3 text-xs leading-relaxed text-[#2c4755]">
-                    {selectedApplicant.experienceSummary}
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {selectedApplicant.specialtyCategories.map((cat) => (
-                      <span
-                        key={cat}
-                        className="rounded-md bg-[#edf7f5] px-2 py-0.5 text-[11px] font-bold text-[#087f80]"
-                      >
-                        {cat}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Rejection Note If Applicable */}
-                {selectedApplicant.rejectionReason && (
-                  <div className="rounded-xl border border-[#f8c9c4] bg-[#fff5f4] p-3 text-xs">
-                    <p className="font-extrabold text-[#d93829]">Specified Rejection Reason:</p>
-                    <p className="mt-1 text-[#b8291b]">{selectedApplicant.rejectionReason}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Bottom Action Bar */}
-              <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-[#edf2f5] pt-4">
-                <div className="text-xs text-[#627d8c]">
-                  {selectedApplicant.status === "Approved" ? (
-                    <span className="inline-flex items-center gap-1.5 font-medium text-[#087557]">
-                      <CheckCircleIcon className="h-4 w-4" />
-                      Approved volunteers are locked. Revocation or role suspension is managed by Admin (FR-76–83).
-                    </span>
-                  ) : selectedApplicant.status === "Rejected" ? (
-                    <span className="inline-flex items-center gap-1.5 font-medium text-[#c0392b]">
-                      <XCircleIcon className="h-4 w-4" />
-                      Application rejected. Re-review or status alteration requires Manager escalation.
-                    </span>
-                  ) : (
-                    <span>Review all credentials before approving or rejecting candidate.</span>
-                  )}
-                </div>
-
-                <div className="flex w-full sm:w-auto items-center justify-end gap-3">
-                  {/* Manager cannot reject once Approved (Admin manages revocation/lock FR-76 to 83) */}
-                  {selectedApplicant.status !== "Approved" && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDetailModalOpen(false);
-                        setRejectModalOpen(true);
-                      }}
-                      disabled={selectedApplicant.status === "Rejected"}
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#f2a299] bg-[#fff6f5] px-5 py-2.5 text-xs font-black text-[#d93829] hover:bg-[#ffeceb] disabled:opacity-50 cursor-pointer"
-                    >
-                      <XCircleIcon className="h-4 w-4" />
-                      Reject Application
-                    </button>
-                  )}
-
-                  {selectedApplicant.status !== "Approved" ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleApprove(selectedApplicant.id);
-                        setDetailModalOpen(false);
-                      }}
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#087557] px-6 py-2.5 text-xs font-black text-white shadow-xs hover:bg-[#066148] cursor-pointer"
-                    >
-                      <CheckCircleIcon className="h-4 w-4" />
-                      Approve Application
-                    </button>
-                  ) : (
-                    <div className="inline-flex items-center gap-1.5 rounded-xl bg-[#e7f5f0] px-4 py-2 text-xs font-bold text-[#087557]">
-                      <CheckBadgeIcon className="h-4 w-4" />
-                      Authorized Interpreter
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* REJECT MODAL (FR-44, FR-45) */}
-      {rejectModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-2xl border border-[#d6e0e4] bg-white p-6 shadow-[0_24px_48px_rgba(17,40,58,0.2)] animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-[#e9f0f3] pb-3">
-              <div className="flex items-center gap-2">
-                <ExclamationCircleIcon className="h-5 w-5 text-[#d93829]" />
-                <h4 className="text-base font-extrabold text-[#112b3c]">
-                  Reject Interpreter Application
-                </h4>
-              </div>
-              <button
-                type="button"
-                onClick={() => setRejectModalOpen(false)}
-                className="text-[#728b97] hover:text-[#112b3c]"
-              >
-                <XMarkIcon className="h-5 w-5" />
-              </button>
-            </div>
-
-            <p className="mt-3 text-xs leading-relaxed text-[#59717d]">
-              Managers must provide an explicit explanation when rejecting an applicant. This reason will be logged and notified to the applicant.
-            </p>
-
-            <div className="mt-4">
-              <label htmlFor="reason" className="block text-xs font-extrabold text-[#143141]">
-                Rejection Reason (Required)
-              </label>
-              <textarea
-                id="reason"
-                rows={3}
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                placeholder="e.g. Incomplete proof of medical language certification, or contact verification failed."
-                className="mt-1.5 w-full rounded-lg border border-[#cddae0] p-2.5 text-xs text-[#133040] focus:border-[#087f80] focus:outline-none"
-              />
-            </div>
-
-            <div className="mt-6 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setRejectModalOpen(false)}
-                className="rounded-lg border border-[#cddae0] bg-white px-4 py-2 text-xs font-bold text-[#455f6d] hover:bg-[#f0f4f6]"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmReject}
-                disabled={!rejectReason.trim()}
-                className="rounded-lg bg-[#d93829] px-4 py-2 text-xs font-extrabold text-white hover:bg-[#b8291b] disabled:opacity-50"
-              >
-                Confirm Rejection
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Login & Switch Account Modal */}
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onSuccess={handleLoginSuccess}
+      />
     </div>
   );
 }
