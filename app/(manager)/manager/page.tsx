@@ -97,8 +97,8 @@ function ManagerTopHeader({
           {/* Brand Mark with Subtitle */}
           <BrandMark
             subtitle="Interpreter Operations Hub"
-            href="/manager"
-            ariaLabel="KHVI Manager Home"
+            href="/"
+            ariaLabel="KHVI Home"
           />
         </div>
 
