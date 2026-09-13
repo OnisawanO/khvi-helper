@@ -255,10 +255,7 @@ export default function AdminPage() {
         onClose={() => setIsMobileDrawerOpen(false)}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        selectedStatusFilter={selectedStatusFilter}
-        setSelectedStatusFilter={setSelectedStatusFilter}
         totalUsersCount={totalUsersCount}
-        lockedUsersCount={lockedUsersCount}
         totalInterpretersCount={totalInterpretersCount}
         auditLogsCount={auditLogs.length}
       />
@@ -268,10 +265,7 @@ export default function AdminPage() {
         onMenuClick={() => setIsMobileDrawerOpen((prev) => !prev)}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        selectedStatusFilter={selectedStatusFilter}
-        setSelectedStatusFilter={setSelectedStatusFilter}
         totalUsersCount={totalUsersCount}
-        lockedUsersCount={lockedUsersCount}
         totalInterpretersCount={totalInterpretersCount}
         auditLogsCount={auditLogs.length}
       />
@@ -293,9 +287,26 @@ export default function AdminPage() {
         {/* Content Workspace Scroll Area */}
         <div className="flex-1 overflow-y-auto min-w-0 flex flex-col">
             <main className="flex-1 p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6">
-              {/* Header KPI Summary Cards (2 Columns on Mobile / 4 Columns on Desktop) */}
+              {/* Header KPI Summary Cards (Interactive Filter Shortcuts) */}
               <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
-                <div className="rounded-2xl border border-slate-200 bg-white p-3.5 sm:p-5 shadow-xs transition-all hover:shadow-md">
+                {/* 1. Total Users (Reset All Filters) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("users");
+                    setSelectedRoles([]);
+                    setSelectedStatusFilter("All");
+                    setSelectedLanguages([]);
+                    setSelectedCategories([]);
+                    setSearchQuery("");
+                  }}
+                  className={`rounded-2xl border p-3.5 sm:p-5 text-left transition-all cursor-pointer ${
+                    activeTab === "users" && selectedRoles.length === 0 && selectedStatusFilter === "All"
+                      ? "border-[#087f80] bg-white shadow-md ring-2 ring-[#087f80]/20"
+                      : "border-slate-200 bg-white shadow-xs hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
+                  }`}
+                  title="Click to view all users"
+                >
                   <div className="flex items-center justify-between gap-1">
                     <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 truncate">Total Users</p>
                     <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
@@ -304,9 +315,23 @@ export default function AdminPage() {
                   </div>
                   <p className="mt-1.5 sm:mt-2 text-2xl sm:text-3xl font-extrabold text-[#092f45]">{totalUsersCount}</p>
                   <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-slate-500 truncate">All registered profiles</p>
-                </div>
+                </button>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-3.5 sm:p-5 shadow-xs transition-all hover:shadow-md">
+                {/* 2. Interpreters (Filter by Interpreter Role) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("users");
+                    setSelectedRoles(["Interpreter"]);
+                    setSelectedStatusFilter("All");
+                  }}
+                  className={`rounded-2xl border p-3.5 sm:p-5 text-left transition-all cursor-pointer ${
+                    activeTab === "users" && selectedRoles.length === 1 && selectedRoles[0] === "Interpreter"
+                      ? "border-[#087f80] bg-[#edf7f5]/40 shadow-md ring-2 ring-[#087f80]/30"
+                      : "border-slate-200 bg-white shadow-xs hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-md"
+                  }`}
+                  title="Click to filter certified interpreters"
+                >
                   <div className="flex items-center justify-between gap-1">
                     <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 truncate">Interpreters</p>
                     <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-[#087f80]">
@@ -315,9 +340,23 @@ export default function AdminPage() {
                   </div>
                   <p className="mt-1.5 sm:mt-2 text-2xl sm:text-3xl font-extrabold text-[#087f80]">{totalInterpretersCount}</p>
                   <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-slate-500 truncate">Certified volunteers</p>
-                </div>
+                </button>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-3.5 sm:p-5 shadow-xs transition-all hover:shadow-md">
+                {/* 3. Suspended (Filter by Locked Status) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("users");
+                    setSelectedStatusFilter("Locked");
+                    setSelectedRoles([]);
+                  }}
+                  className={`rounded-2xl border p-3.5 sm:p-5 text-left transition-all cursor-pointer ${
+                    activeTab === "users" && selectedStatusFilter === "Locked"
+                      ? "border-[#f04f3e] bg-red-50/40 shadow-md ring-2 ring-[#f04f3e]/30"
+                      : "border-slate-200 bg-white shadow-xs hover:-translate-y-0.5 hover:border-red-300 hover:shadow-md"
+                  }`}
+                  title="Click to filter suspended accounts"
+                >
                   <div className="flex items-center justify-between gap-1">
                     <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 truncate">Suspended</p>
                     <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-lg bg-red-50 text-[#f04f3e]">
@@ -326,9 +365,23 @@ export default function AdminPage() {
                   </div>
                   <p className="mt-1.5 sm:mt-2 text-2xl sm:text-3xl font-extrabold text-[#f04f3e]">{lockedUsersCount}</p>
                   <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-slate-500 truncate">Restricted accounts</p>
-                </div>
+                </button>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-3.5 sm:p-5 shadow-xs transition-all hover:shadow-md">
+                {/* 4. Staff (Filter by Manager & Admin Roles) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("users");
+                    setSelectedRoles(["Manager", "Admin"]);
+                    setSelectedStatusFilter("All");
+                  }}
+                  className={`rounded-2xl border p-3.5 sm:p-5 text-left transition-all cursor-pointer ${
+                    activeTab === "users" && selectedRoles.includes("Manager") && selectedRoles.includes("Admin")
+                      ? "border-purple-600 bg-purple-50/40 shadow-md ring-2 ring-purple-600/30"
+                      : "border-slate-200 bg-white shadow-xs hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-md"
+                  }`}
+                  title="Click to filter staff (Managers & Admins)"
+                >
                   <div className="flex items-center justify-between gap-1">
                     <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 truncate">Staff</p>
                     <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
@@ -337,7 +390,7 @@ export default function AdminPage() {
                   </div>
                   <p className="mt-1.5 sm:mt-2 text-2xl sm:text-3xl font-extrabold text-purple-700">{totalAdminsCount}</p>
                   <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-slate-500 truncate">Managers & Admins</p>
-                </div>
+                </button>
               </div>
 
               {/* TAB 1: ALL USERS & ROLES */}

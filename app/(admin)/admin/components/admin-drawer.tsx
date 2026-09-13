@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   Cog6ToothIcon,
   DocumentMagnifyingGlassIcon,
-  LockClosedIcon,
   SparklesIcon,
   UserGroupIcon,
   XMarkIcon,
@@ -17,10 +16,7 @@ interface AdminDrawerProps {
   onClose: () => void;
   activeTab: AdminActiveTab;
   setActiveTab: (tab: AdminActiveTab) => void;
-  selectedStatusFilter: "All" | "Active" | "Locked";
-  setSelectedStatusFilter: (status: "All" | "Active" | "Locked") => void;
   totalUsersCount: number;
-  lockedUsersCount: number;
   totalInterpretersCount: number;
   auditLogsCount: number;
 }
@@ -30,10 +26,7 @@ export function AdminDrawer({
   onClose,
   activeTab,
   setActiveTab,
-  selectedStatusFilter,
-  setSelectedStatusFilter,
   totalUsersCount,
-  lockedUsersCount,
   totalInterpretersCount,
   auditLogsCount,
 }: AdminDrawerProps) {
@@ -104,54 +97,26 @@ export function AdminDrawer({
               <button
                 onClick={() => {
                   setActiveTab("users");
-                  if (selectedStatusFilter === "Locked") setSelectedStatusFilter("All");
                   onClose();
                 }}
                 className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === "users" && selectedStatusFilter !== "Locked"
+                  activeTab === "users"
                     ? "bg-[#087f80] text-white shadow-md"
                     : "text-slate-200 hover:bg-white/10 hover:text-white"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
                   <UserGroupIcon className="h-5 w-5 text-slate-300" />
-                  <span>All Users & Roles</span>
+                  <span>User Management</span>
                 </div>
                 <span
                   className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                    activeTab === "users" && selectedStatusFilter !== "Locked"
+                    activeTab === "users"
                       ? "bg-white/20 text-white"
                       : "bg-slate-800 text-slate-300"
                   }`}
                 >
                   {totalUsersCount}
-                </span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setActiveTab("users");
-                  setSelectedStatusFilter("Locked");
-                  onClose();
-                }}
-                className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === "users" && selectedStatusFilter === "Locked"
-                    ? "bg-[#087f80] text-white shadow-md"
-                    : "text-slate-200 hover:bg-white/10 hover:text-white"
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <LockClosedIcon className="h-5 w-5 text-slate-300" />
-                  <span>Suspended & Locked</span>
-                </div>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                    activeTab === "users" && selectedStatusFilter === "Locked"
-                      ? "bg-white/20 text-white"
-                      : "bg-red-900/60 text-red-300 border border-red-800/50"
-                  }`}
-                >
-                  {lockedUsersCount}
                 </span>
               </button>
 

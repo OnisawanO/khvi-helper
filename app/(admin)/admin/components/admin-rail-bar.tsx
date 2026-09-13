@@ -4,7 +4,6 @@ import {
   Bars3Icon,
   Cog6ToothIcon,
   DocumentMagnifyingGlassIcon,
-  LockClosedIcon,
   SparklesIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
@@ -14,10 +13,7 @@ interface AdminRailBarProps {
   onMenuClick: () => void;
   activeTab: AdminActiveTab;
   setActiveTab: (tab: AdminActiveTab) => void;
-  selectedStatusFilter: "All" | "Active" | "Locked";
-  setSelectedStatusFilter: (status: "All" | "Active" | "Locked") => void;
   totalUsersCount: number;
-  lockedUsersCount: number;
   totalInterpretersCount: number;
   auditLogsCount: number;
 }
@@ -26,10 +22,7 @@ export function AdminRailBar({
   onMenuClick,
   activeTab,
   setActiveTab,
-  selectedStatusFilter,
-  setSelectedStatusFilter,
   totalUsersCount,
-  lockedUsersCount,
   totalInterpretersCount,
   auditLogsCount,
 }: AdminRailBarProps) {
@@ -52,22 +45,21 @@ export function AdminRailBar({
 
         <div className="h-px w-8 bg-[#16435c]" />
 
-        {/* Identity & Access Group */}
+        {/* Navigation Tabs Group */}
         <div className="flex flex-col items-center gap-2.5 w-full">
-          {/* All Users */}
+          {/* 1. All Users Management */}
           <button
             type="button"
             onClick={() => {
               setActiveTab("users");
-              if (selectedStatusFilter === "Locked") setSelectedStatusFilter("All");
             }}
             className={`relative flex h-10 w-10 items-center justify-center rounded-2xl transition-all cursor-pointer ${
-              activeTab === "users" && selectedStatusFilter !== "Locked"
+              activeTab === "users"
                 ? "bg-[#087f80] text-white shadow-md"
                 : "text-slate-300 hover:bg-white/10 hover:text-white"
             }`}
-            title="All Users & Roles"
-            aria-label="All Users & Roles"
+            title="User Management"
+            aria-label="User Management"
           >
             <UserGroupIcon className="h-5 w-5" />
             {totalUsersCount > 0 && (
@@ -77,30 +69,7 @@ export function AdminRailBar({
             )}
           </button>
 
-          {/* Suspended & Locked */}
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab("users");
-              setSelectedStatusFilter("Locked");
-            }}
-            className={`relative flex h-10 w-10 items-center justify-center rounded-2xl transition-all cursor-pointer ${
-              activeTab === "users" && selectedStatusFilter === "Locked"
-                ? "bg-[#087f80] text-white shadow-md"
-                : "text-slate-300 hover:bg-white/10 hover:text-white"
-            }`}
-            title="Suspended & Locked Accounts"
-            aria-label="Suspended & Locked Accounts"
-          >
-            <LockClosedIcon className="h-5 w-5" />
-            {lockedUsersCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#f04f3e] px-1 text-[10px] font-black text-white ring-2 ring-[#092f45]">
-                {lockedUsersCount}
-              </span>
-            )}
-          </button>
-
-          {/* Interpreter Index */}
+          {/* 2. Interpreter Quality & Index */}
           <button
             type="button"
             onClick={() => setActiveTab("interpreters")}
@@ -119,13 +88,8 @@ export function AdminRailBar({
               </span>
             )}
           </button>
-        </div>
 
-        <div className="h-px w-8 bg-[#16435c]" />
-
-        {/* Governance Group */}
-        <div className="flex flex-col items-center gap-2.5 w-full">
-          {/* Audit Trail */}
+          {/* 3. Audit Trail Logs */}
           <button
             type="button"
             onClick={() => setActiveTab("audit")}
