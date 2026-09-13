@@ -61,7 +61,7 @@ export function AdminHeader({
           >
             <Bars3Icon className="h-5 w-5" />
           </button>
-          <BrandMark subtitle="Admin Security & System Control" href="/" ariaLabel="KHVI Home" />
+          <BrandMark subtitle="Admin Dashboard" href="/" ariaLabel="KHVI Home" />
         </div>
 
         {/* Right Section: Profile & Actions */}
