@@ -81,14 +81,13 @@ function ManagerTopHeader({
 
   return (
     <header className="sticky top-0 z-30 border-b border-[#dbe3e7] bg-[#fbfdfc]/95 shadow-[0_8px_24px_rgba(21,52,67,0.06)] backdrop-blur select-none">
-      <div className="flex w-full items-center justify-between gap-3 px-2.5 py-2.5 sm:px-4 md:px-5">
-        {/* Brand & Sidebar Toggle Button (Aligned with sidebar edge for unified block feel) */}
+      <div className="flex w-full items-center justify-between gap-3 px-3 py-2.5 sm:px-4 md:px-6">
+        {/* Brand & Sidebar Toggle Button (Mobile only, desktop uses Rail Bar button) */}
         <div className="flex items-center gap-2.5 sm:gap-3.5">
-          {/* Unified Sidebar Pop-up / Drawer Toggle Button */}
           <button
             type="button"
             onClick={onMenuClick}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#c9d8de] bg-white text-[#092f45] shadow-xs hover:border-[#087f80] hover:bg-[#edf7f5] hover:text-[#087f80] transition-colors focus:outline-none focus:ring-2 focus:ring-[#087f80]/30 cursor-pointer"
+            className="flex md:hidden h-9 w-9 items-center justify-center rounded-xl border border-[#c9d8de] bg-white text-[#092f45] shadow-xs hover:border-[#087f80] hover:bg-[#edf7f5] hover:text-[#087f80] transition-colors focus:outline-none focus:ring-2 focus:ring-[#087f80]/30 cursor-pointer"
             aria-label="Toggle Navigation Menu"
             title="Toggle Navigation Menu (เปิด/ปิด เมนู)"
           >
@@ -400,41 +399,30 @@ export default function ManagerDashboard() {
   const pendingReportCount = reports.filter((r) => r.status === "Pending Investigation").length;
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-[#f7f9fa] text-[#092f45] antialiased">
-      {/* 1. Global Top Header (Matching Admin portal standard) */}
-      <ManagerTopHeader
-        onMenuClick={() => setIsMobileDrawerOpen((prev) => !prev)}
-        currentUser={currentUser}
-        userInitials={userInitials}
-        onSignOut={handleSignOut}
-        onChangeAccount={() => setIsLoginModalOpen(true)}
-      />
-
-      {/* Main Container below Header: Pop-up Sidebar Drawer + Main Content Workspace */}
-      <div className="relative flex flex-1 flex-row overflow-hidden min-h-0">
-        {/* Universal Slide-out Pop-up Sidebar Drawer (Overlay across mobile, tablet, and desktop) */}
+    <div className="flex h-screen w-full flex-row overflow-hidden bg-[#f7f9fa] text-[#092f45] antialiased">
+      {/* Universal Slide-out Pop-up Sidebar Drawer (Overlay across mobile, tablet, and desktop) */}
+      <div
+        className={`fixed inset-0 z-50 transition-all duration-300 ${
+          isMobileDrawerOpen
+            ? "visible pointer-events-auto"
+            : "invisible pointer-events-none delay-300"
+        }`}
+        aria-hidden={!isMobileDrawerOpen}
+      >
+        {/* Backdrop overlay with smooth fade in/out */}
         <div
-          className={`fixed inset-0 z-50 transition-all duration-300 ${
-            isMobileDrawerOpen
-              ? "visible pointer-events-auto"
-              : "invisible pointer-events-none delay-300"
+          onClick={() => setIsMobileDrawerOpen(false)}
+          className={`fixed inset-0 bg-slate-950/50 backdrop-blur-xs transition-opacity duration-300 ${
+            isMobileDrawerOpen ? "opacity-100" : "opacity-0"
           }`}
-          aria-hidden={!isMobileDrawerOpen}
-        >
-          {/* Backdrop overlay with smooth fade in/out */}
-          <div
-            onClick={() => setIsMobileDrawerOpen(false)}
-            className={`fixed inset-0 bg-slate-950/50 backdrop-blur-xs transition-opacity duration-300 ${
-              isMobileDrawerOpen ? "opacity-100" : "opacity-0"
-            }`}
-          />
+        />
 
-          {/* Drawer content sliding smoothly from left with elegant shadow (Navy Dark Theme) */}
-          <aside
-            className={`relative z-10 flex h-full w-[290px] max-w-[85vw] flex-col justify-between bg-[#092f45] text-white p-4 shadow-2xl border-r border-[#16435c] transition-transform duration-300 [transition-timing-function:cubic-bezier(0.2,0,0,1)] select-none ${
-              isMobileDrawerOpen ? "translate-x-0" : "-translate-x-full"
-            }`}
-          >
+        {/* Drawer content sliding smoothly from left with elegant shadow (Navy Dark Theme) */}
+        <aside
+          className={`relative z-10 flex h-full w-[290px] max-w-[85vw] flex-col justify-between bg-[#092f45] text-white p-4 shadow-2xl border-r border-[#16435c] transition-transform duration-300 [transition-timing-function:cubic-bezier(0.2,0,0,1)] select-none ${
+            isMobileDrawerOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
             <div className="space-y-4">
               {/* Drawer Top Header */}
               <div className="flex items-center justify-between border-b border-[#16435c] pb-3">
@@ -637,10 +625,25 @@ export default function ManagerDashboard() {
           </aside>
         </div>
 
-        {/* 2. Compact Left Rail Bar (Dark Navy Theme - Consistent & Unified) */}
-        <aside className="hidden md:flex flex-col w-[68px] shrink-0 items-center justify-between border-r border-[#16435c] bg-[#092f45] py-4 z-20 select-none shadow-[4px_0_16px_rgba(0,0,0,0.15)]">
+        {/* 2. Compact Left Rail Bar (Dark Navy Theme - Full Height Single Block) */}
+        <aside className="hidden md:flex flex-col w-[68px] shrink-0 items-center justify-between border-r border-[#16435c] bg-[#092f45] py-3.5 z-20 select-none shadow-[4px_0_16px_rgba(0,0,0,0.15)]">
           {/* Top: Section Quick Buttons with Notification Badges */}
           <div className="flex flex-col items-center gap-4 w-full px-2">
+            {/* Menu Hamburger Button: Seamless top corner block level with Header */}
+            <div className="flex h-9 w-full items-center justify-center">
+              <button
+                type="button"
+                onClick={() => setIsMobileDrawerOpen((prev) => !prev)}
+                className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-white shadow-xs hover:bg-[#087f80] hover:border-[#087f80] transition-all focus:outline-none focus:ring-2 focus:ring-[#087f80]/40 cursor-pointer"
+                aria-label="Toggle Navigation Drawer"
+                title="Toggle Navigation Menu (เปิด/ปิด เมนูด้านข้าง)"
+              >
+                <Bars3Icon className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="h-px w-8 bg-[#16435c]" />
+
             {/* Verification Group */}
             <div className="flex flex-col items-center gap-2.5 w-full">
               {/* Queue (Pending review with badge) */}
@@ -765,10 +768,19 @@ export default function ManagerDashboard() {
           </div>
         </aside>
 
-        {/* Right Column: Main Content Workspace + Footer */}
+        {/* Right Column: Top Header + Main Content Workspace + Footer */}
         <div className="flex flex-1 flex-col h-full overflow-hidden min-w-0">
-        {/* Main Content Workspace (Flex column with min-h-full ensures sticky footer at bottom) */}
-        <div className="flex-1 overflow-y-auto min-w-0 flex flex-col">
+          {/* Top Header inside right column */}
+          <ManagerTopHeader
+            onMenuClick={() => setIsMobileDrawerOpen((prev) => !prev)}
+            currentUser={currentUser}
+            userInitials={userInitials}
+            onSignOut={handleSignOut}
+            onChangeAccount={() => setIsLoginModalOpen(true)}
+          />
+
+          {/* Main Content Workspace (Flex column with min-h-full ensures sticky footer at bottom) */}
+          <div className="flex-1 overflow-y-auto min-w-0 flex flex-col">
           <main className="flex-1 p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6">
             {/* View Header with Search & Filter */}
             {(navSection === "queue" || navSection === "approved" || navSection === "rejected") && (
@@ -1377,7 +1389,6 @@ export default function ManagerDashboard() {
           />
         </div>
       </div>
-    </div>
 
       {/* Centered Pop-up Modal (30% / 70% Split) & Reject Dialog */}
       <ApplicantDetailModal
