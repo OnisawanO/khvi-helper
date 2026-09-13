@@ -37,6 +37,7 @@ import {
   type UserProfile,
 } from "@/app/lib/mock-auth";
 import type { Locale } from "@/app/components/site-header";
+import { CATEGORIES, LANGUAGES } from "@/app/lib/mock-requests";
 
 type FormState = {
   firstName: string;
@@ -224,7 +225,7 @@ function ProfileContent({ user, onUserChange }: { user: UserProfile; onUserChang
         <ProfileRail user={user} config={config} />
         <div className="min-w-0 space-y-6">
           <PersonalDetailsCard key={user.userId} user={user} onUserChange={onUserChange} />
-          <RoleSettings user={user} />
+          <RoleSettings user={user} onUserChange={onUserChange} />
         </div>
       </div>
     </main>
@@ -481,6 +482,7 @@ function ProfileImagePicker({ user, onUserChange }: { user: UserProfile; onUserC
     const nextUser = { ...user, avatarUrl };
     saveMockUserSession(nextUser);
     onUserChange(nextUser);
+    if (cropSource) URL.revokeObjectURL(cropSource.url);
     setCropSource(null);
     setMessage("Profile photo updated");
   };
@@ -536,8 +538,6 @@ function CropEditor({ source, onCancel, onConfirm }: { source: CropSource; onCan
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [onCancel, rendering]);
-
-  useEffect(() => () => URL.revokeObjectURL(source.url), [source.url]);
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -638,7 +638,7 @@ function inputClass(error?: string) {
   return `h-11 w-full rounded-lg border bg-white px-3 text-sm font-semibold text-(--khvi-ink) transition-colors placeholder:text-(--khvi-ink)/35 ${error ? "border-(--khvi-coral)" : "border-[#cbd7dc] hover:border-(--khvi-teal) focus:border-(--khvi-teal)"}`;
 }
 
-function RoleSettings({ user }: { user: UserProfile }) {
+function RoleSettings({ user, onUserChange }: { user: UserProfile; onUserChange: (user: UserProfile) => void }) {
   return (
     <section id="role-settings" className="scroll-mt-28 overflow-hidden rounded-(--khvi-radius-md) border border-(--khvi-teal)/20 bg-(--khvi-surface) shadow-[0_10px_24px_rgba(16,40,58,0.05)]">
       <div className="border-b border-(--khvi-teal)/15 px-5 py-5 sm:px-7">
@@ -648,7 +648,7 @@ function RoleSettings({ user }: { user: UserProfile }) {
       </div>
       <div className="px-5 py-6 sm:px-7">
         {user.role === "User" && <UserRoleSettings />}
-        {user.role === "Interpreter" && <InterpreterRoleSettings />}
+        {user.role === "Interpreter" && <InterpreterRoleSettings user={user} onUserChange={onUserChange} />}
         {user.role === "Manager" && <ManagerRoleSettings />}
         {user.role === "Admin" && <AdminRoleSettings />}
       </div>
@@ -670,7 +670,62 @@ function UserRoleSettings() {
   );
 }
 
-function InterpreterRoleSettings() {
+function InterpreterRoleSettings({ user, onUserChange }: { user: UserProfile; onUserChange: (user: UserProfile) => void }) {
+  const defaultLanguageIds = ["burmese", "english", "sign"];
+  const defaultCategoryIds = ["medical", "government", "accident"];
+  const languageOptions = LANGUAGES.map((language) => ({ id: language.id, label: language.en }));
+  const categoryOptions = CATEGORIES.map((category) => ({ id: category.id, label: category.en }));
+  const [serviceLanguageIds, setServiceLanguageIds] = useState(() => user.serviceLanguageIds?.length ? user.serviceLanguageIds : defaultLanguageIds);
+  const [matchingCategoryIds, setMatchingCategoryIds] = useState(() => user.matchingCategoryIds?.length ? user.matchingCategoryIds : defaultCategoryIds);
+  const [languageToAdd, setLanguageToAdd] = useState("");
+  const [categoryToAdd, setCategoryToAdd] = useState("");
+  const [skillMessage, setSkillMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const updateSkills = (nextLanguages: string[], nextCategories: string[], message: string) => {
+    const nextUser = { ...user, serviceLanguageIds: nextLanguages, matchingCategoryIds: nextCategories };
+    saveMockUserSession(nextUser);
+    onUserChange(nextUser);
+    setSkillMessage({ type: "success", text: message });
+  };
+
+  const addLanguage = () => {
+    const nextLanguage = normalizeSkillValue(languageToAdd, languageOptions);
+    if (!nextLanguage || hasSkill(serviceLanguageIds, nextLanguage)) return;
+    const nextLanguages = [...serviceLanguageIds, nextLanguage];
+    setServiceLanguageIds(nextLanguages);
+    setLanguageToAdd("");
+    updateSkills(nextLanguages, matchingCategoryIds, "Service language added");
+  };
+
+  const removeLanguage = (languageId: string) => {
+    if (serviceLanguageIds.length <= 1) {
+      setSkillMessage({ type: "error", text: "Keep at least one service language" });
+      return;
+    }
+    const nextLanguages = serviceLanguageIds.filter((id) => id !== languageId);
+    setServiceLanguageIds(nextLanguages);
+    updateSkills(nextLanguages, matchingCategoryIds, "Service language removed");
+  };
+
+  const addCategory = () => {
+    const nextCategory = normalizeSkillValue(categoryToAdd, categoryOptions);
+    if (!nextCategory || hasSkill(matchingCategoryIds, nextCategory)) return;
+    const nextCategories = [...matchingCategoryIds, nextCategory];
+    setMatchingCategoryIds(nextCategories);
+    setCategoryToAdd("");
+    updateSkills(serviceLanguageIds, nextCategories, "Matching category added");
+  };
+
+  const removeCategory = (categoryId: string) => {
+    if (matchingCategoryIds.length <= 2) {
+      setSkillMessage({ type: "error", text: "Keep at least two matching categories" });
+      return;
+    }
+    const nextCategories = matchingCategoryIds.filter((id) => id !== categoryId);
+    setMatchingCategoryIds(nextCategories);
+    updateSkills(serviceLanguageIds, nextCategories, "Matching category removed");
+  };
+
   return (
     <div className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -680,11 +735,89 @@ function InterpreterRoleSettings() {
         <Metric label="Review score" value="4.9 / 5" />
       </div>
       <div className="grid gap-5 xl:grid-cols-2">
-        <RoleCard icon={<GlobeAltIcon className="h-5 w-5" aria-hidden="true" />} title="Service languages" description="Burmese, English, and Thai" chips={["Burmese", "English", "Thai"]} />
-        <RoleCard icon={<WrenchScrewdriverIcon className="h-5 w-5" aria-hidden="true" />} title="Matching categories" description="The categories used for request matching" chips={["Medical", "Government", "Emergency"]} />
+        <EditableSkillCard
+          icon={<GlobeAltIcon className="h-5 w-5" aria-hidden="true" />}
+          title="Service languages"
+          description="Languages you can provide during a mission"
+          selectedIds={serviceLanguageIds}
+          options={languageOptions}
+          value={languageToAdd}
+          onValueChange={setLanguageToAdd}
+          onAdd={addLanguage}
+          onRemove={removeLanguage}
+          minimumLabel="At least one language"
+        />
+        <EditableSkillCard
+          icon={<WrenchScrewdriverIcon className="h-5 w-5" aria-hidden="true" />}
+          title="Matching categories"
+          description="Categories used for request matching"
+          selectedIds={matchingCategoryIds}
+          options={categoryOptions}
+          value={categoryToAdd}
+          onValueChange={setCategoryToAdd}
+          onAdd={addCategory}
+          onRemove={removeCategory}
+          minimumLabel="At least two categories"
+        />
         <RoleCard icon={<MapPinIcon className="h-5 w-5" aria-hidden="true" />} title="Search preferences" description="Your request map uses a 25 km matching radius and browser GPS when available." href="/find-requests#main-content" linkLabel="Open find requests" />
         <RoleCard icon={<ClipboardDocumentListIcon className="h-5 w-5" aria-hidden="true" />} title="Assignment history" description="Review claimed, in-progress, and completed missions." href="/my-assignments#main-content" linkLabel="View assignments" />
       </div>
+      {skillMessage && <p role={skillMessage.type === "error" ? "alert" : "status"} className={`text-xs font-extrabold ${skillMessage.type === "error" ? "text-(--khvi-coral)" : "text-(--khvi-sage)"}`}>{skillMessage.text}</p>}
+    </div>
+  );
+}
+
+function normalizeSkillValue(value: string, options: { id: string; label: string }[]) {
+  const trimmedValue = value.trim();
+  const standardOption = options.find((option) => option.id.toLowerCase() === trimmedValue.toLowerCase() || option.label.toLowerCase() === trimmedValue.toLowerCase());
+  return standardOption?.id ?? trimmedValue;
+}
+
+function hasSkill(selectedIds: string[], value: string) {
+  return selectedIds.some((selectedId) => selectedId.trim().toLowerCase() === value.trim().toLowerCase());
+}
+
+function EditableSkillCard({ icon, title, description, selectedIds, options, value, onValueChange, onAdd, onRemove, minimumLabel }: {
+  icon: ReactNode;
+  title: string;
+  description: string;
+  selectedIds: string[];
+  options: { id: string; label: string }[];
+  value: string;
+  onValueChange: (value: string) => void;
+  onAdd: () => void;
+  onRemove: (id: string) => void;
+  minimumLabel: string;
+}) {
+  const selectedSet = new Set(selectedIds.map((selectedId) => selectedId.trim().toLowerCase()));
+  const availableOptions = options.filter((option) => !selectedSet.has(option.id.toLowerCase()) && !selectedSet.has(option.label.toLowerCase()));
+  const inputId = `${title.replace(/\s+/g, "-").toLowerCase()}-add`;
+  const datalistId = `${inputId}-suggestions`;
+
+  return (
+    <div className="rounded-xl border border-(--khvi-teal)/15 bg-white p-4 sm:p-5">
+      <div className="flex items-start gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#edf5f4] text-(--khvi-teal)">{icon}</span>
+        <div className="min-w-0">
+          <h3 className="text-sm font-black text-(--khvi-navy)">{title}</h3>
+          <p className="mt-1 text-xs leading-5 text-(--khvi-ink)/60">{description}</p>
+        </div>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {selectedIds.map((id) => {
+          const label = options.find((option) => option.id === id)?.label ?? id;
+          return <span key={id} className="inline-flex items-center gap-1 rounded-full bg-(--khvi-paper) py-1 pl-2.5 pr-1 text-[11px] font-bold text-(--khvi-ink)/75"><span>{label}</span><button type="button" onClick={() => onRemove(id)} className="flex h-5 w-5 items-center justify-center rounded-full text-(--khvi-ink)/50 transition-colors hover:bg-(--khvi-coral)/10 hover:text-(--khvi-coral) focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--khvi-sun)" aria-label={`Remove ${label}`}><XMarkIcon className="h-3.5 w-3.5" aria-hidden="true" /></button></span>;
+        })}
+      </div>
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+        <label className="sr-only" htmlFor={inputId}>Add to {title}</label>
+        <input id={inputId} list={datalistId} value={value} onChange={(event) => onValueChange(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); onAdd(); } }} placeholder="Type or choose a suggestion…" autoComplete="off" className="h-10 min-w-0 flex-1 rounded-lg border border-[#cbd7dc] bg-white px-3 text-xs font-bold text-(--khvi-ink) placeholder:text-(--khvi-ink)/40 focus:border-(--khvi-teal)" />
+        <datalist id={datalistId}>
+          {availableOptions.map((option) => <option key={option.id} value={option.label} />)}
+        </datalist>
+        <button type="button" onClick={onAdd} disabled={!value.trim()} className="h-10 rounded-lg border border-(--khvi-teal) px-3.5 text-xs font-extrabold text-(--khvi-teal) transition-colors hover:bg-[#edf5f4] disabled:cursor-not-allowed disabled:opacity-45">Add</button>
+      </div>
+      <p className="mt-3 text-[11px] font-semibold text-(--khvi-ink)/45">{minimumLabel}. Type a custom value or choose a suggestion. Changes save automatically in this browser preview.</p>
     </div>
   );
 }
