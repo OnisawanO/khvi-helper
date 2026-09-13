@@ -9,7 +9,8 @@ import {
 import { useCopyLocale } from "@/app/components/app-shell";
 import { StatusBadge, UrgencyBadge } from "@/app/components/request-badges";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
-import { useRequests } from "@/app/lib/request-store";
+import { getMockUserSession } from "@/app/lib/mock-auth";
+import { cancelMission, useRequests } from "@/app/lib/request-store";
 import {
   categoryLabel,
   languageLabel,

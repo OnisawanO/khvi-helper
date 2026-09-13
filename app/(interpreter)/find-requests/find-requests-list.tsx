@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   AdjustmentsHorizontalIcon,
@@ -16,7 +17,8 @@ import { useCopyLocale } from "@/app/components/app-shell";
 import { ExpiryCountdown } from "@/app/components/expiry-countdown";
 import { StatusBadge, UrgencyBadge } from "@/app/components/request-badges";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
-import { useRequests } from "@/app/lib/request-store";
+import { getMockUserSession } from "@/app/lib/mock-auth";
+import { claimRequest as persistClaimRequest, useRequests } from "@/app/lib/request-store";
 import { RequestMap } from "./request-map";
 import {
   CATEGORIES,
@@ -85,6 +87,7 @@ const copy = {
     scheduled: "Appointment",
     viewDetails: "View details",
     claim: "Claim request",
+    claimError: "This request could not be claimed. Refresh the list and try again.",
     claimTitle: "Review before you claim",
     claimBody: "Confirm that this request matches your language and category before claiming it.",
     description: "What help is needed",
@@ -141,6 +144,7 @@ const copy = {
     scheduled: "预约时间",
     viewDetails: "查看详情",
     claim: "接取任务",
+    claimError: "无法接取此任务。请刷新列表后重试。",
     claimTitle: "接取前请确认",
     claimBody: "接取前请确认语言和类别符合你的服务能力。",
     description: "求助内容",
@@ -199,6 +203,8 @@ export function FindRequestsList() {
   const [selectedRequest, setSelectedRequest] = useState<HelpRequest | null>(null);
   const [claimRequest, setClaimRequest] = useState<HelpRequest | null>(null);
   const [claimedRequestId, setClaimedRequestId] = useState<string | null>(null);
+  const [claimingId, setClaimingId] = useState<string | null>(null);
+  const [claimError, setClaimError] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
   const [geoStatus, setGeoStatus] = useState<GeoStatus>("idle");
   const { requests: storedRequests, ready } = useRequests();
@@ -293,29 +299,28 @@ export function FindRequestsList() {
 
   const openClaimDialog = (request: HelpRequest) => {
     setSelectedRequest(request);
+    setClaimError(null);
     setClaimRequest(request);
   };
 
   const confirmClaim = () => {
     if (!claimRequest) return;
-    setClaimedRequestId(claimRequest.requestId);
-    setClaimRequest(null);
-    setSelectedRequest(null);
-  };
-
-  function handleClaim(requestId: string) {
     const actor = getMockUserSession();
     if (!actor) return;
+    const requestId = claimRequest.requestId;
     setClaimingId(requestId);
     setClaimError(null);
     try {
-      claimRequest(requestId, actor);
+      persistClaimRequest(requestId, actor);
+      setClaimedRequestId(requestId);
+      setClaimRequest(null);
+      setSelectedRequest(null);
       router.push(`/my-requests/${requestId}`);
     } catch (error) {
       setClaimError(error instanceof Error ? error.message : t.claimError);
       setClaimingId(null);
     }
-  }
+  };
 
   return (
     <main id="main-content" className="flex-1 px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
@@ -593,9 +598,10 @@ export function FindRequestsList() {
                 <ShieldCheckIcon aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-[#b8752b]" />
                 <p className="text-xs leading-5 text-[#77562d]">{t.privacy}</p>
               </div>
+              {claimError && <p role="alert" className="text-sm font-bold text-[#c7473a]">{claimError}</p>}
               <div className="flex flex-col-reverse gap-3 border-t border-[#e4ebed] pt-4 sm:flex-row sm:justify-end">
                 <button type="button" className="inline-flex h-11 items-center justify-center rounded-lg border border-[#cbd7dc] px-4 text-sm font-extrabold text-[#425761] hover:bg-[#f6f9fa]" onClick={() => setClaimRequest(null)}>{t.cancel}</button>
-                <button type="button" className="inline-flex h-11 items-center justify-center rounded-lg bg-(--khvi-navy) px-5 text-sm font-extrabold text-white hover:bg-[#0c4960]" onClick={confirmClaim}>{t.confirmClaim}</button>
+                <button type="button" disabled={claimingId !== null} className="inline-flex h-11 items-center justify-center rounded-lg bg-(--khvi-navy) px-5 text-sm font-extrabold text-white hover:bg-[#0c4960] disabled:cursor-wait disabled:opacity-60" onClick={confirmClaim}>{t.confirmClaim}</button>
               </div>
             </div>
           </section>
