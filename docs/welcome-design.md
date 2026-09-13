@@ -1,6 +1,6 @@
 # Welcome workspace (task scope)
 
-`/welcome#welcome-user` is the signed-in starting view for User and `/welcome#welcome-Interpreter` is the signed-in starting view for Interpreter. Both views share the same header. Manager and Admin continue to their existing consoles. Visitors return to `/#top`. This describes the current mock implementation, not production authorization.
+`/welcome#welcome-user` is the signed-in starting view for User and `/welcome#welcome-Interpreter` is the signed-in starting view for Interpreter. Both views share the same header. The header shows the signed-in profile; its dropdown contains Profile & Settings and sign-out actions. Manager and Admin continue to their existing consoles. Visitors return to `/#top`. This describes the current mock implementation, not production authorization.
 
 ## Consistency review
 
@@ -14,7 +14,7 @@
 | Privacy | FR-10/11 require requester confirmation; current request detail unlocks after claim. | Leave that workflow unchanged here. Provide practical privacy advice; describe confirmation in the planned interpreter guide. |
 | Scheduling | Current code implements strictly over 30 minutes and at most 24 hours ahead per earlier user instruction. | Describe existing appointment limits; leave expiry implementation unchanged. |
 
-No database schema, claim workflow, request ownership or server authorization is changed. Existing design tokens, header, footer, badges and navigation anchors are reused. Welcome displays name, role, sign-out and role-specific links. There is no availability switch, chat or rating data.
+No database schema, claim workflow, request ownership or server authorization is changed. Existing design tokens, header, footer, badges and navigation anchors are reused. Welcome displays the signed-in name and role in a profile menu, with sign-out inside that menu, plus role-specific links. There is no availability switch, chat or rating data.
 
 Production work still requires Supabase sessions, server authorization and account-scoped records. Canonical requirements and route governance remain unchanged by this task-specific design.
 
