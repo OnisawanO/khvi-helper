@@ -192,7 +192,7 @@ export function AdminDrawer({
             title="Admin Settings"
           >
             <Cog6ToothIcon className="h-5 w-5 shrink-0" />
-            <span>Settings</span>
+            <span>Profile & Settings</span>
           </button>
         </div>
       </aside>

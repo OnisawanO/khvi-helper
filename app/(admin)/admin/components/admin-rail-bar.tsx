@@ -118,8 +118,8 @@ export function AdminRailBar({
           type="button"
           onClick={() => alert("Admin System Settings & Security Configurations")}
           className="flex h-10 w-10 items-center justify-center rounded-2xl text-slate-300 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
-          title="Settings"
-          aria-label="Settings"
+          title="Profile & Settings"
+          aria-label="Profile & Settings"
         >
           <Cog6ToothIcon className="h-5 w-5" />
         </button>
