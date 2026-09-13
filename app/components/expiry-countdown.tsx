@@ -5,6 +5,7 @@ import { ClockIcon } from "@heroicons/react/24/outline";
 import type { CopyLocale } from "@/app/lib/locale";
 
 const copy = {
+  th: { prefix: "หมดอายุใน", expired: "หมดอายุโดยไม่มีล่ามรับงาน" },
   en: { prefix: "Expires in", expired: "Expired without a claim" },
   zh: { prefix: "剩余时间", expired: "无人接取已过期" },
 } as const;
@@ -28,7 +29,7 @@ export function ExpiryCountdown({
 }: {
   seconds: number;
   expiresAt?: string;
-  copyLocale: CopyLocale;
+  copyLocale: CopyLocale | "th";
   compact?: boolean;
 }) {
   const [remaining, setRemaining] = useState<number | null>(expiresAt ? null : seconds);
@@ -54,7 +55,7 @@ export function ExpiryCountdown({
       }`}
     >
       <ClockIcon aria-hidden="true" className={compact ? "h-4 w-4" : "h-5 w-5"} />
-      {remaining === null ? (copyLocale === "zh" ? "正在检查截止时间…" : "Checking deadline…") : isExpired ? t.expired : `${t.prefix} ${formatRemaining(remaining)}`}
+      {remaining === null ? (copyLocale === "th" ? "กำลังตรวจเวลาหมดอายุ…" : copyLocale === "zh" ? "正在检查截止时间…" : "Checking deadline…") : isExpired ? t.expired : `${t.prefix} ${formatRemaining(remaining)}`}
     </span>
   );
 }

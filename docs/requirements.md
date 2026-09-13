@@ -226,9 +226,11 @@ open -> claimed -> in_progress -> completed
 - คำขอหนึ่งรายการเลือก `language_id` ได้หนึ่งภาษาและ `category_id` ได้หนึ่งหมวดหมู่
 - User ต้องระบุสถานที่หรือจุดนัดพบ และเลือกส่งพิกัดจากอุปกรณ์ได้เมื่อยินยอม
 - User เพิ่มรายละเอียดที่ช่วยให้ล่ามเตรียมตัวได้ โดยระบบต้องจำกัดความยาวและ validate input
+- เจ้าของคำขอแก้ภาษา หมวดหมู่ รายละเอียด และจุดนัดพบได้เฉพาะตอน booking เป็น `open`
 - Server ต้องกำหนด `user_id` จาก session ห้ามเชื่อถือ `user_id` จาก client
 - คำขอใหม่ต้องเริ่มที่สถานะ `open` และบันทึก `created_at`
 - การสร้างคำขอต้องไม่ส่งคำขอไปหาล่ามรายบุคคล
+- เจ้าของคำขอแก้ไขภาษา หมวดหมู่ รายละเอียด และจุดนัดพบได้ขณะสถานะเป็น `open` หรือ `claimed` และต้องหยุดแก้ไขเมื่อเข้าสู่ `in_progress`
 
 **ผลลัพธ์และเกณฑ์ตรวจรับ:**
 
@@ -236,6 +238,7 @@ open -> claimed -> in_progress -> completed
 - User เห็นรหัสคำขอ สถานะ และทางไปหน้าติดตามหลังสร้างสำเร็จ
 - ระบบปฏิเสธการสร้างคำขอซ้ำเมื่อ User มีงานที่ยังไม่จบ
 - GPS ถูกปฏิเสธแล้ว User ยังสร้างคำขอด้วยคำอธิบายสถานที่ได้ตาม validation ที่กำหนด
+- เฉพาะเจ้าของคำขอเห็นและใช้ปุ่มแก้ไขก่อนเริ่มงานได้ ส่วน Interpreter และผู้ใช้อื่นแก้ไขไม่ได้
 
 #### FR-06: Request Type
 
@@ -384,6 +387,8 @@ open -> claimed -> in_progress -> completed
 **รายละเอียด:**
 
 - ข้อมูลที่เปิดได้ประกอบด้วยจุดนัดพบเต็ม พิกัดจริง phone และ extra contact ที่จำเป็นต่อภารกิจ
+- ระหว่างเปิดหน้า Mission ที่ยังไม่จบ Browser ต้องติดตามตำแหน่งของ requester หรือ claimed Interpreter ด้วย Geolocation และอัปเดตหมุดของ actor คนนั้นเมื่อพิกัดเปลี่ยน
+- ระบบต้องหยุดติดตามตำแหน่งเมื่อออกจากหน้า Mission หรือเมื่องาน Completed, Cancelled หรือ Expired
 - Server ต้องตรวจ actor และ privacy gate ทุกครั้งที่อ่านข้อมูล
 - ระบบต้องไม่เปิดข้อมูลดังกล่าวแก่ Interpreter คนอื่น ผู้ใช้ทั่วไป หรือผู้ที่เดา booking ID ได้
 - หน้า Mission ต้องแสดงวิธีติดต่อที่ชัดเจนโดยไม่เพิ่มระบบ Chat ใน MVP
@@ -391,6 +396,7 @@ open -> claimed -> in_progress -> completed
 **ผลลัพธ์และเกณฑ์ตรวจรับ:**
 
 - คู่ภารกิจเห็นข้อมูลเดียวกันหลัง User ยืนยันล่าม
+- User และ Interpreter เห็นหมุดตำแหน่งล่าสุดของตนเองโดยไม่ต้องกดปุ่มอัปเดต และเห็นหมุดอีกฝ่ายตาม privacy gate
 - การเปลี่ยน URL หรือเรียก data endpoint โดยผู้ไม่มีสิทธิ์ไม่คืนข้อมูลละเอียด
 - ข้อมูลติดต่อไม่ปรากฏใน HTML, serialized props หรือ network response ก่อนผ่าน gate
 
@@ -697,27 +703,29 @@ flowchart LR
 
 ```mermaid
 erDiagram
-    AUTH_USERS ||--|| PROFILES : owns
-    PROFILES ||--o| INTERPRETER_PROFILES : applies
-    PROFILES ||--o{ BOOKINGS : creates
-    INTERPRETER_PROFILES ||--o{ BOOKINGS : claims
-    LANGUAGES ||--o{ BOOKINGS : requested
-    CATEGORIES ||--o{ BOOKINGS : classifies
-    INTERPRETER_PROFILES ||--o{ INTERPRETER_LANGUAGES : has
-    LANGUAGES ||--o{ INTERPRETER_LANGUAGES : includes
-    INTERPRETER_PROFILES ||--o{ INTERPRETER_CATEGORIES : has
-    CATEGORIES ||--o{ INTERPRETER_CATEGORIES : includes
-    BOOKINGS ||--o{ REVIEWS : receives
-    PROFILES ||--o{ REVIEWS : writes
+    USER ||--o| INTERPRETER_PROFILE : "1 : 0..1 has profile"
+    USER ||--o{ INTERPRETER_APPLICATIONS : "1 : N submits application"
+    USER ||--o{ BOOKING : "1 : N makes request (user_id)"
+    INTERPRETER_PROFILE ||--o{ BOOKING : "1 : N assigned volunteer (interpreter_id)"
+    
+    INTERPRETER_PROFILE ||--o{ WORK_HISTORY : "1 : N experience history"
+    INTERPRETER_PROFILE ||--o{ LANGUAGE : "1 : N speaks languages"
+    INTERPRETER_PROFILE ||--o{ CATEGORY : "1 : N service categories"
+    
+    BOOKING ||--o{ REVIEW : "1 : N ratings & comments"
+    USER ||--o{ REVIEW : "1 : N reviewer / reviewee"
+    
+    USER ||--o{ HELP_REQUEST : "1 : N requester / manager"
+    USER ||--o{ REPORT : "1 : N reporter / reported"
+    BOOKING ||--o{ REPORT : "1 : N booking reference"
+    
+    USER ||--o{ NOTIFICATION : "1 : N notifications"
+    USER ||--o{ AUDIT_LOG : "1 : N admin activity trail"
 
-    AUTH_USERS {
-        UUID id PK
-    }
-    PROFILES {
-        UUID user_id PK,FK
-        VARCHAR first_name
-        VARCHAR last_name
-        VARCHAR email
+    USER {
+        BIGSERIAL user_id PK
+        VARCHAR name
+        SMALLINT age "CHECK >= 0"
         VARCHAR phone
         user_role role
         DATE date_of_birth
@@ -726,10 +734,36 @@ erDiagram
         UUID user_id PK,FK
         BIGINT primary_language_id FK
         VARCHAR extra_contact
-        TEXT experience_summary
-        application_status application_status
-        UUID reviewed_by_user_id FK
-        TIMESTAMPTZ approved_at
+        application_status application_status "ENUM"
+        TEXT reject_reason
+        BIGINT reviewed_by_manager_id FK
+        NUMERIC average_rating "Trigger-updated"
+        INT completed_job_count
+        BOOLEAN is_available
+        TIMESTAMPTZ created_at
+    }
+
+    INTERPRETER_APPLICATIONS {
+        BIGSERIAL application_id PK
+        BIGINT user_id FK
+        application_status status "ENUM: Pending, Under Review, Approved, Rejected"
+        TEXT reject_reason
+        VARCHAR certificate_url
+        TIMESTAMPTZ submitted_at
+        TIMESTAMPTZ reviewed_at
+        BIGINT reviewed_by_manager_id FK
+    }
+
+    LANGUAGE {
+        BIGSERIAL language_id PK
+        BIGINT interpreter_id FK
+        VARCHAR language_name
+    }
+
+    CATEGORY {
+        BIGSERIAL category_id PK
+        BIGINT interpreter_id FK
+        VARCHAR category_name
     }
     BOOKINGS {
         BIGSERIAL booking_id PK

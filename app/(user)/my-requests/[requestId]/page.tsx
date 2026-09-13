@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { AppShell } from "@/app/components/app-shell";
+import { WorkspaceShell } from "@/app/components/workspace-shell";
 import { isValidRequestId } from "@/app/lib/mock-requests";
 import { StoredRequestDetail } from "./stored-request-detail";
 
@@ -24,8 +24,8 @@ export default async function RequestStatusPage(props: PageProps<"/my-requests/[
   }
 
   return (
-    <AppShell>
+    <WorkspaceShell>
       <StoredRequestDetail requestId={requestId} />
-    </AppShell>
+    </WorkspaceShell>
   );
 }

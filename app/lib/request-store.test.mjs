@@ -115,3 +115,130 @@ test("failed storage writes do not claim a successful request", () => {
   assert.throws(() => env.load().createRequest(input, ""), /Storage denied/);
   assert.equal(env.data.size, 0);
 });
+
+const requester = { userId: "user-1", name: "Requester", phone: "0800000001", role: "User" };
+const interpreter = { userId: "interpreter-1", name: "Interpreter", phone: "0800000002", role: "Interpreter" };
+
+test("claim, requester approval, start and dual completion share one request", () => {
+  const env = environment();
+  const store = env.load();
+  const id = store.createRequest(input, "");
+  store.attachRequester(id, requester);
+
+  assert.throws(() => store.claimRequest(id, { ...requester, role: "Interpreter" }), /own request/);
+  store.claimRequest(id, interpreter);
+  assert.equal(store.useRequests().requests[0].status, "Claimed");
+  assert.equal(store.useRequests().requests[0].interpreterId, interpreter.userId);
+  assert.throws(() => store.startRequest(id, interpreter), /confirm/);
+
+  store.confirmInterpreterSelection(id, requester);
+  store.startRequest(id, interpreter);
+  assert.equal(store.useRequests().requests[0].status, "InProgress");
+
+  store.confirmRequestCompletion(id, requester);
+  assert.equal(store.useRequests().requests[0].status, "InProgress");
+  store.confirmRequestCompletion(id, interpreter);
+  assert.equal(store.useRequests().requests[0].status, "Completed");
+  assert.ok(store.useRequests().requests[0].endedAtLabel);
+});
+
+test("interpreter withdrawal returns an unstarted request to the open pool", () => {
+  const env = environment();
+  const store = env.load();
+  const id = store.createRequest(input, "");
+  store.attachRequester(id, requester);
+  store.claimRequest(id, interpreter);
+  store.cancelMission(id, interpreter, "Cannot attend");
+
+  const reopened = store.useRequests().requests[0];
+  assert.equal(reopened.status, "Open");
+  assert.equal(reopened.interpreterId, null);
+  assert.equal(reopened.interpreter, null);
+  assert.equal(reopened.cancelledBy, null);
+  assert.equal(reopened.cancelReason, null);
+});
+
+test("requester can edit request details until work starts", () => {
+  const env = environment();
+  const store = env.load();
+  const id = store.createRequest(input, "");
+  store.attachRequester(id, requester);
+  store.updateRequestDetailsBeforeStart(id, requester, {
+    languageId: "chinese",
+    categoryId: "government",
+    description: "Bring the original passport",
+    exactAddress: "Government office, counter 5",
+  });
+
+  const updated = store.useRequests().requests[0];
+  assert.equal(updated.languageId, "chinese");
+  assert.equal(updated.categoryId, "government");
+  assert.equal(updated.description, "Bring the original passport");
+  assert.equal(updated.exactAddress, "Government office, counter 5");
+
+  store.claimRequest(id, interpreter);
+  store.updateRequestDetailsBeforeStart(id, requester, {
+    languageId: "english",
+    categoryId: "medical",
+    description: "Updated before start",
+    exactAddress: "Community clinic, entrance B",
+  });
+  const claimedUpdate = store.useRequests().requests[0];
+  assert.equal(claimedUpdate.description, "Updated before start");
+  assert.equal(claimedUpdate.exactAddress, "Community clinic, entrance B");
+
+  store.confirmInterpreterSelection(id, requester);
+  store.startRequest(id, interpreter);
+  assert.throws(() => store.updateRequestDetailsBeforeStart(id, requester, {
+    languageId: "english",
+    categoryId: "medical",
+    description: "Changed after start",
+    exactAddress: "Another place",
+  }), /before work starts/);
+});
+
+test("request detail edits validate ownership and meeting point", () => {
+  const env = environment();
+  const store = env.load();
+  const id = store.createRequest(input, "");
+  store.attachRequester(id, requester);
+
+  assert.throws(() => store.updateRequestDetailsBeforeStart(id, { ...requester, userId: "user-2" }, {
+    languageId: "english",
+    categoryId: "medical",
+    description: "Changed by another user",
+    exactAddress: "Another place",
+  }), /Only the requester/);
+  assert.throws(() => store.updateRequestDetailsBeforeStart(id, requester, {
+    languageId: "english",
+    categoryId: "medical",
+    description: "Missing place",
+    exactAddress: " ",
+  }), /meeting point/);
+});
+
+test("interpreter withdrawal after work starts cancels the request", () => {
+  const env = environment();
+  const store = env.load();
+  const id = store.createRequest(input, "");
+  store.attachRequester(id, requester);
+  store.claimRequest(id, interpreter);
+  store.confirmInterpreterSelection(id, requester);
+  store.startRequest(id, interpreter);
+  store.cancelMission(id, interpreter, "Emergency");
+
+  const cancelled = store.useRequests().requests[0];
+  assert.equal(cancelled.status, "Cancelled");
+  assert.equal(cancelled.cancelledBy, "Interpreter");
+});
+
+test("an interpreter cannot hold two active assignments", () => {
+  const env = environment();
+  const store = env.load();
+  const firstId = store.createRequest(input, "");
+  const secondId = store.createRequest({ ...input, exactAddress: "Second location" }, "");
+  store.claimRequest(firstId, interpreter);
+
+  assert.throws(() => store.claimRequest(secondId, interpreter), /active assignment/);
+  assert.equal(store.useRequests().requests.find((request) => request.requestId === secondId).status, "Open");
+});

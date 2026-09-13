@@ -12,6 +12,7 @@ import {
 import { RegisterForm } from "./register-form";
 
 export interface RegisterModalProps {
+  intentLabel?: string;
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
@@ -19,6 +20,7 @@ export interface RegisterModalProps {
 }
 
 export function RegisterModal({
+  intentLabel,
   isOpen,
   onClose,
   onSuccess,
@@ -29,10 +31,19 @@ export function RegisterModal({
   useEffect(() => {
     if (!isOpen) return;
 
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const frame = requestAnimationFrame(() => dialogRef.current?.querySelector<HTMLElement>('input, button, a[href]')?.focus());
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Tab") {
+        const nodes = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex="0"]') ?? []).filter(el => el.getClientRects().length > 0);
+        const first = nodes[0], last = nodes[nodes.length - 1];
+        if (first && last && (event.shiftKey ? document.activeElement === first : document.activeElement === last)) {
+          event.preventDefault(); (event.shiftKey ? last : first).focus();
+        }
+      }
       if (event.key === "Escape") {
         onClose();
       }
@@ -41,7 +52,9 @@ export function RegisterModal({
     document.addEventListener("keydown", handleKeyDown);
 
     return () => {
+      cancelAnimationFrame(frame);
       document.body.style.overflow = originalOverflow;
+      previousFocus?.focus();
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, onClose]);
@@ -76,6 +89,7 @@ export function RegisterModal({
 
         {/* Left Column: Register Form */}
         <div className="p-6 sm:p-8 overflow-y-auto max-h-[94vh]">
+          {intentLabel && <p className="mb-4 rounded-lg bg-(--khvi-teal)/10 px-4 py-3 text-sm font-bold text-(--khvi-navy)">{intentLabel}</p>}
           <RegisterForm
             isModal={true}
             onCancel={onClose}
