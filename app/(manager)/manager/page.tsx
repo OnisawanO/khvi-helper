@@ -48,7 +48,6 @@ import {
   formatBadgeCount,
 } from "./mock-data";
 import { ApplicantDetailModal } from "./components/applicant-detail-modal";
-import { InterpreterApplicationQueue } from "@/components/manager/InterpreterApplicationQueue";
 import { LoginModal } from "@/app/components/auth/login-modal";
 import {
   getRedirectPathByRole,
@@ -912,25 +911,20 @@ export default function ManagerDashboard() {
           {/* Main Content Workspace (Flex column with min-h-full ensures sticky footer at bottom) */}
           <div className="flex-1 overflow-y-auto min-w-0 flex flex-col">
           <main className="flex-1 p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6">
-            {(navSection === "queue" || navSection === "approved" || navSection === "rejected") && (
-              <InterpreterApplicationQueue
-                key={navSection}
-                manager={currentUser!}
-                initialStatusFilter={navSection === "approved" || navSection === "rejected" ? navSection : "queue"}
-              />
-            )}
-
-            {/* Legacy applicant queue retained temporarily for non-recruitment manager workflows. */}
             {/* View Header with Search & Filter */}
-            {navSection === "legacy-queue" && (
+            {(navSection === "queue" || navSection === "approved" || navSection === "rejected") && (
               <div className="rounded-2xl border border-[#d8e3e7] bg-white p-5 shadow-xs">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h1 className="text-lg font-extrabold text-[#112d3f] sm:text-xl">
-                      Legacy Volunteer Interpreter Queue
+                      {navSection === "queue" && "Volunteer Interpreter Queue (Pending Review)"}
+                      {navSection === "approved" && "Approved Volunteer Interpreters"}
+                      {navSection === "rejected" && "Rejected Applicant Archive"}
                     </h1>
                     <p className="mt-1 text-xs text-[#637d8a]">
-                      Legacy applicant review view retained for migration compatibility.
+                      {navSection === "queue" && "Click any row to inspect candidate credentials in centered pop-up and make a decision."}
+                      {navSection === "approved" && "List of certified volunteers authorized to receive live mission broadcasts."}
+                      {navSection === "rejected" && "Historical record of rejected applicants and specified rejection reasons."}
                     </p>
                   </div>
 
@@ -1135,7 +1129,7 @@ export default function ManagerDashboard() {
             )}
 
             {/* Clean Table List with Grid Dividers (Matched to Admin style, min-h-[480px] for elegant default proportions) */}
-            {navSection === "legacy-queue" && (
+            {(navSection === "queue" || navSection === "approved" || navSection === "rejected") && (
               <div className="min-h-[480px] rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col justify-between">
                 <div className="overflow-x-auto flex-1">
                   <table className="w-full text-left border-collapse text-xs text-slate-600">

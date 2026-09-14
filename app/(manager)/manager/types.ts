@@ -54,7 +54,7 @@ export type IncidentReport = {
   actionTaken?: string;
 };
 
-export type ManagerNavSection = "queue" | "approved" | "rejected" | "legacy-queue" | "tickets" | "reports" | "history";
+export type ManagerNavSection = "queue" | "approved" | "rejected" | "tickets" | "reports" | "history";
 
 export type ManagerActivity = {
   id: string;
