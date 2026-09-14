@@ -37,6 +37,11 @@ export interface ValidationErrors {
 
 export const AUTH_SESSION_STORAGE_KEY = "khvi_mock_auth_user";
 
+export function getDisplayName(name: string): string {
+  const displayName = name.replace(/\s*\((?:General User|Volunteer Interpreter)\)\s*$/i, "").trim();
+  return displayName || name;
+}
+
 export function calculateAge(dateOfBirthString: string): number | null {
   if (!dateOfBirthString) return null;
 
@@ -179,7 +184,7 @@ export async function registerMockUser(input: RegisterInput): Promise<{
 export const DEFAULT_MOCK_USERS: Record<UserRole, UserProfile & { password: string }> = {
   User: {
     userId: "mock-user-id-001",
-    name: "สมชาย มีความหวัง (General User)",
+    name: "สมชาย มีความหวัง",
     email: "user@khvi.org",
     phone: "0812345678",
     dateOfBirth: "1995-05-12",
@@ -191,7 +196,7 @@ export const DEFAULT_MOCK_USERS: Record<UserRole, UserProfile & { password: stri
   },
   Interpreter: {
     userId: "mock-interpreter-id-002",
-    name: "หลิน หลิน (Volunteer Interpreter)",
+    name: "หลิน หลิน",
     email: "volunteer@khvi.org",
     phone: "0898765432",
     dateOfBirth: "1992-08-20",

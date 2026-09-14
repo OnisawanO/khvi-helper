@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ApplicationStatusModal } from "@/components/volunteer/ApplicationStatusModal";
+import { getDisplayName, getMockUserSession } from "@/app/lib/mock-auth";
+import { submitVolunteerApplication } from "@/app/lib/volunteer-application-store";
 
 // 5 ภาษาหลักที่ระบุในโจทย์
 const coreLanguages = [
@@ -108,6 +110,26 @@ export function ApplicationForm() {
     setIsSubmitting(true);
     // จำลองการส่งข้อมูลเข้าสู่ระบบ
     setTimeout(() => {
+      const currentUser = getMockUserSession();
+      if (currentUser?.role === "User") {
+        submitVolunteerApplication({
+          userId: currentUser.userId,
+          applicantName: firstName && lastName ? `${firstName.trim()} ${lastName.trim()}` : getDisplayName(currentUser.name),
+          phone: phone.trim() || currentUser.phone,
+          extraContact: extraContact.trim(),
+          languages: selectedLangs.map((id) => ({
+            id,
+            name: getLanguageLabel(id),
+            type: id === "th" ? "Primary (ภาษาหลัก)" : "Fluent",
+          })),
+          categories: selectedCats.map((id) => {
+            const category = availableCategories.find((item) => item.id === id);
+            return { id, name: category?.name ?? `หมวด ${id}`, icon: category?.icon ?? "💬" };
+          }),
+          certificateFileName: certificateFileName || undefined,
+          assignedArea: "กรุงเทพมหานครและปริมณฑล (Bangkok Metropolitan)",
+        });
+      }
       setIsSubmitting(false);
       setSubmitted(true);
       setIsModalOpen(true);

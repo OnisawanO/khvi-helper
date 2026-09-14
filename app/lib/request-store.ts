@@ -73,18 +73,22 @@ export function appointmentFromValue(value: string): Date | null {
   return Number.isFinite(appointment.getTime()) ? appointment : null;
 }
 
+function startOfNextCalendarDay(now: Date) {
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+}
+
 export function createRequest(input: Pick<HelpRequest, "languageId" | "categoryId" | "description" | "urgency" | "exactAddress" | "latitude" | "longitude">, scheduledAt: string): string {
   const currentTime = new Date();
   const now = currentTime.getTime();
   const current = read();
   const requestId = String(Math.max(1000, ...current.map((r) => Number(r.requestId))) + 1);
   const appointment = input.urgency === "Scheduled" ? appointmentFromValue(scheduledAt) : null;
-  if (input.urgency === "Scheduled" && (appointment === null || appointment.getTime() <= now + 30 * 60 * 1000 || appointment.getTime() > now + 24 * 60 * 60 * 1000)) throw new Error("Choose an appointment between 30 minutes and 24 hours from now.");
+  if (input.urgency === "Scheduled" && (appointment === null || appointment.getTime() < startOfNextCalendarDay(currentTime).getTime())) throw new Error("Choose an appointment on the next calendar day or later.");
   const request: HelpRequest = {
     ...input, requestId, status: "Open", areaName: "Meeting point provided",
     createdAt: currentTime.toISOString(),
     createdAtLabel: new Date(now).toLocaleString(),
-    scheduledAtLabel: appointment === null ? null : appointment.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    scheduledAtLabel: appointment === null ? null : appointment.toLocaleString([], { dateStyle: "medium", timeStyle: "short" }),
     expiresAt: new Date(appointment?.getTime() ?? now + 1800000).toISOString(),
     expiresInSeconds: null, claimedAtLabel: null, startedAtLabel: null,
     userConfirmedDoneAtLabel: null, interpreterConfirmedDoneAtLabel: null,

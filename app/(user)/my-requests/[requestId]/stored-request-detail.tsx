@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { attachRequester, useRequests } from "@/app/lib/request-store";
-import { getMockUserSession, type UserProfile } from "@/app/lib/mock-auth";
+import type { UserProfile } from "@/app/lib/mock-auth";
+import { getWorkspaceActorSession } from "@/app/lib/workspace-mode";
 import { RequestDetail } from "./request-detail";
 
 export function StoredRequestDetail({ requestId }: { requestId: string }) {
   const { requests, ready } = useRequests();
-  const [viewer] = useState<UserProfile | null>(() => getMockUserSession());
+  const [viewer] = useState<UserProfile | null>(() => getWorkspaceActorSession());
   const request = requests.find((r) => r.requestId === requestId);
 
   useEffect(() => {

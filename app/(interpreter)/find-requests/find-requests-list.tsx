@@ -17,7 +17,7 @@ import { useCopyLocale } from "@/app/components/app-shell";
 import { ExpiryCountdown } from "@/app/components/expiry-countdown";
 import { StatusBadge, UrgencyBadge } from "@/app/components/request-badges";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
-import { getMockUserSession } from "@/app/lib/mock-auth";
+import { getWorkspaceActorSession } from "@/app/lib/workspace-mode";
 import { claimRequest as persistClaimRequest, useRequests } from "@/app/lib/request-store";
 import { RequestMap } from "./request-map";
 import {
@@ -305,7 +305,7 @@ export function FindRequestsList() {
 
   const confirmClaim = () => {
     if (!claimRequest) return;
-    const actor = getMockUserSession();
+    const actor = getWorkspaceActorSession();
     if (!actor) return;
     const requestId = claimRequest.requestId;
     setClaimingId(requestId);

@@ -11,8 +11,7 @@ import {
   getRedirectPathByRole,
   type UserProfile,
 } from "@/app/lib/mock-auth";
-
-export type WorkspaceRole = "User" | "Interpreter";
+import { getActiveWorkspaceRole, subscribeInterpreterWorkspaceMode, type WorkspaceRole } from "@/app/lib/workspace-mode";
 
 function isWorkspaceUser(user: UserProfile | null): user is UserProfile & { role: WorkspaceRole } {
   return user?.role === "User" || user?.role === "Interpreter";
@@ -24,24 +23,25 @@ export function WorkspaceShell({ children, requiredRole, alternatePath }: {
   alternatePath?: string;
 }) {
   const router = useRouter();
-  const [user, setUser] = useState<(UserProfile & { role: WorkspaceRole }) | null>(null);
+  const [workspace, setWorkspace] = useState<{ user: UserProfile & { role: WorkspaceRole }; activeRole: WorkspaceRole } | null>(null);
 
   useEffect(() => {
     const refreshSession = () => {
       const session = getMockUserSession();
 
       if (isWorkspaceUser(session)) {
-        if (requiredRole && session.role !== requiredRole) {
-          setUser(null);
-          router.replace(alternatePath ?? getRedirectPathByRole(session.role));
+        const activeRole = getActiveWorkspaceRole(session) ?? session.role;
+        if (requiredRole && activeRole !== requiredRole) {
+          setWorkspace(null);
+          router.replace(alternatePath ?? getRedirectPathByRole(activeRole));
           return;
         }
 
-        setUser(session);
+        setWorkspace({ user: session, activeRole });
         return;
       }
 
-      setUser(null);
+      setWorkspace(null);
       if (session?.role === "Manager" || session?.role === "Admin") {
         router.replace(getRedirectPathByRole(session.role));
       } else {
@@ -56,16 +56,18 @@ export function WorkspaceShell({ children, requiredRole, alternatePath }: {
     };
 
     queueMicrotask(refreshSession);
+    const unsubscribeMode = subscribeInterpreterWorkspaceMode(refreshSession);
     window.addEventListener("storage", onStorage);
     window.addEventListener("focus", refreshSession);
 
     return () => {
+      unsubscribeMode();
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("focus", refreshSession);
     };
   }, [alternatePath, requiredRole, router]);
 
-  if (!user) {
+  if (!workspace) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-(--khvi-paper)" aria-busy="true">
         <p role="status">Loading your workspace…</p>
@@ -73,18 +75,18 @@ export function WorkspaceShell({ children, requiredRole, alternatePath }: {
     );
   }
 
-  const role = user.role;
+  const { user, activeRole } = workspace;
 
   return (
     <div className="min-h-screen bg-(--khvi-paper) text-(--khvi-ink)">
       <AppShell
-        welcomeRole={role}
+        welcomeRole={activeRole}
         accountActions={
           <WorkspaceAccountActions
             user={user}
             onSignOut={() => {
               clearMockUserSession();
-              setUser(null);
+              setWorkspace(null);
               router.replace("/#top");
             }}
           />

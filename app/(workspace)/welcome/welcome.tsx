@@ -9,10 +9,18 @@ import {
   AUTH_SESSION_STORAGE_KEY, clearMockUserSession, getMockUserSession,
   getRedirectPathByRole, type UserProfile,
 } from "@/app/lib/mock-auth";
+import {
+  getActiveWorkspaceRole,
+  getInterpreterWorkspaceMode,
+  setInterpreterWorkspaceMode,
+  subscribeInterpreterWorkspaceMode,
+  type InterpreterWorkspaceMode,
+} from "@/app/lib/workspace-mode";
 
 export function Welcome() {
   const router = useRouter();
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [interpreterMode, setInterpreterMode] = useState<InterpreterWorkspaceMode>("helper");
 
   useEffect(() => {
     const refreshSession = () => {
@@ -25,7 +33,10 @@ export function Welcome() {
         router.replace(getRedirectPathByRole(session.role));
       } else {
         setUser(session);
-        const roleHash = session.role === "Interpreter" ? "#welcome-Interpreter" : "#welcome-user";
+        const mode = getInterpreterWorkspaceMode(session);
+        const activeRole = getActiveWorkspaceRole(session) ?? "User";
+        setInterpreterMode(mode);
+        const roleHash = activeRole === "Interpreter" ? "#welcome-Interpreter" : "#welcome-user";
         if (!window.location.hash || window.location.hash === "#top" || window.location.hash === "#welcome-guide") {
           window.history.replaceState(null, "", roleHash);
         }
@@ -35,9 +46,11 @@ export function Welcome() {
       if (event.key === AUTH_SESSION_STORAGE_KEY || event.key === null) refreshSession();
     };
     queueMicrotask(refreshSession);
+    const unsubscribeMode = subscribeInterpreterWorkspaceMode(refreshSession);
     window.addEventListener("storage", onStorage);
     window.addEventListener("focus", refreshSession);
     return () => {
+      unsubscribeMode();
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("focus", refreshSession);
     };
@@ -45,13 +58,21 @@ export function Welcome() {
 
   if (!user) return <main className="flex min-h-screen items-center justify-center bg-(--khvi-paper)" aria-busy="true"><p role="status">Loading your workspace…</p></main>;
 
-  return <div id={user.role === "Interpreter" ? "welcome-Interpreter" : "welcome-user"} className="min-h-screen bg-(--khvi-paper) text-(--khvi-ink)">
-    <AppShell welcomeRole={user.role === "Interpreter" ? "Interpreter" : "User"} accountActions={<WorkspaceAccountActions user={user} onSignOut={() => {
+  const activeRole = user.role === "Interpreter" && interpreterMode === "helper" ? "Interpreter" : "User";
+
+  function changeInterpreterMode(mode: InterpreterWorkspaceMode) {
+    setInterpreterMode(mode);
+    setInterpreterWorkspaceMode(user!.userId, mode);
+    window.history.replaceState(null, "", mode === "helper" ? "#welcome-Interpreter" : "#welcome-user");
+  }
+
+  return <div id={activeRole === "Interpreter" ? "welcome-Interpreter" : "welcome-user"} className="min-h-screen bg-(--khvi-paper) text-(--khvi-ink)">
+    <AppShell welcomeRole={activeRole} accountActions={<WorkspaceAccountActions user={user} onSignOut={() => {
       clearMockUserSession();
       setUser(null);
       router.replace("/#top");
     }} />}>
-      <WelcomeDashboard user={user} />
+      <WelcomeDashboard user={user} interpreterMode={interpreterMode} onInterpreterModeChange={changeInterpreterMode} />
     </AppShell>
   </div>;
 }

@@ -9,7 +9,7 @@ import {
 import { useCopyLocale } from "@/app/components/app-shell";
 import { StatusBadge, UrgencyBadge } from "@/app/components/request-badges";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
-import { getMockUserSession } from "@/app/lib/mock-auth";
+import { getWorkspaceActorSession } from "@/app/lib/workspace-mode";
 import { cancelMission, useRequests } from "@/app/lib/request-store";
 import {
   categoryLabel,
@@ -95,7 +95,7 @@ export function MyAssignmentsList({ activeFilter }: { activeFilter: StatusFilter
   const [cancelRequestId, setCancelRequestId] = useState<string | null>(null);
   const [cancelDraft, setCancelDraft] = useState("");
   const [cancelError, setCancelError] = useState<string | null>(null);
-  const actor = getMockUserSession();
+  const actor = getWorkspaceActorSession();
   const allAssignments = allRequests.filter((request) =>
     request.interpreterId === actor?.userId && ["Claimed", "InProgress", "Completed"].includes(request.status));
   const matching = (filterId: AssignmentFilterId) => {

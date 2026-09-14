@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { SiteHeader, type Locale } from "@/app/components/site-header";
 import { SiteFooter } from "@/app/components/site-footer";
+import { getMockUserSession } from "@/app/lib/mock-auth";
+import { getVolunteerApplication, type VolunteerApplicationSummary } from "@/app/lib/volunteer-application-store";
 
 const headerCopy = {
   brandSubtitle: "Community interpreter map",
@@ -47,27 +49,45 @@ export default function VolunteerStatusPage() {
   const [isAvailable, setIsAvailable] = useState(false);
   const [showCertModal, setShowCertModal] = useState(false);
   const [reuploadedFileName, setReuploadedFileName] = useState("");
+  const [savedApplication, setSavedApplication] = useState<VolunteerApplicationSummary | null>(null);
+
+  useEffect(() => {
+    const refreshApplication = () => {
+      const currentUser = getMockUserSession();
+      if (!currentUser) return;
+
+      const application = getVolunteerApplication(currentUser.userId);
+      setSavedApplication(application);
+      if (application && application.status !== "rejected") {
+        setStatus(application.status);
+      }
+    };
+
+    refreshApplication();
+  }, []);
 
   const applicationData = {
-    applicationId: "APP-2026-0913-048",
+    applicationId: savedApplication?.applicationId ?? "APP-2026-0913-048",
     volunteerId: "VLT-TH-2026-0091",
-    submittedAt: "13 ก.ย. 2026, 21:30 น.",
-    applicantName: "ปกรณ์ กิจเจริญชัย (Pakorn Kitcharoenchai)",
-    phone: "081-234-5678",
-    extraContact: "@pakorn_trans (LINE ID)",
-    languages: [
+    submittedAt: savedApplication
+      ? new Date(savedApplication.submittedAt).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" })
+      : "13 ก.ย. 2026, 21:30 น.",
+    applicantName: savedApplication?.applicantName ?? "ปกรณ์ กิจเจริญชัย (Pakorn Kitcharoenchai)",
+    phone: savedApplication?.phone || "081-234-5678",
+    extraContact: savedApplication?.extraContact || "@pakorn_trans (LINE ID)",
+    languages: savedApplication?.languages?.length ? savedApplication.languages : [
       { id: "th", name: "ไทย (Thai)", type: "Primary (ภาษาหลัก)" },
       { id: "en", name: "อังกฤษ (English)", type: "Fluent" },
       { id: "zh", name: "จีน (Chinese)", type: "HSK 5" },
     ],
-    categories: [
+    categories: savedApplication?.categories?.length ? savedApplication.categories : [
       { id: 9, name: "การสื่อสารทั่วไปและชีวิตประจำวัน (General & Daily Life)", icon: "💬" },
       { id: 1, name: "การแพทย์และโรงพยาบาล (Healthcare & Hospital)", icon: "🏥" },
       { id: 2, name: "สถานีตำรวจและคดีความ (Police & Legal)", icon: "👮" },
     ],
-    certificateFileName: reuploadedFileName || "hsk5_and_ielts_certificate.pdf",
+    certificateFileName: reuploadedFileName || savedApplication?.certificateFileName || "hsk5_and_ielts_certificate.pdf",
     estimatedReviewTime: "ภายใน 24 ชั่วโมง",
-    assignedArea: "กรุงเทพมหานครและปริมณฑล (Bangkok Metropolitan)",
+    assignedArea: savedApplication?.assignedArea || "กรุงเทพมหานครและปริมณฑล (Bangkok Metropolitan)",
   };
 
   const handleReupload = (e: React.ChangeEvent<HTMLInputElement>) => {
