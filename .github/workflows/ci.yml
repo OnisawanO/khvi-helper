@@ -24,7 +24,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: package-lock.json
 
@@ -34,5 +34,22 @@ jobs:
       - name: Run lint
         run: npm run lint
 
+      - name: Validate Supabase build configuration
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          test -n "$NEXT_PUBLIC_SUPABASE_URL" || {
+            echo "::error::Missing GitHub Actions secret NEXT_PUBLIC_SUPABASE_URL"
+            exit 1
+          }
+          test -n "$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY" || {
+            echo "::error::Missing GitHub Actions secret NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+            exit 1
+          }
+
       - name: Run production build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
         run: npm run build
