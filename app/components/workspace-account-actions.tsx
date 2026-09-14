@@ -2,7 +2,7 @@
 
 import { ArrowRightOnRectangleIcon, ChevronDownIcon, UserCircleIcon } from "@heroicons/react/24/outline";
 import { useEffect, useRef, useState } from "react";
-import type { UserProfile } from "@/app/lib/mock-auth";
+import { getDisplayName, type UserProfile } from "@/app/lib/mock-auth";
 import { useUiLocale } from "./app-shell";
 
 const accountCopy = {
@@ -24,6 +24,7 @@ function getInitials(name: string) {
 export function WorkspaceAccountActions({ user, onSignOut }: { user: UserProfile; onSignOut: () => void }) {
   const locale = useUiLocale();
   const copy = accountCopy[locale];
+  const displayName = getDisplayName(user.name);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
@@ -59,10 +60,10 @@ export function WorkspaceAccountActions({ user, onSignOut }: { user: UserProfile
         aria-haspopup="menu"
       >
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-(--khvi-navy) text-xs font-extrabold text-white">
-          {getInitials(user.name)}
+          {getInitials(displayName)}
         </span>
         <span className="hidden min-w-0 text-left md:block">
-          <span className="block max-w-36 truncate text-xs font-extrabold leading-tight text-(--khvi-ink)">{user.name}</span>
+          <span className="block max-w-36 truncate text-xs font-extrabold leading-tight text-(--khvi-ink)">{displayName}</span>
           <span className="mt-0.5 block text-[11px] font-semibold text-(--khvi-teal)">{user.role}</span>
         </span>
         <ChevronDownIcon
@@ -77,7 +78,7 @@ export function WorkspaceAccountActions({ user, onSignOut }: { user: UserProfile
           className="absolute right-0 z-50 mt-2 w-64 rounded-(--khvi-radius-md) border border-(--khvi-teal)/20 bg-(--khvi-surface) p-2 shadow-[0_18px_36px_rgba(19,52,68,0.16)]"
         >
           <div className="border-b border-(--khvi-teal)/15 px-3 py-2.5">
-            <p className="truncate text-sm font-extrabold text-(--khvi-ink)">{user.name}</p>
+            <p className="truncate text-sm font-extrabold text-(--khvi-ink)">{displayName}</p>
             <p className="mt-0.5 truncate text-xs text-(--khvi-ink)/60">{user.email}</p>
             <span className="mt-2 inline-flex rounded-md bg-(--khvi-teal)/10 px-2 py-0.5 text-[11px] font-bold text-(--khvi-teal)">
               {user.role}
