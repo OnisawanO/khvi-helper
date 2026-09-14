@@ -198,6 +198,11 @@ export default function AdminPage() {
       }
 
       return true;
+    }).sort((a, b) => {
+      // Locked users are always sorted to the bottom of the table
+      if (a.isLocked && !b.isLocked) return 1;
+      if (!a.isLocked && b.isLocked) return -1;
+      return 0;
     });
   }, [users, selectedRoles, selectedStatusFilter, searchQuery, selectedLanguages, selectedCategories]);
 
