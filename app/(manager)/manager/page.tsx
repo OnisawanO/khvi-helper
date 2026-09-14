@@ -268,10 +268,8 @@ export default function ManagerDashboard() {
   const [activities, setActivities] = useState<ManagerActivity[]>(initialManagerActivities);
   const [selectedApplicantId, setSelectedApplicantId] = useState<string | null>(initialApplicants[0].id);
   
-  // Navigation & View State (Strictly Manager scope: Verification + Support)
-  const [navSection, setNavSection] = useState<
-    "queue" | "approved" | "rejected" | "legacy-queue" | "tickets" | "reports"
-  >("queue");
+  // Navigation & View State (Strictly Manager scope: Verification + Support + History)
+  const [navSection, setNavSection] = useState<ManagerNavSection>("queue");
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
 
