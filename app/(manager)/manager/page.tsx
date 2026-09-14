@@ -219,7 +219,7 @@ export default function ManagerDashboard() {
   const handleSignOut = () => {
     clearMockUserSession();
     setCurrentUser(null);
-    router.push("/?signin=true");
+    router.push("/");
   };
 
   const handleLoginSuccess = (user: UserProfile) => {
