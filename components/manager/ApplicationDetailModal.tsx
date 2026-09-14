@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react";
 
-export type ApplicationStatus = "pending" | "under_review" | "approved" | "needs_revision" | "rejected";
+export type ApplicationStatus = "pending" | "under_review" | "approved" | "needs_revision" | "rejected" | "cancelled";
 
 export interface InterpreterApplication {
   id: string;
-  userId: number;
+  userId: string | number;
   applicantName: string;
   phone: string;
   email: string;
@@ -26,11 +26,13 @@ export interface InterpreterApplication {
   certificateUrl: string;
   submittedAt: string;
   reviewedAt?: string;
-  reviewedByManagerId?: number;
+  reviewedByManagerId?: string | number;
   reviewedByManagerName?: string;
   status: ApplicationStatus;
   rejectReason?: string;
   revisionNote?: string;
+  cancellationReason?: string;
+  cancelledAt?: string;
   assignedArea: string;
 }
 
@@ -127,6 +129,10 @@ function ApplicationDetailModalContent({
             ) : application.status === "rejected" ? (
               <span className="inline-block border border-[#f04f3e] bg-[#fff1f2] px-3 py-1.5 text-xs font-extrabold text-[#f04f3e]">
                 ✕ ปฏิเสธใบสมัคร
+              </span>
+            ) : application.status === "cancelled" ? (
+              <span className="inline-block border border-[#cbd7dc] bg-[#f3f6f7] px-3 py-1.5 text-xs font-extrabold text-[#53656c]">
+                ใบสมัครถูกถอนโดยผู้สมัคร
               </span>
             ) : (
               <span className="inline-block border border-[#087f80] bg-[#edf7f5] px-3 py-1.5 text-xs font-extrabold text-[#087f80]">
@@ -336,6 +342,13 @@ function ApplicationDetailModalContent({
             )}
           </div>
         )}
+        {application.cancelledAt && (
+          <div className="border border-[#cbd7dc] bg-[#f3f6f7] p-4 text-xs space-y-1">
+            <div className="font-extrabold text-[#53656c]">ผู้สมัครถอนใบสมัครแล้ว</div>
+            <div className="text-[#64777e]">ดำเนินการเมื่อ: <strong className="text-[#203d4d]">{application.cancelledAt}</strong></div>
+            {application.cancellationReason && <div className="border-l-2 border-[#9aaab1] pl-2 text-[#53656c]">เหตุผล: {application.cancellationReason}</div>}
+          </div>
+        )}
 
         {/* Decision Sub-forms */}
         {decisionTab === "revision" && (
@@ -411,6 +424,9 @@ function ApplicationDetailModalContent({
           ปิดหน้าต่าง
         </button>
 
+        {application.status === "cancelled" ? (
+          <p className="text-xs font-bold text-[#53656c]">ใบสมัครนี้ปิดแล้ว จึงไม่สามารถเปลี่ยนผลการพิจารณาได้</p>
+        ) : (
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
@@ -444,6 +460,7 @@ function ApplicationDetailModalContent({
             ✓ อนุมัติสิทธิ์ล่าม (BR-02 Approve)
           </button>
         </div>
+        )}
       </div>
     </div>
   );
