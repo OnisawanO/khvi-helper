@@ -153,3 +153,4 @@ export function AuditTrailTable({
     </div>
   );
 }
+
