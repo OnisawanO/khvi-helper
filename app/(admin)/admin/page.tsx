@@ -10,13 +10,10 @@ import {
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import { LoginModal } from "@/app/components/auth/login-modal";
-import {
-  clearMockUserSession,
-  getMockUserSession,
-  getRedirectPathByRole,
-  UserProfile,
-  DEFAULT_MOCK_USERS,
-} from "@/app/lib/mock-auth";
+import { getRedirectPathByRole } from "@/app/lib/mock-auth";
+import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
+import { createClient } from "@/utils/supabase/client";
+import type { UserProfile } from "@/app/lib/mock-auth";
 
 import { AdminActiveTab, AdminUserRecord, AuditLogEntry, SystemRole } from "./types";
 import { initialUsers, initialAuditLogs } from "./mock-data";
@@ -53,23 +50,40 @@ export default function AdminPage() {
   const [tempLockReason, setTempLockReason] = useState("");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(
-    DEFAULT_MOCK_USERS.Admin
-  );
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   useEffect(() => {
-    const session = getMockUserSession();
+    const supabase = createClient();
+    let disposed = false;
 
-    if (session?.role !== "Admin") {
-      router.replace(session ? getRedirectPathByRole(session.role) : "/#top");
-      return;
-    }
+    const checkAdminSession = async () => {
+      const result = await getCurrentUserProfile(supabase);
+      if (disposed) return;
 
-    queueMicrotask(() => {
-      setCurrentUser(session);
+      if (!result.profile) {
+        router.replace("/#top");
+        return;
+      }
+
+      if (result.profile.role !== "Admin") {
+        router.replace(getRedirectPathByRole(result.profile.role));
+        return;
+      }
+
+      setCurrentUser(result.profile);
       setAuthChecked(true);
+    };
+
+    void checkAdminSession();
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+      window.setTimeout(() => void checkAdminSession(), 0);
     });
+
+    return () => {
+      disposed = true;
+      authListener.subscription.unsubscribe();
+    };
   }, [router]);
 
   const handleLoginSuccess = (user: UserProfile) => {
@@ -281,7 +295,8 @@ export default function AdminPage() {
         <AdminHeader
           onMenuClick={() => setIsMobileDrawerOpen((prev) => !prev)}
           onSignOut={() => {
-            clearMockUserSession();
+            void createClient().auth.signOut();
+            setCurrentUser(null);
             setAuthChecked(false);
             router.replace("/#top");
           }}

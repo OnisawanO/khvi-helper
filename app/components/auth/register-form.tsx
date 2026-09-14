@@ -20,10 +20,16 @@ import type { Locale } from "@/app/components/site-header";
 import { useStoredLocale } from "@/app/lib/locale";
 import {
   calculateAge,
-  registerMockUser,
+  validateRegisterInput,
   type RegisterInput,
   type ValidationErrors,
 } from "@/app/lib/mock-auth";
+import {
+  getAuthErrorMessage,
+  getCurrentUserProfile,
+  splitFullName,
+} from "@/app/lib/supabase-auth";
+import { createClient } from "@/utils/supabase/client";
 
 const UI_LANGUAGE_OPTIONS: { code: Locale; label: string; nativeName: string }[] = [
   { code: "th", label: "ไทย (Thai)", nativeName: "ภาษาไทย" },
@@ -47,6 +53,7 @@ export function RegisterForm({
   onSwitchToSignIn,
 }: RegisterFormProps) {
   const router = useRouter();
+  const supabase = createClient();
   const [currentLocale] = useStoredLocale();
 
   const nameId = useId();
@@ -93,12 +100,47 @@ export function RegisterForm({
     setErrors({});
 
     try {
-      const result = await registerMockUser(formData);
+      const validationErrors = validateRegisterInput(formData);
+      if (Object.keys(validationErrors).length > 0) {
+        setErrors(validationErrors);
+        setIsSubmitting(false);
+        return;
+      }
 
-      if (!result.success) {
-        if (result.errors) {
-          setErrors(result.errors);
-        }
+      const { firstName, lastName } = splitFullName(formData.name);
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.name.trim(),
+            first_name: firstName,
+            last_name: lastName,
+            phone: formData.phone.trim(),
+            date_of_birth: formData.dateOfBirth,
+            preferred_ui_language: formData.preferredUiLanguage,
+          },
+        },
+      });
+
+      if (signUpError || !data.user) {
+        setErrors({ general: getAuthErrorMessage(signUpError, "register") });
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!data.session) {
+        setErrors({
+          general: "สมัครสมาชิกแล้ว แต่ยังไม่มี session ให้ใช้งาน กรุณาตรวจสอบการตั้งค่า Confirm email ใน Supabase",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      const profileResult = await getCurrentUserProfile(supabase);
+      if (!profileResult.profile) {
+        await supabase.auth.signOut();
+        setErrors({ general: profileResult.error || "ไม่สามารถสร้างข้อมูลโปรไฟล์ได้" });
         setIsSubmitting(false);
         return;
       }

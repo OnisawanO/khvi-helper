@@ -3,13 +3,31 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { attachRequester, useRequests } from "@/app/lib/request-store";
-import { getMockUserSession, type UserProfile } from "@/app/lib/mock-auth";
+import type { UserProfile } from "@/app/lib/mock-auth";
+import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { RequestDetail } from "./request-detail";
 
 export function StoredRequestDetail({ requestId }: { requestId: string }) {
   const { requests, ready } = useRequests();
-  const [viewer] = useState<UserProfile | null>(() => getMockUserSession());
+  const [viewer, setViewer] = useState<UserProfile | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const request = requests.find((r) => r.requestId === requestId);
+
+  useEffect(() => {
+    let disposed = false;
+
+    const loadViewer = async () => {
+      const result = await getCurrentUserProfile();
+      if (disposed) return;
+      setViewer(result.profile);
+      setAuthReady(true);
+    };
+
+    void loadViewer();
+    return () => {
+      disposed = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (viewer?.role === "User" && request && !request.requester) {
@@ -21,9 +39,9 @@ export function StoredRequestDetail({ requestId }: { requestId: string }) {
     ? !request?.requester || request.requester.userId === viewer.userId
     : viewer?.role === "Interpreter" && request?.interpreterId === viewer.userId;
 
-  if (ready && request && viewer && hasAccess) return <RequestDetail request={request} viewer={viewer} />;
+  if (ready && authReady && request && viewer && hasAccess) return <RequestDetail request={request} viewer={viewer} />;
   return <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-6 py-16">
-    <h1 className="text-2xl font-bold">{ready && viewer ? "Request not found on this device" : "Loading your request…"}</h1>
-    {ready && viewer && <><p className="my-4">This preview only opens requests owned by you or assigned to you in this browser.</p><Link className="underline" href={viewer.role === "Interpreter" ? "/my-assignments#main-content" : "/my-requests#main-content"}>Back to requests</Link></>}
+    <h1 className="text-2xl font-bold">{ready && authReady && viewer ? "Request not found on this device" : "Loading your request…"}</h1>
+    {ready && authReady && viewer && <><p className="my-4">This preview only opens requests owned by you or assigned to you in this browser.</p><Link className="underline" href={viewer.role === "Interpreter" ? "/my-assignments#main-content" : "/my-requests#main-content"}>Back to requests</Link></>}
   </main>;
 }

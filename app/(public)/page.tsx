@@ -23,7 +23,9 @@ import { RegisterModal } from "@/app/components/auth/register-modal";
 import { LoginModal } from "@/app/components/auth/login-modal";
 import { VisitorFaq, VisitorLanguages } from "@/app/components/visitor-welcome";
 import { useRouter } from "next/navigation";
-import { getMockUserSession, getRedirectPathByRole, type UserProfile } from "@/app/lib/mock-auth";
+import { getRedirectPathByRole, type UserProfile } from "@/app/lib/mock-auth";
+import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
+import { createClient } from "@/utils/supabase/client";
 import Image from "next/image";
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
@@ -410,14 +412,16 @@ export default function Home() {
   const t = locale === "th" ? thaiCopy : copy[resolveCopyLocale(locale)];
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
-  function continueAfterLogin(user: UserProfile | null = getMockUserSession()) {
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+
+  function continueAfterLogin(user: UserProfile | null = currentUser) {
     if (!user) return;
     setIsSignInOpen(false);
     setIsRegisterOpen(false);
     router.push(user.role === "User" && intent ? intent === "request" ? "/request-help#main-content" : "/welcome#volunteer-application" : getRedirectPathByRole(user.role));
   }
   function startIntent(nextIntent: "request" | "volunteer") {
-    const user = getMockUserSession();
+    const user = currentUser;
     if (user) {
       router.push(user.role === "User" ? nextIntent === "request" ? "/request-help#main-content" : "/welcome#volunteer-application" : getRedirectPathByRole(user.role));
       return;
@@ -426,6 +430,26 @@ export default function Home() {
     setIsSignInOpen(true);
     setIsRegisterOpen(false);
   }
+
+  useEffect(() => {
+    const supabase = createClient();
+    let disposed = false;
+
+    const refreshUser = async () => {
+      const result = await getCurrentUserProfile(supabase);
+      if (!disposed) setCurrentUser(result.profile);
+    };
+
+    void refreshUser();
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+      window.setTimeout(() => void refreshUser(), 0);
+    });
+
+    return () => {
+      disposed = true;
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     const checkUrl = () => {

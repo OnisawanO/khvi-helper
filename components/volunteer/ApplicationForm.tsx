@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ApplicationStatusModal } from "@/components/volunteer/ApplicationStatusModal";
+import { calculateAge } from "@/app/lib/mock-auth";
+import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
+import { submitInterpreterApplication } from "@/app/lib/interpreter-application";
 
 // 5 ภาษาหลักที่ระบุในโจทย์
 const coreLanguages = [
@@ -65,8 +67,8 @@ export function ApplicationForm() {
   const [certificateUrl, setCertificateUrl] = useState("");
   const [certificateFileName, setCertificateFileName] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   // Toggle ภาษาหลัก (ไทย, อังกฤษ, จีน, สเปน, อาหรับ) หรือภาษาที่เลือกแล้ว
   const toggleLang = (id: string) => {
@@ -102,16 +104,48 @@ export function ApplicationForm() {
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setSubmitError("");
+
+    if (!selectedLangs.length || !selectedCats.length || !firstName.trim() || !lastName.trim() || !phone.trim() || !certificateFileName) {
+      setSubmitError("กรุณากรอกข้อมูลติดต่อ เลือกภาษา เลือกหมวดหมู่งาน และแนบเอกสารรับรองให้ครบถ้วน");
+      return;
+    }
+
     setIsSubmitting(true);
-    // จำลองการส่งข้อมูลเข้าสู่ระบบ
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      const profileResult = await getCurrentUserProfile();
+      const user = profileResult.profile;
+      if (!user) {
+        setSubmitError(profileResult.error || "กรุณาเข้าสู่ระบบก่อนส่งใบสมัคร");
+        return;
+      }
+
+      submitInterpreterApplication(user, {
+        applicantName: `${firstName.trim()} ${lastName.trim()}`,
+        phone: phone.trim(),
+        email: user.email,
+        age: calculateAge(user.dateOfBirth) ?? 0,
+        extraContact,
+        languages: selectedLangs.map((id) => ({
+          id,
+          name: getLanguageLabel(id),
+          type: id === "th" ? "Primary" : "Fluent",
+        })),
+        categories: selectedCats.map((id) => {
+          const found = availableCategories.find((category) => category.id === id);
+          return { id, name: found?.name ?? `หมวด ${id}`, icon: found?.icon };
+        }),
+        certificateFileName,
+        certificateUrl,
+      });
       setSubmitted(true);
-      setIsModalOpen(true);
-    }, 400);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "ไม่สามารถส่งใบสมัครได้ กรุณาลองใหม่");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // ดึงชื่อภาษาสำหรับแสดงผลใน Tags/Badges
@@ -133,6 +167,11 @@ export function ApplicationForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {submitError && (
+        <div className="border border-[#f04f3e] bg-[#fff1f2] p-4 text-sm font-bold text-[#b8291b]" role="alert">
+          {submitError}
+        </div>
+      )}
       {submitted && (
         <div className="border border-[#087f80] bg-[#edf7f5] p-5 text-[#087557] shadow-sm">
           <div className="flex items-center gap-2.5">
@@ -520,13 +559,12 @@ export function ApplicationForm() {
               ← ยกเลิกและกลับสู่หน้าหลัก
             </Link>
             <span className="text-[#d8e4e7]">|</span>
-            <button
-              type="button"
-              onClick={() => setIsModalOpen(true)}
+            <Link
+              href="/volunteer/status#main-content"
               className="inline-flex items-center gap-1.5 border border-[#c3d1d6] bg-white px-3 py-1.5 text-xs font-bold text-[#087f80] hover:bg-[#edf7f5] transition-colors"
             >
               <span>🔍 ดูหน้าต่างสถานะใบสมัคร</span>
-            </button>
+            </Link>
           </div>
           <button
             type="submit"
@@ -538,36 +576,6 @@ export function ApplicationForm() {
         </div>
       </div>
 
-      {/* Application Status Modal Popup Window */}
-      <ApplicationStatusModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        data={{
-          applicationId: "APP-2026-0913-048",
-          applicantName: firstName && lastName ? `${firstName} ${lastName}` : "ปกรณ์ กิจเจริญชัย (Pakorn Kitcharoenchai)",
-          phone: phone || "081-234-5678",
-          extraContact: extraContact || "@volunteer_contact (LINE ID)",
-          languages: selectedLangs.map((id) => ({
-            id,
-            name: getLanguageLabel(id),
-            type: id === "th" ? "Primary (ภาษาหลัก)" : "Fluent",
-          })),
-          categories: selectedCats.map((id) => {
-            const found = availableCategories.find((c) => c.id === id);
-            return {
-              id,
-              name: found ? found.name : `หมวด ${id}`,
-              icon: found ? found.icon : "💬",
-            };
-          }),
-          certificateFileName: certificateFileName
-            ? `${certificateFileName}${certificateUrl ? ` (${certificateUrl})` : ""}`
-            : "hsk5_and_ielts_certificate.pdf",
-          submittedAt: "เพิ่งยื่นส่ง (Just now)",
-          estimatedReviewTime: "ภายใน 24 ชั่วโมง",
-          assignedArea: "กรุงเทพมหานครและปริมณฑล (Bangkok Metropolitan)",
-        }}
-      />
     </form>
   );
 }

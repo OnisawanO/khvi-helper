@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ClipboardDocumentListIcon,
   MapPinIcon,
@@ -9,7 +9,8 @@ import {
 import { useCopyLocale } from "@/app/components/app-shell";
 import { StatusBadge, UrgencyBadge } from "@/app/components/request-badges";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
-import { getMockUserSession } from "@/app/lib/mock-auth";
+import type { UserProfile } from "@/app/lib/mock-auth";
+import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { cancelMission, useRequests } from "@/app/lib/request-store";
 import {
   categoryLabel,
@@ -95,7 +96,21 @@ export function MyAssignmentsList({ activeFilter }: { activeFilter: StatusFilter
   const [cancelRequestId, setCancelRequestId] = useState<string | null>(null);
   const [cancelDraft, setCancelDraft] = useState("");
   const [cancelError, setCancelError] = useState<string | null>(null);
-  const actor = getMockUserSession();
+  const [actor, setActor] = useState<UserProfile | null>(null);
+  useEffect(() => {
+    let disposed = false;
+
+    const loadActor = async () => {
+      const result = await getCurrentUserProfile();
+      if (!disposed) setActor(result.profile);
+    };
+
+    void loadActor();
+    return () => {
+      disposed = true;
+    };
+  }, []);
+
   const allAssignments = allRequests.filter((request) =>
     request.interpreterId === actor?.userId && ["Claimed", "InProgress", "Completed"].includes(request.status));
   const matching = (filterId: AssignmentFilterId) => {
