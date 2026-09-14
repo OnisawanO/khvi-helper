@@ -26,7 +26,9 @@ import {
 } from "@heroicons/react/24/outline";
 import { BrandMark } from "@/app/components/brand-mark";
 import { SiteFooter } from "@/app/components/site-footer";
-import { clearMockUserSession, getMockUserSession, getRedirectPathByRole } from "@/app/lib/mock-auth";
+import { getRedirectPathByRole } from "@/app/lib/mock-auth";
+import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
+import { createClient } from "@/utils/supabase/client";
 
 export type SystemRole = "User" | "Interpreter" | "Manager" | "Admin";
 
@@ -420,14 +422,35 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    const session = getMockUserSession();
+    const supabase = createClient();
+    let disposed = false;
 
-    if (session?.role !== "Admin") {
-      router.replace(session ? getRedirectPathByRole(session.role) : "/#top");
-      return;
-    }
+    const checkAdminSession = async () => {
+      const result = await getCurrentUserProfile(supabase);
+      if (disposed) return;
 
-    queueMicrotask(() => setAuthChecked(true));
+      if (!result.profile) {
+        router.replace("/#top");
+        return;
+      }
+
+      if (result.profile.role !== "Admin") {
+        router.replace(getRedirectPathByRole(result.profile.role));
+        return;
+      }
+
+      setAuthChecked(true);
+    };
+
+    void checkAdminSession();
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+      window.setTimeout(() => void checkAdminSession(), 0);
+    });
+
+    return () => {
+      disposed = true;
+      authListener.subscription.unsubscribe();
+    };
   }, [router]);
 
   const showToast = (msg: string) => {
@@ -600,7 +623,7 @@ export default function AdminPage() {
       <AdminHeader
         onMenuClick={() => setIsMobileDrawerOpen(true)}
         onSignOut={() => {
-          clearMockUserSession();
+          void createClient().auth.signOut();
           setAuthChecked(false);
           router.replace("/#top");
         }}

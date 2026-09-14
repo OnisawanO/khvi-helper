@@ -44,12 +44,11 @@ import { ApplicantDetailModal } from "./components/applicant-detail-modal";
 import { InterpreterApplicationQueue } from "@/components/manager/InterpreterApplicationQueue";
 import { LoginModal } from "@/app/components/auth/login-modal";
 import {
-  getMockUserSession,
-  clearMockUserSession,
   getRedirectPathByRole,
-  DEFAULT_MOCK_USERS,
   type UserProfile,
 } from "@/app/lib/mock-auth";
+import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
+import { createClient } from "@/utils/supabase/client";
 
 function ManagerTopHeader({
   onMenuClick,
@@ -198,21 +197,44 @@ function ManagerTopHeader({
 export default function ManagerDashboard() {
   const router = useRouter();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(
-    DEFAULT_MOCK_USERS.Manager
-  );
+  const [authChecked, setAuthChecked] = useState(false);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
 
   useEffect(() => {
-    const session = getMockUserSession();
-    if (session) {
-      queueMicrotask(() => {
-        setCurrentUser(session);
-      });
-    }
-  }, []);
+    const supabase = createClient();
+    let disposed = false;
+
+    const checkManagerSession = async () => {
+      const result = await getCurrentUserProfile(supabase);
+      if (disposed) return;
+
+      if (!result.profile) {
+        router.replace("/#top");
+        return;
+      }
+
+      if (result.profile.role !== "Manager") {
+        router.replace(getRedirectPathByRole(result.profile.role));
+        return;
+      }
+
+      setCurrentUser(result.profile);
+      setAuthChecked(true);
+    };
+
+    void checkManagerSession();
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+      window.setTimeout(() => void checkManagerSession(), 0);
+    });
+
+    return () => {
+      disposed = true;
+      authListener.subscription.unsubscribe();
+    };
+  }, [router]);
 
   const handleSignOut = () => {
-    clearMockUserSession();
+    void createClient().auth.signOut();
     setCurrentUser(null);
     router.push("/?signin=true");
   };
@@ -399,6 +421,14 @@ export default function ManagerDashboard() {
   const rejectedCount = applicants.filter((a) => a.status === "Rejected").length;
   const openTicketCount = tickets.filter((t) => t.status === "Open" || t.status === "In Progress").length;
   const pendingReportCount = reports.filter((r) => r.status === "Pending Investigation").length;
+
+  if (!authChecked) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#f7f9fa] text-[#092f45]" aria-busy="true">
+        <p role="status" className="text-sm font-bold">Checking manager session…</p>
+      </main>
+    );
+  }
 
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden bg-[#f7f9fa] text-[#092f45] antialiased">
@@ -774,7 +804,7 @@ export default function ManagerDashboard() {
             {(navSection === "queue" || navSection === "approved" || navSection === "rejected") && (
               <InterpreterApplicationQueue
                 key={navSection}
-                manager={currentUser ?? DEFAULT_MOCK_USERS.Manager}
+                manager={currentUser!}
                 initialStatusFilter={navSection === "approved" || navSection === "rejected" ? navSection : "queue"}
               />
             )}

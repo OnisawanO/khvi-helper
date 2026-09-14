@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { WorkspaceShell } from "@/app/components/workspace-shell";
-import { getMockUserSession } from "@/app/lib/mock-auth";
+import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import {
   cancelInterpreterApplication,
   reuploadInterpreterCertificate,
@@ -15,8 +15,17 @@ export default function VolunteerStatusPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const session = getMockUserSession();
-    queueMicrotask(() => setUserId(session?.userId ?? null));
+    let disposed = false;
+
+    const loadUser = async () => {
+      const result = await getCurrentUserProfile();
+      if (!disposed) setUserId(result.profile?.userId ?? null);
+    };
+
+    void loadUser();
+    return () => {
+      disposed = true;
+    };
   }, []);
 
   const { application, ready } = useMyInterpreterApplication(userId);

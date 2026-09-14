@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { calculateAge, getMockUserSession } from "@/app/lib/mock-auth";
+import { calculateAge } from "@/app/lib/mock-auth";
+import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { submitInterpreterApplication } from "@/app/lib/interpreter-application";
 
 // 5 ภาษาหลักที่ระบุในโจทย์
@@ -103,7 +104,7 @@ export function ApplicationForm() {
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError("");
 
@@ -112,14 +113,15 @@ export function ApplicationForm() {
       return;
     }
 
-    const user = getMockUserSession();
-    if (!user) {
-      setSubmitError("กรุณาเข้าสู่ระบบก่อนส่งใบสมัคร");
-      return;
-    }
-
     setIsSubmitting(true);
     try {
+      const profileResult = await getCurrentUserProfile();
+      const user = profileResult.profile;
+      if (!user) {
+        setSubmitError(profileResult.error || "กรุณาเข้าสู่ระบบก่อนส่งใบสมัคร");
+        return;
+      }
+
       submitInterpreterApplication(user, {
         applicantName: `${firstName.trim()} ${lastName.trim()}`,
         phone: phone.trim(),
