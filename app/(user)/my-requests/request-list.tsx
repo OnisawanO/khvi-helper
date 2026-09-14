@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useRequests } from "@/app/lib/request-store";
 import { ChevronRightIcon, InboxIcon, MapPinIcon, PlusIcon, UserCircleIcon } from "@heroicons/react/24/outline";
 import { useCopyLocale } from "@/app/components/app-shell";
@@ -84,11 +85,12 @@ export function RequestList({
   activeFilter: StatusFilterId;
 }) {
   const { requests: allRequests, ready } = useRequests();
+  const [selectedFilter, setSelectedFilter] = useState(activeFilter);
   const matching = (id: StatusFilterId) => {
     const statuses: readonly string[] | null = STATUS_FILTERS.find((f) => f.id === id)?.statuses ?? null;
     return allRequests.filter((r) => !statuses || statuses.includes(r.status));
   };
-  const requests = matching(activeFilter);
+  const requests = matching(selectedFilter);
   const counts = Object.fromEntries(STATUS_FILTERS.map((f) => [f.id, matching(f.id).length]));
   const copyLocale = useCopyLocale();
   const t = copy[copyLocale];
@@ -117,31 +119,36 @@ export function RequestList({
           </Link>
         </div>
 
-        <nav aria-label={t.filterLabel} className="mt-7 flex flex-wrap gap-2">
+        <div role="group" aria-label={t.filterLabel} className="mt-7 flex flex-wrap gap-2">
           {STATUS_FILTERS.map((filter) => {
-            const isActive = filter.id === activeFilter;
+            const isActive = filter.id === selectedFilter;
             const href = filter.id === "all" ? "/my-requests#main-content" : `/my-requests?status=${filter.id}#main-content`;
 
             return (
-              <Link
+              <button
                 key={filter.id}
-                href={href}
-                aria-current={isActive ? "page" : undefined}
-                className={`inline-flex items-center gap-2 rounded-lg border px-3.5 py-2 text-xs font-extrabold transition-colors ${
+                type="button"
+                aria-pressed={isActive}
+                aria-controls="request-results"
+                className={`inline-flex items-center gap-2 rounded-lg border px-3.5 py-2 text-xs font-extrabold transition-colors focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun) ${
                   isActive
                     ? "border-[#092f45] bg-(--khvi-navy) text-white"
                     : "border-[#cbd7dc] bg-white text-[#425761] hover:border-[#087f80] hover:text-[#087f80]"
                 }`}
+                onClick={() => {
+                  setSelectedFilter(filter.id);
+                  window.history.replaceState(null, "", href);
+                }}
               >
                 {t.filters[filter.id]}
                 <span className={isActive ? "text-white/70" : "text-[#8a9aa0]"}>{counts[filter.id] ?? 0}</span>
-              </Link>
+              </button>
             );
           })}
-        </nav>
+        </div>
 
         {!ready ? <p role="status" className="mt-6">Loading your requests…</p> : requests.length === 0 ? (
-          <section className="mt-6 border border-[#d6e0e4] bg-white p-10 text-center">
+          <section id="request-results" className="mt-6 border border-[#d6e0e4] bg-white p-10 text-center">
             <InboxIcon aria-hidden="true" className="mx-auto h-10 w-10 text-[#9aa9ae]" />
             <h2 className="mt-4 text-lg font-extrabold text-[#203d4d]">{t.emptyTitle}</h2>
             <p className="mx-auto mt-2 max-w-sm text-sm leading-7 text-[#64777e]">{t.emptyBody}</p>
@@ -154,12 +161,13 @@ export function RequestList({
             </Link>
           </section>
         ) : (
-          <ul className="mt-6 grid gap-3">
+          <ul id="request-results" className="mt-6 grid gap-3" aria-live="polite">
             {requests.map((request) => (
               <li key={request.requestId}>
                 <Link
                   href={`/my-requests/${request.requestId}`}
-                  className="group flex flex-col gap-4 border border-[#d6e0e4] bg-white p-5 transition-colors hover:border-[#087f80] lg:flex-row lg:items-center lg:justify-between"
+                  aria-label={`${t.view} #${request.requestId}: ${categoryLabel(request.categoryId, copyLocale)} · ${languageLabel(request.languageId, copyLocale)}`}
+                  className="group flex flex-col gap-4 border border-[#d6e0e4] bg-white p-5 transition-colors hover:border-[#087f80] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun) lg:flex-row lg:items-center lg:justify-between"
                 >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -203,7 +211,7 @@ export function RequestList({
                       <span className="text-xs font-bold text-[#8a9aa0]">{t.closedBy[request.cancelledBy]}</span>
                     ) : null}
 
-                    <span className="inline-flex items-center gap-1 text-xs font-extrabold text-[#087f80]">
+                    <span className="inline-flex min-h-11 items-center justify-center gap-1 rounded-lg bg-(--khvi-navy) px-4 text-xs font-extrabold text-white transition-colors group-hover:bg-[#0c4960] sm:self-end">
                       {t.view}
                       <ChevronRightIcon aria-hidden="true" className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                     </span>

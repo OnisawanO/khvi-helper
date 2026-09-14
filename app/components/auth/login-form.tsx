@@ -11,13 +11,14 @@ import {
   LockClosedIcon,
   SparklesIcon,
 } from "@heroicons/react/24/outline";
+import { createClient } from "@/utils/supabase/client";
 import {
+  getAuthErrorMessage,
+  getCurrentUserProfile,
   getRedirectPathByRole,
-  loginMockUser,
-  quickLoginAsRole,
   type UserProfile,
   type UserRole,
-} from "@/app/lib/mock-auth";
+} from "@/app/lib/supabase-auth";
 
 export interface LoginFormProps {
   onSuccess?: (user: UserProfile) => void;
@@ -27,6 +28,8 @@ export interface LoginFormProps {
 
 export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: LoginFormProps) {
   const router = useRouter();
+  const supabase = createClient();
+  const fastLoginEnabled = process.env.NODE_ENV !== "production";
 
   const emailId = useId();
   const passwordId = useId();
@@ -58,32 +61,79 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
     setIsSubmitting(true);
 
     try {
-      const result = await loginMockUser(email, password);
-      if (!result.success || !result.user) {
-        const errorMsg =
-          result.errors?.general ||
-          result.errors?.email ||
-          result.errors?.password ||
-          "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
-        setError(errorMsg);
+      const trimmedEmail = email.trim().toLowerCase();
+      if (!trimmedEmail) {
+        setError("กรุณากรอกอีเมล");
         setIsSubmitting(false);
         return;
       }
-      handleLoginSuccess(result.user);
+      if (!password) {
+        setError("กรุณากรอกรหัสผ่าน");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: trimmedEmail,
+        password,
+      });
+
+      if (signInError || !data.user) {
+        setError(getAuthErrorMessage(signInError, "login"));
+        setIsSubmitting(false);
+        return;
+      }
+
+      const profileResult = await getCurrentUserProfile(supabase);
+      if (!profileResult.profile) {
+        await supabase.auth.signOut();
+        setError(profileResult.error || "ไม่สามารถโหลดข้อมูลโปรไฟล์ได้");
+        setIsSubmitting(false);
+        return;
+      }
+
+      handleLoginSuccess(profileResult.profile);
     } catch {
       setError("เกิดข้อผิดพลาดในการเข้าสู่ระบบ กรุณาลองใหม่อีกครั้ง");
       setIsSubmitting(false);
     }
   }
 
-  function handleQuickLogin(role: UserRole) {
+  async function handleQuickLogin(role: UserRole) {
     setError(null);
     setIsSubmitting(true);
     try {
-      const user = quickLoginAsRole(role);
-      handleLoginSuccess(user);
+      const response = await fetch("/api/auth/fast-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role }),
+      });
+      const result = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        setError(result.error || "ไม่สามารถเข้าสู่ระบบด่วนได้");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const profileResult = await getCurrentUserProfile(supabase);
+      if (!profileResult.profile) {
+        await supabase.auth.signOut();
+        setError(profileResult.error || "ไม่สามารถโหลดข้อมูลโปรไฟล์ได้");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (profileResult.profile.role !== role) {
+        await supabase.auth.signOut();
+        setError("บัญชีทดสอบมี role ไม่ตรงกับปุ่มที่เลือก");
+        setIsSubmitting(false);
+        return;
+      }
+
+      handleLoginSuccess(profileResult.profile);
     } catch {
-      setError("ไม่สามารถเข้าสู่ระบบจำลองได้");
+      setError("ไม่สามารถเชื่อมต่อ Fast Login ได้");
       setIsSubmitting(false);
     }
   }
@@ -162,7 +212,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
                 </label>
                 <button
                   type="button"
-                  onClick={() => alert("ระบบ Mock อยู่ในระหว่างพัฒนา: สามารถใช้รหัสผ่านใดก็ได้ หรือใช้ปุ่ม Quick Login ด้านล่าง")}
+                  onClick={() => alert("ฟังก์ชันลืมรหัสผ่านจะเพิ่มในขั้นตอนถัดไป")}
                   className="text-[11px] font-bold text-[#0d8587] hover:underline"
                 >
                   ลืมรหัสผ่าน?
@@ -236,53 +286,39 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
             </div>
           </form>
 
-          {/* Quick Role Login Buttons for Easy Testing */}
-          <div className="pt-2 border-t border-[#edf2f4]">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-extrabold text-[#73848a] flex items-center gap-1">
-                <SparklesIcon className="h-3.5 w-3.5 text-[#0d8587]" />
-                ทดสอบเข้าสู่ระบบด่วนตามสิทธิ์ (Quick Login):
-              </span>
+          {/* Development-only Fast Login */}
+          {fastLoginEnabled && (
+            <div className="pt-2 border-t border-[#edf2f4]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-extrabold text-[#73848a] flex items-center gap-1">
+                  <SparklesIcon className="h-3.5 w-3.5 text-[#0d8587]" />
+                  เข้าสู่ระบบด่วนสำหรับการพัฒนา:
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {([
+                  ["User", "ผู้ขอรับบริการ", "text-[#10283a]", "hover:border-[#087f80] hover:bg-[#edf7f5]"],
+                  ["Interpreter", "ล่ามจิตอาสา", "text-[#087f80]", "hover:border-[#087f80] hover:bg-[#edf7f5]"],
+                  ["Manager", "ผู้จัดการ", "text-[#b5680b]", "hover:border-[#b5680b] hover:bg-[#fff9ef]"],
+                  ["Admin", "ผู้ดูแลระบบ", "text-[#f04f3e]", "hover:border-[#f04f3e] hover:bg-[#fef4f3]"],
+                ] as const).map(([role, label, textColor, hoverColor]) => (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => handleQuickLogin(role)}
+                    disabled={isSubmitting}
+                    className={`flex flex-col items-center justify-center rounded-lg border border-[#cbd7dc] bg-[#f7f9fa] p-2 text-center transition-colors ${hoverColor}`}
+                  >
+                    <span className={`text-[11px] font-black ${textColor}`}>{role}</span>
+                    <span className="text-[9px] text-[#73848a]">{label}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-[10px] leading-4 text-[#73848a]">
+                ใช้บัญชีทดสอบใน Supabase Auth และไม่แสดงใน production
+              </p>
             </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("User")}
-                disabled={isSubmitting}
-                className="flex flex-col items-center justify-center rounded-lg border border-[#cbd7dc] bg-[#f7f9fa] p-2 text-center transition-colors hover:border-[#087f80] hover:bg-[#edf7f5]"
-              >
-                <span className="text-[11px] font-black text-[#10283a]">User</span>
-                <span className="text-[9px] text-[#73848a]">ผู้ขอรับบริการ</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("Interpreter")}
-                disabled={isSubmitting}
-                className="flex flex-col items-center justify-center rounded-lg border border-[#cbd7dc] bg-[#f7f9fa] p-2 text-center transition-colors hover:border-[#087f80] hover:bg-[#edf7f5]"
-              >
-                <span className="text-[11px] font-black text-[#087f80]">Interpreter</span>
-                <span className="text-[9px] text-[#73848a]">ล่ามจิตอาสา</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("Manager")}
-                disabled={isSubmitting}
-                className="flex flex-col items-center justify-center rounded-lg border border-[#cbd7dc] bg-[#f7f9fa] p-2 text-center transition-colors hover:border-[#b5680b] hover:bg-[#fff9ef]"
-              >
-                <span className="text-[11px] font-black text-[#b5680b]">Manager</span>
-                <span className="text-[9px] text-[#73848a]">ผู้จัดการ</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("Admin")}
-                disabled={isSubmitting}
-                className="flex flex-col items-center justify-center rounded-lg border border-[#cbd7dc] bg-[#f7f9fa] p-2 text-center transition-colors hover:border-[#f04f3e] hover:bg-[#fef4f3]"
-              >
-                <span className="text-[11px] font-black text-[#f04f3e]">Admin</span>
-                <span className="text-[9px] text-[#73848a]">ผู้ดูแลระบบ</span>
-              </button>
-            </div>
-          </div>
+          )}
 
           {/* Switch to Register */}
           <div className="border-t border-[#edf2f4] pt-3 text-center text-xs text-[#5c727d]">

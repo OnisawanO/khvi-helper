@@ -297,7 +297,7 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
               </a>
             ))}
             <LanguageSwitcher copy={copy} locale={locale} onLocaleChange={onLocaleChange} compact />
-            {accountActions ?? <>{onOpenRegister ? (
+            {!accountActions && <>{onOpenRegister ? (
               <button
                 type="button"
                 className="rounded-lg px-3 py-3 text-left text-sm font-extrabold text-[#087f80] transition-colors hover:bg-[#eef5f7]"

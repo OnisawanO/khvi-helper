@@ -5,12 +5,11 @@ import { useRouter } from "next/navigation";
 import { AppShell } from "./app-shell";
 import { WorkspaceAccountActions } from "./workspace-account-actions";
 import {
-  AUTH_SESSION_STORAGE_KEY,
-  clearMockUserSession,
-  getMockUserSession,
   getRedirectPathByRole,
   type UserProfile,
 } from "@/app/lib/mock-auth";
+import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
+import { createClient } from "@/utils/supabase/client";
 
 export type WorkspaceRole = "User" | "Interpreter";
 
@@ -27,41 +26,43 @@ export function WorkspaceShell({ children, requiredRole, alternatePath }: {
   const [user, setUser] = useState<(UserProfile & { role: WorkspaceRole }) | null>(null);
 
   useEffect(() => {
-    const refreshSession = () => {
-      const session = getMockUserSession();
+    const supabase = createClient();
+    let disposed = false;
 
-      if (isWorkspaceUser(session)) {
-        if (requiredRole && session.role !== requiredRole) {
+    const refreshSession = async () => {
+      const result = await getCurrentUserProfile(supabase);
+      if (disposed) return;
+
+      if (isWorkspaceUser(result.profile)) {
+        if (requiredRole && result.profile.role !== requiredRole) {
           setUser(null);
-          router.replace(alternatePath ?? getRedirectPathByRole(session.role));
+          router.replace(alternatePath ?? getRedirectPathByRole(result.profile.role));
           return;
         }
 
-        setUser(session);
+        setUser(result.profile);
         return;
       }
 
       setUser(null);
-      if (session?.role === "Manager" || session?.role === "Admin") {
-        router.replace(getRedirectPathByRole(session.role));
+      if (result.profile?.role === "Manager" || result.profile?.role === "Admin") {
+        router.replace(getRedirectPathByRole(result.profile.role));
       } else {
         router.replace("/#top");
       }
     };
 
-    const onStorage = (event: StorageEvent) => {
-      if (event.key === AUTH_SESSION_STORAGE_KEY || event.key === null) {
-        refreshSession();
-      }
-    };
-
-    queueMicrotask(refreshSession);
-    window.addEventListener("storage", onStorage);
-    window.addEventListener("focus", refreshSession);
+    void refreshSession();
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+      window.setTimeout(() => void refreshSession(), 0);
+    });
+    const onWindowFocus = () => void refreshSession();
+    window.addEventListener("focus", onWindowFocus);
 
     return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener("focus", refreshSession);
+      disposed = true;
+      authListener.subscription.unsubscribe();
+      window.removeEventListener("focus", onWindowFocus);
     };
   }, [alternatePath, requiredRole, router]);
 
@@ -81,8 +82,9 @@ export function WorkspaceShell({ children, requiredRole, alternatePath }: {
         welcomeRole={role}
         accountActions={
           <WorkspaceAccountActions
+            user={user}
             onSignOut={() => {
-              clearMockUserSession();
+              void createClient().auth.signOut();
               setUser(null);
               router.replace("/#top");
             }}
