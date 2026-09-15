@@ -9,14 +9,11 @@ import {
   EnvelopeIcon,
   EyeIcon,
   EyeSlashIcon,
-  LanguageIcon,
   LockClosedIcon,
   PhoneIcon,
-  ShieldCheckIcon,
   UserIcon,
   UserPlusIcon,
 } from "@heroicons/react/24/outline";
-import type { Locale } from "@/app/components/site-header";
 import { useStoredLocale } from "@/app/lib/locale";
 import {
   calculateAge,
@@ -29,14 +26,6 @@ import {
   getCurrentUserProfile,
 } from "@/app/lib/supabase-auth";
 import { createClient } from "@/utils/supabase/client";
-
-const UI_LANGUAGE_OPTIONS: { code: Locale; label: string; nativeName: string }[] = [
-  { code: "th", label: "ไทย (Thai)", nativeName: "ภาษาไทย" },
-  { code: "en", label: "English", nativeName: "English" },
-  { code: "zh", label: "中文 (Chinese)", nativeName: "中文" },
-  { code: "my", label: "မြန်မာ (Burmese)", nativeName: "မြန်မာစာ" },
-  { code: "vi", label: "Tiếng Việt (Vietnamese)", nativeName: "Tiếng Việt" },
-];
 
 export interface RegisterFormProps {
   onSuccess?: () => void;
@@ -62,7 +51,6 @@ export function RegisterForm({
   const confirmPasswordId = useId();
   const phoneId = useId();
   const dobId = useId();
-  const languageId = useId();
 
   const [formData, setFormData] = useState<RegisterInput>({
     firstName: "",
@@ -189,21 +177,6 @@ export function RegisterForm({
         <p className="mt-1.5 text-xs sm:text-sm leading-relaxed text-[#5c727d]">
           กรอกข้อมูลเพื่อเริ่มต้นใช้งานและขอความช่วยเหลือด้านภาษากับล่ามจิตอาสา
         </p>
-      </div>
-
-      {/* Role & Privacy Callout */}
-      <div className="mb-6 rounded-xl border border-[#d2e4e8] bg-[#f2f8f9] p-3.5 text-xs leading-relaxed text-[#2c4e5b]">
-        <div className="flex items-start gap-2.5">
-          <ShieldCheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-[#0d8587]" aria-hidden="true" />
-          <div>
-            <p className="font-bold text-[#143d4d]">
-              บทบาทเริ่มต้น: ผู้ขอรับบริการ (User)
-            </p>
-            <p className="mt-0.5 text-[#486b77]">
-              ข้อมูลติดต่อจะถูกปกป้องและแสดงเฉพาะเมื่อมีล่ามกดรับงานแล้วเท่านั้น (BR-04)
-            </p>
-          </div>
-        </div>
       </div>
 
       {/* Success Alert */}
@@ -485,30 +458,6 @@ export function RegisterForm({
                 {errors.dateOfBirth}
               </p>
             )}
-          </div>
-
-          {/* Preferred UI Language */}
-          <div>
-            <label htmlFor={languageId} className="block text-xs font-extrabold text-[#294554] sm:text-sm">
-              ภาษาหน้าจอที่ต้องการ (UI Language)
-            </label>
-            <div className="relative mt-1">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#73848a]">
-                <LanguageIcon className="h-4 w-4" aria-hidden="true" />
-              </div>
-              <select
-                id={languageId}
-                value={formData.preferredUiLanguage}
-                onChange={(e) => handleChange("preferredUiLanguage", e.target.value as Locale)}
-                className="w-full rounded-lg border border-[#cbd7dc] bg-white py-2 pl-9 pr-8 text-xs sm:text-sm font-semibold text-[var(--khvi-ink)] transition-colors hover:border-[#8fbfc1] focus:border-[#0d8587] focus:outline-none focus:ring-2 focus:ring-[#0d8587]/20"
-              >
-                {UI_LANGUAGE_OPTIONS.map((opt) => (
-                  <option key={opt.code} value={opt.code}>
-                    {opt.label} ({opt.nativeName})
-                  </option>
-                ))}
-              </select>
-            </div>
           </div>
 
           {/* Action Buttons */}

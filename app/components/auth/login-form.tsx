@@ -11,6 +11,7 @@ import {
   LockClosedIcon,
   SparklesIcon,
 } from "@heroicons/react/24/outline";
+import { useStoredLocale } from "@/app/lib/locale";
 import { createClient } from "@/utils/supabase/client";
 import {
   getAuthErrorMessage,
@@ -30,6 +31,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
   const router = useRouter();
   const supabase = createClient();
   const fastLoginEnabled = process.env.NODE_ENV !== "production";
+  const [, setStoredLocale] = useStoredLocale();
 
   const emailId = useId();
   const passwordId = useId();
@@ -97,6 +99,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
         return;
       }
 
+      setStoredLocale(profileResult.profile.preferredUiLanguage);
       handleLoginSuccess(profileResult.profile);
     } catch {
       setError("เกิดข้อผิดพลาดในการเข้าสู่ระบบ กรุณาลองใหม่อีกครั้ง");
@@ -136,6 +139,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
         return;
       }
 
+      setStoredLocale(profileResult.profile.preferredUiLanguage);
       handleLoginSuccess(profileResult.profile);
     } catch {
       setError("ไม่สามารถเชื่อมต่อ Fast Login ได้");
