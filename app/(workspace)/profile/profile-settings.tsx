@@ -36,8 +36,10 @@ import {
   saveMockUserSession,
   type UserProfile,
 } from "@/app/lib/mock-auth";
+import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import type { Locale } from "@/app/components/site-header";
 import { CATEGORIES, LANGUAGES } from "@/app/lib/mock-requests";
+import { createClient } from "@/utils/supabase/client";
 
 type FormState = {
   firstName: string;
@@ -140,32 +142,68 @@ export function ProfileSettings() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const refreshSession = () => {
-      const session = getMockUserSession();
+    const supabase = createClient();
+    let disposed = false;
 
-      if (!session || !["User", "Interpreter", "Manager", "Admin"].includes(session.role) || session.isLocked) {
+    const refreshSession = async () => {
+      let supabaseResult: Awaited<ReturnType<typeof getCurrentUserProfile>> | null = null;
+
+      try {
+        supabaseResult = await getCurrentUserProfile(supabase);
+      } catch {
+        // Keep the browser preview available when Supabase is not configured.
+      }
+
+      if (disposed) return;
+
+      if (supabaseResult?.profile) {
+        const previewSession = getMockUserSession();
+        const sameAccountPreview = previewSession?.userId === supabaseResult.profile.userId ? previewSession : null;
+        setUser(sameAccountPreview ? { ...supabaseResult.profile, ...sameAccountPreview } : supabaseResult.profile);
+        setReady(true);
+        return;
+      }
+
+      // Do not fall back to a mock session when Supabase has an authenticated
+      // user without a valid profile or with a locked account.
+      if (supabaseResult?.authenticated) {
         setUser(null);
+        setReady(true);
         router.replace("/#top");
         return;
       }
 
-      setUser(session);
+      const session = getMockUserSession();
+      if (session && ["User", "Interpreter", "Manager", "Admin"].includes(session.role) && !session.isLocked) {
+        setUser(session);
+        setReady(true);
+        return;
+      }
+
+      setUser(null);
       setReady(true);
+      router.replace("/#top");
     };
 
     const onStorage = (event: StorageEvent) => {
       if (event.key === AUTH_SESSION_STORAGE_KEY || event.key === null) {
-        refreshSession();
+        void refreshSession();
       }
     };
+    const onWindowFocus = () => void refreshSession();
 
-    queueMicrotask(refreshSession);
+    void refreshSession();
     window.addEventListener("storage", onStorage);
-    window.addEventListener("focus", refreshSession);
+    window.addEventListener("focus", onWindowFocus);
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+      window.setTimeout(() => void refreshSession(), 0);
+    });
 
     return () => {
+      disposed = true;
       window.removeEventListener("storage", onStorage);
-      window.removeEventListener("focus", refreshSession);
+      window.removeEventListener("focus", onWindowFocus);
+      authListener.subscription.unsubscribe();
     };
   }, [router]);
 
@@ -180,6 +218,7 @@ export function ProfileSettings() {
             user={user}
             onSignOut={() => {
               clearMockUserSession();
+              void createClient().auth.signOut();
               setUser(null);
               router.replace("/#top");
             }}
