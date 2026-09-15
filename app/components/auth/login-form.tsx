@@ -67,6 +67,11 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
         setIsSubmitting(false);
         return;
       }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+        setError("รูปแบบอีเมลไม่ถูกต้อง");
+        setIsSubmitting(false);
+        return;
+      }
       if (!password) {
         setError("กรุณากรอกรหัสผ่าน");
         setIsSubmitting(false);
@@ -210,13 +215,9 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
                 <label htmlFor={passwordId} className="block text-xs font-extrabold text-[#294554]">
                   รหัสผ่าน <span className="text-[#e24432]">*</span>
                 </label>
-                <button
-                  type="button"
-                  onClick={() => alert("ฟังก์ชันลืมรหัสผ่านจะเพิ่มในขั้นตอนถัดไป")}
-                  className="text-[11px] font-bold text-[#0d8587] hover:underline"
-                >
-                  ลืมรหัสผ่าน?
-                </button>
+                <span className="text-[11px] font-bold text-[#73848a]">
+                  ลืมรหัสผ่าน? ฟังก์ชันนี้จะเปิดใช้งานในขั้นตอนถัดไป
+                </span>
               </div>
               <div className="relative mt-1">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#73848a]">

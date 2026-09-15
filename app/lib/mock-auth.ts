@@ -15,7 +15,8 @@ export interface UserProfile {
 }
 
 export interface RegisterInput {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   confirmPassword: string;
@@ -25,7 +26,8 @@ export interface RegisterInput {
 }
 
 export interface ValidationErrors {
-  name?: string;
+  firstName?: string;
+  lastName?: string;
   email?: string;
   password?: string;
   confirmPassword?: string;
@@ -57,11 +59,18 @@ export function calculateAge(dateOfBirthString: string): number | null {
 export function validateRegisterInput(input: RegisterInput): ValidationErrors {
   const errors: ValidationErrors = {};
 
-  const trimmedName = input.name?.trim() || "";
-  if (!trimmedName) {
-    errors.name = "กรุณากรอกชื่อ-นามสกุล";
-  } else if (trimmedName.length < 2) {
-    errors.name = "ชื่อต้องมีความยาวอย่างน้อย 2 ตัวอักษร";
+  const trimmedFirstName = input.firstName?.trim() || "";
+  if (!trimmedFirstName) {
+    errors.firstName = "กรุณากรอกชื่อ";
+  } else if (trimmedFirstName.length < 2) {
+    errors.firstName = "ชื่อต้องมีความยาวอย่างน้อย 2 ตัวอักษร";
+  }
+
+  const trimmedLastName = input.lastName?.trim() || "";
+  if (!trimmedLastName) {
+    errors.lastName = "กรุณากรอกนามสกุล";
+  } else if (trimmedLastName.length < 2) {
+    errors.lastName = "นามสกุลต้องมีความยาวอย่างน้อย 2 ตัวอักษร";
   }
 
   const trimmedEmail = input.email?.trim() || "";
@@ -158,7 +167,7 @@ export async function registerMockUser(input: RegisterInput): Promise<{
 
   const newUser: UserProfile = {
     userId: mockUserId,
-    name: input.name.trim(),
+    name: `${input.firstName.trim()} ${input.lastName.trim()}`.trim(),
     email: input.email.trim().toLowerCase(),
     phone: input.phone.trim(),
     dateOfBirth: input.dateOfBirth,

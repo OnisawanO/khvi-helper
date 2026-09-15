@@ -122,8 +122,25 @@ export function splitFullName(name: string): { firstName: string; lastName: stri
 type SupabaseAuthError = { code?: string; message?: string } | null;
 
 export function getAuthErrorMessage(error: SupabaseAuthError, action: "login" | "register"): string {
+  const errorMessage = error?.message?.toLowerCase() || "";
+
   if (error?.code === "weak_password") {
     return "รหัสผ่านไม่ผ่านเงื่อนไข กรุณาใช้รหัสผ่านอย่างน้อย 8 ตัวอักษร";
+  }
+
+  if (action === "register" && (
+    error?.code === "user_already_exists"
+    || errorMessage.includes("already registered")
+    || errorMessage.includes("already been registered")
+  )) {
+    return "อีเมลนี้มีบัญชีอยู่แล้ว กรุณาเข้าสู่ระบบหรือใช้อีเมลอื่น";
+  }
+
+  if (action === "register" && (
+    error?.code === "email_address_invalid"
+    || errorMessage.includes("invalid email")
+  )) {
+    return "รูปแบบอีเมลไม่ถูกต้อง";
   }
 
   if (action === "login") {

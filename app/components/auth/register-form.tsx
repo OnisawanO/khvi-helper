@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useState, type FormEvent } from "react";
 import {
   CalendarDaysIcon,
   CheckCircleIcon,
@@ -27,7 +27,6 @@ import {
 import {
   getAuthErrorMessage,
   getCurrentUserProfile,
-  splitFullName,
 } from "@/app/lib/supabase-auth";
 import { createClient } from "@/utils/supabase/client";
 
@@ -56,7 +55,8 @@ export function RegisterForm({
   const supabase = createClient();
   const [currentLocale] = useStoredLocale();
 
-  const nameId = useId();
+  const firstNameId = useId();
+  const lastNameId = useId();
   const emailId = useId();
   const passwordId = useId();
   const confirmPasswordId = useId();
@@ -65,13 +65,14 @@ export function RegisterForm({
   const languageId = useId();
 
   const [formData, setFormData] = useState<RegisterInput>({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
     confirmPassword: "",
     phone: "",
     dateOfBirth: "",
-    preferredUiLanguage: currentLocale === "zh" ? "zh" : "th",
+    preferredUiLanguage: currentLocale,
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -79,6 +80,18 @@ export function RegisterForm({
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+
+  useEffect(() => {
+    let disposed = false;
+    queueMicrotask(() => {
+      if (disposed) return;
+      setFormData((previous) => ({ ...previous, preferredUiLanguage: currentLocale }));
+    });
+
+    return () => {
+      disposed = true;
+    };
+  }, [currentLocale]);
 
   const calculatedAge = calculateAge(formData.dateOfBirth);
   const todayStr = new Date().toISOString().split("T")[0];
@@ -107,15 +120,14 @@ export function RegisterForm({
         return;
       }
 
-      const { firstName, lastName } = splitFullName(formData.name);
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
         options: {
           data: {
-            full_name: formData.name.trim(),
-            first_name: firstName,
-            last_name: lastName,
+            full_name: [formData.firstName, formData.lastName].filter(Boolean).join(" ").trim(),
+            first_name: formData.firstName.trim(),
+            last_name: formData.lastName.trim(),
             phone: formData.phone.trim(),
             date_of_birth: formData.dateOfBirth,
             preferred_ui_language: formData.preferredUiLanguage,
@@ -220,35 +232,67 @@ export function RegisterForm({
             </div>
           )}
 
-          {/* Full Name */}
-          <div>
-            <label htmlFor={nameId} className="block text-xs font-extrabold text-[#294554] sm:text-sm">
-              ชื่อ-นามสกุล <span className="text-[#e24432]">*</span>
-            </label>
-            <div className="relative mt-1">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#73848a]">
-                <UserIcon className="h-4 w-4" aria-hidden="true" />
+          {/* First and Last Name */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor={firstNameId} className="block text-xs font-extrabold text-[#294554] sm:text-sm">
+                ชื่อ <span className="text-[#e24432]">*</span>
+              </label>
+              <div className="relative mt-1">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#73848a]">
+                  <UserIcon className="h-4 w-4" aria-hidden="true" />
+                </div>
+                <input
+                  id={firstNameId}
+                  type="text"
+                  required
+                  autoComplete="given-name"
+                  placeholder="เช่น สมชาย หรือ John"
+                  value={formData.firstName}
+                  onChange={(e) => handleChange("firstName", e.target.value)}
+                  aria-invalid={Boolean(errors.firstName)}
+                  aria-describedby={errors.firstName ? `${firstNameId}-error` : undefined}
+                  className={`w-full rounded-lg border bg-white py-2 pl-9 pr-3 text-xs sm:text-sm font-semibold text-[var(--khvi-ink)] transition-colors focus:border-[#0d8587] focus:outline-none focus:ring-2 focus:ring-[#0d8587]/20 ${
+                    errors.firstName ? "border-[#e24432] bg-[#fdf8f7]" : "border-[#cbd7dc] hover:border-[#8fbfc1]"
+                  }`}
+                />
               </div>
-              <input
-                id={nameId}
-                type="text"
-                required
-                autoComplete="name"
-                placeholder="เช่น สมชาย ใจดี หรือ John Doe"
-                value={formData.name}
-                onChange={(e) => handleChange("name", e.target.value)}
-                aria-invalid={Boolean(errors.name)}
-                aria-describedby={errors.name ? `${nameId}-error` : undefined}
-                className={`w-full rounded-lg border bg-white py-2 pl-9 pr-3 text-xs sm:text-sm font-semibold text-[var(--khvi-ink)] transition-colors focus:border-[#0d8587] focus:outline-none focus:ring-2 focus:ring-[#0d8587]/20 ${
-                  errors.name ? "border-[#e24432] bg-[#fdf8f7]" : "border-[#cbd7dc] hover:border-[#8fbfc1]"
-                }`}
-              />
+              {errors.firstName && (
+                <p id={`${firstNameId}-error`} className="mt-1 text-xs font-bold text-[#e24432]">
+                  {errors.firstName}
+                </p>
+              )}
             </div>
-            {errors.name && (
-              <p id={`${nameId}-error`} className="mt-1 text-xs font-bold text-[#e24432]">
-                {errors.name}
-              </p>
-            )}
+
+            <div>
+              <label htmlFor={lastNameId} className="block text-xs font-extrabold text-[#294554] sm:text-sm">
+                นามสกุล <span className="text-[#e24432]">*</span>
+              </label>
+              <div className="relative mt-1">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#73848a]">
+                  <UserIcon className="h-4 w-4" aria-hidden="true" />
+                </div>
+                <input
+                  id={lastNameId}
+                  type="text"
+                  required
+                  autoComplete="family-name"
+                  placeholder="เช่น ใจดี หรือ Doe"
+                  value={formData.lastName}
+                  onChange={(e) => handleChange("lastName", e.target.value)}
+                  aria-invalid={Boolean(errors.lastName)}
+                  aria-describedby={errors.lastName ? `${lastNameId}-error` : undefined}
+                  className={`w-full rounded-lg border bg-white py-2 pl-9 pr-3 text-xs sm:text-sm font-semibold text-[var(--khvi-ink)] transition-colors focus:border-[#0d8587] focus:outline-none focus:ring-2 focus:ring-[#0d8587]/20 ${
+                    errors.lastName ? "border-[#e24432] bg-[#fdf8f7]" : "border-[#cbd7dc] hover:border-[#8fbfc1]"
+                  }`}
+                />
+              </div>
+              {errors.lastName && (
+                <p id={`${lastNameId}-error`} className="mt-1 text-xs font-bold text-[#e24432]">
+                  {errors.lastName}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Email */}
