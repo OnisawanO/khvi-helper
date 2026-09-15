@@ -134,7 +134,7 @@ KHVI Helper เป็นเว็บแอปพลิเคชันสำห�
 
 1. ตรวจสอบ branch ด้วย `git branch --show-current`
 2. ตรวจสอบสถานะไฟล์ด้วย `git status --short`
-3. ห้ามเริ่มแก้ไขหากอยู่บน `main` หรือ `develop`
+3. หากอยู่บน `main` หรือ `develop` ให้ทำ Branch Preflight ก่อนแก้ไฟล์
 4. หาก task เกี่ยวข้องกับ requirement หรือ behavior หลัก ให้ผ่าน Requirement Consistency Gate และบันทึกผลตาม `docs/requirement-consistency-checklist.md`
 5. อ่าน requirements และเอกสารที่เกี่ยวข้อง
 6. หากเป็นงาน UI/UX ให้อ่าน `SKILL.md` และกำหนด design direction
@@ -143,6 +143,16 @@ KHVI Helper เป็นเว็บแอปพลิเคชันสำห�
 9. แยกให้ได้ว่าส่วนใดทำแล้ว ส่วนใดอยู่ระหว่างทำ และส่วนใดเป็นแผนงาน
 10. ระบุไฟล์ที่จะเปลี่ยนและวางแผนสั้น ๆ
 11. ใช้ feature branch รูปแบบ `feature/<สมาชิก>/<งาน>`, `fix/<สมาชิก>/<งาน>` หรือ `docs/<สมาชิก>/<งาน>`
+
+### Branch Preflight
+
+- อนุญาตให้อ่าน ตรวจสอบ status และดู log บน `main` หรือ `develop`
+- ห้ามแก้ไฟล์, commit หรือ push ขณะ current branch เป็น `main` หรือ `develop`
+- ถ้าอยู่บน `develop` และ working tree สะอาด ให้ sync `origin/develop` แล้วสร้าง feature branch ก่อนเริ่มแก้
+- ถ้าอยู่บน `main` ให้หยุดและถามผู้ใช้ เว้นแต่ผู้ใช้สั่งให้สร้าง branch จาก `main` โดยตรง
+- ถ้ามี uncommitted changes บน `main` หรือ `develop` ให้หยุดและถามผู้ใช้
+- ห้ามย้าย, stash, reset หรือ commit การเปลี่ยนแปลงของผู้ใช้โดยการคาดเดา
+- Feature branch ต้องระบุ base branch เป็น `develop` ในแผนงานหรือ Pull Request
 
 ### ระหว่างทำงาน
 
@@ -197,6 +207,14 @@ feature/* = branch สำหรับงานแต่ละชิ้น
 - Agent ห้าม push, merge, force push หรือ bypass branch protection
 - ก่อน commit ต้องแสดง branch, diff summary และผล lint/build/test
 - ใช้ commit message ที่สื่อความหมาย เช่น `feat: add SOS request form`
+
+### Protected Integration Branch Rule
+
+- `develop` และ `main` เป็น protected integration branches
+- การ push ปกติให้ push feature branch และเปิด Pull Request เข้า `develop`
+- การ push ตรงเข้า `develop` หรือ `main` ต้องมีคำสั่งชัดเจนจากผู้ใช้
+- ก่อน commit ต้องแสดง current branch, base branch, changed files, included files และผลตรวจสอบ
+- หากผู้ใช้สั่ง push ตรงเข้า protected branch ต้องแจ้งว่าเป็นการข้าม Pull Request workflow ก่อนดำเนินการ
 
 ## 11. Definition of Done
 
