@@ -7,6 +7,8 @@ import { SiteHeader } from "./site-header";
 import { RequestNavigation } from "./request-navigation";
 import type { Locale } from "./site-header";
 
+export type WorkspaceRole = "User" | "Interpreter" | "Manager" | "Admin";
+
 const shellCopy = {
   en: {
     skip: "Skip to main content",
@@ -93,7 +95,7 @@ export function useCopyLocale(): CopyLocale {
 export function AppShell({ children, accountActions, welcomeRole }: {
   children: ReactNode;
   accountActions?: ReactNode;
-  welcomeRole?: "User" | "Interpreter";
+  welcomeRole?: WorkspaceRole;
 }) {
   const [locale, setLocale] = useStoredLocale();
   const copyLocale = resolveCopyLocale(locale);
@@ -111,7 +113,11 @@ export function AppShell({ children, accountActions, welcomeRole }: {
   const navLabel = (th: string, en: string, zh: string) => locale === "th" ? th : copyLocale === "zh" ? zh : en;
   const welcomeNav = welcomeRole === "Interpreter"
     ? [[navLabel("ค้นหางาน", "Find requests", "寻找求助"), "/find-requests#main-content"], [navLabel("งานของฉัน", "My assignments", "我的任务"), "/my-assignments#main-content"]] as const
-    : [[navLabel("สร้างคำขอ", "New request", "新建求助"), "/request-help#main-content"], [navLabel("คำขอของฉัน", "My requests", "我的求助"), "/my-requests#main-content"]] as const;
+    : welcomeRole === "Manager"
+      ? [[navLabel("คอนโซลผู้จัดการ", "Manager console", "管理台"), "/manager#main-content"], [navLabel("โปรไฟล์และการตั้งค่า", "Profile & Settings", "个人资料与设置"), "/profile#main-content"]] as const
+      : welcomeRole === "Admin"
+        ? [[navLabel("แดชบอร์ดผู้ดูแล", "Admin dashboard", "管理员面板"), "/admin#main-content"], [navLabel("โปรไฟล์และการตั้งค่า", "Profile & Settings", "个人资料与设置"), "/profile#main-content"]] as const
+        : [[navLabel("สร้างคำขอ", "New request", "新建求助"), "/request-help#main-content"], [navLabel("คำขอของฉัน", "My requests", "我的求助"), "/my-requests#main-content"]] as const;
 
   return (
     <UiLocaleContext.Provider value={locale}><CopyLocaleContext.Provider value={copyLocale}>

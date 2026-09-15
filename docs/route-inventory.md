@@ -11,6 +11,15 @@
 - `/find-requests` renders an interactive Leaflet map with OpenStreetMap tiles, request markers and a browser-GPS marker when location access is available.
 - Both roles use the same signed-in header and footer as `/welcome`; the navigation labels and paths change with the role.
 
+## Shared profile route
+
+- `/profile` is the shared authenticated Profile & Settings route for `User`, `Interpreter`, `Manager`, and `Admin`.
+- The page reads the current browser mock session and redirects to `/#top` when no valid active session is available. Locked sessions cannot open the page.
+- Every role can edit only their own first name, last name, phone, date of birth, and preferred UI language in the current preview. The browser-local session is updated after validation.
+- Every role can change, crop, or remove an optional profile photo in the current preview. The cropped image is resized and stored as `avatarUrl` in the browser-local session; production storage and ownership checks remain planned.
+- Approved Interpreter profiles can add, type, or remove service language and matching category selections in the current preview. The UI keeps at least one language and two categories, stores standard IDs or custom values in the browser-local session, and does not replace the planned `interpreter_languages` or `interpreter_categories` relations. Production must validate custom values against the system catalog before persistence.
+- Role, lock status, interpreter approval status, and management permissions are shown as read-only context. Production ownership checks, Supabase persistence, role-specific profile tables, and server authorization remain planned.
+
 ## Requester preview flow update
 
 - Entry: `/welcome`.
@@ -71,7 +80,7 @@ parameter ที่ผิดรูปแบบหรือไม่พบข้�
 
 | Path | Type | Access | Data source | Not found behavior | Status |
 |---|---|---|---|---|---|
-| `/profile` | Static private route | Authenticated | User profile | Redirect to login | Planned |
+| `/profile` | Static private route | Authenticated User, Interpreter, Manager, Admin (preview session) | `app/lib/mock-auth.ts` browser session | Redirect to `/#top` when session is missing or locked | Implemented at `app/(workspace)/profile/page.tsx` |
 | `/welcome` | Static private route | Authenticated User/Interpreter | Supabase Auth session + `public.profiles`; browser preview data | Redirect by Supabase profile role | Implemented at `app/(workspace)/welcome/page.tsx` |
 | `/map` | Resource map/list | Approved Interpreter | `bookings`, interpreter skills | Empty state or `403` | Planned |
 | `/volunteer/apply` | Resource create route | Authenticated User | `interpreter_profiles`, `languages`, `categories` | Redirect to current application status | Planned |

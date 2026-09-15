@@ -32,6 +32,7 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { BrandMark } from "@/app/components/brand-mark";
+import { UserAvatar } from "@/app/components/user-avatar";
 
 import {
   InterpreterApplicant,
@@ -50,6 +51,7 @@ import {
 import { ApplicantDetailModal } from "./components/applicant-detail-modal";
 import { LoginModal } from "@/app/components/auth/login-modal";
 import {
+  DEFAULT_MOCK_USERS,
   getRedirectPathByRole,
   type UserProfile,
 } from "@/app/lib/mock-auth";
@@ -59,13 +61,11 @@ import { createClient } from "@/utils/supabase/client";
 function ManagerTopHeader({
   onMenuClick,
   currentUser,
-  userInitials,
   onSignOut,
   onChangeAccount,
 }: {
   onMenuClick?: () => void;
   currentUser: UserProfile | null;
-  userInitials: string;
   onSignOut: () => void;
   onChangeAccount: () => void;
 }) {
@@ -119,10 +119,7 @@ function ManagerTopHeader({
               aria-expanded={profileMenuOpen}
               aria-haspopup="menu"
             >
-              {/* Round Initial Avatar */}
-              <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#087f80] bg-[#092f45] text-xs font-black text-white">
-                {userInitials}
-              </div>
+              <UserAvatar user={currentUser ?? DEFAULT_MOCK_USERS.Manager} size="sm" className="border border-[#087f80]" />
               <div className="text-left hidden sm:block">
                 <p className="text-xs font-extrabold leading-tight text-[#10283a]">
                   {currentUser?.name || "วิภา ตรวจสอบ"}
@@ -154,17 +151,14 @@ function ManagerTopHeader({
                   </span>
                 </div>
                 <div className="py-1 space-y-0.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setProfileMenuOpen(false);
-                      alert(`Manager Profile Details:\nName: ${currentUser?.name || "วิภา ตรวจสอบ"}\nEmail: ${currentUser?.email || "manager@khvi.org"}\nRole: ${currentUser?.role || "Manager"}`);
-                    }}
+                  <a
+                    href="/profile#main-content"
+                    onClick={() => setProfileMenuOpen(false)}
                     className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#2d4957] transition-colors hover:bg-[#f2f7f9] hover:text-[#087f80] cursor-pointer"
                   >
                     <UserCircleIcon className="h-4 w-4" />
                     Profile
-                  </button>
+                  </a>
                   <button
                     type="button"
                     onClick={() => {
@@ -251,15 +245,6 @@ export default function ManagerDashboard() {
       router.push(getRedirectPathByRole(user.role));
     }
   };
-
-  const userInitials = useMemo(() => {
-    if (!currentUser?.name) return "VP";
-    const parts = currentUser.name.trim().split(/\s+/);
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return currentUser.name.slice(0, 2).toUpperCase();
-  }, [currentUser]);
 
   const [applicants, setApplicants] = useState<InterpreterApplicant[]>(initialApplicants);
   const [tickets, setTickets] = useState<HelpTicket[]>(initialTickets);
@@ -903,7 +888,6 @@ export default function ManagerDashboard() {
           <ManagerTopHeader
             onMenuClick={() => setIsMobileDrawerOpen((prev) => !prev)}
             currentUser={currentUser}
-            userInitials={userInitials}
             onSignOut={handleSignOut}
             onChangeAccount={() => setIsLoginModalOpen(true)}
           />
@@ -1599,4 +1583,3 @@ export default function ManagerDashboard() {
     </div>
   );
 }
-

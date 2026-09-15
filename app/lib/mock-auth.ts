@@ -5,12 +5,15 @@ export type UserRole = "User" | "Interpreter" | "Manager" | "Admin";
 export interface UserProfile {
   userId: string;
   name: string;
+  avatarUrl?: string;
   email: string;
   phone: string;
   dateOfBirth: string;
   role: UserRole;
   isLocked: boolean;
   preferredUiLanguage: Locale;
+  serviceLanguageIds?: string[];
+  matchingCategoryIds?: string[];
   createdAt: string;
 }
 
@@ -203,6 +206,8 @@ export const DEFAULT_MOCK_USERS: Record<UserRole, UserProfile & { password: stri
     role: "Interpreter",
     isLocked: false,
     preferredUiLanguage: "zh",
+    serviceLanguageIds: ["burmese", "english", "sign"],
+    matchingCategoryIds: ["medical", "government", "accident"],
     createdAt: "2026-01-02T00:00:00.000Z",
     password: "password123",
   },
@@ -287,6 +292,8 @@ export async function loginMockUser(
       role: matchedUser.role,
       isLocked: matchedUser.isLocked,
       preferredUiLanguage: matchedUser.preferredUiLanguage,
+      serviceLanguageIds: matchedUser.serviceLanguageIds,
+      matchingCategoryIds: matchedUser.matchingCategoryIds,
       createdAt: matchedUser.createdAt,
     };
     saveMockUserSession(profile);
@@ -333,6 +340,8 @@ export function quickLoginAsRole(role: UserRole): UserProfile {
     role: target.role,
     isLocked: target.isLocked,
     preferredUiLanguage: target.preferredUiLanguage,
+    serviceLanguageIds: target.serviceLanguageIds,
+    matchingCategoryIds: target.matchingCategoryIds,
     createdAt: target.createdAt,
   };
   saveMockUserSession(profile);
