@@ -65,16 +65,14 @@ test("cancellation requires a reason and survives reload", () => {
   assert.throws(() => store.updateRequest(id, "confirm"));
 });
 
-test("schedule uses current time and expires at appointment; urgent expiry never resets", () => {
+test("schedule starts on the next calendar day and expires at the appointment", () => {
   const currentTime = new Date(2026, 8, 8, 22, 10, 0, 0);
   const env = environment(currentTime);
   const store = env.load();
   assert.throws(() => store.createRequest({ ...input, urgency: "Scheduled" }, "bad-date"));
-  const tooSoon = new Date(currentTime);
-  tooSoon.setHours(22, 30, 0, 0);
+  const tooSoon = new Date(2026, 8, 8, 23, 59, 0, 0);
   assert.throws(() => store.createRequest({ ...input, urgency: "Scheduled" }, tooSoon.toISOString()));
-  const appointment = new Date(currentTime);
-  appointment.setHours(23, 0, 0, 0);
+  const appointment = new Date(2026, 8, 9, 0, 0, 0, 0);
   store.createRequest({ ...input, urgency: "Scheduled" }, appointment.toISOString());
   assert.equal(store.useRequests().requests[0].expiresAt, appointment.toISOString());
   const expired = store.expireRequests(store.useRequests().requests, appointment.getTime() + 1);
@@ -83,11 +81,12 @@ test("schedule uses current time and expires at appointment; urgent expiry never
   assert.equal(env.load().useRequests().requests[0].expiresAt, appointment.toISOString());
 });
 
-test("scheduled appointments cannot exceed 24 hours", () => {
+test("scheduled appointments have no maximum future date", () => {
   const currentTime = new Date(2026, 8, 8, 22, 10, 0, 0);
   const env = environment(currentTime);
-  const appointment = new Date(currentTime.getTime() + 24 * 60 * 60 * 1000 + 1);
-  assert.throws(() => env.load().createRequest({ ...input, urgency: "Scheduled" }, appointment.toISOString()));
+  const appointment = new Date(2027, 0, 15, 9, 30, 0, 0);
+  env.load().createRequest({ ...input, urgency: "Scheduled" }, appointment.toISOString());
+  assert.equal(env.load().useRequests().requests[0].expiresAt, appointment.toISOString());
 });
 
 test("completion requires started work and both confirmations", () => {

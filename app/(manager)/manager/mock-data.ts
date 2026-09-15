@@ -15,11 +15,12 @@ export const initialApplicants: InterpreterApplicant[] = [
     status: "Pending",
     backgroundCheck: "Passed",
     proficiencyScore: "Native Thai, HSK 5 (Mandarin)",
-    documents: [
-      { name: "Thai_National_ID.pdf", type: "id", size: "1.4 MB" },
-      { name: "Medical_Interpreting_Cert.pdf", type: "cert", size: "2.1 MB" },
-      { name: "CV_Sompong_2026.pdf", type: "cv", size: "850 KB" },
-    ],
+    document: {
+      name: "Medical_Interpreting_Cert.pdf",
+      type: "cert",
+      format: "pdf",
+      size: "2.1 MB",
+    },
   },
   {
     id: "APP-102",
@@ -35,11 +36,12 @@ export const initialApplicants: InterpreterApplicant[] = [
     status: "Under Review",
     backgroundCheck: "Passed",
     proficiencyScore: "TOCFL Level 6 (Native), IELTS 8.0",
-    documents: [
-      { name: "Passport_Scan_LinWei.pdf", type: "id", size: "2.3 MB" },
-      { name: "Legal_Translation_License.pdf", type: "cert", size: "3.5 MB" },
-      { name: "Police_Clearance_Cert.pdf", type: "police", size: "1.1 MB" },
-    ],
+    document: {
+      name: "Legal_Translation_License.pdf",
+      type: "cert",
+      format: "pdf",
+      size: "3.5 MB",
+    },
   },
   {
     id: "APP-103",
@@ -55,11 +57,12 @@ export const initialApplicants: InterpreterApplicant[] = [
     status: "Pending",
     backgroundCheck: "Passed",
     proficiencyScore: "Native Burmese Fluency",
-    documents: [
-      { name: "Alien_Registration_Card.pdf", type: "id", size: "980 KB" },
-      { name: "Community_Health_Volunteer_Cert.pdf", type: "cert", size: "1.8 MB" },
-      { name: "Resume_AungMyo.pdf", type: "cv", size: "620 KB" },
-    ],
+    document: {
+      name: "Community_Health_Volunteer_Cert.png",
+      type: "cert",
+      format: "png",
+      size: "1.8 MB",
+    },
   },
   {
     id: "APP-104",
@@ -75,10 +78,12 @@ export const initialApplicants: InterpreterApplicant[] = [
     status: "Under Review",
     backgroundCheck: "Requires Review",
     proficiencyScore: "C2 Vietnamese (Native)",
-    documents: [
-      { name: "Passport_MaiNguyen.pdf", type: "id", size: "1.9 MB" },
-      { name: "Tourism_Guild_Badge.pdf", type: "cert", size: "1.2 MB" },
-    ],
+    document: {
+      name: "Tourism_Guild_Badge.jpg",
+      type: "cert",
+      format: "jpg",
+      size: "1.2 MB",
+    },
   },
   {
     id: "APP-105",
@@ -94,10 +99,12 @@ export const initialApplicants: InterpreterApplicant[] = [
     status: "Approved",
     backgroundCheck: "Passed",
     proficiencyScore: "JLPT N1 (Native), TOEIC 920",
-    documents: [
-      { name: "Consular_Affidavit.pdf", type: "id", size: "2.8 MB" },
-      { name: "Medical_Volunteering_Record.pdf", type: "cert", size: "1.5 MB" },
-    ],
+    document: {
+      name: "Medical_Volunteering_Record.pdf",
+      type: "cert",
+      format: "pdf",
+      size: "1.5 MB",
+    },
   },
   {
     id: "APP-106",
@@ -114,9 +121,12 @@ export const initialApplicants: InterpreterApplicant[] = [
     rejectionReason: "Incomplete documentation: missing primary identity verification and criminal record clearance certificate.",
     backgroundCheck: "Requires Review",
     proficiencyScore: "Native Russian, IELTS 7.5",
-    documents: [
-      { name: "Resume_Draft.pdf", type: "cv", size: "450 KB" },
-    ],
+    document: {
+      name: "Translation_Credentials.pdf",
+      type: "cv",
+      format: "pdf",
+      size: "450 KB",
+    },
   },
 ];
 
@@ -171,6 +181,37 @@ export const initialReports: IncidentReport[] = [
     createdAt: "2026-09-06 14:15",
     status: "Escalated to Admin",
     actionTaken: "Escalated to Admin Portal for user account lock evaluation (FR-78, FR-80).",
+  },
+];
+
+export const initialManagerActivities = [
+  {
+    id: "ACT-101",
+    timestamp: "10 mins ago",
+    type: "approval" as const,
+    targetName: "Sompong Vorakul",
+    description: "Approved volunteer interpreter application for Thai-Mandarin Chinese pair (Medical & Tourism).",
+  },
+  {
+    id: "ACT-102",
+    timestamp: "35 mins ago",
+    type: "ticket_reply" as const,
+    targetName: "David Miller (HLP-802)",
+    description: "Contacted requester via WhatsApp to resolve pinpoint location mismatch in Bang Rak.",
+  },
+  {
+    id: "ACT-103",
+    timestamp: "2 hours ago",
+    type: "rejection" as const,
+    targetName: "Pham Thi Hoa",
+    description: "Rejected application due to expired medical translation certificate (Re-apply eligible in 30 days).",
+  },
+  {
+    id: "ACT-104",
+    timestamp: "Yesterday, 14:15",
+    type: "report_escalation" as const,
+    targetName: "Tourist John D. (REP-302)",
+    description: "Escalated verbal misconduct incident to Super Admin for account suspension evaluation.",
   },
 ];
 

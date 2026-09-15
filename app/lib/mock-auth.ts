@@ -5,12 +5,15 @@ export type UserRole = "User" | "Interpreter" | "Manager" | "Admin";
 export interface UserProfile {
   userId: string;
   name: string;
+  avatarUrl?: string;
   email: string;
   phone: string;
   dateOfBirth: string;
   role: UserRole;
   isLocked: boolean;
   preferredUiLanguage: Locale;
+  serviceLanguageIds?: string[];
+  matchingCategoryIds?: string[];
   createdAt: string;
 }
 
@@ -38,6 +41,11 @@ export interface ValidationErrors {
 }
 
 export const AUTH_SESSION_STORAGE_KEY = "khvi_mock_auth_user";
+
+export function getDisplayName(name: string): string {
+  const displayName = name.replace(/\s*\((?:General User|Volunteer Interpreter)\)\s*$/i, "").trim();
+  return displayName || name;
+}
 
 export function calculateAge(dateOfBirthString: string): number | null {
   if (!dateOfBirthString) return null;
@@ -188,7 +196,7 @@ export async function registerMockUser(input: RegisterInput): Promise<{
 export const DEFAULT_MOCK_USERS: Record<UserRole, UserProfile & { password: string }> = {
   User: {
     userId: "mock-user-id-001",
-    name: "สมชาย มีความหวัง (General User)",
+    name: "สมชาย มีความหวัง",
     email: "user@khvi.org",
     phone: "0812345678",
     dateOfBirth: "1995-05-12",
@@ -200,13 +208,15 @@ export const DEFAULT_MOCK_USERS: Record<UserRole, UserProfile & { password: stri
   },
   Interpreter: {
     userId: "mock-interpreter-id-002",
-    name: "หลิน หลิน (Volunteer Interpreter)",
+    name: "หลิน หลิน",
     email: "volunteer@khvi.org",
     phone: "0898765432",
     dateOfBirth: "1992-08-20",
     role: "Interpreter",
     isLocked: false,
     preferredUiLanguage: "zh",
+    serviceLanguageIds: ["burmese", "english", "sign"],
+    matchingCategoryIds: ["medical", "government", "accident"],
     createdAt: "2026-01-02T00:00:00.000Z",
     password: "password123",
   },
@@ -291,6 +301,8 @@ export async function loginMockUser(
       role: matchedUser.role,
       isLocked: matchedUser.isLocked,
       preferredUiLanguage: matchedUser.preferredUiLanguage,
+      serviceLanguageIds: matchedUser.serviceLanguageIds,
+      matchingCategoryIds: matchedUser.matchingCategoryIds,
       createdAt: matchedUser.createdAt,
     };
     saveMockUserSession(profile);
@@ -337,6 +349,8 @@ export function quickLoginAsRole(role: UserRole): UserProfile {
     role: target.role,
     isLocked: target.isLocked,
     preferredUiLanguage: target.preferredUiLanguage,
+    serviceLanguageIds: target.serviceLanguageIds,
+    matchingCategoryIds: target.matchingCategoryIds,
     createdAt: target.createdAt,
   };
   saveMockUserSession(profile);

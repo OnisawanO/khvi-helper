@@ -34,4 +34,3 @@ export type AuditLogEntry = {
 };
 
 export type AdminActiveTab = "users" | "interpreters" | "audit";
-

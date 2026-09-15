@@ -1,7 +1,11 @@
+export type ApplicantDocumentFormat = "pdf" | "png" | "jpg";
+
 export type ApplicantDocument = {
   name: string;
   type: "id" | "cert" | "cv" | "police";
+  format: ApplicantDocumentFormat;
   size: string;
+  url?: string;
 };
 
 export type InterpreterApplicant = {
@@ -17,7 +21,8 @@ export type InterpreterApplicant = {
   appliedDate: string;
   status: "Pending" | "Under Review" | "Approved" | "Rejected";
   rejectionReason?: string;
-  documents: ApplicantDocument[];
+  document: ApplicantDocument;
+  documents?: ApplicantDocument[]; // Optional backwards compatibility
   backgroundCheck: "Passed" | "Pending" | "Requires Review";
   proficiencyScore?: string;
 };
@@ -49,5 +54,12 @@ export type IncidentReport = {
   actionTaken?: string;
 };
 
-export type ManagerNavSection = "queue" | "approved" | "rejected" | "tickets" | "reports";
+export type ManagerNavSection = "queue" | "approved" | "rejected" | "tickets" | "reports" | "history";
 
+export type ManagerActivity = {
+  id: string;
+  timestamp: string;
+  type: "approval" | "rejection" | "ticket_reply" | "report_escalation";
+  targetName: string;
+  description: string;
+};

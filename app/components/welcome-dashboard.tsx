@@ -11,6 +11,7 @@ import { categoryLabel, languageLabel, LANGUAGES, CATEGORIES, type HelpRequest }
 import type { UserProfile } from "@/app/lib/mock-auth";
 import { useMyInterpreterApplication } from "@/app/lib/interpreter-application";
 import { ApplicationStatusCard } from "@/components/volunteer/ApplicationStatusCard";
+import type { InterpreterWorkspaceMode } from "@/app/lib/workspace-mode";
 
 const button = "inline-flex min-h-12 items-center justify-center gap-2 rounded-(--khvi-radius-sm) bg-(--khvi-navy) px-5 py-3 text-sm font-bold text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--khvi-sun)";
 const lightButton = "inline-flex min-h-12 items-center justify-center gap-2 rounded-(--khvi-radius-sm) bg-white px-5 py-3 text-sm font-bold text-(--khvi-navy) hover:bg-(--khvi-paper) focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--khvi-sun)";
@@ -28,11 +29,16 @@ function distance(request: HelpRequest, location: GeolocationCoordinates | null)
   return 6371 * 2 * Math.asin(Math.sqrt(Math.min(1, a)));
 }
 
-export function WelcomeDashboard({ user }: { user: UserProfile }) {
+export function WelcomeDashboard({ user, interpreterMode = "helper", onInterpreterModeChange }: {
+  user: UserProfile;
+  interpreterMode?: InterpreterWorkspaceMode;
+  onInterpreterModeChange?: (mode: InterpreterWorkspaceMode) => void;
+}) {
   const locale = useUiLocale();
   const copyLocale = useCopyLocale();
   const tr = (th: string, en: string, zh: string) => locale === "th" ? th : locale === "zh" ? zh : en;
-  const interpreter = user.role === "Interpreter";
+  const interpreterAccount = user.role === "Interpreter";
+  const interpreter = interpreterAccount && interpreterMode === "helper";
   const { requests, ready } = useRequests();
   const { application: volunteerApplication } = useMyInterpreterApplication(user.userId);
   const [location, setLocation] = useState<GeolocationCoordinates | null>(null);
@@ -69,7 +75,22 @@ export function WelcomeDashboard({ user }: { user: UserProfile }) {
     </li>;
   }
   return <main id="main-content" className="mx-auto max-w-[1320px] px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
-    <div className="mb-6 flex flex-wrap items-center justify-between gap-4"><div><p className="text-sm font-semibold text-(--khvi-teal)">{tr("ยินดีต้อนรับกลับมา", "Welcome back", "欢迎回来")}</p><h1 className="mt-1 break-words text-3xl font-bold">{user.name}</h1></div><span className="rounded-full border border-(--khvi-teal)/25 bg-white px-4 py-2 text-sm font-bold">{interpreter ? tr("ล่ามจิตอาสา", "Volunteer interpreter", "志愿口译员") : tr("ผู้ขอความช่วยเหลือ", "Requester", "求助者")}</span></div>
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+      <div><p className="text-sm font-semibold text-(--khvi-teal)">{tr("ยินดีต้อนรับกลับมา", "Welcome back", "欢迎回来")}</p><h1 className="mt-1 break-words text-3xl font-bold">{user.name}</h1></div>
+      {interpreterAccount ? (
+        <div className="w-full sm:w-auto">
+          <p className="mb-2 text-xs font-bold text-(--khvi-ink)/65 sm:text-right">{tr("เลือกโหมดการใช้งาน", "Choose how to use KHVI", "选择使用模式")}</p>
+          <div role="group" aria-label={tr("สลับระหว่างการช่วยเหลือและการขอความช่วยเหลือ", "Switch between helping and requesting help", "在提供帮助和请求帮助之间切换")} className="grid min-h-12 w-full grid-cols-2 rounded-full border border-(--khvi-teal)/30 bg-white p-1 shadow-sm sm:w-auto sm:min-w-[330px]">
+            {(["helper", "requester"] as const).map((mode) => {
+              const selected = interpreterMode === mode;
+              return <button key={mode} type="button" aria-pressed={selected} onClick={() => onInterpreterModeChange?.(mode)} className={`min-h-10 rounded-full px-4 py-2 text-sm font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun) ${selected ? "bg-(--khvi-navy) text-white shadow-sm" : "text-(--khvi-ink)/70 hover:bg-(--khvi-paper)"}`}>
+                {mode === "helper" ? tr("เข้ามาช่วยเหลือ", "Help others", "提供帮助") : tr("เข้ามาขอความช่วยเหลือ", "Request help", "请求帮助")}
+              </button>;
+            })}
+          </div>
+        </div>
+      ) : <span className="rounded-full border border-(--khvi-teal)/25 bg-white px-4 py-2 text-sm font-bold">{tr("ผู้ขอความช่วยเหลือ", "Requester", "求助者")}</span>}
+    </div>
     <p className="mb-6 rounded-lg bg-(--khvi-sun)/10 px-4 py-3 text-xs leading-6">{tr("โหมดต้นแบบ · รายการบันทึกอยู่ในเบราว์เซอร์นี้ ยังไม่ได้แยกตามบัญชีหรือยืนยันการจับคู่จริง", "Preview · Records are saved in this browser, not scoped to your account or verified as matches.", "预览模式 · 记录保存在此浏览器，尚未按账户区分或验证匹配。")}</p>
     {!ready ? <div className={`${panel} mb-6`} role="status">{tr("กำลังโหลดคำขอ…", "Loading requests…", "正在加载请求…")}</div> : current && <section className={`${panel} mb-6 border-l-4 border-l-(--khvi-teal)`} aria-labelledby="current-title">
       <div className="flex flex-wrap justify-between gap-3"><h2 id="current-title" className="text-xl font-bold">{interpreter ? tr("ภารกิจที่ดำเนินอยู่ในเครื่องนี้", "Active assignment on this device", "此设备上的当前任务") : tr("คำขอปัจจุบันในเครื่องนี้", "Current request on this device", "此设备上的当前请求")}</h2><div className="flex flex-wrap gap-2"><UrgencyBadge urgency={current.urgency} copyLocale={locale === "th" ? "th" : copyLocale} /><StatusBadge status={current.status} copyLocale={locale === "th" ? "th" : copyLocale} /></div></div>
