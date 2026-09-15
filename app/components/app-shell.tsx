@@ -32,7 +32,7 @@ const shellCopy = {
       needHelp: "Need help?",
       needHelpBody: "Start by creating a request pin with the language, category, and location where help is needed.",
       footerCta: "Create a help request pin",
-      privacy: "Sensitive details stay hidden until a job is claimed",
+      privacy: "Sensitive details stay hidden until the requester confirms the interpreter",
       links: {
         map: "Map preview",
         how: "How it works",
@@ -65,7 +65,7 @@ const shellCopy = {
       needHelp: "需要帮助？",
       needHelpBody: "从创建求助点开始，填写所需语言、类别和需要帮助的位置。",
       footerCta: "创建语言求助点",
-      privacy: "敏感信息会在任务被接取前保持隐藏",
+      privacy: "敏感信息会在求助者确认口译员前保持隐藏",
       links: {
         map: "地图预览",
         how: "使用流程",

@@ -159,6 +159,9 @@ function getRegisterLabel(locale: Locale) {
 
 export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpenSignIn, accountActions, workspaceRole }: SiteHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLElement>(null);
   const pathname = usePathname();
   const isLandingPage = pathname === "/";
   const isRequestWorkspacePage =
@@ -221,12 +224,74 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
     };
   }, []);
 
+  useEffect(() => {
+    if (!menuOpen) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    const desktopQuery = window.matchMedia("(min-width: 1024px)");
+    const triggerButton = menuButtonRef.current;
+    const focusFrame = requestAnimationFrame(() => closeButtonRef.current?.focus());
+
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+        return;
+      }
+
+      if (event.key !== "Tab" || !drawerRef.current) {
+        return;
+      }
+
+      const focusableElements = Array.from(
+        drawerRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements.at(-1);
+
+      if (!firstElement || !lastElement) {
+        return;
+      }
+
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    };
+
+    const handleDesktopChange = (event: MediaQueryListEvent) => {
+      if (event.matches) {
+        setMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    desktopQuery.addEventListener("change", handleDesktopChange);
+
+    return () => {
+      cancelAnimationFrame(focusFrame);
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+      desktopQuery.removeEventListener("change", handleDesktopChange);
+      triggerButton?.focus();
+    };
+  }, [menuOpen]);
+
   const registerLabel = getRegisterLabel(locale);
   const primaryActionLabel = copy.primaryAction;
   const workspaceHomeHref = workspaceRole === "Manager" ? "/manager" : workspaceRole === "Admin" ? "/admin" : "/welcome";
 
   return (
-    <header className="sticky top-0 z-30 border-b border-[#dbe3e7] bg-[#fbfdfc]/95 shadow-[0_8px_24px_rgba(21,52,67,0.06)] backdrop-blur">
+    <>
+      <header className="sticky top-0 z-30 border-b border-[#dbe3e7] bg-[#fbfdfc]/95 shadow-[0_8px_24px_rgba(21,52,67,0.06)] backdrop-blur">
       <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-5 py-3.5 sm:px-8 lg:gap-6 lg:px-12">
         <BrandMark
           subtitle={copy.brandSubtitle}
@@ -278,30 +343,69 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
           )}
           </>}
           <button
+            ref={menuButtonRef}
             type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#cbd7dc] bg-white text-lg text-[#123b4f] transition-colors hover:border-[#8fbfc1] hover:text-[#0d8587] lg:hidden"
+            className="flex h-11 w-11 items-center justify-center rounded-lg border border-[#cbd7dc] bg-white text-lg text-[#123b4f] transition-colors hover:border-[#8fbfc1] hover:text-[#0d8587] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f80] lg:hidden"
             aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
             aria-expanded={menuOpen}
             aria-controls="mobile-navigation"
             onClick={() => setMenuOpen((open) => !open)}
           >
-            {menuOpen ? <XMarkIcon aria-hidden="true" className="h-5 w-5" /> : <Bars3Icon aria-hidden="true" className="h-5 w-5" />}
+            <Bars3Icon aria-hidden="true" className="h-6 w-6" />
           </button>
         </div>
       </div>
+      </header>
+
       {menuOpen && (
-        <nav id="mobile-navigation" className="border-t border-[#e3eaed] bg-white px-5 py-3 lg:hidden" aria-label="Mobile navigation">
-          <div className="mx-auto flex max-w-[1440px] flex-col gap-1 sm:px-3">
+        <div className="fixed inset-0 z-40 lg:hidden">
+          <button
+            type="button"
+            className="absolute inset-0 h-full w-full cursor-default bg-[#092f45]/45 backdrop-blur-[2px] animate-in fade-in duration-200"
+            aria-label="Close navigation menu"
+            onClick={() => setMenuOpen(false)}
+          />
+          <aside
+            ref={drawerRef}
+            id="mobile-navigation"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Mobile navigation"
+            className="absolute inset-y-0 right-0 flex h-dvh w-[min(88vw,360px)] flex-col overflow-hidden bg-white shadow-[-18px_0_45px_rgba(9,47,69,0.24)] animate-in slide-in-from-right duration-200 motion-reduce:animate-none"
+          >
+            <div className="flex items-center justify-between gap-4 border-b border-[#e1e9ec] px-5 py-4">
+              <BrandMark subtitle={copy.brandSubtitle} href={workspaceRole ? "/welcome" : "/#top"} ariaLabel={workspaceRole ? "KHVI welcome" : "KHVI home"} />
+              <button
+                ref={closeButtonRef}
+                type="button"
+                className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-[#cbd7dc] text-[#123b4f] transition-colors hover:border-[#8fbfc1] hover:bg-[#eef7f5] hover:text-[#087f80] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f80]"
+                aria-label="Close navigation menu"
+                onClick={() => setMenuOpen(false)}
+              >
+                <XMarkIcon aria-hidden="true" className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+              <nav className="flex flex-col gap-1" aria-label="Mobile navigation">
             {navItems.map(([label, href]) => (
-              <a key={href} className="rounded-lg px-3 py-3 text-sm font-extrabold text-[#39525d] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587]" href={href} onClick={() => setMenuOpen(false)}>
+                  <a key={href} className="flex min-h-12 items-center rounded-xl px-4 py-3 text-base font-extrabold text-[#294554] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#087f80]" href={href} onClick={() => setMenuOpen(false)}>
                 {label}
               </a>
             ))}
-            <LanguageSwitcher copy={copy} locale={locale} onLocaleChange={onLocaleChange} compact />
-            {!accountActions && <>{onOpenRegister ? (
+              </nav>
+
+              <div className="my-4 border-t border-[#e1e9ec]" />
+              <p className="px-3 text-xs font-extrabold uppercase tracking-[0.12em] text-[#78909a]">{copy.languageLabel}</p>
+              <LanguageSwitcher copy={copy} locale={locale} onLocaleChange={onLocaleChange} compact />
+            </div>
+
+            {!accountActions && (
+              <div className="grid gap-2 border-t border-[#e1e9ec] bg-[#f7faf9] p-4">
+                {onOpenRegister ? (
               <button
                 type="button"
-                className="rounded-lg px-3 py-3 text-left text-sm font-extrabold text-[#087f80] transition-colors hover:bg-[#eef5f7]"
+                    className="flex min-h-12 items-center justify-center rounded-xl border border-[#0d8587] bg-[#edf7f5] px-4 py-3 text-sm font-extrabold text-[#087f80] transition-colors hover:bg-[#d8efe9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f80]"
                 onClick={() => {
                   setMenuOpen(false);
                   onOpenRegister();
@@ -311,7 +415,7 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
               </button>
             ) : (
               <a
-                className="rounded-lg px-3 py-3 text-sm font-extrabold text-[#087f80] transition-colors hover:bg-[#eef5f7]"
+                    className="flex min-h-12 items-center justify-center rounded-xl border border-[#0d8587] bg-[#edf7f5] px-4 py-3 text-sm font-extrabold text-[#087f80] transition-colors hover:bg-[#d8efe9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f80]"
                 href="/register"
                 onClick={() => setMenuOpen(false)}
               >
@@ -321,7 +425,7 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
             {onOpenSignIn ? (
               <button
                 type="button"
-                className="rounded-lg px-3 py-3 text-left text-sm font-extrabold text-[#39525d] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587]"
+                    className="flex min-h-12 items-center justify-center rounded-xl border border-[#123b4f] bg-white px-4 py-3 text-sm font-extrabold text-[#123b4f] transition-colors hover:bg-[#edf3f1] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#123b4f]"
                 onClick={() => {
                   setMenuOpen(false);
                   onOpenSignIn();
@@ -330,14 +434,15 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
                 {copy.signIn}
               </button>
             ) : (
-              <a className="rounded-lg px-3 py-3 text-sm font-extrabold text-[#39525d] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587]" href="/login" onClick={() => setMenuOpen(false)}>
+                  <a className="flex min-h-12 items-center justify-center rounded-xl border border-[#123b4f] bg-white px-4 py-3 text-sm font-extrabold text-[#123b4f] transition-colors hover:bg-[#edf3f1] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#123b4f]" href="/login" onClick={() => setMenuOpen(false)}>
                 {copy.signIn}
               </a>
             )}
-            </>}
-          </div>
-        </nav>
+              </div>
+            )}
+          </aside>
+        </div>
       )}
-    </header>
+    </>
   );
 }

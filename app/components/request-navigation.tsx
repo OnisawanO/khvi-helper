@@ -10,7 +10,8 @@ export function RequestNavigation() {
     path === "/request-help" ||
     path.startsWith("/my-requests") ||
     path === "/find-requests" ||
-    path.startsWith("/my-assignments");
+    path.startsWith("/my-assignments") ||
+    path.startsWith("/volunteer");
   const scrollToMainContent = () => requestAnimationFrame(() => document.getElementById("main-content")?.scrollIntoView({ block: "start" }));
   const navItems = [
     [zh ? "创建请求" : "New request", "/request-help#main-content", "/request-help"],
