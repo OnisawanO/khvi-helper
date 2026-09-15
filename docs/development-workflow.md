@@ -51,6 +51,27 @@ docs/ilham/update-requirements
 16. เปิด Pull Request จาก `develop` เข้า `main`
 17. รวมเข้า `main` เมื่อ review และ status checks ผ่านครบถ้วน
 
+## Branch Preflight
+
+ก่อนแก้ไฟล์ทุก task ให้ตรวจสอบ branch และสถานะ working tree:
+
+1. รัน `git branch --show-current`
+2. รัน `git status --short`
+3. ถ้าอยู่บน `develop` และ working tree สะอาด ให้ sync `origin/develop` แล้วสร้าง feature branch ใหม่
+4. ถ้าอยู่บน `main` หรือมี uncommitted changes บน protected branch ให้หยุดและถามผู้ใช้
+5. ห้ามย้าย, stash, reset หรือ commit การเปลี่ยนแปลงที่มีอยู่โดยเดาเอง
+
+ตัวอย่างการเริ่ม task จาก `develop`:
+
+```bash
+git switch develop
+git pull --ff-only origin develop
+git switch -c feature/<สมาชิก>/<งาน>
+```
+
+การอ่านไฟล์, ดู log และตรวจ status ทำได้บน `main` หรือ `develop`
+การแก้ไฟล์, commit และ push ต้องทำบน feature branch
+
 ## Requirement Consistency Gate
 
 ก่อน implement requirement หรือ behavior หลัก ต้องใช้ checklist ที่ `docs/requirement-consistency-checklist.md` โดยตรวจอย่างน้อย:
@@ -162,6 +183,9 @@ Agent ต้องถามผู้ใช้ด้วยคำถามนี�
 - ห้าม push โดย AI Agent
 - ห้ามใช้ force push
 - ห้ามแก้ไข commit เดิมด้วย `--amend` เว้นแต่ได้รับคำสั่ง
+- ก่อน commit ให้แสดง current branch, base branch, changed files, included files และผลตรวจสอบ
+- การ push ปกติให้ push feature branch และเปิด Pull Request เข้า `develop`
+- การ push ตรงเข้า `develop` หรือ `main` ต้องมีคำสั่งชัดเจนจากผู้ดูแลโครงการ
 
 ## การตั้งค่า GitHub ที่ควรเปิดใช้
 
