@@ -55,3 +55,12 @@ export type AuditLogEntry = {
 
 export type AdminActiveTab = "users" | "reports" | "audit";
 
+export type SystemSettingsConfig = {
+  sosDispatchRadiusKm: number;
+  interpreterMinRatingThreshold: number;
+  autoEscalateTicketMinutes: number;
+  requireBackgroundCheckForInterpreter: boolean;
+  allowGuestSosRequests: boolean;
+  languagesCatalog: string[];
+  specialtyCategories: string[];
+};

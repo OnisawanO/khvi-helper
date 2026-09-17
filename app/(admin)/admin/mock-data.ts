@@ -263,3 +263,13 @@ export const AVAILABLE_CATEGORIES = [
   "Consular Support",
   "General Help",
 ];
+
+export const initialSystemSettings = {
+  sosDispatchRadiusKm: 15,
+  interpreterMinRatingThreshold: 3.5,
+  autoEscalateTicketMinutes: 20,
+  requireBackgroundCheckForInterpreter: true,
+  allowGuestSosRequests: false,
+  languagesCatalog: [...AVAILABLE_LANGUAGES],
+  specialtyCategories: [...AVAILABLE_CATEGORIES],
+};

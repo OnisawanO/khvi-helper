@@ -20,6 +20,7 @@ interface AdminDrawerProps {
   totalUsersCount: number;
   pendingReportsCount: number;
   auditLogsCount: number;
+  onSettingsClick?: () => void;
 }
 
 export function AdminDrawer({
@@ -30,6 +31,7 @@ export function AdminDrawer({
   totalUsersCount,
   pendingReportsCount,
   auditLogsCount,
+  onSettingsClick,
 }: AdminDrawerProps) {
   return (
     <div
@@ -201,12 +203,15 @@ export function AdminDrawer({
 
           <button
             type="button"
-            onClick={() => alert("Admin System Settings & Security Configurations")}
+            onClick={() => {
+              onClose();
+              if (onSettingsClick) onSettingsClick();
+            }}
             className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-xs font-bold text-slate-300 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
-            title="Admin Settings"
+            title="System Policies & Configurations"
           >
             <Cog6ToothIcon className="h-5 w-5 shrink-0" />
-            <span>Profile & Settings</span>
+            <span>Platform Policies & Settings</span>
           </button>
         </div>
       </aside>

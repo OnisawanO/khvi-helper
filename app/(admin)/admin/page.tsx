@@ -16,8 +16,9 @@ import {
   AdminUserRecord,
   AuditLogEntry,
   SystemRole,
+  SystemSettingsConfig,
 } from "./types";
-import { initialUsers, initialAuditLogs, initialEscalatedReports } from "./mock-data";
+import { initialUsers, initialAuditLogs, initialEscalatedReports, initialSystemSettings } from "./mock-data";
 import { AdminHeader } from "./components/admin-header";
 import { AdminDrawer } from "./components/admin-drawer";
 import { AdminRailBar } from "./components/admin-rail-bar";
@@ -28,6 +29,7 @@ import { AccountActionDialog } from "./components/account-action-dialog";
 import { UsersTable } from "./components/users-table";
 import { EscalatedReportsTable } from "./components/escalated-reports-table";
 import { AuditTrailTable } from "./components/audit-trail-table";
+import { SystemSettingsModal } from "./components/system-settings-modal";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -59,6 +61,10 @@ export default function AdminPage() {
   const [actionTargetUser, setActionTargetUser] = useState<AdminUserRecord | null>(null);
   const [actionReportId, setActionReportId] = useState<string | null>(null);
   const [isActionDialogOpen, setIsActionDialogOpen] = useState(false);
+
+  // Platform System Settings Modal State
+  const [systemSettings, setSystemSettings] = useState<SystemSettingsConfig>(initialSystemSettings);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
@@ -435,6 +441,7 @@ export default function AdminPage() {
         totalUsersCount={totalUsersCount}
         pendingReportsCount={pendingReportsCount}
         auditLogsCount={auditLogs.length}
+        onSettingsClick={() => setIsSettingsModalOpen(true)}
       />
 
       {/* 1. Full-Height Left Rail Bar (Continuous single block from top to bottom) */}
@@ -445,6 +452,7 @@ export default function AdminPage() {
         totalUsersCount={totalUsersCount}
         pendingReportsCount={pendingReportsCount}
         auditLogsCount={auditLogs.length}
+        onSettingsClick={() => setIsSettingsModalOpen(true)}
       />
 
       {/* 2. Main Right Container: Header + Content Workspace + Footer */}
@@ -575,6 +583,28 @@ export default function AdminPage() {
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
         onSuccess={handleLoginSuccess}
+      />
+
+      {/* System Governance & Policies Configuration Modal */}
+      <SystemSettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        settings={systemSettings}
+        onSave={(newSettings) => {
+          setSystemSettings(newSettings);
+          // Add Audit Log Entry
+          const newLog: AuditLogEntry = {
+            id: `AUD-${Date.now().toString().slice(-4)}`,
+            timestamp: new Date().toISOString().replace("T", " ").slice(0, 19),
+            actor: `${currentUser?.name || "Super Admin"} (Admin)`,
+            action: "SYSTEM_POLICY_UPDATE",
+            targetUser: "Platform Configuration",
+            severity: "warning",
+            details: `SOS Radius: ${newSettings.sosDispatchRadiusKm}km, Min Rating: ${newSettings.interpreterMinRatingThreshold}, Ticket SLA: ${newSettings.autoEscalateTicketMinutes}m, Languages: ${newSettings.languagesCatalog.length}, Taxonomies: ${newSettings.specialtyCategories.length}`,
+          };
+          setAuditLogs((prev) => [newLog, ...prev]);
+          showToast("Platform policies and catalog successfully updated & audited.");
+        }}
       />
     </div>
   );

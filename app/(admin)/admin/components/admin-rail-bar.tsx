@@ -18,6 +18,7 @@ interface AdminRailBarProps {
   totalUsersCount: number;
   pendingReportsCount: number;
   auditLogsCount: number;
+  onSettingsClick?: () => void;
 }
 
 export function AdminRailBar({
@@ -27,6 +28,7 @@ export function AdminRailBar({
   totalUsersCount,
   pendingReportsCount,
   auditLogsCount,
+  onSettingsClick,
 }: AdminRailBarProps) {
   return (
     <aside className="hidden md:flex flex-col w-[68px] shrink-0 items-center justify-between border-r border-[#16435c] bg-[#092f45] py-3.5 z-20 select-none shadow-[4px_0_16px_rgba(0,0,0,0.15)]">
@@ -129,10 +131,10 @@ export function AdminRailBar({
         {/* Settings button */}
         <button
           type="button"
-          onClick={() => alert("Admin System Settings & Security Configurations")}
+          onClick={onSettingsClick}
           className="flex h-10 w-10 items-center justify-center rounded-2xl text-slate-300 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
-          title="Profile & Settings"
-          aria-label="Profile & Settings"
+          title="System Policies & Configurations"
+          aria-label="System Policies & Configurations"
         >
           <Cog6ToothIcon className="h-5 w-5" />
         </button>
