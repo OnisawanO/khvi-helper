@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   Cog6ToothIcon,
   DocumentMagnifyingGlassIcon,
-  SparklesIcon,
+  ShieldExclamationIcon,
   UserGroupIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
@@ -17,7 +17,7 @@ interface AdminDrawerProps {
   activeTab: AdminActiveTab;
   setActiveTab: (tab: AdminActiveTab) => void;
   totalUsersCount: number;
-  totalInterpretersCount: number;
+  pendingReportsCount: number;
   auditLogsCount: number;
 }
 
@@ -27,7 +27,7 @@ export function AdminDrawer({
   activeTab,
   setActiveTab,
   totalUsersCount,
-  totalInterpretersCount,
+  pendingReportsCount,
   auditLogsCount,
 }: AdminDrawerProps) {
   return (
@@ -119,32 +119,6 @@ export function AdminDrawer({
                   {totalUsersCount}
                 </span>
               </button>
-
-              <button
-                onClick={() => {
-                  setActiveTab("interpreters");
-                  onClose();
-                }}
-                className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === "interpreters"
-                    ? "bg-[#087f80] text-white shadow-md"
-                    : "text-slate-200 hover:bg-white/10 hover:text-white"
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <SparklesIcon className="h-5 w-5 text-slate-300" />
-                  <span>Interpreter Index</span>
-                </div>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                    activeTab === "interpreters"
-                      ? "bg-white/20 text-white"
-                      : "bg-teal-900/60 text-teal-300 border border-teal-700/50"
-                  }`}
-                >
-                  {totalInterpretersCount}
-                </span>
-              </button>
             </nav>
           </div>
 
@@ -154,6 +128,28 @@ export function AdminDrawer({
               Governance & Security
             </p>
             <nav className="mt-1 space-y-1">
+              <button
+                onClick={() => {
+                  setActiveTab("reports");
+                  onClose();
+                }}
+                className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === "reports"
+                    ? "bg-red-600 text-white shadow-md shadow-red-900/40"
+                    : "text-slate-200 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <ShieldExclamationIcon className="h-5 w-5 text-slate-300" />
+                  <span>Escalated Reports</span>
+                </div>
+                {pendingReportsCount > 0 && (
+                  <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black text-white ring-1 ring-white/20 animate-pulse">
+                    {pendingReportsCount}
+                  </span>
+                )}
+              </button>
+
               <button
                 onClick={() => {
                   setActiveTab("audit");

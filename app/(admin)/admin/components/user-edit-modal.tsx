@@ -2,13 +2,15 @@
 
 import {
   KeyIcon,
+  LanguageIcon,
   LockClosedIcon,
   ShieldCheckIcon,
+  ShieldExclamationIcon,
   SparklesIcon,
   StarIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { AdminUserRecord, SystemRole } from "../types";
+import { AdminIncidentReport, AdminUserRecord, SystemRole } from "../types";
 
 interface UserEditModalProps {
   isOpen: boolean;
@@ -21,6 +23,7 @@ interface UserEditModalProps {
   tempLockReason: string;
   setTempLockReason: (reason: string) => void;
   onSave: () => void;
+  incidentReports?: AdminIncidentReport[];
 }
 
 export function UserEditModal({
@@ -34,8 +37,11 @@ export function UserEditModal({
   tempLockReason,
   setTempLockReason,
   onSave,
+  incidentReports = [],
 }: UserEditModalProps) {
   if (!isOpen || !user) return null;
+
+  const userIncidentReports = incidentReports.filter((r) => r.reportedUserId === user.id);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-3 sm:p-4 backdrop-blur-xs animate-in fade-in">
@@ -102,6 +108,17 @@ export function UserEditModal({
                   {user.isLocked ? "Suspended (Locked)" : "Active / Operational"}
                 </p>
               </div>
+              {userIncidentReports.length > 0 && (
+                <div className="rounded-lg bg-red-50 border border-red-200 p-2 text-xs">
+                  <span className="font-bold text-red-700 uppercase text-[10px] flex items-center gap-1">
+                    <ShieldExclamationIcon className="h-3.5 w-3.5" />
+                    <span>Safety Flags ({userIncidentReports.length})</span>
+                  </span>
+                  <p className="text-[11px] text-red-600 mt-0.5">
+                    This user has been escalated {userIncidentReports.length} times for misconduct review.
+                  </p>
+                </div>
+              )}
             </div>
 
             {user.interpreterStats && (
@@ -228,7 +245,70 @@ export function UserEditModal({
               )}
             </div>
 
-            {/* Section 3: Interpreter Feedback & Quality Log */}
+            {/* Section 3: Escalated Incident Reports History */}
+            {userIncidentReports.length > 0 && (
+              <div className="rounded-2xl border border-red-200 bg-red-50/20 p-4 sm:p-5 shadow-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ShieldExclamationIcon className="h-5 w-5 text-red-600" />
+                    <h4 className="text-sm font-bold text-[#092f45]">Escalated Incident Reports History</h4>
+                  </div>
+                  <span className="inline-flex items-center gap-1 font-bold text-xs text-red-700 bg-red-100 border border-red-200 px-2.5 py-0.5 rounded-full">
+                    {userIncidentReports.length} {userIncidentReports.length === 1 ? "Report" : "Reports"}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Misconduct and safety violations reported against this user by peers and escalated by Managers:
+                </p>
+
+                <div className="space-y-2.5">
+                  {userIncidentReports.map((rep) => (
+                    <div
+                      key={rep.id}
+                      className="rounded-xl border border-slate-200 bg-white p-3.5 space-y-2 shadow-2xs"
+                    >
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-black text-[#092f45]">{rep.id}</span>
+                          <span className="text-[10px] text-slate-400 font-mono">Booking: {rep.bookingId}</span>
+                        </div>
+                        <span
+                          className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-black uppercase ${
+                            rep.severity === "critical"
+                              ? "bg-red-100 text-red-700 border border-red-200"
+                              : rep.severity === "high"
+                              ? "bg-amber-100 text-amber-800 border border-amber-200"
+                              : "bg-blue-100 text-blue-700 border border-blue-200"
+                          }`}
+                        >
+                          {rep.severity}
+                        </span>
+                      </div>
+
+                      {/* Reason & Auto-translation */}
+                      <div className="space-y-1">
+                        <p className="text-xs text-slate-800 font-medium leading-relaxed">
+                          {rep.reason}
+                        </p>
+                        {rep.originalReason && rep.originalLanguage && (
+                          <div className="flex items-center gap-1 text-[11px] text-slate-500 italic bg-slate-50 p-2 rounded-lg border border-slate-200">
+                            <LanguageIcon className="h-3.5 w-3.5 text-blue-600 shrink-0 not-italic" />
+                            <span>Original ({rep.originalLanguage}): &ldquo;{rep.originalReason}&rdquo;</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1 text-[10px] text-slate-400 border-t border-slate-100">
+                        <span>Reported by: <strong className="text-slate-600">{rep.reporterName}</strong> ({rep.reporterRole})</span>
+                        <span>Date: {rep.createdAt}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Section 4: Interpreter Feedback & Quality Log */}
             {user.interpreterStats && (
               <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs space-y-3">
                 <div className="flex items-center justify-between">

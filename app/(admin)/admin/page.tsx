@@ -2,27 +2,31 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
-import {
-  CheckBadgeIcon,
-  CheckCircleIcon,
-  KeyIcon,
-  LockClosedIcon,
-  UserGroupIcon,
-} from "@heroicons/react/24/outline";
+import { CheckCircleIcon } from "@heroicons/react/24/outline";
 import { LoginModal } from "@/app/components/auth/login-modal";
 import { getRedirectPathByRole } from "@/app/lib/mock-auth";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { createClient } from "@/utils/supabase/client";
 import type { UserProfile } from "@/app/lib/mock-auth";
 
-import { AdminActiveTab, AdminUserRecord, AuditLogEntry, SystemRole } from "./types";
-import { initialUsers, initialAuditLogs } from "./mock-data";
+import {
+  AdminActiveTab,
+  AdminIncidentReport,
+  AccountStatus,
+  AdminUserRecord,
+  AuditLogEntry,
+  SystemRole,
+} from "./types";
+import { initialUsers, initialAuditLogs, initialEscalatedReports } from "./mock-data";
 import { AdminHeader } from "./components/admin-header";
 import { AdminDrawer } from "./components/admin-drawer";
 import { AdminRailBar } from "./components/admin-rail-bar";
+import { AdminKpiCards } from "./components/admin-kpi-cards";
+import { ReportsKpiCards, ReportStatusFilter } from "./components/reports-kpi-cards";
 import { UserEditModal } from "./components/user-edit-modal";
+import { AccountActionDialog } from "./components/account-action-dialog";
 import { UsersTable } from "./components/users-table";
-import { InterpretersTable } from "./components/interpreters-table";
+import { EscalatedReportsTable } from "./components/escalated-reports-table";
 import { AuditTrailTable } from "./components/audit-trail-table";
 
 export default function AdminPage() {
@@ -31,25 +35,32 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<AdminActiveTab>("users");
   const [auditViewMode, setAuditViewMode] = useState<"table" | "activity">("table");
   const [users, setUsers] = useState<AdminUserRecord[]>(initialUsers);
+  const [reports, setReports] = useState<AdminIncidentReport[]>(initialEscalatedReports);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(initialAuditLogs);
 
   // Filters
   const [selectedRoles, setSelectedRoles] = useState<SystemRole[]>([]);
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<"All" | "Active" | "Locked">("All");
+  const [selectedReportStatusFilter, setSelectedReportStatusFilter] = useState<ReportStatusFilter>("All");
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Modal State
+  // User Edit Modal State
   const [selectedUser, setSelectedUser] = useState<AdminUserRecord | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [tempRole, setTempRole] = useState<SystemRole>("User");
   const [tempIsLocked, setTempIsLocked] = useState(false);
   const [tempLockReason, setTempLockReason] = useState("");
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Account Action Dialog (Hard Ban / Soft Lock) State
+  const [actionTargetUser, setActionTargetUser] = useState<AdminUserRecord | null>(null);
+  const [actionReportId, setActionReportId] = useState<string | null>(null);
+  const [isActionDialogOpen, setIsActionDialogOpen] = useState(false);
+
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
@@ -111,18 +122,145 @@ export default function AdminPage() {
     setIsEditModalOpen(true);
   };
 
+  // Open Safety Action Dialog (Lock / Hard Ban)
+  const handleOpenActionDialog = (user: AdminUserRecord, reportId?: string) => {
+    setActionTargetUser(user);
+    setActionReportId(reportId || null);
+    setIsActionDialogOpen(true);
+  };
+
+  // 1. Confirm Soft Lock
+  const handleConfirmLock = (userId: string, reason: string) => {
+    setUsers((prev) =>
+      prev.map((u) => {
+        if (u.id === userId) {
+          return {
+            ...u,
+            isLocked: true,
+            accountStatus: "Locked",
+            lockReason: reason,
+          };
+        }
+        return u;
+      })
+    );
+
+    // If originated from an escalated report, resolve report
+    if (actionReportId) {
+      setReports((prev) =>
+        prev.map((r) =>
+          r.id === actionReportId
+            ? {
+                ...r,
+                status: "Resolved (Locked)",
+                actionTaken: `Suspended by Admin: ${reason}`,
+              }
+            : r
+        )
+      );
+    }
+
+    const target = users.find((u) => u.id === userId);
+    const newLog: AuditLogEntry = {
+      id: `AUD-${Date.now().toString().slice(-4)}`,
+      timestamp: new Date().toISOString().replace("T", " ").slice(0, 19),
+      actor: `${currentUser?.name || "Super Admin"} (Admin)`,
+      action: "ACCOUNT_SUSPEND",
+      targetUser: `${target?.name || userId} (${userId})`,
+      severity: "warning",
+      details: `Suspended (Soft Lock). Reason: ${reason}`,
+    };
+    setAuditLogs((prev) => [newLog, ...prev]);
+    showToast(`Account for ${target?.name || userId} has been temporarily suspended.`);
+  };
+
+  // 2. Confirm Permanent Hard Ban (Strict Safety Confirmation)
+  const handleConfirmHardBan = (userId: string, reason: string) => {
+    setUsers((prev) =>
+      prev.map((u) => {
+        if (u.id === userId) {
+          return {
+            ...u,
+            isLocked: true,
+            accountStatus: "Banned",
+            lockReason: `[PERMANENT BAN] ${reason}`,
+          };
+        }
+        return u;
+      })
+    );
+
+    if (actionReportId) {
+      setReports((prev) =>
+        prev.map((r) =>
+          r.id === actionReportId
+            ? {
+                ...r,
+                status: "Resolved (Hard Banned)",
+                actionTaken: `Permanently Banned by Super Admin: ${reason}`,
+              }
+            : r
+        )
+      );
+    }
+
+    const target = users.find((u) => u.id === userId);
+    const newLog: AuditLogEntry = {
+      id: `AUD-${Date.now().toString().slice(-4)}`,
+      timestamp: new Date().toISOString().replace("T", " ").slice(0, 19),
+      actor: `${currentUser?.name || "Super Admin"} (Admin)`,
+      action: "HARD_BAN",
+      targetUser: `${target?.name || userId} (${userId})`,
+      severity: "danger",
+      details: `[PERMANENT HARD BAN] Safety verified. Account permanently banned. Reason: ${reason}`,
+    };
+    setAuditLogs((prev) => [newLog, ...prev]);
+    showToast(`Account ${target?.name || userId} has been permanently hard banned.`);
+  };
+
+  // 3. Confirm Unlock
+  const handleConfirmUnlock = (userId: string) => {
+    setUsers((prev) =>
+      prev.map((u) => {
+        if (u.id === userId) {
+          return {
+            ...u,
+            isLocked: false,
+            accountStatus: "Active",
+            lockReason: undefined,
+          };
+        }
+        return u;
+      })
+    );
+
+    const target = users.find((u) => u.id === userId);
+    const newLog: AuditLogEntry = {
+      id: `AUD-${Date.now().toString().slice(-4)}`,
+      timestamp: new Date().toISOString().replace("T", " ").slice(0, 19),
+      actor: `${currentUser?.name || "Super Admin"} (Admin)`,
+      action: "ACCOUNT_UNLOCKED",
+      targetUser: `${target?.name || userId} (${userId})`,
+      severity: "info",
+      details: "Admin lifted restriction. Status set to Active.",
+    };
+    setAuditLogs((prev) => [newLog, ...prev]);
+    showToast(`Account for ${target?.name || userId} has been successfully unlocked.`);
+  };
+
+
   const handleSaveUserChanges = () => {
     if (!selectedUser) return;
 
     // Security Business Rule: Admin accounts cannot be suspended or locked
     if (tempRole === "Admin" && tempIsLocked) {
-      alert("บัญชีระดับผู้ดูแลระบบ (Admin) ไม่สามารถถูกระงับหรือล็อกบัญชีได้ เพื่อความปลอดภัยและความต่อเนื่องในการจัดการระบบ");
+      alert("Administrator accounts cannot be locked or suspended for platform continuity and system safety.");
       return;
     }
 
     // Validation
     if (tempIsLocked && !tempLockReason.trim()) {
-      alert("กรุณาระบุเหตุผลในการระงับหรือล็อกบัญชีนี้ (Required for security audit)");
+      alert("Please provide an enforcement reason for this account suspension (Required for audit logging).");
       return;
     }
 
@@ -133,6 +271,7 @@ export default function AdminPage() {
           role: tempRole,
           isLocked: tempRole === "Admin" ? false : tempIsLocked,
           lockReason: tempRole === "Admin" ? undefined : tempIsLocked ? tempLockReason.trim() : undefined,
+          accountStatus: (tempRole === "Admin" ? "Active" : tempIsLocked ? (u.accountStatus === "Banned" ? "Banned" : "Locked") : "Active") as AccountStatus,
         };
       }
       return u;
@@ -144,7 +283,7 @@ export default function AdminPage() {
     const newLog: AuditLogEntry = {
       id: `AUD-${Date.now().toString().slice(-4)}`,
       timestamp: new Date().toISOString().replace("T", " ").slice(0, 19),
-      actor: `${currentUser?.name || "Ilham Khamsikeaw"} (Admin)`,
+      actor: `${currentUser?.name || "Super Admin"} (Admin)`,
       action:
         tempIsLocked !== selectedUser.isLocked
           ? tempIsLocked
@@ -160,7 +299,7 @@ export default function AdminPage() {
 
     setAuditLogs([newLog, ...auditLogs]);
     setIsEditModalOpen(false);
-    showToast(`อัปเดตข้อมูลและสิทธิ์ของ ${selectedUser.name} สำเร็จแล้ว พร้อมบันทึก Audit Log`);
+    showToast(`Successfully updated privileges for ${selectedUser.name} with Audit Log entry.`);
   };
 
   const toggleRoleFilter = (role: SystemRole) => {
@@ -220,30 +359,17 @@ export default function AdminPage() {
     });
   }, [users, selectedRoles, selectedStatusFilter, searchQuery, selectedLanguages, selectedCategories]);
 
-  // Filtered Interpreters (Active & Unlocked Only)
-  const interpreterRanking = useMemo(() => {
-    return users
-      .filter((u) => {
-        if (u.role !== "Interpreter" || !u.interpreterStats || u.isLocked) return false;
-        if (selectedLanguages.length > 0) {
-          const userLangs = [u.primaryLanguage, ...u.spokenLanguages];
-          const hasAny = selectedLanguages.some((l) => userLangs.includes(l));
-          if (!hasAny) return false;
-        }
-        if (selectedCategories.length > 0) {
-          const hasCat = selectedCategories.some((c) => u.interpreterStats?.specialties.includes(c));
-          if (!hasCat) return false;
-        }
-        return true;
-      })
-      .sort((a, b) => (b.interpreterStats?.rating || 0) - (a.interpreterStats?.rating || 0));
-  }, [users, selectedLanguages, selectedCategories]);
-
   // Quick stats
   const totalUsersCount = users.length;
   const totalInterpretersCount = useMemo(() => users.filter((u) => u.role === "Interpreter").length, [users]);
   const lockedUsersCount = useMemo(() => users.filter((u) => u.isLocked).length, [users]);
   const totalAdminsCount = useMemo(() => users.filter((u) => u.role === "Admin" || u.role === "Manager").length, [users]);
+  
+  // Reports stats
+  const totalReportsCount = reports.length;
+  const pendingReportsCount = useMemo(() => reports.filter((r) => r.status === "Escalated to Admin").length, [reports]);
+  const lockedReportsCount = useMemo(() => reports.filter((r) => r.status === "Resolved (Locked)").length, [reports]);
+  const hardBannedReportsCount = useMemo(() => reports.filter((r) => r.status === "Resolved (Hard Banned)").length, [reports]);
 
   if (!authChecked) {
     return (
@@ -275,7 +401,7 @@ export default function AdminPage() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         totalUsersCount={totalUsersCount}
-        totalInterpretersCount={totalInterpretersCount}
+        pendingReportsCount={pendingReportsCount}
         auditLogsCount={auditLogs.length}
       />
 
@@ -285,7 +411,7 @@ export default function AdminPage() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         totalUsersCount={totalUsersCount}
-        totalInterpretersCount={totalInterpretersCount}
+        pendingReportsCount={pendingReportsCount}
         auditLogsCount={auditLogs.length}
       />
 
@@ -306,155 +432,81 @@ export default function AdminPage() {
 
         {/* Content Workspace Scroll Area */}
         <div className="flex-1 overflow-y-auto min-w-0 flex flex-col">
-            <main className="flex-1 p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6">
-              {/* Header KPI Summary Cards (Interactive Filter Shortcuts) */}
-              <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
-                {/* 1. Total Users (Reset All Filters) */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab("users");
-                    setSelectedRoles([]);
-                    setSelectedStatusFilter("All");
-                    setSelectedLanguages([]);
-                    setSelectedCategories([]);
-                    setSearchQuery("");
-                  }}
-                  className={`rounded-2xl border p-3.5 sm:p-5 text-left transition-all cursor-pointer ${
-                    activeTab === "users" && selectedRoles.length === 0 && selectedStatusFilter === "All"
-                      ? "border-[#087f80] bg-white shadow-md ring-2 ring-[#087f80]/20"
-                      : "border-slate-200 bg-white shadow-xs hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
-                  }`}
-                  title="Click to view all users"
-                >
-                  <div className="flex items-center justify-between gap-1">
-                    <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 truncate">Total Users</p>
-                    <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-                      <UserGroupIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                    </div>
-                  </div>
-                  <p className="mt-1.5 sm:mt-2 text-2xl sm:text-3xl font-extrabold text-[#092f45]">{totalUsersCount}</p>
-                  <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-slate-500 truncate">All registered profiles</p>
-                </button>
+          <main className="flex-1 p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6">
+            {/* Header Interactive KPI Overview Cards for Users */}
+            {activeTab === "users" && (
+              <AdminKpiCards
+                totalUsersCount={totalUsersCount}
+                totalInterpretersCount={totalInterpretersCount}
+                lockedUsersCount={lockedUsersCount}
+                totalAdminsCount={totalAdminsCount}
+                selectedStatusFilter={selectedStatusFilter}
+                setSelectedStatusFilter={setSelectedStatusFilter}
+                selectedRoles={selectedRoles}
+                toggleRoleFilter={toggleRoleFilter}
+                resetRoles={() => setSelectedRoles([])}
+              />
+            )}
 
-                {/* 2. Interpreters (Filter by Interpreter Role) */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab("users");
-                    setSelectedRoles(["Interpreter"]);
-                    setSelectedStatusFilter("All");
-                  }}
-                  className={`rounded-2xl border p-3.5 sm:p-5 text-left transition-all cursor-pointer ${
-                    activeTab === "users" && selectedRoles.length === 1 && selectedRoles[0] === "Interpreter"
-                      ? "border-[#087f80] bg-[#edf7f5]/40 shadow-md ring-2 ring-[#087f80]/30"
-                      : "border-slate-200 bg-white shadow-xs hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-md"
-                  }`}
-                  title="Click to filter certified interpreters"
-                >
-                  <div className="flex items-center justify-between gap-1">
-                    <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 truncate">Interpreters</p>
-                    <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-[#087f80]">
-                      <CheckBadgeIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                    </div>
-                  </div>
-                  <p className="mt-1.5 sm:mt-2 text-2xl sm:text-3xl font-extrabold text-[#087f80]">{totalInterpretersCount}</p>
-                  <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-slate-500 truncate">Certified volunteers</p>
-                </button>
+            {/* Header Interactive KPI Overview Cards for Escalated Reports */}
+            {activeTab === "reports" && (
+              <ReportsKpiCards
+                totalReportsCount={totalReportsCount}
+                pendingReportsCount={pendingReportsCount}
+                lockedReportsCount={lockedReportsCount}
+                hardBannedReportsCount={hardBannedReportsCount}
+                selectedStatusFilter={selectedReportStatusFilter}
+                onSelectStatusFilter={setSelectedReportStatusFilter}
+              />
+            )}
 
-                {/* 3. Suspended (Filter by Locked Status) */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab("users");
-                    setSelectedStatusFilter("Locked");
-                    setSelectedRoles([]);
-                  }}
-                  className={`rounded-2xl border p-3.5 sm:p-5 text-left transition-all cursor-pointer ${
-                    activeTab === "users" && selectedStatusFilter === "Locked"
-                      ? "border-[#f04f3e] bg-red-50/40 shadow-md ring-2 ring-[#f04f3e]/30"
-                      : "border-slate-200 bg-white shadow-xs hover:-translate-y-0.5 hover:border-red-300 hover:shadow-md"
-                  }`}
-                  title="Click to filter suspended accounts"
-                >
-                  <div className="flex items-center justify-between gap-1">
-                    <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 truncate">Suspended</p>
-                    <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-lg bg-red-50 text-[#f04f3e]">
-                      <LockClosedIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                    </div>
-                  </div>
-                  <p className="mt-1.5 sm:mt-2 text-2xl sm:text-3xl font-extrabold text-[#f04f3e]">{lockedUsersCount}</p>
-                  <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-slate-500 truncate">Restricted accounts</p>
-                </button>
+            {/* TAB 1: ALL USERS & ROLES */}
+            {activeTab === "users" && (
+              <UsersTable
+                users={filteredUsers}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                selectedRoles={selectedRoles}
+                toggleRoleFilter={toggleRoleFilter}
+                resetRoles={() => setSelectedRoles([])}
+                selectedStatusFilter={selectedStatusFilter}
+                setSelectedStatusFilter={setSelectedStatusFilter}
+                selectedLanguages={selectedLanguages}
+                toggleLanguageFilter={toggleLanguageFilter}
+                resetLanguages={() => setSelectedLanguages([])}
+                selectedCategories={selectedCategories}
+                toggleCategoryFilter={toggleCategoryFilter}
+                resetCategories={() => setSelectedCategories([])}
+                filterMenuOpen={filterMenuOpen}
+                setFilterMenuOpen={setFilterMenuOpen}
+                onSelectUser={handleOpenUserDetail}
+              />
+            )}
 
-                {/* 4. Staff (Filter by Manager & Admin Roles) */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab("users");
-                    setSelectedRoles(["Manager", "Admin"]);
-                    setSelectedStatusFilter("All");
-                  }}
-                  className={`rounded-2xl border p-3.5 sm:p-5 text-left transition-all cursor-pointer ${
-                    activeTab === "users" && selectedRoles.includes("Manager") && selectedRoles.includes("Admin")
-                      ? "border-purple-600 bg-purple-50/40 shadow-md ring-2 ring-purple-600/30"
-                      : "border-slate-200 bg-white shadow-xs hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-md"
-                  }`}
-                  title="Click to filter staff (Managers & Admins)"
-                >
-                  <div className="flex items-center justify-between gap-1">
-                    <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 truncate">Staff</p>
-                    <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
-                      <KeyIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                    </div>
-                  </div>
-                  <p className="mt-1.5 sm:mt-2 text-2xl sm:text-3xl font-extrabold text-purple-700">{totalAdminsCount}</p>
-                  <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-slate-500 truncate">Managers & Admins</p>
-                </button>
-              </div>
+            {/* TAB 2: ESCALATED INCIDENT REPORTS (FROM MANAGERS) */}
+            {activeTab === "reports" && (
+              <EscalatedReportsTable
+                reports={reports}
+                users={users}
+                onTakeAction={(targetUser, reportId) => handleOpenActionDialog(targetUser, reportId)}
+                onOpenUserDetail={handleOpenUserDetail}
+                onUnlockUser={(userId) => handleConfirmUnlock(userId)}
+                selectedStatusFilter={selectedReportStatusFilter}
+                onSelectStatusFilter={setSelectedReportStatusFilter}
+              />
+            )}
 
-              {/* TAB 1: ALL USERS & ROLES */}
-              {activeTab === "users" && (
-                <UsersTable
-                  users={filteredUsers}
-                  searchQuery={searchQuery}
-                  setSearchQuery={setSearchQuery}
-                  selectedRoles={selectedRoles}
-                  toggleRoleFilter={toggleRoleFilter}
-                  resetRoles={() => setSelectedRoles([])}
-                  selectedStatusFilter={selectedStatusFilter}
-                  setSelectedStatusFilter={setSelectedStatusFilter}
-                  selectedLanguages={selectedLanguages}
-                  toggleLanguageFilter={toggleLanguageFilter}
-                  resetLanguages={() => setSelectedLanguages([])}
-                  selectedCategories={selectedCategories}
-                  toggleCategoryFilter={toggleCategoryFilter}
-                  resetCategories={() => setSelectedCategories([])}
-                  filterMenuOpen={filterMenuOpen}
-                  setFilterMenuOpen={setFilterMenuOpen}
-                  onSelectUser={handleOpenUserDetail}
-                />
-              )}
-
-              {/* TAB 2: INTERPRETER RANKING & QUALITY INDEX */}
-              {activeTab === "interpreters" && (
-                <InterpretersTable
-                  interpreters={interpreterRanking}
-                  onSelectUser={handleOpenUserDetail}
-                />
-              )}
-
-              {/* TAB 3: IMMUTABLE AUDIT TRAIL LOGS */}
-              {activeTab === "audit" && (
-                <AuditTrailTable
-                  auditLogs={auditLogs}
-                  auditViewMode={auditViewMode}
-                  setAuditViewMode={setAuditViewMode}
-                />
-              )}
-            </main>
-          </div>
+            {/* TAB 3: IMMUTABLE AUDIT TRAIL LOGS */}
+            {activeTab === "audit" && (
+              <AuditTrailTable
+                auditLogs={auditLogs}
+                auditViewMode={auditViewMode}
+                setAuditViewMode={setAuditViewMode}
+              />
+            )}
+          </main>
         </div>
+      </div>
 
       {/* Centered Modal: User Role & Suspension Editor */}
       <UserEditModal
@@ -468,6 +520,21 @@ export default function AdminPage() {
         tempLockReason={tempLockReason}
         setTempLockReason={setTempLockReason}
         onSave={handleSaveUserChanges}
+        incidentReports={reports}
+      />
+
+      {/* Centered Modal: Account Action Dialog (Hard Ban / Soft Lock with Strict Confirmation) */}
+      <AccountActionDialog
+        isOpen={isActionDialogOpen}
+        user={actionTargetUser}
+        onClose={() => {
+          setIsActionDialogOpen(false);
+          setActionTargetUser(null);
+          setActionReportId(null);
+        }}
+        onConfirmLock={handleConfirmLock}
+        onConfirmHardBan={handleConfirmHardBan}
+        onConfirmUnlock={handleConfirmUnlock}
       />
 
       {/* Login & Switch Account Modal */}

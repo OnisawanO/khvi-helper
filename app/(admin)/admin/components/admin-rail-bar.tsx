@@ -4,7 +4,7 @@ import {
   Bars3Icon,
   Cog6ToothIcon,
   DocumentMagnifyingGlassIcon,
-  SparklesIcon,
+  ShieldExclamationIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import { AdminActiveTab } from "../types";
@@ -14,7 +14,7 @@ interface AdminRailBarProps {
   activeTab: AdminActiveTab;
   setActiveTab: (tab: AdminActiveTab) => void;
   totalUsersCount: number;
-  totalInterpretersCount: number;
+  pendingReportsCount: number;
   auditLogsCount: number;
 }
 
@@ -23,7 +23,7 @@ export function AdminRailBar({
   activeTab,
   setActiveTab,
   totalUsersCount,
-  totalInterpretersCount,
+  pendingReportsCount,
   auditLogsCount,
 }: AdminRailBarProps) {
   return (
@@ -58,7 +58,7 @@ export function AdminRailBar({
                 ? "bg-[#087f80] text-white shadow-md"
                 : "text-slate-300 hover:bg-white/10 hover:text-white"
             }`}
-            title="User Management"
+            title="User Management (จัดการผู้ใช้ทั้งหมด)"
             aria-label="User Management"
           >
             <UserGroupIcon className="h-5 w-5" />
@@ -69,22 +69,22 @@ export function AdminRailBar({
             )}
           </button>
 
-          {/* 2. Interpreter Quality & Index */}
+          {/* 2. Escalated Incident Reports (from Manager) */}
           <button
             type="button"
-            onClick={() => setActiveTab("interpreters")}
+            onClick={() => setActiveTab("reports")}
             className={`relative flex h-10 w-10 items-center justify-center rounded-2xl transition-all cursor-pointer ${
-              activeTab === "interpreters"
-                ? "bg-[#087f80] text-white shadow-md"
+              activeTab === "reports"
+                ? "bg-red-600 text-white shadow-md shadow-red-900/40"
                 : "text-slate-300 hover:bg-white/10 hover:text-white"
             }`}
-            title="Interpreter Index & Quality"
-            aria-label="Interpreter Index & Quality"
+            title="Escalated Incident Reports (รายงานพฤติกรรมไม่เหมาะสมจาก Manager)"
+            aria-label="Escalated Incident Reports"
           >
-            <SparklesIcon className="h-5 w-5" />
-            {totalInterpretersCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-teal-900/80 px-1 text-[9px] font-extrabold text-teal-300 ring-1 ring-[#092f45] border border-teal-700/50">
-                {totalInterpretersCount}
+            <ShieldExclamationIcon className="h-5 w-5" />
+            {pendingReportsCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-black text-white ring-1 ring-[#092f45] animate-pulse">
+                {pendingReportsCount}
               </span>
             )}
           </button>
@@ -98,7 +98,7 @@ export function AdminRailBar({
                 ? "bg-[#087f80] text-white shadow-md"
                 : "text-slate-300 hover:bg-white/10 hover:text-white"
             }`}
-            title="System Audit Trail"
+            title="System Audit Trail (บันทึกความปลอดภัยและประวัติ)"
             aria-label="System Audit Trail"
           >
             <DocumentMagnifyingGlassIcon className="h-5 w-5" />
