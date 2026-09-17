@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState, useMemo } from "react";
 import {
   AdjustmentsHorizontalIcon,
   ArrowPathIcon,
@@ -8,6 +8,8 @@ import {
   CheckCircleIcon,
   CheckIcon,
   ChevronDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   EllipsisHorizontalIcon,
   LanguageIcon,
   MagnifyingGlassIcon,
@@ -50,6 +52,16 @@ export function ApplicantsTable({
   onApprove,
 }: ApplicantsTableProps) {
   const filterMenuRef = useRef<HTMLDivElement>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 6;
+
+  const totalPages = Math.max(1, Math.ceil(applicants.length / pageSize));
+  const validCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedApplicants = useMemo(() => {
+    const startIndex = (validCurrentPage - 1) * pageSize;
+    return applicants.slice(startIndex, startIndex + pageSize);
+  }, [applicants, validCurrentPage, pageSize]);
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -71,6 +83,9 @@ export function ApplicantsTable({
               {navSection === "queue" && "Volunteer Interpreter Queue (Pending Review)"}
               {navSection === "approved" && "Approved Volunteer Interpreters"}
               {navSection === "rejected" && "Rejected Applicant Archive"}
+              {navSection === "queue" && "Volunteer Interpreter Queue"}
+              {navSection === "approved" && "Approved Interpreters"}
+              {navSection === "rejected" && "Rejected Interpreters"}
             </h1>
             <p className="mt-1 text-xs text-[#637d8a]">
               {navSection === "queue" && "Click any row to inspect candidate credentials in centered dossier and make a decision."}
@@ -293,8 +308,8 @@ export function ApplicantsTable({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {applicants.length > 0 ? (
-                applicants.map((app) => (
+              {paginatedApplicants.length > 0 ? (
+                paginatedApplicants.map((app) => (
                   <tr
                     key={app.id}
                     onClick={() => onSelectApplicant(app)}
@@ -430,6 +445,65 @@ export function ApplicantsTable({
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination Footer Controls */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/60 px-5 py-3 text-xs text-slate-500 select-none">
+          <div>
+            Showing{" "}
+            <strong className="text-[#092f45]">
+              {applicants.length > 0 ? (validCurrentPage - 1) * pageSize + 1 : 0}
+            </strong>{" "}
+            to{" "}
+            <strong className="text-[#092f45]">
+              {Math.min(validCurrentPage * pageSize, applicants.length)}
+            </strong>{" "}
+            of <strong className="text-[#092f45]">{applicants.length}</strong> applicants
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            {/* Previous Page Button */}
+            <button
+              type="button"
+              disabled={validCurrentPage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-[#092f45] shadow-2xs hover:bg-slate-50 hover:border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+              title="Previous page"
+            >
+              <ChevronLeftIcon className="h-3.5 w-3.5" />
+              <span>Previous</span>
+            </button>
+
+            {/* Page Indicator Pills */}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                <button
+                  key={pageNum}
+                  type="button"
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`flex h-8 w-8 items-center justify-center rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    validCurrentPage === pageNum
+                      ? "bg-[#087f80] text-white shadow-xs"
+                      : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              ))}
+            </div>
+
+            {/* Next Page Button */}
+            <button
+              type="button"
+              disabled={validCurrentPage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-[#092f45] shadow-2xs hover:bg-slate-50 hover:border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+              title="Next page"
+            >
+              <span>Next</span>
+              <ChevronRightIcon className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
