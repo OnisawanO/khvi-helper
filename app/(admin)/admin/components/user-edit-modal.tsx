@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   KeyIcon,
   LanguageIcon,
@@ -9,6 +10,8 @@ import {
   SparklesIcon,
   StarIcon,
   XMarkIcon,
+  ExclamationTriangleIcon,
+  UserMinusIcon,
 } from "@heroicons/react/24/outline";
 import { AdminIncidentReport, AdminUserRecord, SystemRole } from "../types";
 
@@ -24,6 +27,7 @@ interface UserEditModalProps {
   setTempLockReason: (reason: string) => void;
   onSave: () => void;
   incidentReports?: AdminIncidentReport[];
+  onRevokeInterpreter?: (user: AdminUserRecord, reason: string) => void;
 }
 
 export function UserEditModal({
@@ -38,7 +42,11 @@ export function UserEditModal({
   setTempLockReason,
   onSave,
   incidentReports = [],
+  onRevokeInterpreter,
 }: UserEditModalProps) {
+  const [isRevoking, setIsRevoking] = useState(false);
+  const [revokeReason, setRevokeReason] = useState("");
+
   if (!isOpen || !user) return null;
 
   const userIncidentReports = incidentReports.filter((r) => r.reportedUserId === user.id);
@@ -244,6 +252,81 @@ export function UserEditModal({
                 </div>
               )}
             </div>
+
+            {/* Section 2.5: Interpreter Accreditation Governance (Admin Override Action) */}
+            {(user.role === "Interpreter" || tempRole === "Interpreter") && (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50/30 p-4 sm:p-5 shadow-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <UserMinusIcon className="h-5 w-5 text-amber-600" />
+                    <h4 className="text-sm font-bold text-[#092f45]">Interpreter Accreditation Governance</h4>
+                  </div>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 border border-amber-300 px-2.5 py-0.5 text-[10px] font-bold text-amber-800">
+                    Admin Executive Action
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600">
+                  Revoking accreditation strips volunteer interpreter privileges, cancels standing mission claims, and demotes the account to a standard User.
+                </p>
+
+                {isRevoking ? (
+                  <div className="space-y-3 rounded-xl border border-amber-300 bg-white p-3.5 animate-in fade-in">
+                    <label className="block text-xs font-bold text-[#f04f3e]">
+                      Accreditation Revocation Reason (Recorded to System Audit Trail):
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={revokeReason}
+                      onChange={(e) => setRevokeReason(e.target.value)}
+                      placeholder="e.g. Falsified credential documents, severe conduct breach during SOS mission, or licensing expiration..."
+                      className="w-full rounded-lg border border-red-300 p-2.5 text-xs text-slate-800 focus:border-red-500 focus:outline-none"
+                    />
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsRevoking(false);
+                          setRevokeReason("");
+                        }}
+                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!revokeReason.trim()) {
+                            alert("Please enter a revocation reason for the audit record.");
+                            return;
+                          }
+                          if (onRevokeInterpreter) {
+                            onRevokeInterpreter(user, revokeReason.trim());
+                          }
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-[#f04f3e] px-4 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-[#d93829] cursor-pointer"
+                      >
+                        <ExclamationTriangleIcon className="h-4 w-4" />
+                        Confirm & Revoke Accreditation
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[11px] text-slate-500">
+                      Status: <strong className="text-emerald-700 font-bold">{user.interpreterStats?.verificationStatus || "Approved & Active"}</strong>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsRevoking(true)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-white px-3 py-1.5 text-xs font-bold text-amber-700 shadow-2xs hover:bg-amber-50 hover:border-amber-400 transition-colors cursor-pointer"
+                    >
+                      <UserMinusIcon className="h-4 w-4" />
+                      Revoke Interpreter Accreditation
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Section 3: Escalated Incident Reports History */}
             {userIncidentReports.length > 0 && (

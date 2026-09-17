@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import {
   Bars3Icon,
   Cog6ToothIcon,
   DocumentMagnifyingGlassIcon,
   ShieldExclamationIcon,
   UserGroupIcon,
+  ArrowTopRightOnSquareIcon,
 } from "@heroicons/react/24/outline";
 import { AdminActiveTab } from "../types";
 
@@ -113,6 +115,17 @@ export function AdminRailBar({
 
       {/* Bottom Rail Actions */}
       <div className="flex flex-col items-center w-full px-2">
+      <div className="flex flex-col items-center gap-2 w-full px-2">
+        {/* Switch to Operations Hub (Manager Mode) */}
+        <Link
+          href="/manager"
+          className="flex h-10 w-10 items-center justify-center rounded-2xl text-amber-300 hover:bg-amber-400/20 hover:text-amber-200 transition-colors cursor-pointer border border-amber-500/30"
+          title="Switch to Operations Hub (Manager Mode) • ตรวจสอบงานหน้างาน"
+          aria-label="Switch to Operations Hub"
+        >
+          <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+        </Link>
+
         {/* Settings button */}
         <button
           type="button"

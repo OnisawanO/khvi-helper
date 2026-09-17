@@ -249,6 +249,38 @@ export default function AdminPage() {
   };
 
 
+  const handleRevokeInterpreter = (targetUser: AdminUserRecord, reason: string) => {
+    const updatedUsers = users.map((u) => {
+      if (u.id === targetUser.id) {
+        return {
+          ...u,
+          role: "User" as SystemRole,
+          interpreterStats: u.interpreterStats
+            ? { ...u.interpreterStats, verificationStatus: "Suspended" as const }
+            : undefined,
+        };
+      }
+      return u;
+    });
+
+    setUsers(updatedUsers);
+
+    // Audit Log Entry
+    const newLog: AuditLogEntry = {
+      id: `AUD-${Date.now().toString().slice(-4)}`,
+      timestamp: new Date().toISOString().replace("T", " ").slice(0, 19),
+      actor: `${currentUser?.name || "Super Admin"} (Admin)`,
+      action: "INTERPRETER_REVOKED",
+      targetUser: `${targetUser.name} (${targetUser.id})`,
+      severity: "danger",
+      details: `Interpreter accreditation revoked by Admin. Reason: ${reason}. Role demoted to User.`,
+    };
+
+    setAuditLogs((prev) => [newLog, ...prev]);
+    setIsEditModalOpen(false);
+    showToast(`Successfully revoked accreditation for ${targetUser.name}. Demoted to standard User.`);
+  };
+
   const handleSaveUserChanges = () => {
     if (!selectedUser) return;
 
@@ -521,6 +553,7 @@ export default function AdminPage() {
         setTempLockReason={setTempLockReason}
         onSave={handleSaveUserChanges}
         incidentReports={reports}
+        onRevokeInterpreter={handleRevokeInterpreter}
       />
 
       {/* Centered Modal: Account Action Dialog (Hard Ban / Soft Lock with Strict Confirmation) */}

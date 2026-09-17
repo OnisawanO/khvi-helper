@@ -8,6 +8,7 @@ import {
   ShieldExclamationIcon,
   UserGroupIcon,
   XMarkIcon,
+  ArrowTopRightOnSquareIcon,
 } from "@heroicons/react/24/outline";
 import { AdminActiveTab } from "../types";
 
@@ -181,6 +182,23 @@ export function AdminDrawer({
 
         {/* Bottom Section in Drawer: Settings */}
         <div className="mt-auto pt-3 border-t border-[#16435c]">
+        {/* Bottom Section in Drawer: Settings & Switch to Ops */}
+        <div className="mt-auto pt-3 border-t border-[#16435c] space-y-1">
+          <Link
+            href="/manager"
+            onClick={onClose}
+            className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-xs font-bold text-amber-300 hover:bg-amber-400/20 hover:text-amber-200 transition-colors cursor-pointer border border-amber-500/20"
+            title="Switch to Operations Hub (Manager Mode)"
+          >
+            <div className="flex items-center gap-2.5">
+              <ArrowTopRightOnSquareIcon className="h-4 w-4 shrink-0" />
+              <span>Operations Console</span>
+            </div>
+            <span className="rounded-md bg-amber-400/20 px-1.5 py-0.5 text-[9px] font-extrabold text-amber-300">
+              Manager View
+            </span>
+          </Link>
+
           <button
             type="button"
             onClick={() => alert("Admin System Settings & Security Configurations")}
