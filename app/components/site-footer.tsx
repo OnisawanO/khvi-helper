@@ -29,7 +29,7 @@ type SiteFooterProps = {
 export function SiteFooter({ copy, brandSubtitle, workspace = false }: SiteFooterProps) {
   if (workspace) return (
     <footer className="border-t border-(--khvi-teal)/20 bg-(--khvi-surface) px-5 py-7 sm:px-8 lg:px-12">
-      <div className="mx-auto flex max-w-[1224px] flex-wrap items-center justify-between gap-6">
+      <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-6">
         <BrandMark subtitle={brandSubtitle} />
         <nav aria-label="Footer" className="flex flex-wrap gap-5 text-sm font-semibold text-(--khvi-ink)">
           <Link className="underline underline-offset-4" href="/welcome#welcome-steps">{copy.links.how}</Link>
@@ -40,7 +40,7 @@ export function SiteFooter({ copy, brandSubtitle, workspace = false }: SiteFoote
   );
   return (
     <footer className="border-t border-white/10 bg-[#06273a] px-5 py-10 text-white sm:px-8 lg:px-12 lg:py-12">
-      <div className="mx-auto max-w-[1320px]">
+      <div className="mx-auto max-w-[1480px]">
         <div className="grid gap-10 md:grid-cols-[1.5fr_0.75fr_0.75fr_1.1fr]">
           <div>
             <BrandMark light subtitle={brandSubtitle} />
