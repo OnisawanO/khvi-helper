@@ -127,6 +127,9 @@ export function ApplicationForm({
       lang.id.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesSearch && !selectedLangs.includes(lang.id);
   });
+  const coreLanguages = ["thai", "english", "chinese", "spanish", "arabic"]
+    .map((code) => languages.find((language) => language.id === code))
+    .filter((language): language is InterpreterApplicationReference => Boolean(language));
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -173,7 +176,7 @@ export function ApplicationForm({
               ภาษาหลัก (Core Languages):
             </span>
             <div className="flex flex-wrap gap-2">
-              {languages.slice(0, 5).map((lang) => {
+              {coreLanguages.map((lang) => {
                 const isSelected = selectedLangs.includes(lang.id);
                 return (
                   <button
