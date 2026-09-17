@@ -1,4 +1,5 @@
 import type { Locale } from "@/app/components/site-header";
+import { getAuthCopy } from "@/app/lib/auth-copy";
 
 export type UserRole = "User" | "Interpreter" | "Manager" | "Admin";
 
@@ -18,7 +19,8 @@ export interface UserProfile {
 }
 
 export interface RegisterInput {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   confirmPassword: string;
@@ -28,7 +30,8 @@ export interface RegisterInput {
 }
 
 export interface ValidationErrors {
-  name?: string;
+  firstName?: string;
+  lastName?: string;
   email?: string;
   password?: string;
   confirmPassword?: string;
@@ -62,60 +65,68 @@ export function calculateAge(dateOfBirthString: string): number | null {
   return age >= 0 ? age : null;
 }
 
-export function validateRegisterInput(input: RegisterInput): ValidationErrors {
+export function validateRegisterInput(input: RegisterInput, locale: Locale = "th"): ValidationErrors {
   const errors: ValidationErrors = {};
+  const copy = getAuthCopy(locale).validation;
 
-  const trimmedName = input.name?.trim() || "";
-  if (!trimmedName) {
-    errors.name = "กรุณากรอกชื่อ-นามสกุล";
-  } else if (trimmedName.length < 2) {
-    errors.name = "ชื่อต้องมีความยาวอย่างน้อย 2 ตัวอักษร";
+  const trimmedFirstName = input.firstName?.trim() || "";
+  if (!trimmedFirstName) {
+    errors.firstName = copy.firstNameRequired;
+  } else if (trimmedFirstName.length < 2) {
+    errors.firstName = copy.firstNameMin;
+  }
+
+  const trimmedLastName = input.lastName?.trim() || "";
+  if (!trimmedLastName) {
+    errors.lastName = copy.lastNameRequired;
+  } else if (trimmedLastName.length < 2) {
+    errors.lastName = copy.lastNameMin;
   }
 
   const trimmedEmail = input.email?.trim() || "";
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!trimmedEmail) {
-    errors.email = "กรุณากรอกอีเมล";
+    errors.email = copy.emailRequired;
   } else if (!emailRegex.test(trimmedEmail)) {
-    errors.email = "รูปแบบอีเมลไม่ถูกต้อง";
+    errors.email = copy.emailInvalid;
   }
 
   if (!input.password) {
-    errors.password = "กรุณากำหนดรหัสผ่าน";
+    errors.password = copy.passwordRequired;
   } else if (input.password.length < 8) {
-    errors.password = "รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร";
+    errors.password = copy.passwordMin;
   }
 
   if (!input.confirmPassword) {
-    errors.confirmPassword = "กรุณายืนยันรหัสผ่าน";
+    errors.confirmPassword = copy.confirmPasswordRequired;
   } else if (input.password !== input.confirmPassword) {
-    errors.confirmPassword = "รหัสผ่านไม่ตรงกัน";
+    errors.confirmPassword = copy.passwordsMismatch;
   }
 
   const cleanedPhone = (input.phone || "").replace(/[\s-]/g, "");
   const phoneRegex = /^0\d{8,9}$/;
   if (!cleanedPhone) {
-    errors.phone = "กรุณากรอกเบอร์โทรศัพท์";
+    errors.phone = copy.phoneRequired;
   } else if (!phoneRegex.test(cleanedPhone)) {
-    errors.phone = "กรุณากรอกเบอร์โทรศัพท์ที่ถูกต้อง (เช่น 0812345678)";
+    errors.phone = copy.phoneInvalid;
   }
 
   if (!input.dateOfBirth) {
-    errors.dateOfBirth = "กรุณาเลือกวันเดือนปีเกิด";
+    errors.dateOfBirth = copy.dateOfBirthRequired;
   } else {
     const age = calculateAge(input.dateOfBirth);
     if (age === null) {
-      errors.dateOfBirth = "วันเดือนปีเกิดไม่ถูกต้อง";
+      errors.dateOfBirth = copy.dateOfBirthInvalid;
     } else if (age < 13) {
-      errors.dateOfBirth = "ผู้ใช้งานต้องมีอายุอย่างน้อย 13 ปีขึ้นไป";
+      errors.dateOfBirth = copy.minimumAge;
     } else if (age > 120) {
-      errors.dateOfBirth = "กรุณาระบุวันเดือนปีเกิดที่ถูกต้อง";
+      errors.dateOfBirth = copy.dateOfBirthRange;
     }
   }
 
-  const validLocales: Locale[] = ["th", "en", "zh", "my", "vi"];
+  const validLocales: Locale[] = ["th", "en", "zh", "es", "ar"];
   if (!input.preferredUiLanguage || !validLocales.includes(input.preferredUiLanguage)) {
-    errors.preferredUiLanguage = "กรุณาเลือกภาษาหน้าจอที่รองรับ";
+    errors.preferredUiLanguage = copy.localeInvalid;
   }
 
   return errors;
@@ -166,7 +177,7 @@ export async function registerMockUser(input: RegisterInput): Promise<{
 
   const newUser: UserProfile = {
     userId: mockUserId,
-    name: input.name.trim(),
+    name: `${input.firstName.trim()} ${input.lastName.trim()}`.trim(),
     email: input.email.trim().toLowerCase(),
     phone: input.phone.trim(),
     dateOfBirth: input.dateOfBirth,

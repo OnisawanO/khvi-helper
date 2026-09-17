@@ -1,9 +1,14 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { SiteHeader, type Locale } from "@/app/components/site-header";
 import { SiteFooter } from "@/app/components/site-footer";
+import { persistPreferredUiLanguage, useStoredLocale } from "@/app/lib/locale";
+import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
+import { getRedirectPathByRole } from "@/app/lib/mock-auth";
+import { createClient } from "@/utils/supabase/client";
 import { ManagerMetrics } from "@/components/manager/ManagerMetrics";
 import {
   ApplicationDetailModal,
@@ -210,7 +215,50 @@ const initialApplications: InterpreterApplication[] = [
 ];
 
 export default function ManagerDashboardPage() {
-  const [locale, setLocale] = useState<Locale>("th");
+  const router = useRouter();
+  const [authChecked, setAuthChecked] = useState(false);
+  const [locale, setLocale] = useStoredLocale();
+
+  useEffect(() => {
+    const supabase = createClient();
+    let disposed = false;
+
+    const checkSession = async () => {
+      const result = await getCurrentUserProfile(supabase);
+      if (disposed) return;
+
+      if (!result.profile) {
+        router.replace("/#top");
+        return;
+      }
+
+      if (result.profile.role !== "Manager") {
+        router.replace(getRedirectPathByRole(result.profile.role));
+        return;
+      }
+
+      setLocale(result.profile.preferredUiLanguage);
+      setAuthChecked(true);
+    };
+
+    void checkSession();
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+      window.setTimeout(() => void checkSession(), 0);
+    });
+
+    return () => {
+      disposed = true;
+      authListener.subscription.unsubscribe();
+    };
+  }, [router, setLocale]);
+
+  const handleLocaleChange = (nextLocale: Locale) => {
+    setLocale(nextLocale);
+    void persistPreferredUiLanguage(nextLocale).catch((error: unknown) => {
+      console.error("Unable to persist preferred UI language", error);
+    });
+  };
+
   const [applications, setApplications] = useState<InterpreterApplication[]>(initialApplications);
   const [selectedApp, setSelectedApp] = useState<InterpreterApplication | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -361,12 +409,20 @@ export default function ManagerDashboardPage() {
     showToast("รีเซ็ตข้อมูลทดสอบกลับสู่ค่าเริ่มต้นแล้ว");
   };
 
+  if (!authChecked) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#f7f9fa] text-[#10283a]" aria-busy="true">
+        <p role="status">กำลังตรวจสอบ session...</p>
+      </main>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-[#f7f9fa] text-[#10283a] antialiased">
       <SiteHeader
         copy={headerCopy}
         locale={locale}
-        onLocaleChange={(newLocale) => setLocale(newLocale)}
+        onLocaleChange={handleLocaleChange}
       />
 
       {/* Floating Toast Notification */}

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BrandMark } from "./brand-mark";
 
-export type Locale = "en" | "th" | "zh" | "my" | "vi";
+export type Locale = "en" | "th" | "zh" | "es" | "ar";
 
 type HeaderCopy = {
   brandSubtitle: string;
@@ -29,8 +29,8 @@ const languageOptions = [
   { code: "en", label: "EN", name: "English", nativeName: "English" },
   { code: "th", label: "TH", name: "Thai", nativeName: "ไทย" },
   { code: "zh", label: "ZH", name: "Chinese", nativeName: "中文" },
-  { code: "my", label: "MY", name: "Burmese", nativeName: "မြန်မာ" },
-  { code: "vi", label: "VI", name: "Vietnamese", nativeName: "Tiếng Việt" },
+  { code: "es", label: "ES", name: "Spanish", nativeName: "Español" },
+  { code: "ar", label: "AR", name: "Arabic", nativeName: "العربية" },
 ] as const;
 
 function getHashTarget(hash: string) {
@@ -56,7 +56,7 @@ function scrollToHashTarget(hash: string, behavior: ScrollBehavior = "smooth") {
   return true;
 }
 
-function LanguageSwitcher({ copy, locale, onLocaleChange, compact = false }: SiteHeaderProps & { compact?: boolean }) {
+export function LanguageSwitcher({ copy, locale, onLocaleChange, compact = false }: SiteHeaderProps & { compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const switcherRef = useRef<HTMLDivElement>(null);
   const selectedLanguage = languageOptions.find((option) => option.code === locale) ?? languageOptions[0];
@@ -148,10 +148,10 @@ function getRegisterLabel(locale: Locale) {
       return "注册";
     case "th":
       return "สมัครสมาชิก";
-    case "my":
-      return "စာရင်းသွင်းရန်";
-    case "vi":
-      return "Đăng ký";
+    case "es":
+      return "Registrarse";
+    case "ar":
+      return "إنشاء حساب";
     default:
       return "Sign up";
   }
@@ -292,7 +292,7 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
   return (
     <>
       <header className="sticky top-0 z-30 border-b border-[#dbe3e7] bg-[#fbfdfc]/95 shadow-[0_8px_24px_rgba(21,52,67,0.06)] backdrop-blur">
-      <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-5 py-3.5 sm:px-8 lg:gap-6 lg:px-12">
+      <div className="mx-auto flex max-w-[1480px] items-center justify-between gap-4 px-5 py-3.5 sm:px-8 lg:gap-6 lg:px-8">
         <BrandMark
           subtitle={copy.brandSubtitle}
           href={workspaceRole ? workspaceHomeHref : "/#top"}

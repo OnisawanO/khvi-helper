@@ -12,6 +12,10 @@
 > 🌐 **Language / ภาษา:**  
 > [🇹🇭 ภาษาไทย](#-ภาษาไทย) | [🇬🇧 English](#-english)
 
+### UI languages
+
+The application UI supports English (en), Chinese (zh), Thai (th), Spanish (es) and Arabic (ar). Arabic uses right-to-left layout. The UI language preference is stored in profiles.preferred_ui_language for signed-in users and is separate from interpreter service languages.
+
 ---
 
 ## 🇹🇭 ภาษาไทย

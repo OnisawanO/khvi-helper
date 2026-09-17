@@ -10,8 +10,8 @@ const accountCopy = {
   en: { menu: "Open profile menu", profileSettings: "Profile & Settings", signOut: "Sign out" },
   th: { menu: "เปิดเมนูโปรไฟล์", profileSettings: "โปรไฟล์และการตั้งค่า", signOut: "ออกจากระบบ" },
   zh: { menu: "打开个人资料菜单", profileSettings: "个人资料与设置", signOut: "退出" },
-  my: { menu: "ပရိုဖိုင်မီနူး ဖွင့်ရန်", profileSettings: "ပရိုဖိုင်နှင့် ဆက်တင်များ", signOut: "ထွက်ရန်" },
-  vi: { menu: "Mở menu hồ sơ", profileSettings: "Hồ sơ và cài đặt", signOut: "Đăng xuất" },
+  es: { menu: "Abrir menú de perfil", profileSettings: "Perfil y configuración", signOut: "Cerrar sesión" },
+  ar: { menu: "فتح قائمة الملف الشخصي", profileSettings: "الملف الشخصي والإعدادات", signOut: "تسجيل الخروج" },
 } as const;
 
 export function WorkspaceAccountActions({ user, onSignOut }: { user: UserProfile; onSignOut: () => void }) {
