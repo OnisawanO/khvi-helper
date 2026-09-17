@@ -145,6 +145,10 @@ async function references(supabase: SupabaseClient) {
 
 export async function loadInterpreterApplicationReferences(supabase?: SupabaseClient) {
   const client = supabase ?? await createClient();
+  const profileResult = await getCurrentUserProfile(client);
+  if (!profileResult.profile) {
+    return { languages: [], categories: [] };
+  }
   const reference = await references(client);
   return {
     languages: [...reference.languages.values()].map((item) => ({
