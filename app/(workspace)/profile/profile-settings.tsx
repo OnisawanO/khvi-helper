@@ -38,6 +38,7 @@ import {
 } from "@/app/lib/mock-auth";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import type { Locale } from "@/app/components/site-header";
+import { persistPreferredUiLanguage, useStoredLocale } from "@/app/lib/locale";
 import { CATEGORIES, LANGUAGES } from "@/app/lib/mock-requests";
 import { createClient } from "@/utils/supabase/client";
 
@@ -309,6 +310,7 @@ function ProfileRail({ user, config }: { user: UserProfile; config: RoleConfig }
 
 function PersonalDetailsCard({ user, onUserChange }: { user: UserProfile; onUserChange: (user: UserProfile) => void }) {
   const [form, setForm] = useState<FormState>(() => getFormState(user));
+  const [, setStoredLocale] = useStoredLocale();
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const [saved, setSaved] = useState(false);
 
@@ -385,7 +387,18 @@ function PersonalDetailsCard({ user, onUserChange }: { user: UserProfile; onUser
           <Field label="Preferred UI language" hint="Used for interface copy">
             <div className="relative">
               <GlobeAltIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--khvi-ink)/40" aria-hidden="true" />
-              <select value={form.preferredUiLanguage} onChange={(event) => updateField("preferredUiLanguage", event.target.value as Locale)} className={`${inputClass()} pl-9`}>
+              <select
+                value={form.preferredUiLanguage}
+                onChange={(event) => {
+                  const nextLocale = event.target.value as Locale;
+                  updateField("preferredUiLanguage", nextLocale);
+                  setStoredLocale(nextLocale);
+                  void persistPreferredUiLanguage(nextLocale).catch((error: unknown) => {
+                    console.error("Unable to persist preferred UI language", error);
+                  });
+                }}
+                className={`${inputClass()} pl-9`}
+              >
                 {languageOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </div>

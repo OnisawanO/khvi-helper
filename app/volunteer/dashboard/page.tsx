@@ -1,11 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ClaimButton } from "@/components/volunteer/ClaimButton";
 import { ApplicationStatusModal } from "@/components/volunteer/ApplicationStatusModal";
 import { SiteHeader, type Locale } from "@/app/components/site-header";
 import { SiteFooter } from "@/app/components/site-footer";
+import { persistPreferredUiLanguage, useStoredLocale } from "@/app/lib/locale";
+import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
+import { getRedirectPathByRole } from "@/app/lib/mock-auth";
+import { createClient } from "@/utils/supabase/client";
 
 const headerCopy = {
   brandSubtitle: "Community interpreter map",
@@ -83,6 +88,43 @@ const initialMissions: Mission[] = [
 ];
 
 export default function VolunteerDashboardPage() {
+  const router = useRouter();
+  const [authChecked, setAuthChecked] = useState(false);
+  const [locale, setLocale] = useStoredLocale();
+
+  useEffect(() => {
+    const supabase = createClient();
+    let disposed = false;
+
+    const checkSession = async () => {
+      const result = await getCurrentUserProfile(supabase);
+      if (disposed) return;
+
+      if (!result.profile) {
+        router.replace("/#top");
+        return;
+      }
+
+      if (result.profile.role !== "Interpreter") {
+        router.replace(getRedirectPathByRole(result.profile.role));
+        return;
+      }
+
+      setLocale(result.profile.preferredUiLanguage);
+      setAuthChecked(true);
+    };
+
+    void checkSession();
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+      window.setTimeout(() => void checkSession(), 0);
+    });
+
+    return () => {
+      disposed = true;
+      authListener.subscription.unsubscribe();
+    };
+  }, [router, setLocale]);
+
   const [missions, setMissions] = useState<Mission[]>(initialMissions);
   const [claimedMission, setClaimedMission] = useState<Mission | null>(null);
   const [isReady, setIsReady] = useState(true);
@@ -113,14 +155,27 @@ export default function VolunteerDashboardPage() {
     setClaimedMission(null);
   };
 
-  const [locale, setLocale] = useState<Locale>("th");
+  const handleLocaleChange = (nextLocale: Locale) => {
+    setLocale(nextLocale);
+    void persistPreferredUiLanguage(nextLocale).catch((error: unknown) => {
+      console.error("Unable to persist preferred UI language", error);
+    });
+  };
+
+  if (!authChecked) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#f7f9fa] text-[#10283a]" aria-busy="true">
+        <p role="status">กำลังตรวจสอบ session...</p>
+      </main>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f7f9fa] text-[#10283a] antialiased">
       <SiteHeader
         copy={headerCopy}
         locale={locale}
-        onLocaleChange={(newLocale) => setLocale(newLocale)}
+        onLocaleChange={handleLocaleChange}
       />
 
       {/* Toast Notification */}

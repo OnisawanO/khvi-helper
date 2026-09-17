@@ -1,11 +1,12 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
-import { resolveCopyLocale, useStoredLocale, type CopyLocale } from "@/app/lib/locale";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
+import { isLocale, persistPreferredUiLanguage, resolveCopyLocale, useStoredLocale, type CopyLocale } from "@/app/lib/locale";
 import { SiteFooter } from "./site-footer";
 import { SiteHeader } from "./site-header";
 import { RequestNavigation } from "./request-navigation";
 import type { Locale } from "./site-header";
+import { createClient } from "@/utils/supabase/client";
 
 export type WorkspaceRole = "User" | "Interpreter" | "Manager" | "Admin";
 
@@ -98,8 +99,41 @@ export function AppShell({ children, accountActions, welcomeRole }: {
   welcomeRole?: WorkspaceRole;
 }) {
   const [locale, setLocale] = useStoredLocale();
+
+  useEffect(() => {
+    let disposed = false;
+    const supabase = createClient();
+
+    const syncProfileLocale = async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return;
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("preferred_ui_language")
+        .eq("user_id", userData.user.id)
+        .maybeSingle();
+      const preferredLocale = data?.preferred_ui_language;
+
+      if (!disposed && typeof preferredLocale === "string" && isLocale(preferredLocale)) {
+        setLocale(preferredLocale);
+      }
+    };
+
+    void syncProfileLocale();
+    return () => {
+      disposed = true;
+    };
+  }, [setLocale]);
+
+  const handleLocaleChange = (nextLocale: Locale) => {
+    setLocale(nextLocale);
+    void persistPreferredUiLanguage(nextLocale).catch((error: unknown) => {
+      console.error("Unable to persist preferred UI language", error);
+    });
+  };
   const copyLocale = resolveCopyLocale(locale);
-  const t = locale === "th" && welcomeRole ? {
+  const t = locale === "th" ? {
     ...shellCopy.en,
     skip: "ข้ามไปเนื้อหาหลัก",
     header: { ...shellCopy.en.header, brandSubtitle: "แผนที่ล่ามจิตอาสา", languageLabel: "ภาษาหน้าจอ", signIn: "เข้าสู่ระบบ", primaryAction: "สร้างคำขอ" },
@@ -127,7 +161,7 @@ export function AppShell({ children, accountActions, welcomeRole }: {
       <SiteHeader
         copy={welcomeRole ? { ...t.header, nav: welcomeNav } : t.header}
         locale={locale}
-        onLocaleChange={setLocale}
+        onLocaleChange={handleLocaleChange}
         accountActions={accountActions}
         workspaceRole={welcomeRole}
       />

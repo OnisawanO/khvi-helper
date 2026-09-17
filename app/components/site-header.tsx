@@ -56,7 +56,7 @@ function scrollToHashTarget(hash: string, behavior: ScrollBehavior = "smooth") {
   return true;
 }
 
-function LanguageSwitcher({ copy, locale, onLocaleChange, compact = false }: SiteHeaderProps & { compact?: boolean }) {
+export function LanguageSwitcher({ copy, locale, onLocaleChange, compact = false }: SiteHeaderProps & { compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const switcherRef = useRef<HTMLDivElement>(null);
   const selectedLanguage = languageOptions.find((option) => option.code === locale) ?? languageOptions[0];

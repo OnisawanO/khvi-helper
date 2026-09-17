@@ -15,6 +15,7 @@ import {
   UserPlusIcon,
 } from "@heroicons/react/24/outline";
 import { useStoredLocale } from "@/app/lib/locale";
+import { getAuthCopy } from "@/app/lib/auth-copy";
 import {
   calculateAge,
   validateRegisterInput,
@@ -43,6 +44,7 @@ export function RegisterForm({
   const router = useRouter();
   const supabase = createClient();
   const [currentLocale] = useStoredLocale();
+  const copy = getAuthCopy(currentLocale);
 
   const firstNameId = useId();
   const lastNameId = useId();
@@ -101,7 +103,7 @@ export function RegisterForm({
     setErrors({});
 
     try {
-      const validationErrors = validateRegisterInput(formData);
+      const validationErrors = validateRegisterInput(formData, currentLocale);
       if (Object.keys(validationErrors).length > 0) {
         setErrors(validationErrors);
         setIsSubmitting(false);
@@ -124,14 +126,14 @@ export function RegisterForm({
       });
 
       if (signUpError || !data.user) {
-        setErrors({ general: getAuthErrorMessage(signUpError, "register") });
+        setErrors({ general: getAuthErrorMessage(signUpError, "register", currentLocale) });
         setIsSubmitting(false);
         return;
       }
 
       if (!data.session) {
         setErrors({
-          general: "สมัครสมาชิกแล้ว แต่ยังไม่มี session ให้ใช้งาน กรุณาตรวจสอบการตั้งค่า Confirm email ใน Supabase",
+          general: copy.register.noSessionError,
         });
         setIsSubmitting(false);
         return;
@@ -140,7 +142,7 @@ export function RegisterForm({
       const profileResult = await getCurrentUserProfile(supabase);
       if (!profileResult.profile) {
         await supabase.auth.signOut();
-        setErrors({ general: profileResult.error || "ไม่สามารถสร้างข้อมูลโปรไฟล์ได้" });
+        setErrors({ general: profileResult.error || copy.register.profileError });
         setIsSubmitting(false);
         return;
       }
@@ -154,7 +156,7 @@ export function RegisterForm({
         }
       }, 1000);
     } catch {
-      setErrors({ general: "เกิดข้อผิดพลาดในการลงทะเบียน กรุณาลองใหม่อีกครั้ง" });
+      setErrors({ general: copy.register.genericError });
       setIsSubmitting(false);
     }
   }
@@ -169,13 +171,13 @@ export function RegisterForm({
       <div className="mb-6">
         <div className="mb-2.5 inline-flex items-center gap-2 rounded-full bg-[#eef5f7] px-3.5 py-1 text-xs font-bold text-[#0d8587]">
           <UserPlusIcon className="h-4 w-4" aria-hidden="true" />
-          <span>สร้างบัญชีผู้ใช้ใหม่ · New Account</span>
+          <span>{copy.register.eyebrow}</span>
         </div>
         <h2 className="text-xl font-extrabold tracking-tight text-[var(--khvi-ink)] sm:text-2xl">
-          สมัครสมาชิก
+          {copy.register.title}
         </h2>
         <p className="mt-1.5 text-xs sm:text-sm leading-relaxed text-[#5c727d]">
-          กรอกข้อมูลเพื่อเริ่มต้นใช้งานและขอความช่วยเหลือด้านภาษากับล่ามจิตอาสา
+          {copy.register.description}
         </p>
       </div>
 
@@ -188,10 +190,10 @@ export function RegisterForm({
         >
           <CheckCircleIcon className="mx-auto h-10 w-10 text-[#0a8264]" aria-hidden="true" />
           <h3 className="mt-3 text-base font-extrabold text-[#095744]">
-            สมัครสมาชิกสำเร็จ
+            {copy.register.successTitle}
           </h3>
           <p className="mt-1 text-xs text-[#186a55]">
-            ระบบกำลังเข้าสู่ระบบและนำท่านไปยังหน้า Welcome...
+            {copy.register.successBody}
           </p>
         </div>
       ) : (
@@ -209,7 +211,7 @@ export function RegisterForm({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor={firstNameId} className="block text-xs font-extrabold text-[#294554] sm:text-sm">
-                ชื่อ <span className="text-[#e24432]">*</span>
+                {copy.register.firstName} <span className="text-[#e24432]">*</span>
               </label>
               <div className="relative mt-1">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#73848a]">
@@ -220,7 +222,7 @@ export function RegisterForm({
                   type="text"
                   required
                   autoComplete="given-name"
-                  placeholder="เช่น สมชาย หรือ John"
+                  placeholder={copy.register.firstNamePlaceholder}
                   value={formData.firstName}
                   onChange={(e) => handleChange("firstName", e.target.value)}
                   aria-invalid={Boolean(errors.firstName)}
@@ -239,7 +241,7 @@ export function RegisterForm({
 
             <div>
               <label htmlFor={lastNameId} className="block text-xs font-extrabold text-[#294554] sm:text-sm">
-                นามสกุล <span className="text-[#e24432]">*</span>
+                {copy.register.lastName} <span className="text-[#e24432]">*</span>
               </label>
               <div className="relative mt-1">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#73848a]">
@@ -250,7 +252,7 @@ export function RegisterForm({
                   type="text"
                   required
                   autoComplete="family-name"
-                  placeholder="เช่น ใจดี หรือ Doe"
+                  placeholder={copy.register.lastNamePlaceholder}
                   value={formData.lastName}
                   onChange={(e) => handleChange("lastName", e.target.value)}
                   aria-invalid={Boolean(errors.lastName)}
@@ -271,7 +273,7 @@ export function RegisterForm({
           {/* Email */}
           <div>
             <label htmlFor={emailId} className="block text-xs font-extrabold text-[#294554] sm:text-sm">
-              อีเมล <span className="text-[#e24432]">*</span>
+              {copy.register.email} <span className="text-[#e24432]">*</span>
             </label>
             <div className="relative mt-1">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#73848a]">
@@ -303,7 +305,7 @@ export function RegisterForm({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor={passwordId} className="block text-xs font-extrabold text-[#294554] sm:text-sm">
-                รหัสผ่าน <span className="text-[#e24432]">*</span>
+                {copy.register.password} <span className="text-[#e24432]">*</span>
               </label>
               <div className="relative mt-1">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#73848a]">
@@ -314,7 +316,7 @@ export function RegisterForm({
                   type={showPassword ? "text" : "password"}
                   required
                   autoComplete="new-password"
-                  placeholder="อย่างน้อย 8 ตัวอักษร"
+                  placeholder={copy.register.passwordPlaceholder}
                   value={formData.password}
                   onChange={(e) => handleChange("password", e.target.value)}
                   aria-invalid={Boolean(errors.password)}
@@ -345,7 +347,7 @@ export function RegisterForm({
 
             <div>
               <label htmlFor={confirmPasswordId} className="block text-xs font-extrabold text-[#294554] sm:text-sm">
-                ยืนยันรหัสผ่าน <span className="text-[#e24432]">*</span>
+                {copy.register.confirmPassword} <span className="text-[#e24432]">*</span>
               </label>
               <div className="relative mt-1">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#73848a]">
@@ -356,7 +358,7 @@ export function RegisterForm({
                   type={showConfirmPassword ? "text" : "password"}
                   required
                   autoComplete="new-password"
-                  placeholder="กรอกรหัสผ่านอีกครั้ง"
+                  placeholder={copy.register.confirmPasswordPlaceholder}
                   value={formData.confirmPassword}
                   onChange={(e) => handleChange("confirmPassword", e.target.value)}
                   aria-invalid={Boolean(errors.confirmPassword)}
@@ -391,7 +393,7 @@ export function RegisterForm({
           {/* Phone */}
           <div>
             <label htmlFor={phoneId} className="block text-xs font-extrabold text-[#294554] sm:text-sm">
-              เบอร์โทรศัพท์ <span className="text-[#e24432]">*</span>
+              {copy.register.phone} <span className="text-[#e24432]">*</span>
             </label>
             <div className="relative mt-1">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#73848a]">
@@ -418,7 +420,7 @@ export function RegisterForm({
               </p>
             ) : (
               <p id={`${phoneId}-hint`} className="mt-1 text-[11px] text-[#73848a]">
-                สำหรับติดต่อเมื่อมีล่ามกดรับงานแล้ว
+                {copy.register.phoneHint}
               </p>
             )}
           </div>
@@ -427,11 +429,11 @@ export function RegisterForm({
           <div>
             <div className="flex items-center justify-between">
               <label htmlFor={dobId} className="block text-xs font-extrabold text-[#294554] sm:text-sm">
-                วันเดือนปีเกิด <span className="text-[#e24432]">*</span>
+                {copy.register.dateOfBirth} <span className="text-[#e24432]">*</span>
               </label>
               {calculatedAge !== null && (
                 <span className="inline-flex items-center rounded-md bg-[#edf7f5] px-2 py-0.5 text-[11px] font-extrabold text-[#087f80]">
-                  อายุ {calculatedAge} ปี
+                  {copy.register.age(calculatedAge)}
                 </span>
               )}
             </div>
@@ -469,7 +471,7 @@ export function RegisterForm({
                 disabled={isSubmitting}
                 className="h-10 flex-1 rounded-lg border border-[#cbd7dc] bg-white text-xs sm:text-sm font-extrabold text-[#425761] transition-colors hover:bg-[#f4f7f8] disabled:opacity-50"
               >
-                ยกเลิก
+                {copy.register.cancel}
               </button>
             )}
             <button
@@ -489,10 +491,10 @@ export function RegisterForm({
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     />
                   </svg>
-                  กำลังสร้างบัญชี...
+                  {copy.register.submitting}
                 </span>
               ) : (
-                "สมัครสมาชิก"
+                copy.register.submit
               )}
             </button>
           </div>
@@ -501,21 +503,21 @@ export function RegisterForm({
 
       {/* Footer */}
       <div className="mt-6 border-t border-[#edf2f4] pt-4 text-center text-xs text-[#5c727d]">
-        <span>มีบัญชีอยู่แล้ว? </span>
+        <span>{copy.register.existingAccount} </span>
         {onSwitchToSignIn ? (
           <button
             type="button"
             onClick={onSwitchToSignIn}
             className="font-extrabold text-[#0d8587] transition-colors hover:text-[#092f45] hover:underline cursor-pointer"
           >
-            เข้าสู่ระบบที่นี่
+            {copy.register.signInHere}
           </button>
         ) : (
           <Link
             href="/login"
             className="font-extrabold text-[#0d8587] transition-colors hover:text-[#092f45] hover:underline"
           >
-            เข้าสู่ระบบที่นี่
+            {copy.register.signInHere}
           </Link>
         )}
       </div>

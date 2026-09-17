@@ -33,6 +33,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { BrandMark } from "@/app/components/brand-mark";
 import { UserAvatar } from "@/app/components/user-avatar";
+import { LanguageSwitcher, type Locale } from "@/app/components/site-header";
 
 import {
   InterpreterApplicant,
@@ -56,6 +57,7 @@ import {
   type UserProfile,
 } from "@/app/lib/mock-auth";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
+import { persistPreferredUiLanguage, useStoredLocale } from "@/app/lib/locale";
 import { createClient } from "@/utils/supabase/client";
 
 function ManagerTopHeader({
@@ -63,11 +65,15 @@ function ManagerTopHeader({
   currentUser,
   onSignOut,
   onChangeAccount,
+  locale,
+  onLocaleChange,
 }: {
   onMenuClick?: () => void;
   currentUser: UserProfile | null;
   onSignOut: () => void;
   onChangeAccount: () => void;
+  locale: Locale;
+  onLocaleChange: (locale: Locale) => void;
 }) {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -110,6 +116,11 @@ function ManagerTopHeader({
 
         {/* Right Section: Profile & Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
+          <LanguageSwitcher
+            copy={{ brandSubtitle: "", languageLabel: "Language", signIn: "", primaryAction: "", nav: [] }}
+            locale={locale}
+            onLocaleChange={onLocaleChange}
+          />
           {/* Profile Card with Dropdown Menu */}
           <div ref={profileMenuRef} className="relative">
             <button
@@ -195,9 +206,17 @@ function ManagerTopHeader({
 
 export default function ManagerDashboard() {
   const router = useRouter();
+  const [locale, setLocale] = useStoredLocale();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+
+  const handleLocaleChange = (nextLocale: Locale) => {
+    setLocale(nextLocale);
+    void persistPreferredUiLanguage(nextLocale).catch((error: unknown) => {
+      console.error("Unable to persist preferred UI language", error);
+    });
+  };
 
   useEffect(() => {
     const supabase = createClient();
@@ -217,6 +236,7 @@ export default function ManagerDashboard() {
         return;
       }
 
+      setLocale(result.profile.preferredUiLanguage);
       setCurrentUser(result.profile);
       setAuthChecked(true);
     };
@@ -230,7 +250,7 @@ export default function ManagerDashboard() {
       disposed = true;
       authListener.subscription.unsubscribe();
     };
-  }, [router]);
+  }, [router, setLocale]);
 
   const handleSignOut = () => {
     void createClient().auth.signOut();
@@ -890,6 +910,8 @@ export default function ManagerDashboard() {
             currentUser={currentUser}
             onSignOut={handleSignOut}
             onChangeAccount={() => setIsLoginModalOpen(true)}
+            locale={locale}
+            onLocaleChange={handleLocaleChange}
           />
 
           {/* Main Content Workspace (Flex column with min-h-full ensures sticky footer at bottom) */}

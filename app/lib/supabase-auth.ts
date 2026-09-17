@@ -1,6 +1,7 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { createClient } from "@/utils/supabase/client";
 import type { Locale } from "@/app/components/site-header";
+import { getAuthCopy } from "@/app/lib/auth-copy";
 import {
   getRedirectPathByRole,
   type UserProfile,
@@ -121,11 +122,16 @@ export function splitFullName(name: string): { firstName: string; lastName: stri
 
 type SupabaseAuthError = { code?: string; message?: string } | null;
 
-export function getAuthErrorMessage(error: SupabaseAuthError, action: "login" | "register"): string {
+export function getAuthErrorMessage(
+  error: SupabaseAuthError,
+  action: "login" | "register",
+  locale: Locale = "th",
+): string {
   const errorMessage = error?.message?.toLowerCase() || "";
+  const copy = getAuthCopy(locale).errors;
 
   if (error?.code === "weak_password") {
-    return "รหัสผ่านไม่ผ่านเงื่อนไข กรุณาใช้รหัสผ่านอย่างน้อย 8 ตัวอักษร";
+    return copy.weakPassword;
   }
 
   if (action === "register" && (
@@ -133,19 +139,19 @@ export function getAuthErrorMessage(error: SupabaseAuthError, action: "login" | 
     || errorMessage.includes("already registered")
     || errorMessage.includes("already been registered")
   )) {
-    return "อีเมลนี้มีบัญชีอยู่แล้ว กรุณาเข้าสู่ระบบหรือใช้อีเมลอื่น";
+    return copy.emailExists;
   }
 
   if (action === "register" && (
     error?.code === "email_address_invalid"
     || errorMessage.includes("invalid email")
   )) {
-    return "รูปแบบอีเมลไม่ถูกต้อง";
+    return copy.invalidEmail;
   }
 
   if (action === "login") {
-    return "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
+    return copy.loginFallback;
   }
 
-  return "ไม่สามารถสมัครสมาชิกได้ กรุณาตรวจสอบข้อมูลแล้วลองใหม่อีกครั้ง";
+  return copy.registerFallback;
 }

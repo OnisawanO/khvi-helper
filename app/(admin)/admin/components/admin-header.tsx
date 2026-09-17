@@ -12,12 +12,15 @@ import {
 import { BrandMark } from "@/app/components/brand-mark";
 import { UserAvatar } from "@/app/components/user-avatar";
 import { DEFAULT_MOCK_USERS, UserProfile } from "@/app/lib/mock-auth";
+import { LanguageSwitcher, type Locale } from "@/app/components/site-header";
 
 interface AdminHeaderProps {
   onMenuClick?: () => void;
   onSignOut: () => void;
   onChangeAccount: () => void;
   currentUser: UserProfile | null;
+  locale: Locale;
+  onLocaleChange: (locale: Locale) => void;
 }
 
 export function AdminHeader({
@@ -25,6 +28,8 @@ export function AdminHeader({
   onSignOut,
   onChangeAccount,
   currentUser,
+  locale,
+  onLocaleChange,
 }: AdminHeaderProps) {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -58,6 +63,11 @@ export function AdminHeader({
 
         {/* Right Section: Profile & Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
+          <LanguageSwitcher
+            copy={{ brandSubtitle: "", languageLabel: "Language", signIn: "", primaryAction: "", nav: [] }}
+            locale={locale}
+            onLocaleChange={onLocaleChange}
+          />
           <div ref={profileMenuRef} className="relative">
             <button
               type="button"

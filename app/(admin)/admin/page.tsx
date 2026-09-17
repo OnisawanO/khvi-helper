@@ -24,9 +24,12 @@ import { UserEditModal } from "./components/user-edit-modal";
 import { UsersTable } from "./components/users-table";
 import { InterpretersTable } from "./components/interpreters-table";
 import { AuditTrailTable } from "./components/audit-trail-table";
+import { persistPreferredUiLanguage, useStoredLocale } from "@/app/lib/locale";
+import type { Locale } from "@/app/components/site-header";
 
 export default function AdminPage() {
   const router = useRouter();
+  const [locale, setLocale] = useStoredLocale();
   const [authChecked, setAuthChecked] = useState(false);
   const [activeTab, setActiveTab] = useState<AdminActiveTab>("users");
   const [auditViewMode, setAuditViewMode] = useState<"table" | "activity">("table");
@@ -53,6 +56,13 @@ export default function AdminPage() {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
+  const handleLocaleChange = (nextLocale: Locale) => {
+    setLocale(nextLocale);
+    void persistPreferredUiLanguage(nextLocale).catch((error: unknown) => {
+      console.error("Unable to persist preferred UI language", error);
+    });
+  };
+
   useEffect(() => {
     const supabase = createClient();
     let disposed = false;
@@ -71,6 +81,7 @@ export default function AdminPage() {
         return;
       }
 
+      setLocale(result.profile.preferredUiLanguage);
       setCurrentUser(result.profile);
       setAuthChecked(true);
     };
@@ -84,7 +95,7 @@ export default function AdminPage() {
       disposed = true;
       authListener.subscription.unsubscribe();
     };
-  }, [router]);
+  }, [router, setLocale]);
 
   const handleLoginSuccess = (user: UserProfile) => {
     setCurrentUser(user);
@@ -302,6 +313,8 @@ export default function AdminPage() {
           }}
           onChangeAccount={() => setIsLoginModalOpen(true)}
           currentUser={currentUser}
+          locale={locale}
+          onLocaleChange={handleLocaleChange}
         />
 
         {/* Content Workspace Scroll Area */}
