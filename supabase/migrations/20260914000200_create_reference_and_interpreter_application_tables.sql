@@ -158,6 +158,7 @@ create policy interpreter_applications_update_own_or_staff
     )
   );
 
+drop trigger if exists interpreter_applications_set_updated_at on public.interpreter_applications;
 create trigger interpreter_applications_set_updated_at
   before update on public.interpreter_applications
   for each row

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
-import { createRequest } from "@/app/lib/request-store";
+import { createBookingAction } from "@/app/actions/booking-actions";
 import { useEffect, useMemo, useRef, useState, type SubmitEvent } from "react";
 import {
   BoltIcon,
@@ -455,7 +455,7 @@ export function RequestHelpForm() {
     );
   }
 
-  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saving.current) return;
 
@@ -485,14 +485,23 @@ export function RequestHelpForm() {
 
     if (Object.keys(nextErrors).length === 0 && languageId && categoryId) {
       saving.current = true;
-      try {
-        const id = createRequest({ languageId, categoryId, description: description.trim(), urgency,
-          exactAddress: place.trim(), latitude: gps.kind === "ready" ? gps.latitude : null,
-          longitude: gps.kind === "ready" ? gps.longitude : null }, selectedScheduledAt);
-        router.push(`/my-requests/${id}`);
-      } catch {
+      setSaveError("");
+      const result = await createBookingAction({
+        languageId,
+        categoryId,
+        description: description.trim(),
+        urgency,
+        exactAddress: place.trim(),
+        latitude: gps.kind === "ready" ? gps.latitude : null,
+        longitude: gps.kind === "ready" ? gps.longitude : null,
+        scheduledAt: urgency === "Scheduled" ? selectedScheduledAt : null,
+      });
+
+      if (result.ok) {
+        router.push(`/my-requests/${result.data.requestId}`);
+      } else {
         saving.current = false;
-        setSaveError("Could not save your request. Check browser storage permissions and try again. Your form is still here.");
+        setSaveError(result.error);
       }
     }
   }

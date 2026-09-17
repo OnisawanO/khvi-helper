@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { WorkspaceShell } from "@/app/components/workspace-shell";
+import { loadRequesterRequests } from "@/app/lib/real-request-data";
 import { resolveStatusFilter } from "@/app/lib/mock-requests";
 import { RequestList } from "./request-list";
 
@@ -11,10 +12,11 @@ export const metadata: Metadata = {
 export default async function MyRequestsPage(props: PageProps<"/my-requests">) {
   const { status } = await props.searchParams;
   const activeFilter = resolveStatusFilter(status);
+  const requests = await loadRequesterRequests();
 
   return (
     <WorkspaceShell requiredRole="User" alternatePath="/my-assignments#main-content">
-      <RequestList activeFilter={activeFilter} />
+      <RequestList activeFilter={activeFilter} initialRequests={requests} />
     </WorkspaceShell>
   );
 }

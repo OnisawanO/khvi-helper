@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   ClipboardDocumentListIcon,
   MapPinIcon,
@@ -9,9 +9,7 @@ import {
 import { useCopyLocale } from "@/app/components/app-shell";
 import { StatusBadge, UrgencyBadge } from "@/app/components/request-badges";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
-import type { UserProfile } from "@/app/lib/mock-auth";
-import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
-import { cancelMission, useRequests } from "@/app/lib/request-store";
+import { cancelBookingAction } from "@/app/actions/booking-actions";
 import {
   categoryLabel,
   languageLabel,
@@ -88,31 +86,15 @@ function normalizeFilter(filterId: StatusFilterId): AssignmentFilterId {
   return ASSIGNMENT_FILTERS.includes(filterId as AssignmentFilterId) ? filterId as AssignmentFilterId : "all";
 }
 
-export function MyAssignmentsList({ activeFilter }: { activeFilter: StatusFilterId }) {
-  const { requests: allRequests, ready } = useRequests();
+export function MyAssignmentsList({ activeFilter, initialAssignments }: { activeFilter: StatusFilterId; initialAssignments: HelpRequest[] }) {
+  const allRequests = initialAssignments;
   const copyLocale = useCopyLocale();
   const t = copy[copyLocale];
   const [selectedFilter, setSelectedFilter] = useState<AssignmentFilterId>(() => normalizeFilter(activeFilter));
   const [cancelRequestId, setCancelRequestId] = useState<string | null>(null);
   const [cancelDraft, setCancelDraft] = useState("");
   const [cancelError, setCancelError] = useState<string | null>(null);
-  const [actor, setActor] = useState<UserProfile | null>(null);
-  useEffect(() => {
-    let disposed = false;
-
-    const loadActor = async () => {
-      const result = await getCurrentUserProfile();
-      if (!disposed) setActor(result.profile);
-    };
-
-    void loadActor();
-    return () => {
-      disposed = true;
-    };
-  }, []);
-
-  const allAssignments = allRequests.filter((request) =>
-    request.interpreterId === actor?.userId && ["Claimed", "InProgress", "Completed"].includes(request.status));
+  const allAssignments = allRequests.filter((request) => ["Claimed", "InProgress", "Completed"].includes(request.status));
   const matching = (filterId: AssignmentFilterId) => {
     const status = assignmentStatus(filterId);
     return allAssignments.filter((request) => status === null || request.status === status);
@@ -132,21 +114,17 @@ export function MyAssignmentsList({ activeFilter }: { activeFilter: StatusFilter
     setCancelError(null);
   }
 
-  function handleCancelAssignment(requestId: string) {
+  async function handleCancelAssignment(requestId: string) {
     if (!cancelDraft.trim()) {
       setCancelError(t.cancelReasonMissing);
       return;
     }
-    if (!actor) {
-      setCancelError(t.cancelFallback);
-      return;
-    }
-
-    try {
-      cancelMission(requestId, actor, cancelDraft);
+    const result = await cancelBookingAction(requestId, cancelDraft);
+    if (result.ok) {
       closeCancelForm();
-    } catch (error) {
-      setCancelError(error instanceof Error ? error.message : t.cancelFallback);
+      window.location.reload();
+    } else {
+      setCancelError(result.error || t.cancelFallback);
     }
   }
 
@@ -204,9 +182,7 @@ export function MyAssignmentsList({ activeFilter }: { activeFilter: StatusFilter
           })}
         </div>
 
-        {!ready ? (
-          <p id="assignment-results" role="status" className="mt-6">{t.loading}</p>
-        ) : assignments.length === 0 ? (
+        {assignments.length === 0 ? (
           <section id="assignment-results" aria-live="polite" className="mt-6 border border-[#d6e0e4] bg-white p-10 text-center">
             <ClipboardDocumentListIcon aria-hidden="true" className="mx-auto h-10 w-10 text-[#9aa9ae]" />
             <h2 className="mt-4 text-lg font-extrabold text-[#203d4d]">{t.emptyTitle}</h2>
