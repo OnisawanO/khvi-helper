@@ -11,14 +11,13 @@ import type { UserProfile } from "@/app/lib/mock-auth";
 
 import {
   AdminActiveTab,
-  AdminIncidentReport,
   AccountStatus,
   AdminUserRecord,
   AuditLogEntry,
   SystemRole,
   SystemSettingsConfig,
 } from "./types";
-import { initialUsers, initialAuditLogs, initialEscalatedReports, initialSystemSettings } from "./mock-data";
+import { initialSystemSettings } from "./mock-data";
 import { AdminHeader } from "./components/admin-header";
 import { AdminDrawer } from "./components/admin-drawer";
 import { AdminRailBar } from "./components/admin-rail-bar";
@@ -30,15 +29,26 @@ import { UsersTable } from "./components/users-table";
 import { EscalatedReportsTable } from "./components/escalated-reports-table";
 import { AuditTrailTable } from "./components/audit-trail-table";
 import { SystemSettingsModal } from "./components/system-settings-modal";
+import { useGovernanceStore } from "@/app/lib/governance-store";
 
 export default function AdminPage() {
   const router = useRouter();
   const [authChecked, setAuthChecked] = useState(false);
   const [activeTab, setActiveTab] = useState<AdminActiveTab>("users");
   const [auditViewMode, setAuditViewMode] = useState<"table" | "activity">("table");
-  const [users, setUsers] = useState<AdminUserRecord[]>(initialUsers);
-  const [reports, setReports] = useState<AdminIncidentReport[]>(initialEscalatedReports);
-  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(initialAuditLogs);
+
+  // Synchronized Shared Governance Store across Admin & Manager
+  const {
+    users,
+    reports,
+    auditLogs,
+    updateUser,
+    lockUser,
+    unlockUser,
+    revokeInterpreter,
+    resolveReport,
+    addAuditLog,
+  } = useGovernanceStore();
 
   // Filters
   const [selectedRoles, setSelectedRoles] = useState<SystemRole[]>([]);
@@ -135,154 +145,35 @@ export default function AdminPage() {
     setIsActionDialogOpen(true);
   };
 
-  // 1. Confirm Soft Lock
+  // 1. Confirm Temporary Soft Lock
   const handleConfirmLock = (userId: string, reason: string) => {
-    setUsers((prev) =>
-      prev.map((u) => {
-        if (u.id === userId) {
-          return {
-            ...u,
-            isLocked: true,
-            accountStatus: "Locked",
-            lockReason: reason,
-          };
-        }
-        return u;
-      })
-    );
-
-    // If originated from an escalated report, resolve report
+    lockUser(userId, reason, false, `${currentUser?.name || "Super Admin"} (Admin)`);
     if (actionReportId) {
-      setReports((prev) =>
-        prev.map((r) =>
-          r.id === actionReportId
-            ? {
-                ...r,
-                status: "Resolved (Locked)",
-                actionTaken: `Suspended by Admin: ${reason}`,
-              }
-            : r
-        )
-      );
+      resolveReport(actionReportId, "Resolved (Locked)", `Suspended by Admin: ${reason}`, `${currentUser?.name || "Super Admin"} (Admin)`);
     }
-
     const target = users.find((u) => u.id === userId);
-    const newLog: AuditLogEntry = {
-      id: `AUD-${Date.now().toString().slice(-4)}`,
-      timestamp: new Date().toISOString().replace("T", " ").slice(0, 19),
-      actor: `${currentUser?.name || "Super Admin"} (Admin)`,
-      action: "ACCOUNT_SUSPEND",
-      targetUser: `${target?.name || userId} (${userId})`,
-      severity: "warning",
-      details: `Suspended (Soft Lock). Reason: ${reason}`,
-    };
-    setAuditLogs((prev) => [newLog, ...prev]);
     showToast(`Account for ${target?.name || userId} has been temporarily suspended.`);
   };
 
   // 2. Confirm Permanent Hard Ban (Strict Safety Confirmation)
   const handleConfirmHardBan = (userId: string, reason: string) => {
-    setUsers((prev) =>
-      prev.map((u) => {
-        if (u.id === userId) {
-          return {
-            ...u,
-            isLocked: true,
-            accountStatus: "Banned",
-            lockReason: `[PERMANENT BAN] ${reason}`,
-          };
-        }
-        return u;
-      })
-    );
-
+    lockUser(userId, `[PERMANENT BAN] ${reason}`, true, `${currentUser?.name || "Super Admin"} (Admin)`);
     if (actionReportId) {
-      setReports((prev) =>
-        prev.map((r) =>
-          r.id === actionReportId
-            ? {
-                ...r,
-                status: "Resolved (Hard Banned)",
-                actionTaken: `Permanently Banned by Super Admin: ${reason}`,
-              }
-            : r
-        )
-      );
+      resolveReport(actionReportId, "Resolved (Hard Banned)", `Permanently Banned by Super Admin: ${reason}`, `${currentUser?.name || "Super Admin"} (Admin)`);
     }
-
     const target = users.find((u) => u.id === userId);
-    const newLog: AuditLogEntry = {
-      id: `AUD-${Date.now().toString().slice(-4)}`,
-      timestamp: new Date().toISOString().replace("T", " ").slice(0, 19),
-      actor: `${currentUser?.name || "Super Admin"} (Admin)`,
-      action: "HARD_BAN",
-      targetUser: `${target?.name || userId} (${userId})`,
-      severity: "danger",
-      details: `[PERMANENT HARD BAN] Safety verified. Account permanently banned. Reason: ${reason}`,
-    };
-    setAuditLogs((prev) => [newLog, ...prev]);
     showToast(`Account ${target?.name || userId} has been permanently hard banned.`);
   };
 
   // 3. Confirm Unlock
   const handleConfirmUnlock = (userId: string) => {
-    setUsers((prev) =>
-      prev.map((u) => {
-        if (u.id === userId) {
-          return {
-            ...u,
-            isLocked: false,
-            accountStatus: "Active",
-            lockReason: undefined,
-          };
-        }
-        return u;
-      })
-    );
-
+    unlockUser(userId, `${currentUser?.name || "Super Admin"} (Admin)`);
     const target = users.find((u) => u.id === userId);
-    const newLog: AuditLogEntry = {
-      id: `AUD-${Date.now().toString().slice(-4)}`,
-      timestamp: new Date().toISOString().replace("T", " ").slice(0, 19),
-      actor: `${currentUser?.name || "Super Admin"} (Admin)`,
-      action: "ACCOUNT_UNLOCKED",
-      targetUser: `${target?.name || userId} (${userId})`,
-      severity: "info",
-      details: "Admin lifted restriction. Status set to Active.",
-    };
-    setAuditLogs((prev) => [newLog, ...prev]);
     showToast(`Account for ${target?.name || userId} has been successfully unlocked.`);
   };
 
-
   const handleRevokeInterpreter = (targetUser: AdminUserRecord, reason: string) => {
-    const updatedUsers = users.map((u) => {
-      if (u.id === targetUser.id) {
-        return {
-          ...u,
-          role: "User" as SystemRole,
-          interpreterStats: u.interpreterStats
-            ? { ...u.interpreterStats, verificationStatus: "Suspended" as const }
-            : undefined,
-        };
-      }
-      return u;
-    });
-
-    setUsers(updatedUsers);
-
-    // Audit Log Entry
-    const newLog: AuditLogEntry = {
-      id: `AUD-${Date.now().toString().slice(-4)}`,
-      timestamp: new Date().toISOString().replace("T", " ").slice(0, 19),
-      actor: `${currentUser?.name || "Super Admin"} (Admin)`,
-      action: "INTERPRETER_REVOKED",
-      targetUser: `${targetUser.name} (${targetUser.id})`,
-      severity: "danger",
-      details: `Interpreter accreditation revoked by Admin. Reason: ${reason}. Role demoted to User.`,
-    };
-
-    setAuditLogs((prev) => [newLog, ...prev]);
+    revokeInterpreter(targetUser.id, reason, `${currentUser?.name || "Super Admin"} (Admin)`);
     setIsEditModalOpen(false);
     showToast(`Successfully revoked accreditation for ${targetUser.name}. Demoted to standard User.`);
   };
@@ -302,40 +193,23 @@ export default function AdminPage() {
       return;
     }
 
-    const updatedUsers = users.map((u) => {
-      if (u.id === selectedUser.id) {
-        return {
-          ...u,
-          role: tempRole,
-          isLocked: tempRole === "Admin" ? false : tempIsLocked,
-          lockReason: tempRole === "Admin" ? undefined : tempIsLocked ? tempLockReason.trim() : undefined,
-          accountStatus: (tempRole === "Admin" ? "Active" : tempIsLocked ? (u.accountStatus === "Banned" ? "Banned" : "Locked") : "Active") as AccountStatus,
-        };
-      }
-      return u;
-    });
-
-    setUsers(updatedUsers);
-
-    // Add Audit Log
-    const newLog: AuditLogEntry = {
-      id: `AUD-${Date.now().toString().slice(-4)}`,
-      timestamp: new Date().toISOString().replace("T", " ").slice(0, 19),
-      actor: `${currentUser?.name || "Super Admin"} (Admin)`,
-      action:
-        tempIsLocked !== selectedUser.isLocked
-          ? tempIsLocked
-            ? "ACCOUNT_SUSPEND"
-            : "ACCOUNT_UNLOCKED"
-          : tempRole !== selectedUser.role
-          ? "ROLE_CHANGE"
-          : "ACCOUNT_UPDATE",
-      targetUser: `${selectedUser.name} (${selectedUser.id})`,
-      severity: tempIsLocked ? "danger" : tempRole === "Admin" ? "warning" : "info",
-      details: `Role set to ${tempRole}. Locked: ${tempIsLocked ? "Yes (" + tempLockReason.trim() + ")" : "No"}.`,
+    const updatedUser: AdminUserRecord = {
+      ...selectedUser,
+      role: tempRole,
+      isLocked: tempRole === "Admin" ? false : tempIsLocked,
+      lockReason: tempRole === "Admin" ? undefined : tempIsLocked ? tempLockReason.trim() : undefined,
+      accountStatus: (tempRole === "Admin" ? "Active" : tempIsLocked ? (selectedUser.accountStatus === "Banned" ? "Banned" : "Locked") : "Active") as AccountStatus,
     };
 
-    setAuditLogs([newLog, ...auditLogs]);
+    updateUser(
+      updatedUser,
+      tempIsLocked !== selectedUser.isLocked
+        ? tempIsLocked ? "ACCOUNT_SUSPEND" : "ACCOUNT_UNLOCKED"
+        : tempRole !== selectedUser.role ? "ROLE_CHANGE" : "ACCOUNT_UPDATE",
+      `Role set to ${tempRole}. Locked: ${tempIsLocked ? "Yes (" + tempLockReason.trim() + ")" : "No"}.`,
+      `${currentUser?.name || "Super Admin"} (Admin)`
+    );
+
     setIsEditModalOpen(false);
     showToast(`Successfully updated privileges for ${selectedUser.name} with Audit Log entry.`);
   };
@@ -602,7 +476,7 @@ export default function AdminPage() {
             severity: "warning",
             details: `SOS Radius: ${newSettings.sosDispatchRadiusKm}km, Min Rating: ${newSettings.interpreterMinRatingThreshold}, Ticket SLA: ${newSettings.autoEscalateTicketMinutes}m, Languages: ${newSettings.languagesCatalog.length}, Taxonomies: ${newSettings.specialtyCategories.length}`,
           };
-          setAuditLogs((prev) => [newLog, ...prev]);
+          addAuditLog(newLog);
           showToast("Platform policies and catalog successfully updated & audited.");
         }}
       />

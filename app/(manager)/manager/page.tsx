@@ -40,6 +40,7 @@ import {
   reviewInterpreterApplication,
   type InterpreterApplication as StoreApplication,
 } from "@/app/lib/interpreter-application";
+import { governanceStore } from "@/app/lib/governance-store";
 
 function toInterpreterApplicant(app: StoreApplication): InterpreterApplicant {
   const primary = app.primaryLanguage || (app.languages[0]?.name ?? "ไทย (Thai)");
@@ -328,6 +329,25 @@ export default function ManagerDashboard() {
       )
     );
     if (target) {
+      // Sync to shared governance store for Admin Portal real-time pickup
+      governanceStore.escalateReportToAdmin(
+        {
+          id: target.id,
+          reporterName: target.reporterName,
+          reporterRole: target.reporterRole,
+          reportedUserId: target.reportedUserRole === "Interpreter" ? "USR-005" : "USR-006",
+          reportedUserName: target.reportedUserName,
+          reportedUserRole: target.reportedUserRole,
+          bookingId: target.bookingId,
+          reason: target.reason,
+          severity: "high",
+          createdAt: target.createdAt,
+          status: "Escalated to Admin",
+          actionTaken: "Escalated by Manager for Super Admin review and account restriction.",
+        },
+        `${currentUser?.name || "Manager Coordinator"} (Manager)`
+      );
+
       setActivities((prev) => [
         {
           id: `ACT-REP-${reportId}-${prev.length + 1}`,

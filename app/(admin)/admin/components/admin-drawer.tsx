@@ -182,8 +182,6 @@ export function AdminDrawer({
           </div>
         </div>
 
-        {/* Bottom Section in Drawer: Settings */}
-        <div className="mt-auto pt-3 border-t border-[#16435c]">
         {/* Bottom Section in Drawer: Settings & Switch to Ops */}
         <div className="mt-auto pt-3 border-t border-[#16435c] space-y-1">
           <Link

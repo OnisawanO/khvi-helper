@@ -116,7 +116,6 @@ export function AdminRailBar({
       </div>
 
       {/* Bottom Rail Actions */}
-      <div className="flex flex-col items-center w-full px-2">
       <div className="flex flex-col items-center gap-2 w-full px-2">
         {/* Switch to Operations Hub (Manager Mode) */}
         <Link
