@@ -2,69 +2,30 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { calculateAge } from "@/app/lib/mock-auth";
-import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
-import { submitInterpreterApplication } from "@/app/lib/interpreter-application";
+import {
+  submitInterpreterApplicationAction,
+  uploadInterpreterCertificateAction,
+} from "@/app/actions/interpreter-application-actions";
+import type { InterpreterApplicationReference } from "@/app/lib/real-interpreter-application-data";
 
-// 5 ภาษาหลักที่ระบุในโจทย์
-const coreLanguages = [
-  { id: "th", name: "ไทย (Thai)" },
-  { id: "en", name: "อังกฤษ (English)" },
-  { id: "zh", name: "จีน (Chinese)" },
-  { id: "es", name: "สเปน (Spanish)" },
-  { id: "ar", name: "อาหรับ (Arabic)" },
-];
-
-// รายการภาษาอื่น ๆ ทั่วโลกสำหรับ Multi-select ค้นหาและเลือกเพิ่ม
-const globalLanguageCatalog = [
-  { id: "my", name: "พม่า (Burmese)" },
-  { id: "vi", name: "เวียดนาม (Vietnamese)" },
-  { id: "ja", name: "ญี่ปุ่น (Japanese)" },
-  { id: "ko", name: "เกาหลี (Korean)" },
-  { id: "fr", name: "ฝรั่งเศส (French)" },
-  { id: "de", name: "เยอรมัน (German)" },
-  { id: "ru", name: "รัสเซีย (Russian)" },
-  { id: "hi", name: "ฮินดี (Hindi)" },
-  { id: "id", name: "อินโดนีเซีย (Indonesian)" },
-  { id: "ms", name: "มาเลย์ (Malay)" },
-  { id: "tl", name: "ตากาล็อก (Tagalog / Filipino)" },
-  { id: "km", name: "เขมร (Khmer)" },
-  { id: "lo", name: "ลาว (Lao)" },
-  { id: "pt", name: "โปรตุเกส (Portuguese)" },
-  { id: "it", name: "อิตาลี (Italian)" },
-  { id: "tr", name: "ตุรกี (Turkish)" },
-  { id: "fa", name: "เปอร์เซีย (Persian / Farsi)" },
-  { id: "ur", name: "อูรดู (Urdu)" },
-  { id: "bn", name: "เบงกอล (Bengali)" },
-  { id: "sign", name: "ภาษามือไทย (Thai Sign Language - TSL)" },
-  { id: "asl", name: "ภาษามืออเมริกัน (American Sign Language - ASL)" },
-];
-
-const availableCategories = [
-  { id: 9, name: "การสื่อสารทั่วไปและชีวิตประจำวัน (General & Daily Life)", icon: "💬" },
-  { id: 1, name: "การแพทย์และโรงพยาบาล (Healthcare & Hospital)", icon: "🏥" },
-  { id: 2, name: "สถานีตำรวจและคดีความ (Police & Legal)", icon: "👮" },
-  { id: 3, name: "หน่วยงานราชการและตรวจคนเข้าเมือง (Government & Immigration)", icon: "🏛️" },
-  { id: 4, name: "อุบัติเหตุและกู้ชีพฉุกเฉิน (Accidents & Emergency SOS)", icon: "🚨" },
-  { id: 5, name: "การศึกษาและประสานงานสถาบัน (Education & Campus)", icon: "🎓" },
-  { id: 6, name: "การท่องเที่ยวและการเดินทาง (Tourism & Transit)", icon: "✈️" },
-  { id: 7, name: "การจ้างงานและสิทธิแรงงาน (Labour & Workplace Rights)", icon: "💼" },
-  { id: 8, name: "ภัยพิบัติและการช่วยเหลือผู้ประสบภัย (Disaster Relief & Aid)", icon: "🌊" },
-];
-
-export function ApplicationForm() {
+export function ApplicationForm({
+  languages,
+  categories,
+}: {
+  languages: InterpreterApplicationReference[];
+  categories: InterpreterApplicationReference[];
+}) {
   // ค่าเริ่มต้นว่างไว้ทั้งหมด เพื่อให้เป็นหน้าที่ยังไม่มีใครใส่อะไรตามคำขอ
   const [selectedLangs, setSelectedLangs] = useState<string[]>([]);
-  const [customLanguageInput, setCustomLanguageInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  const [selectedCats, setSelectedCats] = useState<number[]>([]);
+  const [selectedCats, setSelectedCats] = useState<string[]>([]);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [extraContact, setExtraContact] = useState("");
-  const [certificateUrl, setCertificateUrl] = useState("");
+  const [certificateFile, setCertificateFile] = useState<File | null>(null);
   const [certificateFileName, setCertificateFileName] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -89,16 +50,18 @@ export function ApplicationForm() {
   const handleAddCustomLanguage = (e?: React.KeyboardEvent | React.MouseEvent) => {
     if (e && "key" in e && e.key !== "Enter") return;
     if (e) e.preventDefault();
-    const candidate = searchQuery.trim() || customLanguageInput.trim();
-    if (candidate && !selectedLangs.includes(candidate)) {
-      setSelectedLangs((prev) => [...prev, candidate]);
+    const candidate = searchQuery.trim().toLowerCase();
+    const language = languages.find(
+      (item) => item.id.toLowerCase() === candidate || item.name.toLowerCase() === candidate
+    );
+    if (language && !selectedLangs.includes(language.id)) {
+      setSelectedLangs((prev) => [...prev, language.id]);
       setSearchQuery("");
-      setCustomLanguageInput("");
       setIsDropdownOpen(false);
     }
   };
 
-  const toggleCat = (id: number) => {
+  const toggleCat = (id: string) => {
     setSelectedCats((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
@@ -115,31 +78,35 @@ export function ApplicationForm() {
 
     setIsSubmitting(true);
     try {
-      const profileResult = await getCurrentUserProfile();
-      const user = profileResult.profile;
-      if (!user) {
-        setSubmitError(profileResult.error || "กรุณาเข้าสู่ระบบก่อนส่งใบสมัคร");
+      if (!certificateFile) {
+        setSubmitError("กรุณาแนบไฟล์เอกสารรับรองก่อนส่งใบสมัคร");
         return;
       }
 
-      submitInterpreterApplication(user, {
-        applicantName: `${firstName.trim()} ${lastName.trim()}`,
+      const uploadData = new FormData();
+      uploadData.set("file", certificateFile);
+      const uploadResult = await uploadInterpreterCertificateAction(uploadData);
+      if (!uploadResult.ok) {
+        setSubmitError(uploadResult.error);
+        return;
+      }
+
+      const result = await submitInterpreterApplicationAction({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
         phone: phone.trim(),
-        email: user.email,
-        age: calculateAge(user.dateOfBirth) ?? 0,
+        email: "",
         extraContact,
-        languages: selectedLangs.map((id) => ({
-          id,
-          name: getLanguageLabel(id),
-          type: id === "th" ? "Primary" : "Fluent",
-        })),
-        categories: selectedCats.map((id) => {
-          const found = availableCategories.find((category) => category.id === id);
-          return { id, name: found?.name ?? `หมวด ${id}`, icon: found?.icon };
-        }),
-        certificateFileName,
-        certificateUrl,
+        assignedArea: "",
+        languageCodes: selectedLangs,
+        categoryCodes: selectedCats,
+        certificateFileName: uploadResult.data.fileName,
+        certificateUrl: uploadResult.data.path,
       });
+      if (!result.ok) {
+        setSubmitError(result.error);
+        return;
+      }
       setSubmitted(true);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "ไม่สามารถส่งใบสมัครได้ กรุณาลองใหม่");
@@ -150,15 +117,11 @@ export function ApplicationForm() {
 
   // ดึงชื่อภาษาสำหรับแสดงผลใน Tags/Badges
   const getLanguageLabel = (id: string) => {
-    const foundCore = coreLanguages.find((l) => l.id === id);
-    if (foundCore) return foundCore.name;
-    const foundCatalog = globalLanguageCatalog.find((l) => l.id === id);
-    if (foundCatalog) return foundCatalog.name;
-    return id; // ภาษาที่พิมพ์เพิ่มเอง
+    return languages.find((language) => language.id === id)?.name ?? id;
   };
 
   // กรองภาษาอื่น ๆ ใน Dropdown ตามคำค้นหา
-  const filteredCatalog = globalLanguageCatalog.filter((lang) => {
+  const filteredCatalog = languages.filter((lang) => {
     const matchesSearch =
       lang.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       lang.id.toLowerCase().includes(searchQuery.toLowerCase());
@@ -210,7 +173,7 @@ export function ApplicationForm() {
               ภาษาหลัก (Core Languages):
             </span>
             <div className="flex flex-wrap gap-2">
-              {coreLanguages.map((lang) => {
+              {languages.slice(0, 5).map((lang) => {
                 const isSelected = selectedLangs.includes(lang.id);
                 return (
                   <button
@@ -302,7 +265,7 @@ export function ApplicationForm() {
 
                   {filteredCatalog.length === 0 ? (
                     <div className="p-3 text-center text-xs text-[#73848a]">
-                      ไม่พบในแคตตาล็อก ท่านสามารถกดปุ่ม &quot;+ เพิ่ม&quot; ด้านบนเพื่อเพิ่มภาษานี้ได้ทันที
+                      ไม่พบภาษาในแคตตาล็อกที่พร้อมใช้งาน
                     </div>
                   ) : (
                     <div className="divide-y divide-[#f0f4f6]">
@@ -372,7 +335,7 @@ export function ApplicationForm() {
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {availableCategories.map((cat) => {
+            {categories.map((cat) => {
               const isSelected = selectedCats.includes(cat.id);
               return (
                 <label
@@ -498,8 +461,8 @@ export function ApplicationForm() {
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) {
+                    setCertificateFile(file);
                     setCertificateFileName(file.name);
-                    setCertificateUrl(`https://storage.khvi.org/certificates/${file.name}`);
                   }
                 }}
               />
@@ -524,7 +487,7 @@ export function ApplicationForm() {
                     type="button"
                     onClick={() => {
                       setCertificateFileName("");
-                      setCertificateUrl("");
+                      setCertificateFile(null);
                     }}
                     className="text-[#f04f3e] hover:underline font-extrabold ml-1"
                   >

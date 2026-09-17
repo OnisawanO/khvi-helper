@@ -7,7 +7,7 @@ import type { ApplicationStatus, InterpreterApplication } from "@/app/lib/interp
 
 type ApplicationStatusPanelProps = {
   application: InterpreterApplication;
-  onReupload?: (fileName: string) => void;
+  onReupload?: (file: File) => void;
   onCancel?: (reason: string) => void;
   compact?: boolean;
 };
@@ -77,7 +77,7 @@ export function ApplicationStatusPanel({ application, onReupload, onCancel, comp
               accept=".pdf,.jpg,.jpeg,.png"
               onChange={(event) => {
                 const file = event.target.files?.[0];
-                if (file) onReupload(file.name);
+                if (file) onReupload(file);
               }}
             />
           </div>

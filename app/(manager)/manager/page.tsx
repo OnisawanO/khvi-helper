@@ -43,7 +43,6 @@ import {
   ManagerActivity,
 } from "./types";
 import {
-  initialApplicants,
   initialTickets,
   initialReports,
   initialManagerActivities,
@@ -59,6 +58,10 @@ import {
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { persistPreferredUiLanguage, useStoredLocale } from "@/app/lib/locale";
 import { createClient } from "@/utils/supabase/client";
+import {
+  loadManagerInterpreterApplicationsAction,
+  reviewInterpreterApplicationAction,
+} from "@/app/actions/interpreter-application-actions";
 
 function ManagerTopHeader({
   onMenuClick,
@@ -266,11 +269,12 @@ export default function ManagerDashboard() {
     }
   };
 
-  const [applicants, setApplicants] = useState<InterpreterApplicant[]>(initialApplicants);
+  const [applicants, setApplicants] = useState<InterpreterApplicant[]>([]);
+  const [applicationError, setApplicationError] = useState<string | null>(null);
   const [tickets, setTickets] = useState<HelpTicket[]>(initialTickets);
   const [reports, setReports] = useState<IncidentReport[]>(initialReports);
   const [activities, setActivities] = useState<ManagerActivity[]>(initialManagerActivities);
-  const [selectedApplicantId, setSelectedApplicantId] = useState<string | null>(initialApplicants[0].id);
+  const [selectedApplicantId, setSelectedApplicantId] = useState<string | null>(null);
   
   // Navigation & View State (Strictly Manager scope: Verification + Support + History)
   const [navSection, setNavSection] = useState<ManagerNavSection>("queue");
@@ -287,6 +291,28 @@ export default function ManagerDashboard() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const filterMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!authChecked || !currentUser) return;
+    let disposed = false;
+
+    const loadApplications = async () => {
+      const result = await loadManagerInterpreterApplicationsAction();
+      if (disposed) return;
+      if (!result.ok) {
+        setApplicationError(result.error);
+        return;
+      }
+      setApplicationError(null);
+      setApplicants(result.data);
+      setSelectedApplicantId((current) => current ?? result.data[0]?.id ?? null);
+    };
+
+    void loadApplications();
+    return () => {
+      disposed = true;
+    };
+  }, [authChecked, currentUser]);
 
   // Toggle selection helpers
   const toggleLanguage = (lang: string) => {
@@ -374,8 +400,14 @@ export default function ManagerDashboard() {
   };
 
   // Handle Approve (FR-43)
-  const handleApprove = (id: string) => {
+  const handleApprove = async (id: string) => {
+    const result = await reviewInterpreterApplicationAction({ applicationId: id, decision: "approved" });
+    if (!result.ok) {
+      setApplicationError(result.error);
+      return;
+    }
     const target = applicants.find((a) => a.id === id);
+    setApplicationError(null);
     setApplicants((prev) =>
       prev.map((app) => (app.id === id ? { ...app, status: "Approved" } : app))
     );
@@ -394,8 +426,14 @@ export default function ManagerDashboard() {
   };
 
   // Handle Reject (FR-44, FR-45)
-  const handleReject = (id: string, reason: string) => {
+  const handleReject = async (id: string, reason: string) => {
+    const result = await reviewInterpreterApplicationAction({ applicationId: id, decision: "rejected", note: reason });
+    if (!result.ok) {
+      setApplicationError(result.error);
+      return;
+    }
     const target = applicants.find((a) => a.id === id);
+    setApplicationError(null);
     setApplicants((prev) =>
       prev.map((app) =>
         app.id === id
@@ -493,6 +531,11 @@ export default function ManagerDashboard() {
 
   return (
     <div className="flex h-screen w-full flex-row overflow-hidden bg-[#f7f9fa] text-[#092f45] antialiased">
+      {applicationError && (
+        <div className="fixed left-1/2 top-4 z-[60] -translate-x-1/2 border border-[#f8c5be] bg-[#fff1f2] px-4 py-3 text-sm font-bold text-[#b8291b] shadow-lg" role="alert">
+          {applicationError}
+        </div>
+      )}
       {/* Universal Slide-out Pop-up Sidebar Drawer (Overlay across mobile, tablet, and desktop) */}
       <div
         className={`fixed inset-0 z-50 transition-all duration-300 ${
