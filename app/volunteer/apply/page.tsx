@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { ApplicationForm } from "@/components/volunteer/ApplicationForm";
 import { WorkspaceShell } from "@/app/components/workspace-shell";
+import { loadInterpreterApplicationReferences } from "@/app/lib/real-interpreter-application-data";
 
-export default function VolunteerApplyPage() {
+export default async function VolunteerApplyPage() {
+  const { languages, categories } = await loadInterpreterApplicationReferences();
+
   return (
     <WorkspaceShell>
       <main id="main-content" className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
@@ -50,7 +53,7 @@ export default function VolunteerApplyPage() {
         </div>
 
         {/* Centered Form Container */}
-        <ApplicationForm />
+        <ApplicationForm languages={languages} categories={categories} />
       </main>
     </WorkspaceShell>
   );
