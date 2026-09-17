@@ -41,7 +41,7 @@ export type AuthProfileResult = {
   error: string | null;
 };
 
-const SUPPORTED_LOCALES: Locale[] = ["th", "en", "zh", "my", "vi"];
+const SUPPORTED_LOCALES: Locale[] = ["th", "en", "zh", "es", "ar"];
 const SUPPORTED_ROLES: UserRole[] = ["User", "Interpreter", "Manager", "Admin"];
 
 function toLocale(value: string): Locale {

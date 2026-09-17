@@ -33,6 +33,7 @@ export function LoginModal({
   const dialogRef = useRef<HTMLDivElement>(null);
   const [locale] = useStoredLocale();
   const copy = getAuthCopy(locale);
+  const isArabic = locale === "ar";
 
   useEffect(() => {
     if (!isOpen) return;
@@ -81,6 +82,7 @@ export function LoginModal({
     >
       <div
         ref={dialogRef}
+        dir={isArabic ? "rtl" : "ltr"}
         className="relative my-auto w-full max-w-4xl rounded-3xl border border-[#d6e0e4] bg-white shadow-[0_24px_64px_rgba(9,47,69,0.28)] overflow-hidden grid grid-cols-1 md:grid-cols-[1.15fr_0.85fr] max-h-[94vh]"
       >
         {/* Circular Close Button at top-right corner */}
@@ -93,7 +95,7 @@ export function LoginModal({
           <XMarkIcon className="h-5 w-5" aria-hidden="true" />
         </button>
 
-        {/* Left Column: Login Form */}
+        {/* The first grid item follows the modal direction: right in Arabic RTL, left otherwise. */}
         <div className="p-6 sm:p-8 overflow-y-auto max-h-[94vh]">
           {intentLabel && <p className="mb-4 rounded-lg bg-(--khvi-teal)/10 px-4 py-3 text-sm font-bold text-(--khvi-navy)">{intentLabel}</p>}
           <LoginForm
@@ -103,8 +105,10 @@ export function LoginModal({
           />
         </div>
 
-        {/* Right Column: Fastwork-style Illustration & Trust points */}
-        <div className="hidden md:flex flex-col justify-between p-8 bg-gradient-to-br from-[#edf7f5] via-[#f1f8f7] to-[#e1efe9] border-l border-[#d8e8e4] relative overflow-hidden">
+        {/* Illustration panel moves to the left for Arabic RTL. */}
+        <div className={`hidden md:flex flex-col justify-between p-8 bg-gradient-to-br from-[#edf7f5] via-[#f1f8f7] to-[#e1efe9] border-[#d8e8e4] relative overflow-hidden ${
+          isArabic ? "md:order-1 md:border-r" : "md:order-2 md:border-l"
+        }`}>
           {/* Decorative background blobs */}
           <div
             aria-hidden="true"

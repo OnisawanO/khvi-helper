@@ -74,7 +74,7 @@ export function WelcomeDashboard({ user, interpreterMode = "helper", onInterpret
       <div className="flex flex-wrap items-center gap-3"><UrgencyBadge urgency={r.urgency} copyLocale={locale === "th" ? "th" : copyLocale} /><StatusBadge status={r.status} copyLocale={locale === "th" ? "th" : copyLocale} /><Link className="inline-flex min-h-11 items-center gap-2 text-sm font-bold underline underline-offset-4" href={discovery ? "/find-requests#main-content" : `/my-requests/${r.requestId}#main-content`}>{tr("ดูรายละเอียด", "View details", "查看详情")}<ArrowRightIcon aria-hidden="true" className="h-4 w-4" /></Link></div>
     </li>;
   }
-  return <main id="main-content" className="mx-auto max-w-[1320px] px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
+  return <main id="main-content" className="mx-auto max-w-[1480px] px-5 py-8 sm:px-8 lg:px-8 lg:py-10">
     <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
       <div><p className="text-sm font-semibold text-(--khvi-teal)">{tr("ยินดีต้อนรับกลับมา", "Welcome back", "欢迎回来")}</p><h1 className="mt-1 break-words text-3xl font-bold">{user.name}</h1></div>
       {interpreterAccount ? (

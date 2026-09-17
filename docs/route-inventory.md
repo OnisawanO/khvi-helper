@@ -1,5 +1,9 @@
 # KHVI Route Inventory
 
+## UI language support
+
+The global UI language switcher supports English (en), Chinese (zh), Thai (th), Spanish (es) and Arabic (ar). Arabic sets document direction to RTL. UI language is separate from interpreter service-language data.
+
 ## Role-specific request workspaces
 
 - Source routes now use Next.js route groups to keep role ownership visible in the file tree without changing public URLs: `(public)`, `(auth)`, `(workspace)`, `(user)`, `(interpreter)`, `(manager)`, and `(admin)`.

@@ -1,5 +1,11 @@
 เอกสารนี้ใช้ flow แบบ Map-based SOS Job Pool ตาม requirement ล่าสุด
 
+ภาษา UI
+- ผู้เยี่ยมชมเลือกภาษาได้จากหน้า Welcome และค่าจะถูกจำไว้ใน browser
+- ระบบรองรับ English, Chinese, Thai, Spanish และ Arabic
+- Arabic ใช้ทิศทางการอ่าน RTL
+- ภาษา UI ไม่ใช่ภาษาที่ล่ามให้บริการ และไม่เปลี่ยนรายการภาษาในระบบ matching
+
 กติกากลาง
 - User สร้างคำขอความช่วยเหลือจากหน้า Welcome
 - Interpreter ที่ Approved เห็นเฉพาะหมุดที่ตรงกับภาษาและหมวดหมู่ความถนัด

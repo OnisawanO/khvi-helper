@@ -13,15 +13,15 @@ export const localeLanguageTags: Record<Locale, string> = {
   en: "en",
   th: "th",
   zh: "zh-Hans",
-  my: "my",
-  vi: "vi",
+  es: "es",
+  ar: "ar",
 };
 
 export function isLocale(value: string | null): value is Locale {
-  return value === "en" || value === "th" || value === "zh" || value === "my" || value === "vi";
+  return value === "en" || value === "th" || value === "zh" || value === "es" || value === "ar";
 }
 
-/** UI copy is authored in English and Chinese. Every other locale falls back to English. */
+/** Legacy data-flow copy currently has English and Chinese variants. */
 export type CopyLocale = "en" | "zh";
 
 export function resolveCopyLocale(locale: Locale): CopyLocale {
@@ -30,6 +30,7 @@ export function resolveCopyLocale(locale: Locale): CopyLocale {
 
 function applyLocaleToDocument(locale: Locale) {
   document.documentElement.lang = localeLanguageTags[locale];
+  document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
 }
 
 /** Persist the signed-in user's UI preference without exposing privileged keys. */

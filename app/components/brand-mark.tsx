@@ -18,11 +18,11 @@ export function BrandMark({
     <Link className="flex items-center gap-3" href={href} aria-label={ariaLabel}>
       <span className={`relative h-11 w-11 shrink-0 overflow-hidden rounded-[10px] border ${light ? "border-white/20 bg-white/10" : "border-[#d8e1e6] bg-white"}`}>
         <Image
-          src="/khvi-logo.jpg"
+          src="/khvi-logo.png"
           alt="KHVI logo"
           fill
           sizes="44px"
-          className="scale-[2.15] object-cover object-[50%_54%]"
+          className="object-contain p-1"
           priority
         />
       </span>

@@ -124,7 +124,7 @@ export function validateRegisterInput(input: RegisterInput, locale: Locale = "th
     }
   }
 
-  const validLocales: Locale[] = ["th", "en", "zh", "my", "vi"];
+  const validLocales: Locale[] = ["th", "en", "zh", "es", "ar"];
   if (!input.preferredUiLanguage || !validLocales.includes(input.preferredUiLanguage)) {
     errors.preferredUiLanguage = copy.localeInvalid;
   }

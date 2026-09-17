@@ -244,7 +244,7 @@ erDiagram
         VARCHAR email UK "อีเมลจาก Supabase Auth"
         user_role role "ENUM: User, Interpreter, Manager, Admin"
         BOOLEAN is_locked "สถานะล็อกบัญชี"
-        VARCHAR preferred_ui_language "ภาษาหน้าจอ (th, en, my)"
+        VARCHAR preferred_ui_language "ภาษาหน้าจอ (th, en, zh, es, ar)"
         TIMESTAMPTZ created_at "วันเวลาที่สมัคร"
     }
 
@@ -309,6 +309,8 @@ erDiagram
 ```
 
 ### 5.2 พจนานุกรมข้อมูล (Data Dictionary & Attributes Detail)
+
+หมายเหตุ: ค่า UI language ที่อนุญาตใน profiles.preferred_ui_language คือ th, en, zh, es และ ar โดย ar ใช้ทิศทางการอ่าน RTL ส่วนรายการภาษาในตาราง languages ยังคงเป็นภาษาที่ล่ามให้บริการและไม่ใช่ locale ของหน้าจอ
 
 ชื่อที่ใช้ใน implementation ให้ยึด `profiles`, `interpreter_profiles`, `bookings`, `languages`, `categories`, `reviews` และ junction tables แบบพหูพจน์ โดย `profiles.user_id` เป็น UUID ที่อ้างถึง `auth.users.id`; `bookings` ต้องมี `requester_confirmed_at` เพื่อบันทึกการยืนยันล่ามของผู้ขอ
 

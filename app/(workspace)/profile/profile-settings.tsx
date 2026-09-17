@@ -108,8 +108,8 @@ const languageOptions: { value: Locale; label: string }[] = [
   { value: "th", label: "ไทย" },
   { value: "en", label: "English" },
   { value: "zh", label: "中文" },
-  { value: "my", label: "မြန်မာ" },
-  { value: "vi", label: "Tiếng Việt" },
+  { value: "es", label: "Español" },
+  { value: "ar", label: "العربية" },
 ];
 
 function splitDisplayName(name: string) {
