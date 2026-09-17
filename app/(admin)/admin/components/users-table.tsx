@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import {
   AdjustmentsHorizontalIcon,
   BriefcaseIcon,
@@ -16,6 +16,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { AdminUserRecord, SystemRole } from "../types";
 import { AVAILABLE_LANGUAGES, AVAILABLE_CATEGORIES } from "../mock-data";
+import { TablePagination } from "./table-pagination";
 
 interface UsersTableProps {
   users: AdminUserRecord[];
@@ -26,6 +27,9 @@ interface UsersTableProps {
   resetRoles: () => void;
   selectedStatusFilter: "All" | "Active" | "Locked";
   setSelectedStatusFilter: (status: "All" | "Active" | "Locked") => void;
+  selectedVerificationStatuses: string[];
+  toggleVerificationStatusFilter: (status: string) => void;
+  resetVerificationStatuses: () => void;
   selectedLanguages: string[];
   toggleLanguageFilter: (lang: string) => void;
   resetLanguages: () => void;
@@ -46,6 +50,9 @@ export function UsersTable({
   resetRoles,
   selectedStatusFilter,
   setSelectedStatusFilter,
+  selectedVerificationStatuses,
+  toggleVerificationStatusFilter,
+  resetVerificationStatuses,
   selectedLanguages,
   toggleLanguageFilter,
   resetLanguages,
@@ -73,7 +80,21 @@ export function UsersTable({
     };
   }, [filterMenuOpen, setFilterMenuOpen]);
 
-  const activeFiltersCount = selectedRoles.length + selectedLanguages.length + selectedCategories.length;
+  const activeFiltersCount =
+    selectedRoles.length +
+    selectedVerificationStatuses.length +
+    selectedLanguages.length +
+    selectedCategories.length;
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
+  const totalPages = Math.max(1, Math.ceil(users.length / pageSize));
+  const validCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+
+  const paginatedUsers = useMemo(() => {
+    const start = (validCurrentPage - 1) * pageSize;
+    return users.slice(start, start + pageSize);
+  }, [users, validCurrentPage, pageSize]);
 
   return (
     <div className="space-y-4">
@@ -111,10 +132,13 @@ export function UsersTable({
               <option value="All">All Statuses</option>
               <option value="Active">Active</option>
               <option value="Locked">Locked</option>
+              <option value="Active">Active Only</option>
+              <option value="Locked">Locked Only</option>
             </select>
           </div>
 
           {/* Unified Filter Button (Roles, Languages & Categories) */}
+          {/* Unified Filter Button (Roles, Verification, Languages & Categories) */}
           <div className="relative" ref={filterMenuRef}>
             <button
               type="button"
@@ -140,6 +164,7 @@ export function UsersTable({
             </button>
 
             {/* Filter Popover Menu (Roles + Languages + Specialties) */}
+            {/* Filter Popover Menu (Roles + Verification + Languages + Specialties) */}
             {filterMenuOpen && (
               <div className="fixed inset-x-4 top-24 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 z-50 sm:w-88 md:w-96 rounded-2xl border border-[#d3dfe3] bg-white p-4 shadow-[0_16px_40px_rgba(9,47,69,0.18)] space-y-4 animate-in fade-in zoom-in-95 max-h-[80vh] overflow-y-auto">
                 <div className="flex items-center justify-between border-b border-[#edf2f5] pb-2.5">
@@ -152,6 +177,7 @@ export function UsersTable({
                       type="button"
                       onClick={() => {
                         resetRoles();
+                        resetVerificationStatuses();
                         resetLanguages();
                         resetCategories();
                       }}
@@ -168,6 +194,7 @@ export function UsersTable({
                     <label className="text-[11px] font-bold text-[#557180] flex items-center gap-1">
                       <UserCircleIcon className="h-3.5 w-3.5 text-[#087f80]" />
                       Roles (เลือกได้มากกว่า 1 บทบาท)
+                      Roles
                     </label>
                     {selectedRoles.length > 0 && (
                       <button
@@ -203,6 +230,53 @@ export function UsersTable({
                             {isChecked && <CheckIcon className="h-2.5 w-2.5 stroke-[3]" />}
                           </span>
                           <span className="truncate">{role}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Section 2: Interpreter Accreditation & Verification Status */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-[11px] font-bold text-[#557180] flex items-center gap-1">
+                      <CheckCircleIcon className="h-3.5 w-3.5 text-[#087f80]" />
+                      Interpreter Verification
+                    </label>
+                    {selectedVerificationStatuses.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={resetVerificationStatuses}
+                        className="text-[10px] text-[#087f80] hover:underline cursor-pointer font-bold"
+                      >
+                        Reset ({selectedVerificationStatuses.length})
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {(["Approved", "Pending", "Under Review", "Suspended"] as const).map((status) => {
+                      const isChecked = selectedVerificationStatuses.includes(status);
+                      return (
+                        <button
+                          type="button"
+                          key={status}
+                          onClick={() => toggleVerificationStatusFilter(status)}
+                          className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs font-semibold cursor-pointer transition-colors text-left ${
+                            isChecked
+                              ? "border-[#087f80] bg-[#edf7f5] text-[#087f80]"
+                              : "border-[#e0eaee] bg-[#f9fbfb] text-[#244253] hover:bg-white"
+                          }`}
+                        >
+                          <span
+                            className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border ${
+                              isChecked
+                                ? "border-[#087f80] bg-[#087f80] text-white"
+                                : "border-[#b8cbd2] bg-white"
+                            }`}
+                          >
+                            {isChecked && <CheckIcon className="h-2.5 w-2.5 stroke-[3]" />}
+                          </span>
+                          <span className="truncate">{status}</span>
                         </button>
                       );
                     })}
@@ -333,7 +407,7 @@ export function UsersTable({
                   </td>
                 </tr>
               ) : (
-                users.map((u) => (
+                paginatedUsers.map((u) => (
                   <tr
                     key={u.id}
                     onClick={() => onSelectUser(u)}
@@ -425,6 +499,15 @@ export function UsersTable({
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Footer */}
+        <TablePagination
+          totalItems={users.length}
+          currentPage={validCurrentPage}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          itemName="users"
+        />
       </div>
     </div>
   );

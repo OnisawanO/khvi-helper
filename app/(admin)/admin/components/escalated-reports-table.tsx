@@ -1,20 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import {
+  AdjustmentsHorizontalIcon,
+  CheckCircleIcon,
+  CheckIcon,
+  ChevronDownIcon,
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
-  NoSymbolIcon,
-  ShieldExclamationIcon,
-  CheckCircleIcon,
   EyeIcon,
-  LockOpenIcon,
-  UserCircleIcon,
-  ShieldCheckIcon,
   LanguageIcon,
+  LockOpenIcon,
+  MagnifyingGlassIcon,
+  NoSymbolIcon,
+  ShieldCheckIcon,
+  ShieldExclamationIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { AdminIncidentReport, AdminUserRecord } from "../types";
 import { ReportStatusFilter } from "./reports-kpi-cards";
+import { TablePagination } from "./table-pagination";
 
 interface EscalatedReportsTableProps {
   reports: AdminIncidentReport[];
@@ -26,6 +31,12 @@ interface EscalatedReportsTableProps {
   onSelectStatusFilter?: (status: ReportStatusFilter) => void;
 }
 
+const severityWeight: Record<AdminIncidentReport["severity"], number> = {
+  medium: 1,
+  high: 2,
+  critical: 3,
+};
+
 export function EscalatedReportsTable({
   reports,
   users,
@@ -33,9 +44,46 @@ export function EscalatedReportsTable({
   onOpenUserDetail,
   onUnlockUser,
   selectedStatusFilter = "All",
+  onSelectStatusFilter,
 }: EscalatedReportsTableProps) {
   const [filterSeverity, setFilterSeverity] = useState<"All" | "critical" | "high" | "medium">("All");
   const [selectedReportDetail, setSelectedReportDetail] = useState<AdminIncidentReport | null>(null);
+
+  // Search & Detailed Filter Popover State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [selectedReporterRoles, setSelectedReporterRoles] = useState<string[]>([]);
+  const [localStatusFilter, setLocalStatusFilter] = useState<ReportStatusFilter>(selectedStatusFilter);
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const filterMenuRef = useRef<HTMLDivElement>(null);
+
+  // Sync status filter state
+  const activeStatusFilter = onSelectStatusFilter ? selectedStatusFilter : localStatusFilter;
+  const handleStatusChange = (status: ReportStatusFilter) => {
+    setLocalStatusFilter(status);
+    if (onSelectStatusFilter) {
+      onSelectStatusFilter(status);
+    }
+  };
+
+  // Pagination state (10 items per page)
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
+  // Close filter popover on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (filterMenuRef.current && !filterMenuRef.current.contains(event.target as Node)) {
+        setFilterMenuOpen(false);
+      }
+    }
+    if (filterMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [filterMenuOpen]);
 
   // Track toggled expanded view for original language per report
   const [expandedOriginalMap, setExpandedOriginalMap] = useState<Record<string, boolean>>({});
@@ -54,30 +102,53 @@ export function EscalatedReportsTable({
     reportId?: string;
   } | null>(null);
 
-  const severityWeight: Record<AdminIncidentReport["severity"], number> = {
-    medium: 1,
-    high: 2,
-    critical: 3,
-  };
+  const filteredReports = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return reports
+      .filter((r) => {
+        if (filterSeverity !== "All" && r.severity !== filterSeverity) return false;
 
-  const filteredReports = reports
-    .filter((r) => {
-      if (filterSeverity !== "All" && r.severity !== filterSeverity) return false;
+        if (activeStatusFilter === "Pending" && r.status !== "Escalated to Admin") return false;
+        if (activeStatusFilter === "Locked" && r.status !== "Resolved (Locked)") return false;
+        if (activeStatusFilter === "Hard Banned" && r.status !== "Resolved (Hard Banned)") return false;
+        if (activeStatusFilter === "Dismissed" && r.status !== "Dismissed") return false;
 
-      if (selectedStatusFilter === "Pending" && r.status !== "Escalated to Admin") return false;
-      if (selectedStatusFilter === "Locked" && r.status !== "Resolved (Locked)") return false;
-      if (selectedStatusFilter === "Hard Banned" && r.status !== "Resolved (Hard Banned)") return false;
-      if (selectedStatusFilter === "Dismissed" && r.status !== "Dismissed") return false;
+        if (selectedRoles.length > 0 && !selectedRoles.includes(r.reportedUserRole)) return false;
+        if (selectedReporterRoles.length > 0 && !selectedReporterRoles.includes(r.reporterRole)) return false;
 
-      return true;
-    })
-    .sort((a, b) => {
-      // Sort from lowest severity to highest severity (medium -> high -> critical)
-      const diff = severityWeight[a.severity] - severityWeight[b.severity];
-      if (diff !== 0) return diff;
-      return b.createdAt.localeCompare(a.createdAt);
-    });
+        if (q) {
+          const matchId = r.id.toLowerCase().includes(q);
+          const matchTarget = r.reportedUserName.toLowerCase().includes(q) || r.reportedUserId.toLowerCase().includes(q);
+          const matchReporter = r.reporterName.toLowerCase().includes(q);
+          const matchBooking = r.bookingId.toLowerCase().includes(q);
+          const matchReason = r.reason.toLowerCase().includes(q) || (r.originalReason?.toLowerCase().includes(q) ?? false);
+          if (!matchId && !matchTarget && !matchReporter && !matchBooking && !matchReason) {
+            return false;
+          }
+        }
 
+        return true;
+      })
+      .sort((a, b) => {
+        const diff = severityWeight[a.severity] - severityWeight[b.severity];
+        if (diff !== 0) return diff;
+        return b.createdAt.localeCompare(a.createdAt);
+      });
+  }, [reports, filterSeverity, activeStatusFilter, selectedRoles, selectedReporterRoles, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredReports.length / pageSize));
+  const validCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+
+  const paginatedReports = useMemo(() => {
+    const start = (validCurrentPage - 1) * pageSize;
+    return filteredReports.slice(start, start + pageSize);
+  }, [filteredReports, validCurrentPage, pageSize]);
+
+  const activeFiltersCount =
+    (filterSeverity !== "All" ? 1 : 0) +
+    (activeStatusFilter !== "All" ? 1 : 0) +
+    selectedRoles.length +
+    selectedReporterRoles.length;
   const pendingReportsCount = reports.filter((r) => r.status === "Escalated to Admin").length;
 
   return (
@@ -130,6 +201,200 @@ export function EscalatedReportsTable({
         </div>
       </div>
 
+      {/* Search and Advanced Filter Toolbar */}
+      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs md:flex-row md:items-center md:justify-between">
+        {/* Search Bar */}
+        <div className="relative flex-1">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search cases by ID, user, volunteer, booking or incident reason..."
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-10 pr-4 text-xs text-slate-800 placeholder-slate-400 focus:border-[#087f80] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#087f80]"
+          />
+          <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
+            >
+              <XMarkIcon className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Filter Controls: Quick Status Select + Popover */}
+        <div className="flex items-center gap-2">
+          {/* Quick Status Filter on Toolbar */}
+          <div className="flex items-center gap-1.5">
+            <select
+              value={activeStatusFilter}
+              onChange={(e) => handleStatusChange(e.target.value as ReportStatusFilter)}
+              className="rounded-xl sm:rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 focus:border-[#087f80] focus:outline-none"
+            >
+              <option value="All">All Statuses</option>
+              <option value="Pending">Pending Action Only</option>
+              <option value="Locked">Resolved (Locked)</option>
+              <option value="Hard Banned">Resolved (Hard Banned)</option>
+              <option value="Dismissed">Dismissed</option>
+            </select>
+          </div>
+
+          {/* Filter Popover Button */}
+          <div className="relative" ref={filterMenuRef}>
+            <button
+              type="button"
+              onClick={() => setFilterMenuOpen(!filterMenuOpen)}
+              className={`flex items-center justify-center gap-2 rounded-xl sm:rounded-lg border px-3 py-1.5 text-xs font-bold transition-all shadow-xs cursor-pointer ${
+                activeFiltersCount > 0
+                  ? "border-[#087f80] bg-[#edf7f5] text-[#087f80]"
+                  : "border-[#c9d8de] bg-white text-[#2d4957] hover:border-[#087f80] hover:bg-[#edf7f5]"
+              }`}
+            >
+              <AdjustmentsHorizontalIcon className="h-4 w-4 text-[#087f80]" />
+              <span>Filter</span>
+              {activeFiltersCount > 0 && (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#087f80] text-[9px] font-black text-white">
+                  {activeFiltersCount}
+                </span>
+              )}
+              <ChevronDownIcon
+                className={`h-3 w-3 text-[#5e7783] transition-transform ${
+                  filterMenuOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {/* Filter Popover Dropdown */}
+            {filterMenuOpen && (
+              <div className="absolute right-0 top-full z-30 mt-2 w-72 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl space-y-4 animate-in fade-in zoom-in-95">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <span className="text-xs font-bold text-[#092f45] flex items-center gap-1.5">
+                    <AdjustmentsHorizontalIcon className="h-4 w-4 text-[#087f80]" />
+                    Incident Filters
+                  </span>
+                  {activeFiltersCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedRoles([]);
+                        setSelectedReporterRoles([]);
+                        handleStatusChange("All");
+                        setFilterSeverity("All");
+                      }}
+                      className="text-[10px] font-bold text-red-600 hover:underline cursor-pointer"
+                    >
+                      Reset All ({activeFiltersCount})
+                    </button>
+                  )}
+                </div>
+
+                {/* Section 1: Target (Reported) Role */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                      Target Role (ผู้ถูกร้องเรียน)
+                    </label>
+                    {selectedRoles.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedRoles([])}
+                        className="text-[10px] font-bold text-[#087f80] hover:underline cursor-pointer"
+                      >
+                        Reset ({selectedRoles.length})
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {(["User", "Interpreter"] as const).map((role) => {
+                      const isChecked = selectedRoles.includes(role);
+                      return (
+                        <button
+                          type="button"
+                          key={role}
+                          onClick={() =>
+                            setSelectedRoles((prev) =>
+                              prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
+                            )
+                          }
+                          className={`flex items-center justify-between rounded-lg border px-2.5 py-1.5 text-xs font-semibold cursor-pointer transition-colors ${
+                            isChecked
+                              ? "border-[#087f80] bg-[#edf7f5] text-[#087f80]"
+                              : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-white"
+                          }`}
+                        >
+                          <span>{role}</span>
+                          <span
+                            className={`flex h-3.5 w-3.5 items-center justify-center rounded border ${
+                              isChecked
+                                ? "border-[#087f80] bg-[#087f80] text-white"
+                                : "border-slate-300 bg-white"
+                            }`}
+                          >
+                            {isChecked && <CheckIcon className="h-2.5 w-2.5 stroke-[3]" />}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Section 2: Reporter Role */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                      Reporter Role (ผู้แจ้งเรื่อง)
+                    </label>
+                    {selectedReporterRoles.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedReporterRoles([])}
+                        className="text-[10px] font-bold text-[#087f80] hover:underline cursor-pointer"
+                      >
+                        Reset ({selectedReporterRoles.length})
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {(["User", "Interpreter"] as const).map((role) => {
+                      const isChecked = selectedReporterRoles.includes(role);
+                      return (
+                        <button
+                          type="button"
+                          key={role}
+                          onClick={() =>
+                            setSelectedReporterRoles((prev) =>
+                              prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
+                            )
+                          }
+                          className={`flex items-center justify-between rounded-lg border px-2.5 py-1.5 text-xs font-semibold cursor-pointer transition-colors ${
+                            isChecked
+                              ? "border-[#087f80] bg-[#edf7f5] text-[#087f80]"
+                              : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-white"
+                          }`}
+                        >
+                          <span>{role}</span>
+                          <span
+                            className={`flex h-3.5 w-3.5 items-center justify-center rounded border ${
+                              isChecked
+                                ? "border-[#087f80] bg-[#087f80] text-white"
+                                : "border-slate-300 bg-white"
+                            }`}
+                          >
+                            {isChecked && <CheckIcon className="h-2.5 w-2.5 stroke-[3]" />}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Reports Table Container */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs">
         <div className="overflow-x-auto">
@@ -140,48 +405,38 @@ export function EscalatedReportsTable({
                 <th className="px-3.5 py-3.5">Reported Target</th>
                 <th className="px-3.5 py-3.5">Reporter</th>
                 <th className="px-3.5 py-3.5 text-center">Severity</th>
-                <th className="px-3.5 py-3.5">Incident Reason & Auto-Translation</th>
-                <th className="px-3.5 py-3.5 text-center">Case Status</th>
-                <th className="py-3.5 pl-3 pr-5 text-right">Enforcement Action</th>
+                <th className="px-3.5 py-3.5">Misconduct Description (Translated)</th>
+                <th className="px-3.5 py-3.5 text-center">Status</th>
+                <th className="py-3.5 pl-3 pr-5 text-right">Administrative Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredReports.length === 0 ? (
+              {paginatedReports.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-400">
-                    <CheckCircleIcon className="mx-auto h-8 w-8 text-emerald-500 mb-1" />
-                    <p className="font-bold text-[#092f45]">No incident reports matching current criteria</p>
-                    <p className="text-[11px] text-slate-500">All community safety cases are resolved and healthy.</p>
+                    <CheckCircleIcon className="mx-auto h-8 w-8 text-slate-300 mb-1" />
+                    No incident reports match your current filter criteria.
                   </td>
                 </tr>
               ) : (
-                filteredReports.map((report) => {
+                paginatedReports.map((report) => {
                   const targetUserObj = users.find((u) => u.id === report.reportedUserId);
-                  const isResolved = report.status !== "Escalated to Admin";
                   const isTargetLocked = targetUserObj?.isLocked ?? false;
-                  const isTargetBanned = targetUserObj?.accountStatus === "Banned" || targetUserObj?.lockReason?.includes("[PERMANENT BAN]");
-                  const isOriginalExpanded = !!expandedOriginalMap[report.id];
+                  const isTargetBanned = targetUserObj?.accountStatus === "Banned";
+                  const isResolved =
+                    report.status === "Resolved (Hard Banned)" ||
+                    report.status === "Resolved (Locked)" ||
+                    report.status === "Dismissed";
+                  const isOriginalExpanded = expandedOriginalMap[report.id] ?? false;
 
                   return (
                     <tr
                       key={report.id}
-                      onClick={(e) => {
-                        // Prevent row click if an interactive element inside was clicked
-                        if ((e.target as HTMLElement).closest("button")) return;
-                        if (targetUserObj) {
-                          onOpenUserDetail(targetUserObj);
-                        } else {
-                          alert("Target user not found in the current system database.");
-                        }
-                      }}
-                      className={`cursor-pointer transition-colors hover:bg-teal-50/40 ${
-                        isTargetLocked ? "bg-red-50/20 hover:bg-red-50/35" : "hover:bg-slate-50/80"
-                      }`}
-                      title="Click anywhere to inspect target user profile & governance controls"
+                      className="hover:bg-slate-50/80 transition-colors"
                     >
                       {/* ID & Date */}
-                      <td className="py-3.5 pl-5 pr-3 whitespace-nowrap">
-                        <span className="font-black text-[#092f45]">{report.id}</span>
+                      <td className="py-3.5 pl-5 pr-3 whitespace-nowrap font-sans">
+                        <div className="font-mono font-bold text-[#092f45]">{report.id}</div>
                         <div className="text-[10px] text-slate-400 font-mono mt-0.5">
                           {report.createdAt}
                         </div>
@@ -190,14 +445,40 @@ export function EscalatedReportsTable({
                         </span>
                       </td>
 
-                      {/* Reported User */}
-                      <td className="px-3.5 py-3.5 whitespace-nowrap">
-                        <div className="flex items-center gap-1 font-extrabold text-[#092f45]">
-                          <span>{report.reportedUserName}</span>
-                          <UserCircleIcon className="h-3.5 w-3.5 opacity-60 text-slate-400" />
-                        </div>
-                        <div className="text-[11px] text-slate-500">
-                          {report.reportedUserId} • {report.reportedUserRole}
+                      {/* Reported User / Interpreter */}
+                      <td className="px-3.5 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[#092f45] text-[11px] font-bold">
+                            {report.reportedUserName.slice(0, 1).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (targetUserObj) {
+                                    onOpenUserDetail(targetUserObj);
+                                  }
+                                }}
+                                className="font-bold text-[#092f45] hover:text-[#087f80] hover:underline cursor-pointer text-left"
+                                title="View User Security Profile"
+                              >
+                                {report.reportedUserName}
+                              </button>
+                              <span
+                                className={`rounded px-1.5 py-0.2 text-[9px] font-bold ${
+                                  report.reportedUserRole === "Interpreter"
+                                    ? "bg-teal-50 text-[#087f80] border border-teal-200"
+                                    : "bg-slate-100 text-slate-600 border border-slate-200"
+                                }`}
+                              >
+                                {report.reportedUserRole}
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-mono">
+                              ID: {report.reportedUserId || "N/A"} • Booking: {report.bookingId}
+                            </div>
+                          </div>
                         </div>
                       </td>
 
@@ -214,7 +495,7 @@ export function EscalatedReportsTable({
                       {/* Severity */}
                       <td className="px-3.5 py-3.5 text-center whitespace-nowrap">
                         <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-black ${
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide ${
                             report.severity === "critical"
                               ? "bg-red-100 text-red-700 border border-red-200"
                               : report.severity === "high"
@@ -227,25 +508,25 @@ export function EscalatedReportsTable({
                           ) : (
                             <ExclamationTriangleIcon className="h-3 w-3 text-amber-600" />
                           )}
-                          {report.severity.toUpperCase()}
+                          {report.severity}
                         </span>
                       </td>
 
-                      {/* Reason with Auto-Translation and Original Toggle */}
-                      <td className="px-3.5 py-3.5 max-w-xs sm:max-w-md">
-                        {/* Auto-translate header badge if original language exists */}
-                        {report.originalLanguage && report.originalLanguage !== "English" && (
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 border border-blue-200/80">
-                              <LanguageIcon className="h-3 w-3 text-blue-600" />
-                              Auto-translated from {report.originalLanguage}
+                      {/* Multilingual Reason & Collapsible Original Text */}
+                      <td className="px-3.5 py-3.5 max-w-sm">
+                        {/* Reporter & Language Pill */}
+                        {report.originalReason && report.originalLanguage && (
+                          <div className="mb-1 flex items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold text-slate-600 border border-slate-200/60">
+                              <LanguageIcon className="h-2.5 w-2.5 text-slate-500" />
+                              Translated from {report.originalLanguage}
                             </span>
                             <button
                               type="button"
                               onClick={(e) => toggleOriginal(report.id, e)}
                               className="text-[10px] font-bold text-[#087f80] hover:underline cursor-pointer"
                             >
-                              {isOriginalExpanded ? "Hide Original" : "View Original"}
+                              {isOriginalExpanded ? "Hide original text" : "View original language"}
                             </button>
                           </div>
                         )}
@@ -286,7 +567,7 @@ export function EscalatedReportsTable({
                         </span>
                       </td>
 
-                      {/* Action buttons */}
+                      {/* Action */}
                       <td className="py-3.5 pl-3 pr-5 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-2">
                           {/* 1. If user is currently soft-locked, offer Unlock button with safety confirmation */}
@@ -342,6 +623,15 @@ export function EscalatedReportsTable({
             </tbody>
           </table>
         </div>
+
+        {/* Table Pagination Footer */}
+        <TablePagination
+          totalItems={filteredReports.length}
+          currentPage={validCurrentPage}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          itemName="incident reports"
+        />
       </div>
 
       {/* Safety Confirmation Dialog for Unlocking User Account */}

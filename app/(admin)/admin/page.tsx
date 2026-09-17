@@ -53,6 +53,7 @@ export default function AdminPage() {
   // Filters
   const [selectedRoles, setSelectedRoles] = useState<SystemRole[]>([]);
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<"All" | "Active" | "Locked">("All");
+  const [selectedVerificationStatuses, setSelectedVerificationStatuses] = useState<string[]>([]);
   const [selectedReportStatusFilter, setSelectedReportStatusFilter] = useState<ReportStatusFilter>("All");
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -232,6 +233,12 @@ export default function AdminPage() {
     );
   };
 
+  const toggleVerificationStatusFilter = (status: string) => {
+    setSelectedVerificationStatuses((prev) =>
+      prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status]
+    );
+  };
+
   // Filtered Users
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
@@ -240,6 +247,11 @@ export default function AdminPage() {
       }
       if (selectedStatusFilter === "Active" && u.isLocked) return false;
       if (selectedStatusFilter === "Locked" && !u.isLocked) return false;
+
+      if (selectedVerificationStatuses.length > 0) {
+        if (!u.interpreterStats) return false;
+        if (!selectedVerificationStatuses.includes(u.interpreterStats.verificationStatus)) return false;
+      }
 
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -269,7 +281,7 @@ export default function AdminPage() {
       if (!a.isLocked && b.isLocked) return -1;
       return 0;
     });
-  }, [users, selectedRoles, selectedStatusFilter, searchQuery, selectedLanguages, selectedCategories]);
+  }, [users, selectedRoles, selectedStatusFilter, selectedVerificationStatuses, searchQuery, selectedLanguages, selectedCategories]);
 
   // Quick stats
   const totalUsersCount = users.length;
@@ -385,6 +397,9 @@ export default function AdminPage() {
                 resetRoles={() => setSelectedRoles([])}
                 selectedStatusFilter={selectedStatusFilter}
                 setSelectedStatusFilter={setSelectedStatusFilter}
+                selectedVerificationStatuses={selectedVerificationStatuses}
+                toggleVerificationStatusFilter={toggleVerificationStatusFilter}
+                resetVerificationStatuses={() => setSelectedVerificationStatuses([])}
                 selectedLanguages={selectedLanguages}
                 toggleLanguageFilter={toggleLanguageFilter}
                 resetLanguages={() => setSelectedLanguages([])}
