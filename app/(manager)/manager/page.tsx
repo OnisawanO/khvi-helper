@@ -55,6 +55,11 @@ import {
 } from "@/app/lib/mock-auth";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { createClient } from "@/utils/supabase/client";
+import {
+  useInterpreterApplications,
+  reviewInterpreterApplication,
+  type InterpreterApplication as StoreApplication,
+} from "@/app/lib/interpreter-application";
 
 function ManagerTopHeader({
   onMenuClick,
@@ -199,11 +204,53 @@ function ManagerTopHeader({
   );
 }
 
+function toInterpreterApplicant(app: StoreApplication): InterpreterApplicant {
+  const primary = app.primaryLanguage || (app.languages[0]?.name ?? "ไทย (Thai)");
+  const spoken = app.languages.map((l) => l.name);
+  const categories = app.categories.map((c) => c.name);
+  
+  let status: InterpreterApplicant["status"] = "Pending";
+  if (app.status === "approved") status = "Approved";
+  else if (app.status === "rejected") status = "Rejected";
+  else if (app.status === "under_review" || app.status === "needs_revision") status = "Under Review";
+
+  const firstDoc = app.documents[0];
+  const docName = firstDoc?.name || app.certificateFileName || "document.pdf";
+  const ext = docName.split(".").pop()?.toLowerCase();
+  const format = ext === "png" || ext === "jpg" ? ext : "pdf";
+
+  return {
+    id: app.id,
+    name: app.applicantName,
+    age: app.age || 25,
+    country: app.assignedArea || "Thailand",
+    primaryLanguage: primary,
+    spokenLanguages: spoken.length > 0 ? spoken : [primary],
+    specialtyCategories: categories.length > 0 ? categories : ["General Communication"],
+    experienceSummary: app.workHistory.map((w) => w.description).join("; ") || "ความพร้อมช่วยเหลือฉุกเฉินและประสานงานทั่วไป",
+    contactChannels: [app.phone, app.extraContact].filter(Boolean).join(" | ") || app.email,
+    appliedDate: app.submittedAt || "Recently",
+    status,
+    rejectionReason: app.rejectReason,
+    backgroundCheck: "Passed",
+    proficiencyScore: app.languages.map((l) => `${l.name} (${l.level || l.type || "Proficient"})`).join(", "),
+    document: {
+      name: docName,
+      type: firstDoc?.type || "cert",
+      format,
+      size: firstDoc?.size || "2.0 MB",
+      url: firstDoc?.url || app.certificateUrl,
+    },
+  };
+}
+
 export default function ManagerDashboard() {
   const router = useRouter();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+
+  const { applications } = useInterpreterApplications();
 
   useEffect(() => {
     const supabase = createClient();
@@ -261,11 +308,17 @@ export default function ManagerDashboard() {
     return currentUser.name.slice(0, 2).toUpperCase();
   }, [currentUser]);
 
-  const [applicants, setApplicants] = useState<InterpreterApplicant[]>(initialApplicants);
+  const applicants = useMemo<InterpreterApplicant[]>(() => {
+    if (applications && applications.length > 0) {
+      return applications.map(toInterpreterApplicant);
+    }
+    return initialApplicants;
+  }, [applications]);
+
   const [tickets, setTickets] = useState<HelpTicket[]>(initialTickets);
   const [reports, setReports] = useState<IncidentReport[]>(initialReports);
   const [activities, setActivities] = useState<ManagerActivity[]>(initialManagerActivities);
-  const [selectedApplicantId, setSelectedApplicantId] = useState<string | null>(initialApplicants[0].id);
+  const [selectedApplicantId, setSelectedApplicantId] = useState<string | null>(null);
   
   // Navigation & View State (Strictly Manager scope: Verification + Support + History)
   const [navSection, setNavSection] = useState<ManagerNavSection>("queue");
@@ -371,9 +424,13 @@ export default function ManagerDashboard() {
   // Handle Approve (FR-43)
   const handleApprove = (id: string) => {
     const target = applicants.find((a) => a.id === id);
-    setApplicants((prev) =>
-      prev.map((app) => (app.id === id ? { ...app, status: "Approved" } : app))
-    );
+    if (currentUser) {
+      try {
+        reviewInterpreterApplication(id, currentUser, { status: "approved" });
+      } catch (err) {
+        console.error("Failed to persist approval:", err);
+      }
+    }
     if (target) {
       setActivities((prev) => {
         const newAct: ManagerActivity = {
@@ -391,13 +448,13 @@ export default function ManagerDashboard() {
   // Handle Reject (FR-44, FR-45)
   const handleReject = (id: string, reason: string) => {
     const target = applicants.find((a) => a.id === id);
-    setApplicants((prev) =>
-      prev.map((app) =>
-        app.id === id
-          ? { ...app, status: "Rejected", rejectionReason: reason }
-          : app
-      )
-    );
+    if (currentUser) {
+      try {
+        reviewInterpreterApplication(id, currentUser, { status: "rejected", reason });
+      } catch (err) {
+        console.error("Failed to persist rejection:", err);
+      }
+    }
     if (target) {
       setActivities((prev) => {
         const newAct: ManagerActivity = {
