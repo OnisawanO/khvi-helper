@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  cancelMission,
-  confirmInterpreterSelection,
-  confirmRequestCompletion,
-  startRequest,
-  updateRequestDetailsBeforeStart,
-} from "@/app/lib/request-store";
-import { saveMissionLocation, useMissionLocations } from "@/app/lib/mission-location-store";
+  cancelBookingAction,
+  confirmBookingCompletionAction,
+  confirmBookingInterpreterAction,
+  saveMissionLocationAction,
+  startBookingAction,
+  updateBookingDetailsAction,
+} from "@/app/actions/booking-actions";
+import type { RealMissionLocations } from "@/app/lib/real-request-data";
 import type { UserProfile } from "@/app/lib/mock-auth";
 import { useEffect, useState, type SubmitEvent } from "react";
 import {
@@ -270,7 +271,11 @@ function stepStates(status: RequestStatus): Record<(typeof TIMELINE_STEPS)[numbe
 const sectionClass = "border border-[#d6e0e4] bg-white p-5 sm:p-6";
 const sectionTitleClass = "text-base font-extrabold text-[#173646]";
 
-export function RequestDetail({ request, viewer }: { request: HelpRequest; viewer: UserProfile }) {
+export function RequestDetail({
+  request,
+  viewer,
+  initialMissionLocations = {},
+}: { request: HelpRequest; viewer: UserProfile; initialMissionLocations?: RealMissionLocations }) {
   const router = useRouter();
   const copyLocale = useCopyLocale();
   const t = copy[copyLocale];
@@ -288,7 +293,7 @@ export function RequestDetail({ request, viewer }: { request: HelpRequest; viewe
   const [editError, setEditError] = useState<string | null>(null);
   const [editSuccess, setEditSuccess] = useState(false);
   const [locationState, setLocationState] = useState<"loading" | "saved" | "denied" | "unavailable" | "error">("loading");
-  const missionLocations = useMissionLocations(request.requestId);
+  const [missionLocations, setMissionLocations] = useState<RealMissionLocations>(initialMissionLocations);
   const userConfirmedAt = request.userConfirmedDoneAtLabel;
 
   const interpreterConfirmedAt = request.interpreterConfirmedDoneAtLabel;
@@ -330,14 +335,30 @@ export function RequestDetail({ request, viewer }: { request: HelpRequest; viewe
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
         try {
-          saveMissionLocation(
-            request,
-            viewer,
-            position.coords.latitude,
-            position.coords.longitude,
-            position.coords.accuracy,
-          );
-          setLocationState("saved");
+          void saveMissionLocationAction({
+            bookingId: request.requestId,
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          }).then((result) => {
+            if (!result.ok) {
+              setLocationState("error");
+              return;
+            }
+            const point = {
+              actorId: viewer.userId,
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              updatedAtLabel: new Date().toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }),
+              accuracyMeters: position.coords.accuracy,
+            };
+            setMissionLocations((current) => ({
+              ...current,
+              ...(isInterpreter ? { interpreter: point } : { requester: point }),
+            }));
+            setLocationState("saved");
+          }).catch(() => {
+            setLocationState("error");
+          });
         } catch {
           setLocationState("error");
         }
@@ -347,7 +368,7 @@ export function RequestDetail({ request, viewer }: { request: HelpRequest; viewe
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, [canTrackLocation, request, viewer]);
+  }, [canTrackLocation, isInterpreter, request.requestId, viewer.userId]);
 
   if (!isInterpreter && requesterLocation) {
     mapPoints.push({
@@ -413,34 +434,42 @@ export function RequestDetail({ request, viewer }: { request: HelpRequest; viewe
     Completed: status === "Completed" ? (request.endedAtLabel ?? userConfirmedAt ?? interpreterConfirmedAt) : null,
   };
 
-  function confirmCancellation() {
+  async function confirmCancellation() {
     if (!cancelDraft.trim()) {
       setCancelError(t.cancelReasonMissing);
       return;
     }
 
+    const result = await cancelBookingAction(request.requestId, cancelDraft);
+    if (!result.ok) {
+      setCancelError(result.error);
+      return;
+    }
     try {
-      cancelMission(request.requestId, viewer, cancelDraft);
       setCancelError(null);
       setCancelFormOpen(false);
       if (isInterpreter && status === "Claimed") router.replace("/find-requests#main-content");
+      else router.refresh();
     } catch { setCancelError("Could not save this change. Please try again."); }
   }
 
   /** BR-05: the request only reaches Completed once both sides confirm. */
-  function confirmDone() {
-    try { confirmRequestCompletion(request.requestId, viewer); }
-    catch { setCancelError("Could not save your confirmation. Please try again."); }
+  async function confirmDone() {
+    const result = await confirmBookingCompletionAction(request.requestId);
+    if (!result.ok) setCancelError(result.error);
+    else router.refresh();
   }
 
-  function confirmAssignedInterpreter() {
-    try { confirmInterpreterSelection(request.requestId, viewer); }
-    catch { setCancelError("Could not confirm this interpreter. Please try again."); }
+  async function confirmAssignedInterpreter() {
+    const result = await confirmBookingInterpreterAction(request.requestId);
+    if (!result.ok) setCancelError(result.error);
+    else router.refresh();
   }
 
-  function beginWork() {
-    try { startRequest(request.requestId, viewer); }
-    catch (error) { setCancelError(error instanceof Error ? error.message : "Could not start this assignment."); }
+  async function beginWork() {
+    const result = await startBookingAction(request.requestId);
+    if (!result.ok) setCancelError(result.error);
+    else router.refresh();
   }
 
   function openEditForm() {
@@ -453,25 +482,27 @@ export function RequestDetail({ request, viewer }: { request: HelpRequest; viewe
     setEditFormOpen(true);
   }
 
-  function saveEditedDetails(event: SubmitEvent<HTMLFormElement>) {
+  async function saveEditedDetails(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!editMeetingPoint.trim()) {
       setEditError(t.meetingPointRequired);
       return;
     }
 
-    try {
-      updateRequestDetailsBeforeStart(request.requestId, viewer, {
-        languageId: editLanguageId,
-        categoryId: editCategoryId,
-        description: editDescription,
-        exactAddress: editMeetingPoint,
-      });
+    const result = await updateBookingDetailsAction({
+      bookingId: request.requestId,
+      languageId: editLanguageId,
+      categoryId: editCategoryId,
+      description: editDescription,
+      locationName: editMeetingPoint,
+    });
+    if (result.ok) {
       setEditError(null);
       setEditSuccess(true);
       setEditFormOpen(false);
-    } catch (error) {
-      setEditError(error instanceof Error ? error.message : "Could not update this request.");
+      router.refresh();
+    } else {
+      setEditError(result.error);
     }
   }
 

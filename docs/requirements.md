@@ -2,6 +2,14 @@
 
 เอกสารนี้เป็นข้อกำหนดฉบับใช้งานปัจจุบันของระบบ Map-based SOS Volunteer Interpreter Platform โดยยึด flow แบบ Job Pool และ Supabase Auth
 
+### UI language catalog
+
+ระบบรองรับภาษาหน้าจอ 5 ภาษา: English (en), Chinese (zh), Thai (th), Spanish (es) และ Arabic (ar) โดยภาษาอาหรับใช้ทิศทางการอ่านแบบ RTL
+
+- ผู้มาเยือนเลือกภาษาได้จากหน้า Welcome และระบบจำค่าผ่าน browser storage
+- ผู้ใช้ที่เข้าสู่ระบบแล้วใช้ค่าจาก profiles.preferred_ui_language เป็นค่าหลัก
+- ภาษาหน้าจอเป็นคนละข้อมูลกับภาษาที่ล่ามให้บริการ และไม่ใช้แทนตาราง languages
+
 ## 1. เป้าหมายระบบ
 
 ระบบเชื่อมผู้ขอความช่วยเหลือด้านภาษากับล่ามจิตอาสาที่อยู่ใกล้เคียง ผู้ขอสร้างหมุดคำขอ ส่วนล่ามที่มีภาษาและหมวดหมู่ตรงกันเลือกกด Claim จากแผนที่
@@ -56,7 +64,7 @@
 ### Scheduled
 
 - แสดงบนแผนที่ทันทีหลังสร้าง
-- นัดหมายล่วงหน้าได้ไม่เกิน 1 วัน
+- เลือกเวลานัดหมายได้ตั้งแต่วันถัดไปตามปฏิทิน โดยไม่จำกัดวันสูงสุด
 - หมดอายุเมื่อถึงเวลานัดหมาย
 - ต้องแสดงผลแตกต่างจากงาน Immediate
 
@@ -256,14 +264,14 @@ open -> claimed -> in_progress -> completed
 - `Immediate` ใช้ข้อความระดับความเร่งด่วน เช่น “ต้องการความช่วยเหลือภายใน 15 นาที”
 - ข้อความ 15 นาทีเป็นข้อมูลแสดงผล ไม่ใช่ deadline บังคับเริ่มงาน
 - คำขอ Immediate ที่ยังไม่มีล่าม Claim ต้องหมดอายุ 30 นาทีหลังสร้าง
-- `Scheduled` ต้องกำหนด `scheduled_at` ล่วงหน้าไม่เกิน 1 วัน
+- `Scheduled` ต้องกำหนด `scheduled_at` ตั้งแต่วันถัดไปตามปฏิทิน โดยไม่จำกัดวันสูงสุด
 - คำขอ Scheduled ต้องแสดงใน Job Pool ทันทีหลังสร้างและมี visual แตกต่างจาก Immediate
 - คำขอ Scheduled ที่ยังไม่มีล่าม Claim ต้องหมดอายุเมื่อถึงเวลานัดหมาย
 - Server ต้องกำหนดและตรวจ `expires_at` ไม่พึ่ง countdown ใน browser เป็นผู้เปลี่ยนสถานะหลัก
 
 **ผลลัพธ์และเกณฑ์ตรวจรับ:**
 
-- เวลานัดที่เกิน 1 วันหรือไม่อยู่ในอนาคตถูกปฏิเสธ
+- เวลานัดที่อยู่ในวันปัจจุบันหรือวันที่ผ่านมาแล้วถูกปฏิเสธ
 - Immediate ที่ไม่มี Claim เปลี่ยนเป็น `expired` เมื่อครบ 30 นาที
 - Scheduled ที่ไม่มี Claim เปลี่ยนเป็น `expired` เมื่อถึงเวลานัดหมาย
 - Timer บน UI ใช้ deadline เดียวกับฐานข้อมูลและยังถูกต้องหลัง refresh
@@ -703,27 +711,29 @@ flowchart LR
 
 ```mermaid
 erDiagram
-    AUTH_USERS ||--|| PROFILES : owns
-    PROFILES ||--o| INTERPRETER_PROFILES : applies
-    PROFILES ||--o{ BOOKINGS : creates
-    INTERPRETER_PROFILES ||--o{ BOOKINGS : claims
-    LANGUAGES ||--o{ BOOKINGS : requested
-    CATEGORIES ||--o{ BOOKINGS : classifies
-    INTERPRETER_PROFILES ||--o{ INTERPRETER_LANGUAGES : has
-    LANGUAGES ||--o{ INTERPRETER_LANGUAGES : includes
-    INTERPRETER_PROFILES ||--o{ INTERPRETER_CATEGORIES : has
-    CATEGORIES ||--o{ INTERPRETER_CATEGORIES : includes
-    BOOKINGS ||--o{ REVIEWS : receives
-    PROFILES ||--o{ REVIEWS : writes
+    USER ||--o| INTERPRETER_PROFILE : "1 : 0..1 has profile"
+    USER ||--o{ INTERPRETER_APPLICATIONS : "1 : N submits application"
+    USER ||--o{ BOOKING : "1 : N makes request (user_id)"
+    INTERPRETER_PROFILE ||--o{ BOOKING : "1 : N assigned volunteer (interpreter_id)"
+    
+    INTERPRETER_PROFILE ||--o{ WORK_HISTORY : "1 : N experience history"
+    INTERPRETER_PROFILE ||--o{ LANGUAGE : "1 : N speaks languages"
+    INTERPRETER_PROFILE ||--o{ CATEGORY : "1 : N service categories"
+    
+    BOOKING ||--o{ REVIEW : "1 : N ratings & comments"
+    USER ||--o{ REVIEW : "1 : N reviewer / reviewee"
+    
+    USER ||--o{ HELP_REQUEST : "1 : N requester / manager"
+    USER ||--o{ REPORT : "1 : N reporter / reported"
+    BOOKING ||--o{ REPORT : "1 : N booking reference"
+    
+    USER ||--o{ NOTIFICATION : "1 : N notifications"
+    USER ||--o{ AUDIT_LOG : "1 : N admin activity trail"
 
-    AUTH_USERS {
-        UUID id PK
-    }
-    PROFILES {
-        UUID user_id PK,FK
-        VARCHAR first_name
-        VARCHAR last_name
-        VARCHAR email
+    USER {
+        BIGSERIAL user_id PK
+        VARCHAR name
+        SMALLINT age "CHECK >= 0"
         VARCHAR phone
         user_role role
         DATE date_of_birth
@@ -732,10 +742,36 @@ erDiagram
         UUID user_id PK,FK
         BIGINT primary_language_id FK
         VARCHAR extra_contact
-        TEXT experience_summary
-        application_status application_status
-        UUID reviewed_by_user_id FK
-        TIMESTAMPTZ approved_at
+        application_status application_status "ENUM"
+        TEXT reject_reason
+        BIGINT reviewed_by_manager_id FK
+        NUMERIC average_rating "Trigger-updated"
+        INT completed_job_count
+        BOOLEAN is_available
+        TIMESTAMPTZ created_at
+    }
+
+    INTERPRETER_APPLICATIONS {
+        BIGSERIAL application_id PK
+        BIGINT user_id FK
+        application_status status "ENUM: Pending, Under Review, Approved, Rejected"
+        TEXT reject_reason
+        VARCHAR certificate_url
+        TIMESTAMPTZ submitted_at
+        TIMESTAMPTZ reviewed_at
+        BIGINT reviewed_by_manager_id FK
+    }
+
+    LANGUAGE {
+        BIGSERIAL language_id PK
+        BIGINT interpreter_id FK
+        VARCHAR language_name
+    }
+
+    CATEGORY {
+        BIGSERIAL category_id PK
+        BIGINT interpreter_id FK
+        VARCHAR category_name
     }
     BOOKINGS {
         BIGSERIAL booking_id PK

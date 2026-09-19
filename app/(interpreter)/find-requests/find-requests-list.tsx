@@ -17,15 +17,15 @@ import { useCopyLocale } from "@/app/components/app-shell";
 import { ExpiryCountdown } from "@/app/components/expiry-countdown";
 import { StatusBadge, UrgencyBadge } from "@/app/components/request-badges";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
-import { getMockUserSession } from "@/app/lib/mock-auth";
-import { claimRequest as persistClaimRequest, useRequests } from "@/app/lib/request-store";
+import type { UserProfile } from "@/app/lib/mock-auth";
+import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
+import { claimBookingAction } from "@/app/actions/booking-actions";
 import { RequestMap } from "./request-map";
 import {
   CATEGORIES,
   categoryLabel,
   LANGUAGES,
   languageLabel,
-  MOCK_REQUESTS,
   type HelpRequest,
   type Urgency,
 } from "@/app/lib/mock-requests";
@@ -193,7 +193,7 @@ function compareRequestIds(first: HelpRequest, second: HelpRequest): number {
   return Number(second.requestId) - Number(first.requestId);
 }
 
-export function FindRequestsList() {
+export function FindRequestsList({ initialRequests }: { initialRequests: HelpRequest[] }) {
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<RequestFilterId>("all");
   const [languageFilter, setLanguageFilter] = useState<string>("all");
@@ -207,9 +207,24 @@ export function FindRequestsList() {
   const [claimError, setClaimError] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
   const [geoStatus, setGeoStatus] = useState<GeoStatus>("idle");
-  const { requests: storedRequests, ready } = useRequests();
+  const [actor, setActor] = useState<UserProfile | null>(null);
+  const ready = true;
   const copyLocale = useCopyLocale();
   const t = copy[copyLocale];
+
+  useEffect(() => {
+    let disposed = false;
+
+    const loadActor = async () => {
+      const result = await getCurrentUserProfile();
+      if (!disposed) setActor(result.profile);
+    };
+
+    void loadActor();
+    return () => {
+      disposed = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!claimRequest) return;
@@ -228,7 +243,7 @@ export function FindRequestsList() {
     };
   }, [claimRequest]);
 
-  const sourceRequests = storedRequests.length > 0 ? storedRequests : MOCK_REQUESTS;
+  const sourceRequests = initialRequests;
   const openRequests = useMemo(
     () => sourceRequests.filter((request) => request.status === "Open" && request.requestId !== claimedRequestId),
     [claimedRequestId, sourceRequests],
@@ -303,21 +318,20 @@ export function FindRequestsList() {
     setClaimRequest(request);
   };
 
-  const confirmClaim = () => {
+  const confirmClaim = async () => {
     if (!claimRequest) return;
-    const actor = getMockUserSession();
     if (!actor) return;
     const requestId = claimRequest.requestId;
     setClaimingId(requestId);
     setClaimError(null);
-    try {
-      persistClaimRequest(requestId, actor);
+    const result = await claimBookingAction(requestId);
+    if (result.ok) {
       setClaimedRequestId(requestId);
       setClaimRequest(null);
       setSelectedRequest(null);
       router.push(`/my-requests/${requestId}`);
-    } catch (error) {
-      setClaimError(error instanceof Error ? error.message : t.claimError);
+    } else {
+      setClaimError(result.error || t.claimError);
       setClaimingId(null);
     }
   };
