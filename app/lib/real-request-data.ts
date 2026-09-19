@@ -17,6 +17,7 @@ export type RealMissionLocation = {
   latitude: number;
   longitude: number;
   updatedAtLabel: string;
+  accuracyMeters?: number;
 };
 
 export type RealMissionLocations = {

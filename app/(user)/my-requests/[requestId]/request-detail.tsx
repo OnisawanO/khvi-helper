@@ -91,10 +91,17 @@ const copy = {
     contactLockedBody: "The requester must confirm the assigned interpreter before sensitive details appear.",
     mapTitle: "Requester and interpreter map",
     mapIntro: "Each marker updates from that person's live location while this mission page is open.",
-    zoomInMap: "Zoom in",
-    zoomOutMap: "Zoom out",
     requesterMarker: "Requester",
     interpreterMarker: "Interpreter",
+    youMarker: "You",
+    coordinatesMapLabel: "Coordinates",
+    accuracyMapLabel: "Accuracy",
+    updatedMapLabel: "Updated",
+    expandMapLabel: "Open full-screen map",
+    collapseMapLabel: "Close full-screen map",
+    touchZoomLabel: "Drag the map or pinch with two fingers to zoom.",
+    liveGpsLabel: "Live GPS",
+    requestLocationLabel: "Request location",
     readingLocation: "Starting live location…",
     locationSaved: "Live location is on",
     locationDenied: "Location permission was denied. Allow location access in your browser, then reload this page.",
@@ -180,10 +187,17 @@ const copy = {
     contactLockedBody: "求助者确认已接单的口译员后，系统才会显示敏感信息。",
     mapTitle: "求助者与口译员地图",
     mapIntro: "任务页面打开期间，每个标记都会根据本人的实时位置更新。",
-    zoomInMap: "放大地图",
-    zoomOutMap: "缩小地图",
     requesterMarker: "求助者",
     interpreterMarker: "口译员",
+    youMarker: "你",
+    coordinatesMapLabel: "坐标",
+    accuracyMapLabel: "精度",
+    updatedMapLabel: "更新时间",
+    expandMapLabel: "全屏查看地图",
+    collapseMapLabel: "关闭全屏地图",
+    touchZoomLabel: "拖动地图，或用双指缩放。",
+    liveGpsLabel: "实时 GPS",
+    requestLocationLabel: "求助位置",
     readingLocation: "正在启动实时位置…",
     locationSaved: "实时位置已开启",
     locationDenied: "位置权限被拒绝。请在浏览器中允许位置访问，然后重新加载此页面。",
@@ -335,6 +349,7 @@ export function RequestDetail({
               latitude: position.coords.latitude,
               longitude: position.coords.longitude,
               updatedAtLabel: new Date().toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }),
+              accuracyMeters: position.coords.accuracy,
             };
             setMissionLocations((current) => ({
               ...current,
@@ -359,7 +374,12 @@ export function RequestDetail({
     mapPoints.push({
       id: "requester",
       label: t.requesterMarker,
+      name: request.requester?.name ?? viewer.name,
       detail: `${requesterLocation.latitude.toFixed(5)}, ${requesterLocation.longitude.toFixed(5)}`,
+      sourceLabel: savedRequesterLocation ? t.liveGpsLabel : t.requestLocationLabel,
+      updatedAtLabel: savedRequesterLocation?.updatedAtLabel ?? request.createdAtLabel,
+      accuracyMeters: savedRequesterLocation?.accuracyMeters ?? null,
+      isCurrentViewer: true,
       latitude: requesterLocation.latitude,
       longitude: requesterLocation.longitude,
     });
@@ -368,7 +388,12 @@ export function RequestDetail({
     mapPoints.push({
       id: "interpreter",
       label: t.interpreterMarker,
+      name: request.interpreter?.name ?? viewer.name,
       detail: `${interpreterLocation.latitude.toFixed(5)}, ${interpreterLocation.longitude.toFixed(5)}`,
+      sourceLabel: t.liveGpsLabel,
+      updatedAtLabel: savedInterpreterLocation?.updatedAtLabel ?? null,
+      accuracyMeters: savedInterpreterLocation?.accuracyMeters ?? null,
+      isCurrentViewer: true,
       latitude: interpreterLocation.latitude,
       longitude: interpreterLocation.longitude,
     });
@@ -377,7 +402,12 @@ export function RequestDetail({
     mapPoints.push({
       id: "requester",
       label: t.requesterMarker,
+      name: request.requester?.name ?? t.requesterMarker,
       detail: `${requesterLocation.latitude.toFixed(5)}, ${requesterLocation.longitude.toFixed(5)}`,
+      sourceLabel: savedRequesterLocation ? t.liveGpsLabel : t.requestLocationLabel,
+      updatedAtLabel: savedRequesterLocation?.updatedAtLabel ?? request.createdAtLabel,
+      accuracyMeters: savedRequesterLocation?.accuracyMeters ?? null,
+      isCurrentViewer: false,
       latitude: requesterLocation.latitude,
       longitude: requesterLocation.longitude,
     });
@@ -386,7 +416,12 @@ export function RequestDetail({
     mapPoints.push({
       id: "interpreter",
       label: t.interpreterMarker,
+      name: request.interpreter?.name ?? t.interpreterMarker,
       detail: `${interpreterLocation.latitude.toFixed(5)}, ${interpreterLocation.longitude.toFixed(5)}`,
+      sourceLabel: t.liveGpsLabel,
+      updatedAtLabel: savedInterpreterLocation?.updatedAtLabel ?? null,
+      accuracyMeters: savedInterpreterLocation?.accuracyMeters ?? null,
+      isCurrentViewer: false,
       latitude: interpreterLocation.latitude,
       longitude: interpreterLocation.longitude,
     });
@@ -787,8 +822,14 @@ export function RequestDetail({
                     <MissionLocationMap
                       points={mapPoints}
                       title={t.mapTitle}
-                      zoomInLabel={t.zoomInMap}
-                      zoomOutLabel={t.zoomOutMap}
+                      loadingLabel={t.readingLocation}
+                      youLabel={t.youMarker}
+                      coordinatesLabel={t.coordinatesMapLabel}
+                      accuracyLabel={t.accuracyMapLabel}
+                      updatedLabel={t.updatedMapLabel}
+                      expandMapLabel={t.expandMapLabel}
+                      collapseMapLabel={t.collapseMapLabel}
+                      touchZoomLabel={t.touchZoomLabel}
                     />
                   ) : (
                     <div className="flex min-h-40 items-center justify-center rounded-xl border border-dashed border-[#b9c8ce] bg-[#f7f9fa] px-6 text-center">
