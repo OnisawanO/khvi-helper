@@ -1,197 +1,308 @@
 "use client";
 
-import { MapPinIcon } from "@heroicons/react/24/solid";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type * as Leaflet from "leaflet";
+import { ArrowsPointingInIcon, ArrowsPointingOutIcon } from "@heroicons/react/24/outline";
 
 export type MissionMapPoint = {
   id: "requester" | "interpreter";
   label: string;
+  name: string;
   detail: string;
+  sourceLabel: string;
+  updatedAtLabel: string | null;
+  accuracyMeters: number | null;
+  isCurrentViewer: boolean;
   latitude: number;
   longitude: number;
 };
 
-type Viewport = {
-  north: number;
-  south: number;
-  east: number;
-  west: number;
+type MissionLocationMapProps = {
+  points: MissionMapPoint[];
+  title: string;
+  loadingLabel: string;
+  youLabel: string;
+  coordinatesLabel: string;
+  accuracyLabel: string;
+  updatedLabel: string;
+  expandMapLabel: string;
+  collapseMapLabel: string;
+  touchZoomLabel: string;
 };
 
-const MIN_ZOOM_STEP = -2;
-const MAX_ZOOM_STEP = 4;
+const DEFAULT_CENTER: Leaflet.LatLngExpression = [8.64, 99.9];
+const DEFAULT_ZOOM = 12;
 
-function mercatorY(latitude: number) {
-  const clamped = Math.max(-85, Math.min(85, latitude));
-  const radians = clamped * Math.PI / 180;
-  return Math.log(Math.tan(Math.PI / 4 + radians / 2));
+function markerIcon(L: typeof import("leaflet"), point: MissionMapPoint) {
+  const roleClass = point.id === "requester"
+    ? "khvi-mission-marker--requester"
+    : "khvi-mission-marker--interpreter";
+
+  return L.divIcon({
+    className: `khvi-mission-marker ${roleClass}`,
+    html: `<span class="khvi-mission-marker__dot"><span class="khvi-mission-marker__glyph" aria-hidden="true">${point.id === "requester" ? "R" : "I"}</span></span>`,
+    iconSize: [44, 44],
+    iconAnchor: [point.id === "requester" ? 28 : 16, 42],
+    tooltipAnchor: [point.id === "requester" ? -18 : 18, -33],
+  });
 }
 
-function viewportFor(points: MissionMapPoint[]): Viewport {
-  const latitudes = points.map((point) => point.latitude);
-  const longitudes = points.map((point) => point.longitude);
-  const minLatitude = Math.min(...latitudes);
-  const maxLatitude = Math.max(...latitudes);
-  const minLongitude = Math.min(...longitudes);
-  const maxLongitude = Math.max(...longitudes);
-  const latitudeSpan = Math.max(maxLatitude - minLatitude, 0.008);
-  const longitudeSpan = Math.max(maxLongitude - minLongitude, 0.008);
-
-  return {
-    north: Math.min(85, maxLatitude + latitudeSpan * 0.45),
-    south: Math.max(-85, minLatitude - latitudeSpan * 0.45),
-    east: Math.min(180, maxLongitude + longitudeSpan * 0.45),
-    west: Math.max(-180, minLongitude - longitudeSpan * 0.45),
-  };
+function markerHeading(point: MissionMapPoint, youLabel: string) {
+  return `${point.label} · ${point.name}${point.isCurrentViewer ? ` (${youLabel})` : ""}`;
 }
 
-function markerPosition(point: MissionMapPoint, viewport: Viewport) {
-  const x = (point.longitude - viewport.west) / (viewport.east - viewport.west);
-  const north = mercatorY(viewport.north);
-  const south = mercatorY(viewport.south);
-  const y = (north - mercatorY(point.latitude)) / (north - south);
-  return { left: `${x * 100}%`, top: `${y * 100}%` };
+function tooltipContent(point: MissionMapPoint, youLabel: string) {
+  const content = document.createElement("span");
+  content.textContent = markerHeading(point, youLabel);
+  return content;
 }
 
-function boundedRange(center: number, span: number, minimum: number, maximum: number) {
-  const boundedSpan = Math.min(span, maximum - minimum);
-  let start = center - boundedSpan / 2;
-  let end = center + boundedSpan / 2;
+function popupContent(
+  point: MissionMapPoint,
+  labels: Pick<MissionLocationMapProps, "youLabel" | "coordinatesLabel" | "accuracyLabel" | "updatedLabel">,
+) {
+  const content = document.createElement("div");
+  content.className = "khvi-mission-popup";
 
-  if (start < minimum) {
-    end += minimum - start;
-    start = minimum;
+  const heading = document.createElement("strong");
+  heading.textContent = markerHeading(point, labels.youLabel);
+  content.append(heading);
+
+  const source = document.createElement("span");
+  source.textContent = point.sourceLabel;
+  content.append(source);
+
+  const coordinates = document.createElement("span");
+  coordinates.textContent = `${labels.coordinatesLabel}: ${point.detail}`;
+  content.append(coordinates);
+
+  if (point.accuracyMeters !== null) {
+    const accuracy = document.createElement("span");
+    accuracy.textContent = `${labels.accuracyLabel}: ±${Math.round(point.accuracyMeters)} m`;
+    content.append(accuracy);
   }
-  if (end > maximum) {
-    start -= end - maximum;
-    end = maximum;
+
+  if (point.updatedAtLabel) {
+    const updated = document.createElement("span");
+    updated.textContent = `${labels.updatedLabel}: ${point.updatedAtLabel}`;
+    content.append(updated);
   }
 
-  return [start, end] as const;
-}
-
-function zoomViewport(viewport: Viewport, zoomStep: number): Viewport {
-  const scale = 2 ** -zoomStep;
-  const latitudeCenter = (viewport.north + viewport.south) / 2;
-  const longitudeCenter = (viewport.east + viewport.west) / 2;
-  const [south, north] = boundedRange(
-    latitudeCenter,
-    (viewport.north - viewport.south) * scale,
-    -85,
-    85,
-  );
-  const [west, east] = boundedRange(
-    longitudeCenter,
-    (viewport.east - viewport.west) * scale,
-    -180,
-    180,
-  );
-
-  return { north, south, east, west };
+  return content;
 }
 
 export function MissionLocationMap({
   points,
   title,
-  zoomInLabel,
-  zoomOutLabel,
-}: {
-  points: MissionMapPoint[];
-  title: string;
-  zoomInLabel: string;
-  zoomOutLabel: string;
-}) {
-  const [zoomStep, setZoomStep] = useState(0);
+  loadingLabel,
+  youLabel,
+  coordinatesLabel,
+  accuracyLabel,
+  updatedLabel,
+  expandMapLabel,
+  collapseMapLabel,
+  touchZoomLabel,
+}: MissionLocationMapProps) {
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<Leaflet.Map | null>(null);
+  const markerLayerRef = useRef<Leaflet.LayerGroup | null>(null);
+  const leafletRef = useRef<typeof import("leaflet") | null>(null);
+  const [mapReady, setMapReady] = useState(false);
+  const [mapGeneration, setMapGeneration] = useState(0);
+  const [isExpanded, setIsExpanded] = useState(false);
 
-  if (points.length === 0) return null;
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+    let disposed = false;
+    setMapReady(false);
 
-  const viewport = zoomViewport(viewportFor(points), zoomStep);
-  const params = new URLSearchParams({
-    bbox: [viewport.west, viewport.south, viewport.east, viewport.north].join(","),
-    layer: "mapnik",
-  });
+    void import("leaflet").then((L) => {
+      if (disposed || !mapContainerRef.current || mapRef.current) return;
+
+      const map = L.map(mapContainerRef.current, {
+        attributionControl: true,
+        zoomControl: false,
+        touchZoom: true,
+        dragging: true,
+        doubleClickZoom: true,
+        scrollWheelZoom: true,
+        keyboard: true,
+        tapHold: true,
+      }).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors",
+        detectRetina: true,
+        keepBuffer: 4,
+        maxZoom: 19,
+        minZoom: 3,
+      }).addTo(map);
+
+      L.control.zoom({ position: "bottomright" }).addTo(map);
+      markerLayerRef.current = L.layerGroup().addTo(map);
+      leafletRef.current = L;
+      mapRef.current = map;
+      setMapGeneration((current) => current + 1);
+      setMapReady(true);
+    });
+
+    return () => {
+      disposed = true;
+      mapRef.current?.remove();
+      mapRef.current = null;
+      markerLayerRef.current = null;
+      leafletRef.current = null;
+    };
+  }, [isExpanded]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const container = mapContainerRef.current;
+    if (!mapReady || !map || !container) return;
+
+    let animationFrame: number | null = null;
+    const refreshMapSize = () => {
+      if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(() => {
+        map.invalidateSize({ animate: false, pan: false });
+      });
+    };
+    const resizeObserver = new ResizeObserver(refreshMapSize);
+
+    resizeObserver.observe(container);
+    window.addEventListener("resize", refreshMapSize);
+    refreshMapSize();
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", refreshMapSize);
+      if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
+    };
+  }, [mapReady]);
+
+  useEffect(() => {
+    if (!isExpanded) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsExpanded(false);
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isExpanded]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const markerLayer = markerLayerRef.current;
+    const L = leafletRef.current;
+    if (!mapReady || !map || !markerLayer || !L) return;
+
+    markerLayer.clearLayers();
+
+    points.forEach((point) => {
+      const marker = L.marker([point.latitude, point.longitude], {
+        icon: markerIcon(L, point),
+        title: markerHeading(point, youLabel),
+        keyboard: true,
+      });
+
+      marker.bindTooltip(tooltipContent(point, youLabel), {
+        permanent: true,
+        direction: point.id === "requester" ? "left" : "right",
+        opacity: 0.96,
+        className: "khvi-mission-tooltip",
+      });
+      marker.bindPopup(popupContent(point, { youLabel, coordinatesLabel, accuracyLabel, updatedLabel }), {
+        closeButton: false,
+        maxWidth: 280,
+      });
+      marker.addTo(markerLayer);
+    });
+
+    const bounds = L.latLngBounds(points.map((point) => [point.latitude, point.longitude] as [number, number]));
+    map.fitBounds(bounds.pad(points.length === 1 ? 0.45 : 0.18), {
+      animate: false,
+      maxZoom: 16,
+      padding: [56, 56],
+    });
+  }, [accuracyLabel, coordinatesLabel, mapGeneration, mapReady, points, updatedLabel, youLabel]);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[#c7d5da] bg-[#e9f0ef]">
-      <div className="relative h-64 overflow-hidden sm:h-80" role="region" aria-label={title}>
-        <div className="absolute inset-y-0 -left-12 -right-12">
-          <iframe
-            title={title}
-            src={`https://www.openstreetmap.org/export/embed.html?${params.toString()}`}
-            loading="lazy"
-            referrerPolicy="strict-origin-when-cross-origin"
-            className="pointer-events-none absolute inset-0 h-full w-full border-0"
-            tabIndex={-1}
-            aria-hidden="true"
-          />
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.08),rgba(255,255,255,0.08))]" />
-          {points.map((point, index) => {
-            const position = markerPosition(point, viewport);
-            const isRequester = point.id === "requester";
-            const overlaps = points.length === 2
-              && Math.abs(points[0].latitude - points[1].latitude) < 0.00005
-              && Math.abs(points[0].longitude - points[1].longitude) < 0.00005;
-            return (
-              <div
-                key={point.id}
-                className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full"
-                style={{ ...position, marginLeft: overlaps ? (index === 0 ? -18 : 18) : 0 }}
-                aria-hidden="true"
-              >
-                <span className={`mb-1 block whitespace-nowrap rounded-md border bg-white px-2 py-1 text-[11px] font-extrabold shadow-sm ${isRequester ? "border-[#087f80] text-[#087f80]" : "border-(--khvi-coral) text-(--khvi-coral)"}`}>
-                  {point.label}
-                </span>
-                <MapPinIcon className={`mx-auto h-9 w-9 drop-shadow-sm ${isRequester ? "text-[#087f80]" : "text-(--khvi-coral)"}`} />
-              </div>
-            );
-          })}
-        </div>
+    <div
+      className={isExpanded
+        ? "fixed inset-0 z-[1200] flex h-[100dvh] flex-col bg-white"
+        : "overflow-hidden rounded-xl border border-[#c7d5da] bg-white"}
+      role={isExpanded ? "dialog" : undefined}
+      aria-modal={isExpanded ? true : undefined}
+      aria-label={isExpanded ? title : undefined}
+    >
+      <div
+        className={isExpanded
+          ? "mission-leaflet-map relative min-h-0 flex-1"
+          : "mission-leaflet-map relative h-72 min-h-72 sm:h-96 sm:min-h-96"}
+        role="region"
+        aria-label={title}
+      >
         <div
-          className="absolute top-2.5 left-2.5 z-20 flex flex-col overflow-hidden rounded-lg border border-[#9fb1b9] bg-white shadow-sm"
-          role="group"
-          aria-label={title}
+          ref={mapContainerRef}
+          className={isExpanded ? "h-full min-h-0 w-full" : "h-full min-h-72 w-full sm:min-h-96"}
+        />
+        <button
+          type="button"
+          onClick={() => setIsExpanded((current) => !current)}
+          aria-expanded={isExpanded}
+          className="absolute right-3 top-3 z-[600] inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#c7d5da] bg-white px-3 py-2 text-xs font-extrabold text-(--khvi-navy) shadow-[0_8px_20px_rgba(16,40,58,0.15)] transition-colors hover:bg-[#f7f9fa] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
         >
-          <button
-            type="button"
-            aria-label={zoomInLabel}
-            title={zoomInLabel}
-            disabled={zoomStep >= MAX_ZOOM_STEP}
-            onClick={() => setZoomStep((current) => Math.min(MAX_ZOOM_STEP, current + 1))}
-            className="flex h-9 w-9 items-center justify-center border-b border-[#c7d5da] text-2xl font-bold leading-none text-[#173646] transition-colors hover:bg-[#edf7f5] disabled:cursor-not-allowed disabled:text-[#a7b4b9] disabled:hover:bg-white focus-visible:z-10 focus-visible:outline-3 focus-visible:outline-offset-[-3px] focus-visible:outline-(--khvi-sun)"
-          >
-            <span aria-hidden="true">+</span>
-          </button>
-          <button
-            type="button"
-            aria-label={zoomOutLabel}
-            title={zoomOutLabel}
-            disabled={zoomStep <= MIN_ZOOM_STEP}
-            onClick={() => setZoomStep((current) => Math.max(MIN_ZOOM_STEP, current - 1))}
-            className="flex h-9 w-9 items-center justify-center text-2xl font-bold leading-none text-[#173646] transition-colors hover:bg-[#edf7f5] disabled:cursor-not-allowed disabled:text-[#a7b4b9] disabled:hover:bg-white focus-visible:z-10 focus-visible:outline-3 focus-visible:outline-offset-[-3px] focus-visible:outline-(--khvi-sun)"
-          >
-            <span aria-hidden="true">−</span>
-          </button>
-        </div>
+          {isExpanded ? (
+            <ArrowsPointingInIcon aria-hidden="true" className="h-5 w-5" />
+          ) : (
+            <ArrowsPointingOutIcon aria-hidden="true" className="h-5 w-5" />
+          )}
+          <span className={isExpanded ? "inline" : "hidden sm:inline"}>
+            {isExpanded ? collapseMapLabel : expandMapLabel}
+          </span>
+          {!isExpanded && <span className="sr-only sm:hidden">{expandMapLabel}</span>}
+        </button>
+        {!mapReady && (
+          <div className="absolute inset-0 z-[500] grid place-items-center bg-white/65 backdrop-blur-[1px]">
+            <p role="status" className="rounded-full bg-white px-4 py-2 text-sm font-extrabold text-[#425761] shadow-sm">
+              {loadingLabel}
+            </p>
+          </div>
+        )}
       </div>
-      <div className="flex flex-col gap-3 border-t border-[#c7d5da] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <ul className="flex flex-wrap gap-x-5 gap-y-2 text-xs font-bold text-[#52676f]">
-          {points.map((point) => (
-            <li key={point.id} className="flex items-center gap-2">
-              <span className={`h-2.5 w-2.5 rounded-full ${point.id === "requester" ? "bg-[#087f80]" : "bg-(--khvi-coral)"}`} />
-              <span>{point.label}</span>
-              <span className="text-[#8a9aa0]">{point.detail}</span>
-            </li>
-          ))}
-        </ul>
-        <a
-          href="https://www.openstreetmap.org/copyright"
-          target="_blank"
-          rel="noreferrer"
-          className="shrink-0 text-[11px] font-bold text-[#64777e] underline decoration-[#a9b9bf] underline-offset-2 hover:text-[#087f80]"
-        >
-          © OpenStreetMap contributors
-        </a>
-      </div>
+
+      <p className="border-t border-[#c7d5da] bg-[#f7f9fa] px-4 py-2 text-xs font-bold text-[#52676f] sm:hidden">
+        {touchZoomLabel}
+      </p>
+
+      <ul className={`grid gap-3 border-t border-[#c7d5da] bg-white px-4 py-3 sm:grid-cols-2 ${isExpanded ? "max-h-[34dvh] overflow-y-auto" : ""}`}>
+        {points.map((point) => (
+          <li key={point.id} className="flex min-w-0 items-start gap-2.5 text-xs">
+            <span
+              aria-hidden="true"
+              className={`mt-1 h-3 w-3 shrink-0 rounded-full ring-2 ring-white ${point.id === "requester" ? "bg-[#087f80]" : "bg-(--khvi-coral)"}`}
+            />
+            <span className="min-w-0">
+              <span className="block font-extrabold text-[#294554]">
+                {point.label} · {point.name}{point.isCurrentViewer ? ` (${youLabel})` : ""}
+              </span>
+              <span className="mt-0.5 block font-bold text-[#52676f]">{point.detail}</span>
+              <span className="mt-0.5 block text-[#73848a]">
+                {point.sourceLabel}
+                {point.accuracyMeters !== null ? ` · ${accuracyLabel}: ±${Math.round(point.accuracyMeters)} m` : ""}
+                {point.updatedAtLabel ? ` · ${updatedLabel}: ${point.updatedAtLabel}` : ""}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
