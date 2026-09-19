@@ -47,13 +47,12 @@ test("requester and assigned interpreter can save separate mission locations", (
   const store = environment();
   store.saveMissionLocation(request, requester, 8.6425, 99.8981);
   store.saveMissionLocation(request, interpreter, 8.6501, 99.9022);
-  store.saveMissionLocation(request, requester, 8.6432, 99.8994, 7.4);
+  store.saveMissionLocation(request, requester, 8.6432, 99.8994);
 
   const saved = store.useMissionLocations(request.requestId);
   assert.equal(saved.requester.actorId, requester.userId);
   assert.equal(saved.requester.latitude, 8.6432);
   assert.equal(saved.requester.longitude, 99.8994);
-  assert.equal(saved.requester.accuracyMeters, 7.4);
   assert.equal(saved.interpreter.actorId, interpreter.userId);
   assert.equal(saved.interpreter.longitude, 99.9022);
 });

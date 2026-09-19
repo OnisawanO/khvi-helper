@@ -11,7 +11,6 @@ export type MissionLocationPoint = {
   actorId: string;
   latitude: number;
   longitude: number;
-  accuracyMeters?: number;
   updatedAtLabel: string;
 };
 
@@ -37,8 +36,6 @@ function isPoint(value: unknown): value is MissionLocationPoint {
     && Number.isFinite(point.longitude)
     && point.longitude >= -180
     && point.longitude <= 180
-    && (point.accuracyMeters === undefined
-      || (Number.isFinite(point.accuracyMeters) && point.accuracyMeters >= 0))
     && typeof point.updatedAtLabel === "string";
 }
 
@@ -97,7 +94,6 @@ export function saveMissionLocation(
   actor: Pick<UserProfile, "userId" | "role">,
   latitude: number,
   longitude: number,
-  accuracyMeters?: number,
 ) {
   if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90
     || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
@@ -108,9 +104,6 @@ export function saveMissionLocation(
     actorId: actor.userId,
     latitude,
     longitude,
-    ...(accuracyMeters !== undefined && Number.isFinite(accuracyMeters) && accuracyMeters >= 0
-      ? { accuracyMeters }
-      : {}),
     updatedAtLabel: new Date().toLocaleString(),
   };
   const current = read();
