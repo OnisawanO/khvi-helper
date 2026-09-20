@@ -311,6 +311,27 @@ export async function loadManagerInterpreterApplications(supabase?: SupabaseClie
   const reference = await references(client);
   return Promise.all((data ?? []).map(async (row) => {
     const relation = await links(client, Number((row as unknown as ApplicationRow).application_id));
-    return toManagerApplicant(toApplication(row as unknown as ApplicationRow, relation, reference));
+    const app = toApplication(row as unknown as ApplicationRow, relation, reference);
+    const managerApp = toManagerApplicant(app);
+
+    const certPath = (row as unknown as ApplicationRow).certificate_url;
+    if (typeof certPath === "string" && certPath.length > 0 && !certPath.startsWith("http://") && !certPath.startsWith("https://")) {
+      try {
+        const { data: signed } = await client.storage
+          .from("interpreter-certificates")
+          .createSignedUrl(certPath, 60 * 60 * 24);
+        const signedUrl = signed?.signedUrl;
+        if (signedUrl) {
+          managerApp.document.url = signedUrl;
+          if (managerApp.documents && managerApp.documents[0]) {
+            managerApp.documents[0].url = signedUrl;
+          }
+        }
+      } catch {
+        // Fallback handled on client
+      }
+    }
+
+    return managerApp;
   }));
 }

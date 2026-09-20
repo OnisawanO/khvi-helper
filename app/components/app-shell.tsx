@@ -203,7 +203,11 @@ export function AppShell({ children, accountActions, welcomeRole }: {
       ? [[navLabel("คอนโซลผู้จัดการ", "Manager console", "管理台", "Consola del gestor", "لوحة المدير"), "/manager#main-content"], [navLabel("โปรไฟล์และการตั้งค่า", "Profile & Settings", "个人资料与设置", "Perfil y configuración", "الملف الشخصي والإعدادات"), "/profile#main-content"]] as const
       : welcomeRole === "Admin"
         ? [[navLabel("แดชบอร์ดผู้ดูแล", "Admin dashboard", "管理员面板", "Panel de administración", "لوحة المسؤول"), "/admin#main-content"], [navLabel("โปรไฟล์และการตั้งค่า", "Profile & Settings", "个人资料与设置", "Perfil y configuración", "الملف الشخصي والإعدادات"), "/profile#main-content"]] as const
-        : [[navLabel("สร้างคำขอ", "New request", "新建求助", "Nueva solicitud", "طلب جديد"), "/request-help#main-content"], [navLabel("คำขอของฉัน", "My requests", "我的求助", "Mis solicitudes", "طلباتي"), "/my-requests#main-content"]] as const;
+        : [
+            [navLabel("สร้างคำขอ", "New request", "新建求助", "Nueva solicitud", "طلب جديد"), "/request-help#main-content"],
+            [navLabel("คำขอของฉัน", "My requests", "我的求助", "Mis solicitudes", "طلباتي"), "/my-requests#main-content"],
+            [navLabel("สมัครล่ามอาสา", "Volunteer apply", "申请志愿口译员", "Solicitud de voluntariado", "طلب التطوع"), "/volunteer/apply#main-content"],
+          ] as const;
 
   return (
     <UiLocaleContext.Provider value={locale}><CopyLocaleContext.Provider value={copyLocale}>

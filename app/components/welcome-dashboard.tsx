@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRightIcon, MapPinIcon, LanguageIcon, ShieldCheckIcon, ClipboardDocumentListIcon } from "@heroicons/react/24/outline";
 import { useCopyLocale, useUiLocale } from "./app-shell";
 import { ExpiryCountdown } from "./expiry-countdown";
@@ -9,7 +9,8 @@ import { StatusBadge, UrgencyBadge } from "./request-badges";
 import { useRequests } from "@/app/lib/request-store";
 import { categoryLabel, languageLabel, LANGUAGES, CATEGORIES, type HelpRequest } from "@/app/lib/mock-requests";
 import type { UserProfile } from "@/app/lib/mock-auth";
-import { useMyInterpreterApplication } from "@/app/lib/interpreter-application";
+import { useMyInterpreterApplication, type InterpreterApplication } from "@/app/lib/interpreter-application";
+import { loadMyInterpreterApplicationAction } from "@/app/actions/interpreter-application-actions";
 import { ApplicationStatusCard } from "@/components/volunteer/ApplicationStatusCard";
 import type { InterpreterWorkspaceMode } from "@/app/lib/workspace-mode";
 
@@ -41,6 +42,23 @@ export function WelcomeDashboard({ user, interpreterMode = "helper", onInterpret
   const interpreter = interpreterAccount && interpreterMode === "helper";
   const { requests, ready } = useRequests();
   const { application: volunteerApplication } = useMyInterpreterApplication(user.userId);
+  const [supabaseApplication, setSupabaseApplication] = useState<InterpreterApplication | null>(null);
+
+  useEffect(() => {
+    let disposed = false;
+    void loadMyInterpreterApplicationAction().then((result) => {
+      if (!disposed && result.ok && result.data) {
+        setSupabaseApplication(result.data);
+      }
+    });
+    return () => {
+      disposed = true;
+    };
+  }, []);
+
+  const activeApplication = supabaseApplication ?? volunteerApplication;
+  const hasVolunteerApplication = Boolean(activeApplication && activeApplication.status !== "cancelled");
+
   const [location, setLocation] = useState<GeolocationCoordinates | null>(null);
   const [geo, setGeo] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [radius, setRadius] = useState("all");
@@ -89,7 +107,26 @@ export function WelcomeDashboard({ user, interpreterMode = "helper", onInterpret
             })}
           </div>
         </div>
-      ) : <span className="rounded-full border border-(--khvi-teal)/25 bg-white px-4 py-2 text-sm font-bold">{tr("ผู้ขอความช่วยเหลือ", "Requester", "求助者")}</span>}
+      ) : (
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="rounded-full border border-(--khvi-teal)/25 bg-white px-4 py-2 text-sm font-bold">{tr("ผู้ขอความช่วยเหลือ", "Requester", "求助者")}</span>
+          {hasVolunteerApplication ? (
+            <Link
+              className="inline-flex min-h-10 items-center justify-center rounded-full bg-(--khvi-navy) px-4 py-2 text-sm font-bold text-white shadow-sm hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
+              href="/volunteer/status#main-content"
+            >
+              {tr("ดูสถานะใบสมัคร", "View application status", "查看申请状态")}
+            </Link>
+          ) : (
+            <Link
+              className="inline-flex min-h-10 items-center justify-center rounded-full bg-(--khvi-navy) px-4 py-2 text-sm font-bold text-white shadow-sm hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
+              href="/volunteer/apply#main-content"
+            >
+              {tr("สมัครล่ามอาสา", "Volunteer apply", "申请志愿口译员")}
+            </Link>
+          )}
+        </div>
+      )}
     </div>
     <p className="mb-6 rounded-lg bg-(--khvi-sun)/10 px-4 py-3 text-xs leading-6">{tr("โหมดต้นแบบ · รายการบันทึกอยู่ในเบราว์เซอร์นี้ ยังไม่ได้แยกตามบัญชีหรือยืนยันการจับคู่จริง", "Preview · Records are saved in this browser, not scoped to your account or verified as matches.", "预览模式 · 记录保存在此浏览器，尚未按账户区分或验证匹配。")}</p>
     {!ready ? <div className={`${panel} mb-6`} role="status">{tr("กำลังโหลดคำขอ…", "Loading requests…", "正在加载请求…")}</div> : current && <section className={`${panel} mb-6 border-l-4 border-l-(--khvi-teal)`} aria-labelledby="current-title">
@@ -106,7 +143,14 @@ export function WelcomeDashboard({ user, interpreterMode = "helper", onInterpret
         <span className="flex items-center gap-2 text-sm text-white/80"><LanguageIcon className="h-5 w-5" aria-hidden="true" /> KHVI · {tr("สื่อสารเข้าใจ ช่วยเหลือใกล้ตัว", "Community language help", "社区语言帮助")}</span>
         <h2 className="mt-6 max-w-lg text-3xl font-bold leading-tight sm:text-4xl">{interpreter ? tr("ใช้ภาษาที่คุณถนัด ช่วยให้ใครสักคนเข้าใจ", "Help someone be understood.", "用你的语言能力，帮助身边的人。") : tr("ต้องการความช่วยเหลือด้านภาษา เริ่มได้ที่นี่", "A little language help starts here.", "沟通有困难？从这里开始。")}</h2>
         <p className="mt-4 max-w-lg leading-8 text-white/80">{interpreter ? tr("ค้นหาคำขอตามภาษา หมวดหมู่ และระยะทาง ตรวจสอบก่อนรับงาน และรับผิดชอบครั้งละหนึ่งภารกิจ", "Explore requests by language, category and distance. Review each request and take one assignment at a time.", "按语言、类别和距离查找请求。确认详情后接单，一次只接受一个任务。") : tr("เลือกภาษา หมวดหมู่ และจุดนัดพบ ล่ามที่ตรงเงื่อนไขจะเป็นผู้เลือกกดรับคำขอของคุณ", "Choose a language, category and meeting point. A suitable interpreter chooses to claim your request.", "选择语言、类别和见面地点，符合条件的口译员会自行接单。")}</p>
-        <div className="mt-7 flex flex-wrap gap-3"><Link className={lightButton} href={current ? `/my-requests/${current.requestId}#main-content` : interpreter ? "/find-requests#main-content" : "/request-help#main-content"}>{current ? tr("ติดตามงานปัจจุบัน", "Continue current work", "继续当前任务") : interpreter ? tr("ค้นหางาน", "Find requests", "查找求助") : tr("ขอความช่วยเหลือ", "Create a help request", "创建求助请求")}</Link><Link className={`${button} border border-white/40`} href={listPath}>{interpreter ? tr("งานของฉัน", "My assignments", "我的任务") : tr("คำขอทั้งหมด", "All requests", "全部请求")}</Link></div>
+        <div className="mt-7 flex flex-wrap gap-3">
+          <Link className={lightButton} href={current ? `/my-requests/${current.requestId}#main-content` : interpreter ? "/find-requests#main-content" : "/request-help#main-content"}>
+            {current ? tr("ติดตามงานปัจจุบัน", "Continue current work", "继续当前任务") : interpreter ? tr("ค้นหางาน", "Find requests", "查找求助") : tr("ขอความช่วยเหลือ", "Create a help request", "创建求助请求")}
+          </Link>
+          <Link className={`${button} border border-white/40`} href={listPath}>
+            {interpreter ? tr("งานของฉัน", "My assignments", "我的任务") : tr("คำขอทั้งหมด", "All requests", "全部请求")}
+          </Link>
+        </div>
         <p className="mt-7 text-xs leading-6 text-white/75">{tr("หากมีอันตรายฉุกเฉิน ให้ติดต่อหน่วยงานฉุกเฉินในพื้นที่ก่อน", "For immediate danger, contact local emergency services first.", "如有紧急危险，请先联系当地紧急救援服务。")}</p>
       </section>
       <aside className={panel}><MapPinIcon className="h-7 w-7 text-(--khvi-teal)" aria-hidden="true" /><h2 className="mt-4 text-xl font-bold">{interpreter ? tr("ตำแหน่งและระยะค้นหา", "Location & search radius", "位置和搜索范围") : tr("เลือกเวลาที่เหมาะกับคุณ", "Help on your schedule", "按你的时间安排")}</h2>
@@ -116,7 +160,7 @@ export function WelcomeDashboard({ user, interpreterMode = "helper", onInterpret
     {interpreter && <section className={`${panel} mt-7`} aria-labelledby="discover-title"><h2 id="discover-title" className="text-xl font-bold">{tr("ค้นหาคำขอที่เหมาะกับคุณ", "Explore suitable requests", "查找合适的请求")}</h2><p className={muted}>{tr("เลือกความถนัดเพื่อกรองคำขอในเครื่อง ยังไม่ใช่ผลจับคู่จากโปรไฟล์ล่าม", "Filter browser records by your skills. These are not verified profile matches.", "按技能筛选浏览器记录，尚非经过验证的个人资料匹配。")}</p><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold">{tr("ภาษา", "Language", "语言")}<select className="mt-2 min-h-12 w-full rounded-lg border border-(--khvi-teal)/30 bg-white px-3" value={language} onChange={e => setLanguage(e.target.value)}><option value="all">{tr("ทุกภาษา", "All languages", "全部语言")}</option>{LANGUAGES.map(l => <option key={l.id} value={l.id}>{locale === "th" ? thaiLanguages[l.id] : l[copyLocale]}</option>)}</select></label><label className="text-sm font-bold">{tr("หมวดหมู่", "Category", "类别")}<select className="mt-2 min-h-12 w-full rounded-lg border border-(--khvi-teal)/30 bg-white px-3" value={category} onChange={e => setCategory(e.target.value)}><option value="all">{tr("ทุกหมวดหมู่", "All categories", "全部类别")}</option>{CATEGORIES.map(c => <option key={c.id} value={c.id}>{locale === "th" ? thaiCategories[c.id] : c[copyLocale]}</option>)}</select></label></div>{open.length ? <ul className="mt-3 divide-y divide-(--khvi-teal)/20">{open.map(r => requestRow(r, true))}</ul> : <p role="status" className="my-6 rounded-lg bg-(--khvi-paper) p-5 text-sm leading-7">{tr("ยังไม่มีคำขอในเครื่องที่ตรงตัวกรอง ลองเปลี่ยนภาษา หมวดหมู่ หรือระยะค้นหา", "No browser records match these filters. Try another language, category or distance.", "没有符合筛选条件的浏览器记录，请调整语言、类别或距离。")}</p>}<Link className="inline-flex min-h-11 items-center gap-2 font-bold underline underline-offset-4" href="/find-requests#main-content">{tr("เปิดแผนที่ทั้งหมด", "Open the full map", "打开完整地图")}<ArrowRightIcon className="h-4 w-4" aria-hidden="true" /></Link></section>}
     <section className={`${panel} mt-7`}><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-bold">{interpreter ? tr("ภารกิจที่ผ่านมาในเครื่องนี้", "Past assignments on this device", "此设备上的历史任务") : tr("คำขอล่าสุด", "Recent requests", "最近的请求")}</h2><Link className="inline-flex min-h-11 items-center font-bold underline underline-offset-4" href={listPath}>{tr("ดูทั้งหมด", "View all", "查看全部")}</Link></div>{recent.length ? <ul className="divide-y divide-(--khvi-teal)/20">{recent.map(r => requestRow(r))}</ul> : <div className="flex items-start gap-4 py-6"><ClipboardDocumentListIcon className="h-8 w-8 shrink-0 text-(--khvi-teal)" aria-hidden="true" /><p className="text-sm leading-7">{tr("ยังไม่มีประวัติในเบราว์เซอร์นี้ เมื่อมีรายการแล้วคุณจะกลับมาติดตามได้ที่นี่", "No history in this browser yet. Return here to follow saved requests.", "此浏览器暂无历史记录，保存后可在此查看。")}</p></div>}</section>
     <div className="mt-7 grid gap-5 md:grid-cols-2">
-      <section id="volunteer-application" className="scroll-mt-28"><ApplicationStatusCard application={volunteerApplication} /></section>
+      <section id="volunteer-application" className="scroll-mt-28"><ApplicationStatusCard application={activeApplication} /></section>
       <section className={panel}><ShieldCheckIcon className="h-7 w-7 text-(--khvi-teal)" aria-hidden="true" /><h2 className="mt-3 text-xl font-bold">{interpreter ? tr("ดูแลความเป็นส่วนตัว", "Look after privacy", "保护隐私") : tr("รีวิวหลังจบภารกิจ", "Review after completion", "完成后评价")}</h2><p className={muted}>{interpreter ? tr("ก่อนผู้ขอยืนยันล่าม ให้ใช้เฉพาะพื้นที่กว้าง ๆ และข้อมูลที่จำเป็นต่อการตัดสินใจรับงาน", "Before requester confirmation, use only the broad area and information needed to assess the request.", "求助者确认前，仅使用大致区域和判断任务所需的信息。") : completed.length ? tr(`มีงานที่เสร็จแล้ว ${completed.length} รายการในเครื่องนี้ ระบบยังตรวจไม่ได้ว่างานใดรีวิวแล้ว`, `${completed.length} completed records on this device. Review status is not available yet.`, `此设备有${completed.length}条已完成记录，评价状态尚不可用。`) : tr("เมื่อทั้งสองฝ่ายยืนยันจบงาน คุณจึงให้คะแนนล่ามได้ ยังไม่มีงานที่เสร็จในเครื่องนี้", "Reviews follow confirmation from both people. There are no completed records on this device yet.", "双方确认完成后才能评价，此设备暂无已完成记录。")}</p>{!interpreter && <p className="mt-4 rounded-lg bg-(--khvi-paper) p-3 text-sm leading-6">{tr("ระบบส่งรีวิวยังไม่เปิดใช้งาน", "Review submission is not available yet.", "评价提交尚未开放。")}</p>}</section>
     </div>
     <section id="welcome-steps" className="mt-10 scroll-mt-28"><h2 className="text-2xl font-bold">{tr("จากคำขอจนจบภารกิจ", "From request to completion", "从请求到完成")}</h2><ol className="mt-5 grid gap-6 border-y border-(--khvi-teal)/20 py-7 md:grid-cols-3">{(interpreter ? [tr("ค้นหางานที่ตรงความสามารถ", "Find a suitable request", "查找合适的请求"), tr("รับงานและรอผู้ขอยืนยันล่าม", "Claim and await requester confirmation", "接单并等待求助者确认"), tr("เริ่มงานและยืนยันจบทั้งสองฝ่าย", "Start work, then both confirm completion", "开始任务，完成后双方确认")] : [tr("เลือกภาษา หมวดหมู่ และจุดนัดพบ", "Choose language, category and meeting point", "选择语言、类别和见面地点"), tr("เมื่อล่ามรับงาน ตรวจสอบและยืนยันล่าม", "Review and confirm the interpreter after claim", "接单后查看并确认口译员"), tr("ทั้งสองฝ่ายยืนยันจบ แล้วจึงรีวิว", "Both confirm completion, then review", "双方确认完成后评价")]).map((s, i) => <li key={s} className="flex gap-3 text-sm leading-7"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-(--khvi-teal)/15 font-bold">{i + 1}</span>{s}</li>)}</ol></section>
