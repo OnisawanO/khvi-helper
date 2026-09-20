@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowDownTrayIcon,
   BriefcaseIcon,
@@ -16,6 +16,7 @@ import {
   XCircleIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
+import { createClient } from "@/utils/supabase/client";
 import { InterpreterApplicant } from "../types";
 
 type ApplicantDetailModalProps = {
@@ -36,6 +37,60 @@ export function ApplicantDetailModal({
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [previewDocOpen, setPreviewDocOpen] = useState(false);
+  const rawDocUrl = applicant?.document?.url ?? null;
+  const isDirectUrl = Boolean(
+    rawDocUrl &&
+      (rawDocUrl.startsWith("http://") ||
+        rawDocUrl.startsWith("https://") ||
+        rawDocUrl.startsWith("blob:") ||
+        rawDocUrl.startsWith("data:"))
+  );
+  const [asyncDocUrl, setAsyncDocUrl] = useState<string | null>(null);
+  const [docError, setDocError] = useState(false);
+
+  const docUrl = isDirectUrl ? rawDocUrl : asyncDocUrl;
+  const docLoading = Boolean(previewDocOpen && rawDocUrl && !isDirectUrl && !asyncDocUrl && !docError);
+
+  useEffect(() => {
+    if (!previewDocOpen || !rawDocUrl || isDirectUrl) return;
+
+    let cancelled = false;
+
+    const resolveUrl = async () => {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase.storage
+          .from("interpreter-certificates")
+          .createSignedUrl(rawDocUrl, 3600);
+
+        if (!cancelled && data?.signedUrl) {
+          setAsyncDocUrl(data.signedUrl);
+          return;
+        }
+
+        const { data: blob } = await supabase.storage
+          .from("interpreter-certificates")
+          .download(rawDocUrl);
+
+        if (!cancelled) {
+          if (blob) {
+            setAsyncDocUrl(URL.createObjectURL(blob));
+          } else {
+            setDocError(true);
+          }
+        }
+      } catch {
+        if (!cancelled) {
+          setDocError(true);
+        }
+      }
+    };
+
+    void resolveUrl();
+    return () => {
+      cancelled = true;
+    };
+  }, [previewDocOpen, rawDocUrl, isDirectUrl]);
 
   if (!isOpen || !applicant) return null;
 
@@ -355,7 +410,7 @@ export function ApplicantDetailModal({
       {/* DOCUMENT PREVIEW MODAL (PDF / PNG / JPG) */}
       {previewDocOpen && applicant.document && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in">
-          <div className="relative flex flex-col w-full max-w-2xl max-h-[90vh] rounded-2xl border border-slate-700/50 bg-[#092f45] text-white shadow-2xl overflow-hidden">
+          <div className="relative flex flex-col w-full max-w-3xl max-h-[90vh] rounded-2xl border border-slate-700/50 bg-[#092f45] text-white shadow-2xl overflow-hidden">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-[#16435c] px-5 py-3.5 bg-[#072435]">
               <div className="flex items-center gap-2.5 min-w-0">
@@ -373,7 +428,7 @@ export function ApplicantDetailModal({
                     {applicant.document.name}
                   </h4>
                   <p className="text-[11px] text-slate-400">
-                    {applicant.document.size} • Uploaded by {applicant.name}
+                    Uploaded by {applicant.name}
                   </p>
                 </div>
               </div>
@@ -388,39 +443,61 @@ export function ApplicantDetailModal({
             </div>
 
             {/* Modal Body / Viewer */}
-            <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center min-h-[360px] bg-[#0c364e]/50">
-              {applicant.document.format === "pdf" ? (
-                /* PDF Interactive Mock Frame */
-                <div className="flex flex-col items-center justify-center text-center p-8 border border-[#1d4d6b] rounded-2xl bg-[#092f45] w-full max-w-lg shadow-inner">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 mb-4">
-                    <DocumentTextIcon className="h-8 w-8" />
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col items-center justify-center min-h-[380px] max-h-[75vh] bg-[#0c364e]/50">
+              {docLoading ? (
+                <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-300">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#087f80] border-t-transparent" />
+                  <span className="text-xs font-bold">กำลังโหลดเอกสาร...</span>
+                </div>
+              ) : applicant.document.format !== "pdf" && docUrl && !docError ? (
+                /* Display Image Directly */
+                <div className="flex flex-col items-center justify-center w-full">
+                  <div className="relative max-h-[62vh] max-w-full overflow-hidden rounded-xl border border-[#1d4d6b] bg-black/40 shadow-inner flex items-center justify-center p-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={docUrl}
+                      alt={applicant.document.name}
+                      className="max-h-[58vh] max-w-full object-contain rounded-lg shadow-md"
+                      onError={() => setDocError(true)}
+                    />
                   </div>
-                  <h5 className="text-base font-extrabold text-white">
-                    {applicant.document.name}
-                  </h5>
-                  <p className="mt-2 text-xs text-slate-300 max-w-sm leading-relaxed">
-                    Official credential certification submitted for language pair verification and volunteer background qualification.
-                  </p>
-                  <div className="mt-4 flex items-center gap-2 rounded-lg bg-black/30 px-3 py-1.5 text-xs text-slate-300 border border-white/10">
+                  <div className="mt-3 flex items-center gap-2 rounded-lg bg-black/30 px-3 py-1.5 text-xs text-slate-300 border border-white/10">
                     <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                    <span>Format verified: Application/PDF (Valid)</span>
+                    <span className="font-mono">{applicant.document.name}</span>
+                    <span>•</span>
+                    <span>Image/{applicant.document.format.toUpperCase()} (Verified)</span>
                   </div>
                 </div>
+              ) : applicant.document.format === "pdf" && docUrl && !docError ? (
+                /* PDF Viewer */
+                <div className="w-full h-[62vh] rounded-xl overflow-hidden border border-[#1d4d6b] bg-white">
+                  <iframe
+                    src={docUrl}
+                    title={applicant.document.name}
+                    className="w-full h-full"
+                  />
+                </div>
               ) : (
-                /* PNG / JPG Image Preview Frame */
+                /* Fallback frame */
                 <div className="flex flex-col items-center justify-center text-center p-8 border border-[#1d4d6b] rounded-2xl bg-[#092f45] w-full max-w-lg shadow-inner">
                   <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-500/10 border border-blue-500/30 text-blue-400 mb-4">
-                    <PhotoIcon className="h-8 w-8" />
+                    {applicant.document.format === "pdf" ? (
+                      <DocumentTextIcon className="h-8 w-8 text-red-400" />
+                    ) : (
+                      <PhotoIcon className="h-8 w-8" />
+                    )}
                   </div>
                   <h5 className="text-base font-extrabold text-white">
                     {applicant.document.name}
                   </h5>
                   <p className="mt-2 text-xs text-slate-300 max-w-sm leading-relaxed">
-                    High-resolution scanned image credential submitted for volunteer verification.
+                    {docError
+                      ? "ไม่สามารถแสดงตัวอย่างได้ในหน้านี้ สามารถคลิกดาวน์โหลดเพื่อตรวจสอบไฟล์โดยตรง"
+                      : "เอกสารรับรองคุณสมบัติทางภาษาของล่ามอาสา"}
                   </p>
                   <div className="mt-4 flex items-center gap-2 rounded-lg bg-black/30 px-3 py-1.5 text-xs text-slate-300 border border-white/10">
-                    <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                    <span>Format verified: Image/{applicant.document.format.toUpperCase()} (Valid)</span>
+                    <span className={`h-2 w-2 rounded-full ${docError ? "bg-amber-400" : "bg-emerald-400"}`} />
+                    <span>Format: {applicant.document.format.toUpperCase()}</span>
                   </div>
                 </div>
               )}
@@ -432,14 +509,27 @@ export function ApplicantDetailModal({
                 Security Hash: SHA-256 Verified
               </span>
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => alert(`Simulating file download: ${applicant.document.name}`)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#215777] bg-[#0d3b55] px-3.5 py-1.5 text-xs font-bold text-slate-200 hover:bg-[#124a6b] hover:text-white transition-colors cursor-pointer"
-                >
-                  <ArrowDownTrayIcon className="h-3.5 w-3.5" />
-                  Download File
-                </button>
+                {docUrl ? (
+                  <a
+                    href={docUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download={applicant.document.name}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#215777] bg-[#0d3b55] px-3.5 py-1.5 text-xs font-bold text-slate-200 hover:bg-[#124a6b] hover:text-white transition-colors cursor-pointer"
+                  >
+                    <ArrowDownTrayIcon className="h-3.5 w-3.5" />
+                    Download File
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => alert(`Simulating file download: ${applicant.document.name}`)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#215777] bg-[#0d3b55] px-3.5 py-1.5 text-xs font-bold text-slate-200 hover:bg-[#124a6b] hover:text-white transition-colors cursor-pointer"
+                  >
+                    <ArrowDownTrayIcon className="h-3.5 w-3.5" />
+                    Download File
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setPreviewDocOpen(false)}
@@ -455,4 +545,3 @@ export function ApplicantDetailModal({
     </>
   );
 }
-
