@@ -272,11 +272,11 @@ export function SystemSettingsModal({
                   </div>
                   <input
                     type="checkbox"
-                    checked={formData.requireBackgroundCheckForInterpreter}
+                    checked={formData.mandatoryIdVerification}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        requireBackgroundCheckForInterpreter: e.target.checked,
+                        mandatoryIdVerification: e.target.checked,
                       })
                     }
                     className="h-4 w-4 accent-[#087f80] rounded cursor-pointer"

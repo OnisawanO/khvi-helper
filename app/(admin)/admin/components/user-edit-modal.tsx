@@ -12,6 +12,9 @@ import {
   XMarkIcon,
   ExclamationTriangleIcon,
   UserMinusIcon,
+  NoSymbolIcon,
+  LockOpenIcon,
+  BoltIcon,
 } from "@heroicons/react/24/outline";
 import { AdminIncidentReport, AdminUserRecord, SystemRole } from "../types";
 
@@ -28,6 +31,9 @@ interface UserEditModalProps {
   onSave: () => void;
   incidentReports?: AdminIncidentReport[];
   onRevokeInterpreter?: (user: AdminUserRecord, reason: string) => void;
+  onDirectLock?: (user: AdminUserRecord) => void;
+  onDirectHardBan?: (user: AdminUserRecord) => void;
+  onDirectUnlock?: (user: AdminUserRecord) => void;
 }
 
 export function UserEditModal({
@@ -43,13 +49,65 @@ export function UserEditModal({
   onSave,
   incidentReports = [],
   onRevokeInterpreter,
+  onDirectLock,
+  onDirectHardBan,
+  onDirectUnlock,
 }: UserEditModalProps) {
   const [isRevoking, setIsRevoking] = useState(false);
   const [revokeReason, setRevokeReason] = useState("");
 
   if (!isOpen || !user) return null;
 
-  const userIncidentReports = incidentReports.filter((r) => r.reportedUserId === user.id);
+  const userIncidentReports = incidentReports.filter(
+    (r) =>
+      r.reportedUserId === user.id ||
+      (r.reportedUserName && r.reportedUserName.toLowerCase() === user.name.toLowerCase())
+  );
+
+  const hasCriticalIncident = userIncidentReports.some((r) => r.severity === "critical");
+  const isHardBanned = user.accountStatus === "Banned" || user.lockReason?.includes("[PERMANENT BAN]");
+
+  // Dynamic Risk Level Calculation
+  const riskAssessment = (() => {
+    if (isHardBanned) {
+      return {
+        level: "Banned / Excluded",
+        badgeColor: "bg-slate-900 text-red-300 border-slate-700",
+        dotColor: "bg-red-500",
+        desc: "Permanently banned from accessing KHVI Helper services.",
+      };
+    }
+    if (user.isLocked) {
+      return {
+        level: "High Risk (Suspended)",
+        badgeColor: "bg-red-100 text-red-700 border-red-200",
+        dotColor: "bg-red-600 animate-ping",
+        desc: "Account is currently under administrative suspension.",
+      };
+    }
+    if (hasCriticalIncident || userIncidentReports.length >= 2) {
+      return {
+        level: "Critical Safety Flag",
+        badgeColor: "bg-red-50 text-red-700 border-red-300",
+        dotColor: "bg-red-600",
+        desc: "Multiple or high-severity reports require immediate review.",
+      };
+    }
+    if (userIncidentReports.length === 1) {
+      return {
+        level: "Moderate Concern",
+        badgeColor: "bg-amber-50 text-amber-800 border-amber-300",
+        dotColor: "bg-amber-500",
+        desc: "Single incident report filed against this account.",
+      };
+    }
+    return {
+      level: "Clean & Operational",
+      badgeColor: "bg-emerald-50 text-emerald-800 border-emerald-300",
+      dotColor: "bg-emerald-500",
+      desc: "No negative reports or safety flags on record.",
+    };
+  })();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-3 sm:p-4 backdrop-blur-xs animate-in fade-in">
@@ -110,12 +168,87 @@ export function UserEditModal({
                   ))}
                 </div>
               </div>
-              <div>
-                <span className="font-bold text-slate-400 uppercase text-[10px]">Account Security Status:</span>
-                <p className={`mt-0.5 font-bold ${user.isLocked ? "text-[#f04f3e]" : "text-emerald-600"}`}>
-                  {user.isLocked ? "Suspended (Locked)" : "Active / Operational"}
-                </p>
+              {/* Risk Level Assessment Badge */}
+              <div className={`rounded-xl border p-2.5 ${riskAssessment.badgeColor}`}>
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold uppercase text-[9px] tracking-wider">Risk Level</span>
+                  <span className="flex items-center gap-1.5 font-black text-[11px]">
+                    <span className={`h-2 w-2 rounded-full ${riskAssessment.dotColor}`} />
+                    {riskAssessment.level}
+                  </span>
+                </div>
+                <p className="mt-1 text-[10px] leading-relaxed opacity-90">{riskAssessment.desc}</p>
               </div>
+
+              {/* Account Security Status & Quick Enforcement */}
+              <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-2 shadow-2xs">
+                <div>
+                  <span className="font-bold text-slate-400 uppercase text-[10px] block">Security Enforcement Status</span>
+                  <div className="flex items-center justify-between mt-0.5">
+                    <p className={`font-bold text-xs ${user.isLocked ? "text-[#f04f3e]" : "text-emerald-600"}`}>
+                      {user.accountStatus === "Banned"
+                        ? "Permanently Banned"
+                        : user.isLocked
+                        ? "Suspended (Locked)"
+                        : "Active / Operational"}
+                    </p>
+                    <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${
+                      user.isLocked ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"
+                    }`}>
+                      {user.isLocked ? "Restricted" : "Clear"}
+                    </span>
+                  </div>
+                  {user.lockReason && (
+                    <p className="mt-1 text-[10px] text-red-600 bg-red-50/70 p-1.5 rounded border border-red-100 italic">
+                      &ldquo;{user.lockReason}&rdquo;
+                    </p>
+                  )}
+                </div>
+
+                {/* Direct Enforcement Quick Action Buttons (Admin Only) */}
+                {user.role !== "Admin" && (
+                  <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase">
+                      <BoltIcon className="h-3 w-3 text-amber-500" />
+                      <span>Direct Enforcement</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-1.5">
+                      {user.isLocked ? (
+                        <button
+                          type="button"
+                          onClick={() => onDirectUnlock && onDirectUnlock(user)}
+                          className="flex w-full items-center justify-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer shadow-2xs"
+                        >
+                          <LockOpenIcon className="h-3.5 w-3.5 text-emerald-600" />
+                          <span>Unlock Account</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => onDirectLock && onDirectLock(user)}
+                          className="flex w-full items-center justify-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition-colors cursor-pointer shadow-2xs"
+                        >
+                          <LockClosedIcon className="h-3.5 w-3.5 text-amber-600" />
+                          <span>Suspend / Soft Lock</span>
+                        </button>
+                      )}
+
+                      {!isHardBanned && (
+                        <button
+                          type="button"
+                          onClick={() => onDirectHardBan && onDirectHardBan(user)}
+                          className="flex w-full items-center justify-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100 transition-colors cursor-pointer shadow-2xs"
+                        >
+                          <NoSymbolIcon className="h-3.5 w-3.5 text-red-600" />
+                          <span>Hard Ban Account</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {userIncidentReports.length > 0 && (
                 <div className="rounded-lg bg-red-50 border border-red-200 p-2 text-xs">
                   <span className="font-bold text-red-700 uppercase text-[10px] flex items-center gap-1">
@@ -123,7 +256,7 @@ export function UserEditModal({
                     <span>Safety Flags ({userIncidentReports.length})</span>
                   </span>
                   <p className="text-[11px] text-red-600 mt-0.5">
-                    This user has been escalated {userIncidentReports.length} times for misconduct review.
+                    This user has {userIncidentReports.length} escalated misconduct incident{userIncidentReports.length > 1 ? "s" : ""} on record.
                   </p>
                 </div>
               )}
@@ -355,17 +488,32 @@ export function UserEditModal({
                           <span className="font-mono text-xs font-black text-[#092f45]">{rep.id}</span>
                           <span className="text-[10px] text-slate-400 font-mono">Booking: {rep.bookingId}</span>
                         </div>
-                        <span
-                          className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-black uppercase ${
-                            rep.severity === "critical"
-                              ? "bg-red-100 text-red-700 border border-red-200"
-                              : rep.severity === "high"
-                              ? "bg-amber-100 text-amber-800 border border-amber-200"
-                              : "bg-blue-100 text-blue-700 border border-blue-200"
-                          }`}
-                        >
-                          {rep.severity}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-black uppercase ${
+                              rep.severity === "critical"
+                                ? "bg-red-100 text-red-700 border border-red-200"
+                                : rep.severity === "high"
+                                ? "bg-amber-100 text-amber-800 border border-amber-200"
+                                : "bg-blue-100 text-blue-700 border border-blue-200"
+                            }`}
+                          >
+                            {rep.severity}
+                          </span>
+                          <span
+                            className={`inline-flex rounded-md px-1.5 py-0.5 text-[9px] font-bold ${
+                              rep.status === "Escalated to Admin"
+                                ? "bg-red-50 text-red-600 border border-red-200"
+                                : rep.status === "Resolved (Hard Banned)"
+                                ? "bg-slate-900 text-red-300 border border-slate-700"
+                                : rep.status === "Resolved (Locked)"
+                                ? "bg-amber-50 text-amber-800 border border-amber-200"
+                                : "bg-slate-100 text-slate-600 border border-slate-200"
+                            }`}
+                          >
+                            {rep.status}
+                          </span>
+                        </div>
                       </div>
 
                       {/* Reason & Auto-translation */}
@@ -378,6 +526,11 @@ export function UserEditModal({
                             <LanguageIcon className="h-3.5 w-3.5 text-blue-600 shrink-0 not-italic" />
                             <span>Original ({rep.originalLanguage}): &ldquo;{rep.originalReason}&rdquo;</span>
                           </div>
+                        )}
+                        {rep.actionTaken && (
+                          <p className="text-[10px] text-slate-500 bg-slate-100/80 px-2 py-1 rounded">
+                            <strong className="text-slate-700">Enforcement Log:</strong> {rep.actionTaken}
+                          </p>
                         )}
                       </div>
 

@@ -28,13 +28,14 @@ import { AccountActionDialog } from "./components/account-action-dialog";
 import { UsersTable } from "./components/users-table";
 import { EscalatedReportsTable } from "./components/escalated-reports-table";
 import { AuditTrailTable } from "./components/audit-trail-table";
-import { SystemSettingsModal } from "./components/system-settings-modal";
+import { PlatformPoliciesView } from "./components/platform-policies-view";
+import { PlatformOverviewView } from "./components/platform-overview-view";
 import { useGovernanceStore } from "@/app/lib/governance-store";
 
 export default function AdminPage() {
   const router = useRouter();
   const [authChecked, setAuthChecked] = useState(false);
-  const [activeTab, setActiveTab] = useState<AdminActiveTab>("users");
+  const [activeTab, setActiveTab] = useState<AdminActiveTab>("overview");
   const [auditViewMode, setAuditViewMode] = useState<"table" | "activity">("table");
 
   // Synchronized Shared Governance Store across Admin & Manager
@@ -73,9 +74,8 @@ export default function AdminPage() {
   const [actionReportId, setActionReportId] = useState<string | null>(null);
   const [isActionDialogOpen, setIsActionDialogOpen] = useState(false);
 
-  // Platform System Settings Modal State
+  // Platform System Settings State
   const [systemSettings, setSystemSettings] = useState<SystemSettingsConfig>(initialSystemSettings);
-  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
@@ -327,7 +327,6 @@ export default function AdminPage() {
         totalUsersCount={totalUsersCount}
         pendingReportsCount={pendingReportsCount}
         auditLogsCount={auditLogs.length}
-        onSettingsClick={() => setIsSettingsModalOpen(true)}
       />
 
       {/* 1. Full-Height Left Rail Bar (Continuous single block from top to bottom) */}
@@ -338,7 +337,6 @@ export default function AdminPage() {
         totalUsersCount={totalUsersCount}
         pendingReportsCount={pendingReportsCount}
         auditLogsCount={auditLogs.length}
-        onSettingsClick={() => setIsSettingsModalOpen(true)}
       />
 
       {/* 2. Main Right Container: Header + Content Workspace + Footer */}
@@ -359,6 +357,16 @@ export default function AdminPage() {
         {/* Content Workspace Scroll Area */}
         <div className="flex-1 overflow-y-auto min-w-0 flex flex-col">
           <main className="flex-1 p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6">
+            {/* TAB 0: SYSTEM & OPERATIONS OVERVIEW (ANALYTICS & CHARTS) */}
+            {activeTab === "overview" && (
+              <PlatformOverviewView
+                users={users}
+                reports={reports}
+                auditLogs={auditLogs}
+                onNavigateTab={(tab) => setActiveTab(tab)}
+              />
+            )}
+
             {/* Header Interactive KPI Overview Cards for Users */}
             {activeTab === "users" && (
               <AdminKpiCards
@@ -433,6 +441,27 @@ export default function AdminPage() {
                 setAuditViewMode={setAuditViewMode}
               />
             )}
+
+            {/* TAB 4: PLATFORM GOVERNANCE & POLICIES */}
+            {activeTab === "policies" && (
+              <PlatformPoliciesView
+                settings={systemSettings}
+                onSave={(newSettings) => {
+                  setSystemSettings(newSettings);
+                  const newLog: AuditLogEntry = {
+                    id: `AUD-${Date.now().toString().slice(-4)}`,
+                    timestamp: new Date().toISOString().replace("T", " ").slice(0, 19),
+                    actor: `${currentUser?.name || "Super Admin"} (Admin)`,
+                    action: "SYSTEM_POLICY_UPDATE",
+                    targetUser: "Platform Configuration",
+                    severity: "warning",
+                    details: `SOS Radius: ${newSettings.sosDispatchRadiusKm}km, Min Rating: ${newSettings.interpreterMinRatingThreshold}, Ticket SLA: ${newSettings.autoEscalateTicketMinutes}m, Languages: ${newSettings.languagesCatalog.length}, Taxonomies: ${newSettings.specialtyCategories.length}`,
+                  };
+                  addAuditLog(newLog);
+                  showToast("Platform policies successfully updated and recorded in Audit Trail.");
+                }}
+              />
+            )}
           </main>
         </div>
       </div>
@@ -451,6 +480,9 @@ export default function AdminPage() {
         onSave={handleSaveUserChanges}
         incidentReports={reports}
         onRevokeInterpreter={handleRevokeInterpreter}
+        onDirectLock={(u) => handleOpenActionDialog(u)}
+        onDirectHardBan={(u) => handleOpenActionDialog(u)}
+        onDirectUnlock={(u) => handleConfirmUnlock(u.id)}
       />
 
       {/* Centered Modal: Account Action Dialog (Hard Ban / Soft Lock with Strict Confirmation) */}
@@ -472,28 +504,6 @@ export default function AdminPage() {
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
         onSuccess={handleLoginSuccess}
-      />
-
-      {/* System Governance & Policies Configuration Modal */}
-      <SystemSettingsModal
-        isOpen={isSettingsModalOpen}
-        onClose={() => setIsSettingsModalOpen(false)}
-        settings={systemSettings}
-        onSave={(newSettings) => {
-          setSystemSettings(newSettings);
-          // Add Audit Log Entry
-          const newLog: AuditLogEntry = {
-            id: `AUD-${Date.now().toString().slice(-4)}`,
-            timestamp: new Date().toISOString().replace("T", " ").slice(0, 19),
-            actor: `${currentUser?.name || "Super Admin"} (Admin)`,
-            action: "SYSTEM_POLICY_UPDATE",
-            targetUser: "Platform Configuration",
-            severity: "warning",
-            details: `SOS Radius: ${newSettings.sosDispatchRadiusKm}km, Min Rating: ${newSettings.interpreterMinRatingThreshold}, Ticket SLA: ${newSettings.autoEscalateTicketMinutes}m, Languages: ${newSettings.languagesCatalog.length}, Taxonomies: ${newSettings.specialtyCategories.length}`,
-          };
-          addAuditLog(newLog);
-          showToast("Platform policies and catalog successfully updated & audited.");
-        }}
       />
     </div>
   );

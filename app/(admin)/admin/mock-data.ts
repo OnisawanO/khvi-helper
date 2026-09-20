@@ -130,6 +130,76 @@ export const initialUsers: AdminUserRecord[] = [
     registeredAt: "2026-08-18 10:00",
     lastActive: "4 hours ago",
   },
+  {
+    id: "USR-009",
+    name: "Tourist John D.",
+    email: "john.tourist@example.com",
+    phone: "+1-415-555-0199",
+    primaryLanguage: "Spanish",
+    spokenLanguages: ["Spanish", "English"],
+    role: "User",
+    isLocked: false,
+    registeredAt: "2026-09-03 11:20",
+    lastActive: "3 hours ago",
+  },
+  {
+    id: "USR-010",
+    name: "Alexei V.",
+    email: "alexei.v@volunteer.org",
+    phone: "+7-916-555-4321",
+    primaryLanguage: "Russian",
+    spokenLanguages: ["Russian", "English"],
+    role: "Interpreter",
+    isLocked: false,
+    registeredAt: "2026-08-12 16:45",
+    lastActive: "5 hours ago",
+    interpreterStats: {
+      verificationStatus: "Approved",
+      completedMissions: 18,
+      rating: 4.12,
+      specialties: ["Medical", "Hospital", "Tourism"],
+      responseTimeAvg: "4.8 mins",
+      feedbackHighlights: [
+        "Capable with technical hospital documents.",
+        "Under review due to missed ER call without cancellation notice.",
+      ],
+    },
+  },
+  {
+    id: "USR-011",
+    name: "Prapan K.",
+    email: "prapan.k@gmail.com",
+    phone: "082-345-6789",
+    primaryLanguage: "Thai",
+    spokenLanguages: ["Thai"],
+    role: "User",
+    isLocked: false,
+    registeredAt: "2026-09-04 09:10",
+    lastActive: "Yesterday",
+  },
+  {
+    id: "USR-012",
+    name: "Maria Santos",
+    email: "maria.santos@languagehub.ph",
+    phone: "+63-917-555-8899",
+    primaryLanguage: "Japanese",
+    spokenLanguages: ["Japanese", "English", "Tagalog"],
+    role: "Interpreter",
+    isLocked: false,
+    registeredAt: "2026-08-05 14:00",
+    lastActive: "35 mins ago",
+    interpreterStats: {
+      verificationStatus: "Approved",
+      completedMissions: 27,
+      rating: 4.45,
+      specialties: ["Immigration", "Airport Transit", "General Help"],
+      responseTimeAvg: "2.8 mins",
+      feedbackHighlights: [
+        "Fast response at airport gate.",
+        "Need reminder regarding telephone conduct during official interviews.",
+      ],
+    },
+  },
 ];
 
 export const initialAuditLogs: AuditLogEntry[] = [
@@ -176,7 +246,7 @@ export const initialEscalatedReports: import("./types").AdminIncidentReport[] = 
     id: "REP-302",
     reporterName: "Carlos Mendez",
     reporterRole: "User",
-    reportedUserId: "USR-006",
+    reportedUserId: "USR-009",
     reportedUserName: "Tourist John D.",
     reportedUserRole: "User",
     bookingId: "BKG-9844",
@@ -192,7 +262,7 @@ export const initialEscalatedReports: import("./types").AdminIncidentReport[] = 
     id: "REP-301",
     reporterName: "Elena Petrova",
     reporterRole: "User",
-    reportedUserId: "USR-005",
+    reportedUserId: "USR-010",
     reportedUserName: "Alexei V.",
     reportedUserRole: "Interpreter",
     bookingId: "BKG-9920",
@@ -208,7 +278,7 @@ export const initialEscalatedReports: import("./types").AdminIncidentReport[] = 
     id: "REP-303",
     reporterName: "Volunteer Somsak",
     reporterRole: "Interpreter",
-    reportedUserId: "USR-007",
+    reportedUserId: "USR-011",
     reportedUserName: "Prapan K.",
     reportedUserRole: "User",
     bookingId: "BKG-9710",
@@ -224,7 +294,7 @@ export const initialEscalatedReports: import("./types").AdminIncidentReport[] = 
     id: "REP-304",
     reporterName: "Kenji Sato",
     reporterRole: "User",
-    reportedUserId: "USR-003",
+    reportedUserId: "USR-012",
     reportedUserName: "Maria Santos",
     reportedUserRole: "Interpreter",
     bookingId: "BKG-9632",
@@ -265,11 +335,21 @@ export const AVAILABLE_CATEGORIES = [
 ];
 
 export const initialSystemSettings = {
+  // 1. Emergency Dispatch & SOS Policy
   sosDispatchRadiusKm: 15,
-  interpreterMinRatingThreshold: 3.5,
   autoEscalateTicketMinutes: 20,
-  requireBackgroundCheckForInterpreter: true,
   allowGuestSosRequests: false,
+
+  // 2. Interpreter Accreditation & Platform Safeguards
+  interpreterMinRatingThreshold: 3.5,
+  mandatoryIdVerification: true,
+  maxFalseAlarmsBeforeAutoLock: 3,
+
+  // 3. Taxonomies & Catalogs
   languagesCatalog: [...AVAILABLE_LANGUAGES],
   specialtyCategories: [...AVAILABLE_CATEGORIES],
+
+  // Metadata
+  lastUpdated: "2026-09-17 10:00:00",
+  updatedBy: "Ilham Khamsikeaw (Super Admin)",
 };

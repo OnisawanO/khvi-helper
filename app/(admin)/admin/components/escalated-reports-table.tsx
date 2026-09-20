@@ -420,14 +420,45 @@ export function EscalatedReportsTable({
                 </tr>
               ) : (
                 paginatedReports.map((report) => {
-                  const targetUserObj = users.find((u) => u.id === report.reportedUserId);
-                  const isTargetLocked = targetUserObj?.isLocked ?? false;
-                  const isTargetBanned = targetUserObj?.accountStatus === "Banned";
+                  const targetUserObj: AdminUserRecord = users.find((u) => u.id === report.reportedUserId)
+                    || users.find((u) => u.name.toLowerCase() === report.reportedUserName.toLowerCase())
+                    || {
+                        id: report.reportedUserId || `USR-${report.id}`,
+                        name: report.reportedUserName,
+                        email: `${report.reportedUserName.toLowerCase().replace(/[^a-z0-9]/g, ".")}@example.com`,
+                        phone: "081-000-0000",
+                        primaryLanguage: report.originalLanguage || "English",
+                        spokenLanguages: [report.originalLanguage || "English"],
+                        role: report.reportedUserRole,
+                        isLocked: report.status.includes("Locked") || report.status.includes("Hard Banned"),
+                        accountStatus: report.status.includes("Hard Banned")
+                          ? "Banned"
+                          : report.status.includes("Locked")
+                          ? "Locked"
+                          : "Active",
+                        registeredAt: report.createdAt,
+                        lastActive: "Recent",
+                        interpreterStats:
+                          report.reportedUserRole === "Interpreter"
+                            ? {
+                                verificationStatus: "Approved",
+                                completedMissions: 15,
+                                rating: 4.2,
+                                specialties: ["General Help"],
+                                responseTimeAvg: "3.5 mins",
+                                feedbackHighlights: ["Under administrative review for reported incident."],
+                              }
+                            : undefined,
+                      };
+                  const isTargetLocked = targetUserObj.isLocked ?? false;
+                  const isTargetBanned = targetUserObj.accountStatus === "Banned";
                   const isResolved =
                     report.status === "Resolved (Hard Banned)" ||
                     report.status === "Resolved (Locked)" ||
                     report.status === "Dismissed";
                   const isOriginalExpanded = expandedOriginalMap[report.id] ?? false;
+
+                  const reporterUserObj = users.find((u) => u.name.toLowerCase() === report.reporterName.toLowerCase());
 
                   return (
                     <tr
@@ -487,6 +518,20 @@ export function EscalatedReportsTable({
                         <div className="font-bold text-slate-700">
                           {report.reporterName}
                         </div>
+                        {reporterUserObj ? (
+                          <button
+                            type="button"
+                            onClick={() => onOpenUserDetail(reporterUserObj)}
+                            className="font-bold text-slate-700 hover:text-[#087f80] hover:underline cursor-pointer text-left block"
+                            title="View Reporter User Profile"
+                          >
+                            {report.reporterName}
+                          </button>
+                        ) : (
+                          <div className="font-bold text-slate-700">
+                            {report.reporterName}
+                          </div>
+                        )}
                         <div className="text-[10px] text-slate-400">
                           {report.reporterRole}
                         </div>

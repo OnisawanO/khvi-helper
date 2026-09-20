@@ -53,14 +53,24 @@ export type AuditLogEntry = {
   details: string;
 };
 
-export type AdminActiveTab = "users" | "reports" | "audit";
+export type AdminActiveTab = "overview" | "users" | "reports" | "audit" | "policies";
 
 export type SystemSettingsConfig = {
+  // 1. Emergency Dispatch & SOS Policy
   sosDispatchRadiusKm: number;
-  interpreterMinRatingThreshold: number;
   autoEscalateTicketMinutes: number;
-  requireBackgroundCheckForInterpreter: boolean;
   allowGuestSosRequests: boolean;
+
+  // 2. Interpreter Accreditation & Platform Safeguards
+  interpreterMinRatingThreshold: number;
+  mandatoryIdVerification: boolean;
+  maxFalseAlarmsBeforeAutoLock: number;
+
+  // 3. Taxonomies & Catalogs
   languagesCatalog: string[];
   specialtyCategories: string[];
+
+  // Metadata
+  lastUpdated?: string;
+  updatedBy?: string;
 };
