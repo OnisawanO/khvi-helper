@@ -30,13 +30,13 @@
 
 ### 2.1 ส่วนหัวระบบ (Admin Header)
 - แสดงชื่อแบรนด์ **KHVI Helper** พร้อมคำบรรยายระบบ
-- แสดงสถานะระบบส่วนกลาง (`System Status: Normal`)
+- ไม่แสดง `System Status` แบบคงที่ใน header เนื่องจาก current source ยังไม่มี health signal ที่เชื่อถือได้สำหรับรายงานสถานะระบบ
 - แสดงโปรไฟล์และตัวตนของผู้ดูแลระบบด้วย `first_name` และ `last_name` จาก `profiles`
 - เมนู Profile Dropdown สำหรับตรวจสอบข้อมูล บันทึก Audit Log และออกจากระบบ (`Sign Out`)
 
-### 2.2 แถบนำทางด้านซ้าย (Left Sidebar & Recent Security Activity)
-- เมนูสลับหน้าจอหลัก 3 แท็บ: All Users & Roles, Interpreter Index, Audit Trail
-- **Recent Security Activity (ประวัติความปลอดภัยย่อ):** ดึงรายการ Audit Log ล่าสุด 3 รายการขึ้นมาแสดงที่แถบด้านซ้ายแบบ Realtime เพื่อให้ผู้ดูแลระบบมองเห็นกิจกรรมการจัดการสิทธิ์และระงับบัญชีที่เพิ่งเกิดขึ้นได้ทันทีโดยไม่ต้องกดสลับหน้า พร้อมปุ่มกด "View All" เพื่อเปิดหน้า Audit Trail เต็มรูปแบบ
+### 2.2 แถบนำทางด้านซ้ายและกิจกรรมความปลอดภัยล่าสุด (Left Navigation & Recent Security Activity)
+- current source ใช้เมนู 5 ส่วน: Platform Overview, User Management, Escalated Reports, Audit Trail และ Platform Policies
+- **Recent Security Activity (ประวัติความปลอดภัยย่อ):** แสดงเป็นส่วนสรุปขนาดกะทัดรัดใน Platform Overview จาก audit logs ล่าสุด และให้ลิงก์ไปยัง Audit Trail เต็มรูปแบบ จึงไม่ทำเป็นรายการถาวรใน sidebar
 
 ### 2.3 การ์ดสรุปตัวชี้วัดสำคัญ (Key Metric Cards)
 1. **Total System Users:** จำนวนผู้ใช้งานทั้งหมดในระบบทุกบทบาท
@@ -44,16 +44,17 @@
 3. **Suspended / Locked:** จำนวนบัญชีที่ถูกระงับการใช้งานเนื่องจากเหตุผลด้านวินัยหรือความปลอดภัย
 4. **Privileged Staff:** จำนวนเจ้าหน้าที่ระดับผู้จัดการ (Manager) และผู้ดูแลระบบ (Admin)
 
-### 2.3 แถบแท็บที่ 1: รายชื่อผู้ใช้และการจัดการสิทธิ์ (All Users & Roles)
+### 2.3 ส่วนที่ 1: รายชื่อผู้ใช้และการจัดการสิทธิ์ (User Management)
 - **ระบบค้นหา:** รองรับการค้นหาด้วย `first_name`, `last_name`, อีเมล, เบอร์โทรศัพท์ หรือ User ID
 - **ตัวกรองสถานะและบทบาท (Filters):**
   - ตัวกรองบทบาท (All, User, Interpreter, Manager, Admin)
   - ตัวกรองสถานะบัญชี (All, Active, Locked)
   - **ตัวกรองภาษา (Language Multi-Select Filter):** ออกแบบตามสไตล์ Manager Dropdown ให้สามารถติ๊กเลือกภาษาได้หลายภาษาพร้อมกัน เพื่อคัดกรองผู้ใช้หรือล่ามที่พูดภาษานั้นๆ ได้อย่างรวดเร็ว
   - **ตัวกรองหมวดหมู่ความเชี่ยวชาญ (Category Multi-Select Filter):** ออกแบบตามสไตล์ Manager Dropdown ให้สามารถติ๊กเลือกหมวดหมู่ความเชี่ยวชาญ เช่น Medical, Police station, Emergency, Tourist, Legal เพื่อกรองล่ามตามสาขาเฉพาะทางได้อย่างแม่นยำ
-- **ตารางข้อมูลผู้ใช้งาน (Users Table List):** แสดงข้อมูลติดต่อ, บทบาท (Role Badge), ภาษาหลัก, ภาษาที่สื่อสารได้, สถานะความปลอดภัย (Active / Locked), และเวลาใช้งานล่าสุด โดยแถวของแต่ละรายการสามารถคลิกเพื่อเปิดหน้าต่างตรวจสอบและจัดการข้อมูลผู้ใช้ (User Management Modal) ได้ทันที
+- **ตารางข้อมูลผู้ใช้งาน (Users Table List):** แสดงข้อมูลติดต่อ, บทบาท (Role Badge), ภาษาหลัก, ภาษาที่สื่อสารได้, สถานะความปลอดภัย (Active / Locked), และเวลาใช้งานล่าสุด โดยปุ่มชื่อผู้ใช้สามารถกดเพื่อเปิดหน้าต่างตรวจสอบและจัดการข้อมูลผู้ใช้ (User Management Modal) ได้ทันที
 
-### 2.4 แถบแท็บที่ 2: ดัชนีคุณภาพและผลงานล่าม (Interpreter Index)
+### 2.4 ส่วนข้อมูลล่าม (Interpreter Quality & Coverage)
+- หมายเหตุ: current source ยังไม่มี Interpreter Index เป็นเมนูแยก ข้อมูลล่ามที่มีอยู่แสดงผ่าน User Management และสรุป coverage ใน Platform Overview
 - ปรับการแสดงผลเป็น **ตารางรายการ (Table List)** แบบเดียวกับหน้า All Users & Roles เพื่อความสะดวกในการเปรียบเทียบข้อมูล
 - จัดเรียงตามคะแนนรีวิว (Rating) จากมากไปน้อย
 - แสดงข้อมูลสำคัญในตาราง:
