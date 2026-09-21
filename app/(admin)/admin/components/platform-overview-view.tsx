@@ -3,7 +3,10 @@
 import { useState, useMemo } from "react";
 import {
   ArrowPathIcon,
+  CheckBadgeIcon,
   ExclamationTriangleIcon,
+  LockClosedIcon,
+  UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import { AdminUserRecord, AdminIncidentReport, AuditLogEntry } from "../types";
 
@@ -149,12 +152,9 @@ export function PlatformOverviewView({
       {/* 1. Executive Summary Welcome Header (Clean Pure Minimalist) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
-          <h2 className="text-xl font-bold text-[#10283a] tracking-tight">
+          <h2 className="text-lg sm:text-xl font-bold text-[#092f45]">
             Platform Overview
           </h2>
-          <p className="text-xs text-slate-500 mt-1">
-            Governance dashboard summarizing user distribution, volunteer coverage, incident pipeline, and security posture.
-          </p>
         </div>
 
         {/* Header Action Controls: Alert Status & Quick Refresh Button */}
@@ -197,87 +197,119 @@ export function PlatformOverviewView({
         </div>
       </div>
 
-      {/* 2. Top-level Summary Stat Blocks (Crisp Hairline Dividers) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 py-3 border-b border-slate-200">
-        {/* Block 1: Active Interpreter Readiness */}
-        <div className="p-3 sm:p-4 space-y-1">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-            Interpreter Supply
+      {/* 2. Top-level Summary KPI Cards (Original Operational Metrics in Segmented Box Container) */}
+      <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-1 shadow-2xs">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-1">
+          {/* Card 1: Total Accounts */}
+          <div className="rounded-lg bg-white border border-slate-100 p-3.5 sm:p-4 shadow-2xs">
+            <div className="flex items-center justify-between gap-1">
+              <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate">
+                Total Accounts
+              </p>
+              <div className="flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-600">
+                <UserGroupIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              </div>
+            </div>
+            <div className="mt-1.5 flex items-baseline gap-2">
+              <p className="text-xl sm:text-2xl font-black text-[#092f45]">
+                {metrics.totalUsers}
+              </p>
+              <span className="text-[11px] font-semibold text-slate-400">users</span>
+            </div>
+            <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px] sm:text-xs text-slate-500">
+              <span className="text-slate-400">Platform Directory</span>
+              <span className="font-bold text-blue-600">
+                {metrics.activeAccountsCount} active now
+              </span>
+            </div>
           </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-[#10283a] tracking-tight">
-              {metrics.activeInterpretersCount}
-            </span>
-            <span className="text-xs font-semibold text-slate-400">
-              / {metrics.interpretersCount} total
-            </span>
-          </div>
-          <div className="mt-2 flex items-center gap-1.5 text-[11px] text-[#4d8a93] font-medium">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#4d8a93]" />
-            <span>Operational & Verified</span>
-          </div>
-        </div>
 
-        {/* Block 2: Critical Incident Pressure */}
-        <div className="p-3 sm:p-4 space-y-1">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-            Escalated Cases
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className={`text-3xl font-extrabold tracking-tight ${metrics.criticalReportsCount > 0 ? "text-[#f04f3e]" : "text-[#10283a]"}`}>
-              {metrics.criticalReportsCount}
-            </span>
-            <span className="text-xs font-semibold text-slate-400">
-              critical
-            </span>
-          </div>
-          <div className="mt-2 text-[11px] text-slate-500">
-            {metrics.pendingReportsCount} awaiting Admin decision
-          </div>
-        </div>
-
-        {/* Block 3: Security & Soft-Lock */}
-        <div className="p-3 sm:p-4 space-y-1">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-            Disciplined Users
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-[#10283a] tracking-tight">
-              {metrics.lockedOrBannedCount}
-            </span>
-            <span className="text-xs font-semibold text-slate-400">
-              locked / banned
-            </span>
-          </div>
-          <div className="mt-2 text-[11px] text-slate-500">
-            {metrics.enforcementCount} disciplinary audit logs
-          </div>
-        </div>
-
-        {/* Block 4: Interpreter Verification Backlog */}
-        <div className="p-3 sm:p-4 space-y-1">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-            Pending Approvals
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className={`text-3xl font-extrabold tracking-tight ${metrics.pendingInterpretersCount > 0 ? "text-[#f0a35f]" : "text-[#10283a]"}`}>
-              {metrics.pendingInterpretersCount}
-            </span>
-            <span className="text-xs font-semibold text-slate-400">
-              volunteers
-            </span>
-          </div>
-          <div className="mt-2 text-[11px] text-slate-500 flex items-center justify-between">
-            <span>Awaiting review</span>
-            {metrics.pendingInterpretersCount > 0 && (
-              <button
-                type="button"
-                onClick={() => onNavigateTab("users")}
-                className="font-bold text-[#4d8a93] hover:underline cursor-pointer text-[11px]"
+          {/* Card 2: Escalated Cases */}
+          <div className="rounded-lg bg-white border border-slate-100 p-3.5 sm:p-4 shadow-2xs">
+            <div className="flex items-center justify-between gap-1">
+              <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate">
+                Escalated Cases
+              </p>
+              <div className="flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-md bg-red-50 text-[#f04f3e]">
+                <ExclamationTriangleIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              </div>
+            </div>
+            <div className="mt-1.5 flex items-baseline gap-2">
+              <p
+                className={`text-xl sm:text-2xl font-black ${
+                  metrics.criticalReportsCount > 0 ? "text-[#f04f3e]" : "text-[#10283a]"
+                }`}
               >
-                Verify →
-              </button>
-            )}
+                {metrics.criticalReportsCount}
+              </p>
+              <span className="text-[11px] font-semibold text-slate-400">critical</span>
+            </div>
+            <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px] sm:text-xs text-slate-500">
+              <span className="text-slate-400">Awaiting Decision</span>
+              <span
+                className={`font-bold ${
+                  metrics.pendingReportsCount > 0 ? "text-[#f04f3e]" : "text-slate-500"
+                }`}
+              >
+                {metrics.pendingReportsCount} pending
+              </span>
+            </div>
+          </div>
+
+          {/* Card 3: Disciplined Users */}
+          <div className="rounded-lg bg-white border border-slate-100 p-3.5 sm:p-4 shadow-2xs">
+            <div className="flex items-center justify-between gap-1">
+              <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate">
+                Disciplined Users
+              </p>
+              <div className="flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-md bg-amber-50 text-[#f0a35f]">
+                <LockClosedIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              </div>
+            </div>
+            <div className="mt-1.5 flex items-baseline gap-2">
+              <p className="text-xl sm:text-2xl font-black text-[#10283a]">
+                {metrics.lockedOrBannedCount}
+              </p>
+              <span className="text-[11px] font-semibold text-slate-400">locked / banned</span>
+            </div>
+            <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px] sm:text-xs text-slate-500">
+              <span className="text-slate-400">Audit Enforcements</span>
+              <span className="font-bold text-[#f0a35f]">
+                {metrics.enforcementCount} actions logged
+              </span>
+            </div>
+          </div>
+
+          {/* Card 4: Pending Approvals */}
+          <div className="rounded-lg bg-white border border-slate-100 p-3.5 sm:p-4 shadow-2xs">
+            <div className="flex items-center justify-between gap-1">
+              <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate">
+                Pending Approvals
+              </p>
+              <div className="flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-md bg-teal-50 text-[#087f80]">
+                <CheckBadgeIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              </div>
+            </div>
+            <div className="mt-1.5 flex items-baseline gap-2">
+              <p
+                className={`text-xl sm:text-2xl font-black ${
+                  metrics.pendingInterpretersCount > 0 ? "text-[#087f80]" : "text-[#10283a]"
+                }`}
+              >
+                {metrics.pendingInterpretersCount}
+              </p>
+              <span className="text-[11px] font-semibold text-slate-400">volunteers</span>
+            </div>
+            <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px] sm:text-xs text-slate-500">
+              <span className="text-slate-400">Backlog Queue</span>
+              <span
+                className={`font-bold ${
+                  metrics.pendingInterpretersCount > 0 ? "text-[#087f80]" : "text-slate-500"
+                }`}
+              >
+                {metrics.pendingInterpretersCount > 0 ? "Awaiting Review" : "Queue Clean"}
+              </span>
+            </div>
           </div>
         </div>
       </div>

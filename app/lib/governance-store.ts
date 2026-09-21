@@ -50,6 +50,12 @@ export const governanceStore = {
   getReports: (): AdminIncidentReport[] => memoryReports,
   getAuditLogs: (): AuditLogEntry[] => memoryAuditLogs,
 
+  setUsers: (newUsers: AdminUserRecord[]) => {
+    memoryUsers = newUsers;
+    saveToStorage(USERS_KEY, memoryUsers);
+    notify();
+  },
+
   updateUser: (updatedUser: AdminUserRecord, auditAction?: string, auditDetails?: string, actor = "Super Admin (Admin)") => {
     memoryUsers = memoryUsers.map((u) => (u.id === updatedUser.id ? updatedUser : u));
     saveToStorage(USERS_KEY, memoryUsers);
@@ -206,6 +212,7 @@ export function useGovernanceStore() {
     users,
     reports,
     auditLogs,
+    setUsers: governanceStore.setUsers,
     updateUser: governanceStore.updateUser,
     lockUser: governanceStore.lockUser,
     unlockUser: governanceStore.unlockUser,

@@ -31,6 +31,7 @@ import { AuditTrailTable } from "./components/audit-trail-table";
 import { PlatformPoliciesView } from "./components/platform-policies-view";
 import { PlatformOverviewView } from "./components/platform-overview-view";
 import { useGovernanceStore } from "@/app/lib/governance-store";
+import { getAdminUsersAction, updateUserSecurityAction } from "./actions/admin-actions";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -43,6 +44,7 @@ export default function AdminPage() {
     users,
     reports,
     auditLogs,
+    setUsers,
     updateUser,
     lockUser,
     unlockUser,
@@ -54,7 +56,7 @@ export default function AdminPage() {
 
   // Filters
   const [selectedRoles, setSelectedRoles] = useState<SystemRole[]>([]);
-  const [selectedStatusFilter, setSelectedStatusFilter] = useState<"All" | "Active" | "Locked">("All");
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<"All" | "Active" | "Locked" | "AppealPending">("All");
   const [selectedVerificationStatuses, setSelectedVerificationStatuses] = useState<string[]>([]);
   const [selectedReportStatusFilter, setSelectedReportStatusFilter] = useState<ReportStatusFilter>("Pending");
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
@@ -102,6 +104,20 @@ export default function AdminPage() {
 
       setCurrentUser(result.profile);
       setAuthChecked(true);
+
+      // Fetch real users from Supabase profiles
+      void loadSupabaseUsers();
+    };
+
+    const loadSupabaseUsers = async () => {
+      try {
+        const res = await getAdminUsersAction();
+        if (res.success && res.data && res.data.length > 0) {
+          setUsers(res.data);
+        }
+      } catch (err) {
+        console.error("Failed to load users from Supabase:", err);
+      }
     };
 
     void checkAdminSession();
@@ -113,7 +129,7 @@ export default function AdminPage() {
       disposed = true;
       authListener.subscription.unsubscribe();
     };
-  }, [router]);
+  }, [router, setUsers]);
 
   const handleLoginSuccess = (user: UserProfile) => {
     setCurrentUser(user);
@@ -155,6 +171,8 @@ export default function AdminPage() {
     }
     const target = users.find((u) => u.id === userId);
     showToast(`Account for ${target?.name || userId} has been temporarily suspended.`);
+
+    void updateUserSecurityAction(userId, target?.role || "User", true, reason);
   };
 
   // 2. Confirm Permanent Hard Ban (Strict Safety Confirmation)
@@ -165,6 +183,8 @@ export default function AdminPage() {
     }
     const target = users.find((u) => u.id === userId);
     showToast(`Account ${target?.name || userId} has been permanently hard banned.`);
+
+    void updateUserSecurityAction(userId, target?.role || "User", true, `[PERMANENT BAN] ${reason}`);
   };
 
   // 3. Confirm Unlock
@@ -180,12 +200,16 @@ export default function AdminPage() {
     }
     const target = users.find((u) => u.id === userId);
     showToast(`Account for ${target?.name || userId} has been successfully unlocked.`);
+
+    void updateUserSecurityAction(userId, target?.role || "User", false, "");
   };
 
   const handleRevokeInterpreter = (targetUser: AdminUserRecord, reason: string) => {
     revokeInterpreter(targetUser.id, reason, `${currentUser?.name || "Super Admin"} (Admin)`);
     setIsEditModalOpen(false);
     showToast(`Successfully revoked accreditation for ${targetUser.name}. Demoted to standard User.`);
+
+    void updateUserSecurityAction(targetUser.id, "User", targetUser.isLocked, targetUser.lockReason || "");
   };
 
   const handleSaveUserChanges = () => {
@@ -211,6 +235,7 @@ export default function AdminPage() {
       accountStatus: (tempRole === "Admin" ? "Active" : tempIsLocked ? (selectedUser.accountStatus === "Banned" ? "Banned" : "Locked") : "Active") as AccountStatus,
     };
 
+    // 1. Update local synchronized store immediately for optimistic UI
     updateUser(
       updatedUser,
       tempIsLocked !== selectedUser.isLocked
@@ -222,6 +247,26 @@ export default function AdminPage() {
 
     setIsEditModalOpen(false);
     showToast(`Successfully updated privileges for ${selectedUser.name} with Audit Log entry.`);
+    showToast(`Updating privileges for ${selectedUser.name}...`);
+
+    // 2. Persist to Supabase profiles table via Server Action
+    void (async () => {
+      try {
+        const res = await updateUserSecurityAction(
+          selectedUser.id,
+          tempRole,
+          tempRole === "Admin" ? false : tempIsLocked,
+          tempLockReason.trim()
+        );
+        if (!res.success) {
+          showToast(`Note: Local updated, database sync notice: ${res.error}`);
+        } else {
+          showToast(`Successfully saved security changes for ${selectedUser.name} to database.`);
+        }
+      } catch (err) {
+        console.error("Failed to update user security in Supabase:", err);
+      }
+    })();
   };
 
   const toggleRoleFilter = (role: SystemRole) => {
@@ -256,6 +301,7 @@ export default function AdminPage() {
       }
       if (selectedStatusFilter === "Active" && u.isLocked) return false;
       if (selectedStatusFilter === "Locked" && !u.isLocked) return false;
+      if (selectedStatusFilter === "AppealPending" && (!u.isLocked || !u.hasPendingAppeal)) return false;
 
       if (selectedVerificationStatuses.length > 0) {
         if (!u.interpreterStats) return false;
@@ -373,11 +419,30 @@ export default function AdminPage() {
                 reports={reports}
                 auditLogs={auditLogs}
                 onNavigateTab={(tab) => setActiveTab(tab)}
-                onRefresh={() => {
+                onRefresh={async () => {
                   reloadFromStorage();
-                  showToast("Platform overview metrics refreshed.");
+                  try {
+                    const res = await getAdminUsersAction();
+                    if (res.success && res.data && res.data.length > 0) {
+                      setUsers(res.data);
+                    }
+                  } catch (e) {
+                    console.error(e);
+                  }
+                  showToast("Platform overview metrics refreshed from database.");
                 }}
               />
+            )}
+
+            {/* TAB 1: ALL USERS & ROLES */}
+            {activeTab === "users" && (
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-slate-200">
+                <div>
+                  <h2 className="text-lg sm:text-xl font-bold text-[#092f45]">
+                    User Directory
+                  </h2>
+                </div>
+              </div>
             )}
 
             {/* Header Interactive KPI Overview Cards for Users */}
@@ -393,6 +458,17 @@ export default function AdminPage() {
                 toggleRoleFilter={toggleRoleFilter}
                 resetRoles={() => setSelectedRoles([])}
               />
+            )}
+
+            {/* TAB 2: ESCALATED INCIDENT REPORTS */}
+            {activeTab === "reports" && (
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-slate-200">
+                <div>
+                  <h2 className="text-lg sm:text-xl font-bold text-[#092f45]">
+                    Escalated Incident Reports
+                  </h2>
+                </div>
+              </div>
             )}
 
             {/* Header Interactive KPI Overview Cards for Escalated Reports */}

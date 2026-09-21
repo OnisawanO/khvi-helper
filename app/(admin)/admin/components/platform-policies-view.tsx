@@ -8,11 +8,13 @@ import {
   ClockIcon,
   ExclamationTriangleIcon,
   LanguageIcon,
+  MinusIcon,
   PlusIcon,
   ShieldCheckIcon,
   ShieldExclamationIcon,
   SignalIcon,
   StarIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { SystemSettingsConfig } from "../types";
 import { initialSystemSettings } from "../mock-data";
@@ -98,526 +100,433 @@ export function PlatformPoliciesView({ settings, onSave }: PlatformPoliciesViewP
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 animate-in fade-in duration-200">
-      {/* 1. Header Banner (Clean & Frameless) */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-2">
+      {/* 1. Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
           <div className="flex items-center gap-2.5">
-            <h2 className="text-lg sm:text-xl font-black text-[#092f45]">
+            <h2 className="text-lg sm:text-xl font-bold text-[#092f45]">
               Platform Policies & System Governance
             </h2>
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 border border-emerald-200">
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200">
               <CheckBadgeIcon className="h-3.5 w-3.5 text-emerald-600" />
-              Active Enforcement
+              Active
             </span>
           </div>
-          <p className="text-sm text-slate-500 mt-1">
-            Global operational rules controlling emergency SOS dispatch, volunteer accreditation, and anti-abuse safeguards.
-          </p>
         </div>
 
-        {/* Action Controls in Header */}
         <div className="flex items-center gap-2.5 self-end sm:self-center">
           <button
             type="button"
             onClick={handleResetToDefault}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all cursor-pointer shadow-2xs"
-            title="Reset to factory baseline defaults"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer"
+            title="Reset to baseline defaults"
           >
-            <ArrowPathIcon className="h-4 w-4 text-slate-400" />
+            <ArrowPathIcon className="h-3.5 w-3.5 text-slate-400" />
             <span>Reset Defaults</span>
           </button>
 
           <button
             type="submit"
             disabled={!hasUnsavedChanges}
-            className={`inline-flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-black text-white shadow-md transition-all cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold text-white transition-all cursor-pointer shadow-xs ${
               hasUnsavedChanges
-                ? "bg-[#087f80] hover:bg-[#066869] shadow-[#087f80]/25 scale-102 ring-2 ring-[#087f80]/30"
-                : "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none"
+                ? "bg-[#087f80] hover:bg-[#066869]"
+                : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
             }`}
           >
-            <CheckIcon className="h-4 w-4 stroke-[3]" />
-            <span>{hasUnsavedChanges ? "Save Modifications" : "Policies Up to Date"}</span>
+            <CheckIcon className="h-4 w-4" />
+            <span>{hasUnsavedChanges ? "Save Changes" : "Up to Date"}</span>
           </button>
         </div>
       </div>
 
-      {/* Unsaved Changes Notification Pill (Informational Only, No Redundant Button) */}
+      {/* Unsaved Changes Alert Pill */}
       {hasUnsavedChanges && (
-        <div className="flex items-center gap-2.5 rounded-2xl border border-amber-300 bg-amber-50/90 px-4 py-3.5 text-sm font-bold text-amber-900 shadow-xs animate-in fade-in slide-in-from-top-1">
-          <ExclamationTriangleIcon className="h-5 w-5 text-amber-600 shrink-0" />
-          <span>You have unsaved policy changes. Click &ldquo;Save Modifications&rdquo; above to apply them across the platform.</span>
+        <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-2.5 text-xs font-semibold text-amber-900 shadow-2xs animate-in fade-in">
+          <ExclamationTriangleIcon className="h-4 w-4 text-amber-600 shrink-0" />
+          <span>You have unsaved policy changes. Click &ldquo;Save Changes&rdquo; to apply them across the platform.</span>
         </div>
       )}
 
-      {/* 2. Flat Canvas Sections with Clean Hairline Dividers */}
-      <div className="space-y-10">
-        {/* SECTION 1: EMERGENCY SOS & DISPATCH RULES */}
-        <div className="space-y-2">
-          {/* Section Header */}
-          <div className="pb-3 border-b border-slate-200 flex items-center justify-between">
+      {/* 2. Structured Compact Studio Grid Layout (Option A) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        
+        {/* CARD 1: EMERGENCY SOS & DISPATCH RULES */}
+        <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-50 text-[#087f80]">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-50 text-[#087f80]">
                 <SignalIcon className="h-4 w-4" />
               </div>
               <div>
-                <h3 className="text-base font-extrabold text-[#092f45]">
-                  1. SOS & Automated Dispatch Rules
+                <h3 className="text-sm font-bold text-[#092f45]">
+                  1. SOS & Dispatch Configuration
                 </h3>
-                <p className="text-xs text-slate-500">
-                  Configure incident radius, volunteer dispatching SLAs, and access permissions.
+                <p className="text-[11px] text-slate-400">
+                  Incident radius, volunteer SLA window, and guest access
                 </p>
               </div>
             </div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-teal-700 bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-full">
-              SLA Enforcement
+            <span className="text-[10px] font-bold uppercase tracking-wider text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
+              SLA
             </span>
           </div>
 
-          {/* Section Rows */}
-          <div className="divide-y divide-slate-100">
-            {/* Setting 1.1: SOS Dispatch Radius */}
-            <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/50 px-1 rounded-lg transition-colors">
-              <div className="max-w-xl space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <label className="text-sm font-bold text-slate-900">
-                    Volunteer Search Radius
-                  </label>
-                  <span className="text-[11px] font-semibold text-teal-700 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-md">
-                    Target: 3 - 50 km
-                  </span>
-                </div>
-                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-                  Maximum distance from incident location to broadcast alerts to qualified nearby volunteers.
-                </p>
+          <div className="space-y-4 text-xs">
+            {/* 1.1 Search Radius */}
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <label className="font-semibold text-slate-800 block">
+                  Volunteer Search Radius
+                </label>
+                <span className="text-[11px] text-slate-400">
+                  Max distance to broadcast alerts to qualified nearby volunteers
+                </span>
               </div>
-              <div className="shrink-0">
-                <div className="flex items-center w-48 sm:w-52 rounded-xl border border-slate-200 bg-slate-50 shadow-2xs focus-within:border-[#087f80] focus-within:ring-2 focus-within:ring-[#087f80]/20 focus-within:bg-white transition-all overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => updateField("sosDispatchRadiusKm", Math.max(1, formData.sosDispatchRadiusKm - 1))}
-                    className="flex h-10 w-10 shrink-0 items-center justify-center text-slate-500 hover:bg-slate-200/70 hover:text-slate-900 active:bg-slate-300/60 transition-colors cursor-pointer border-r border-slate-200"
-                    title="Decrease by 1 km"
-                  >
-                    <span className="text-lg font-bold select-none">−</span>
-                  </button>
-                  <input
-                    type="number"
-                    min={1}
-                    max={100}
-                    step={1}
-                    value={formData.sosDispatchRadiusKm}
-                    onChange={(e) => {
-                      const val = Number(e.target.value);
-                      if (!isNaN(val)) updateField("sosDispatchRadiusKm", val);
-                    }}
-                    className="w-full bg-transparent px-2 py-2 text-sm sm:text-base font-black text-[#092f45] text-center focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => updateField("sosDispatchRadiusKm", Math.min(100, formData.sosDispatchRadiusKm + 1))}
-                    className="flex h-10 w-10 shrink-0 items-center justify-center text-slate-500 hover:bg-slate-200/70 hover:text-slate-900 active:bg-slate-300/60 transition-colors cursor-pointer border-l border-slate-200"
-                    title="Increase by 1 km"
-                  >
-                    <span className="text-lg font-bold select-none">+</span>
-                  </button>
-                  <div className="shrink-0 bg-slate-100 border-l border-slate-200 px-3 py-2 text-xs sm:text-sm font-bold text-slate-700 select-none">
+              <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-0.5 shadow-2xs shrink-0 w-32">
+                <button
+                  type="button"
+                  onClick={() => updateField("sosDispatchRadiusKm", Math.max(1, formData.sosDispatchRadiusKm - 5))}
+                  disabled={formData.sosDispatchRadiusKm <= 1}
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shrink-0"
+                  title="Decrease radius (-5 km)"
+                >
+                  <MinusIcon className="h-3.5 w-3.5" />
+                </button>
+                <div className="flex items-baseline justify-center flex-1 text-center">
+                  <span className="font-bold text-slate-900 text-sm">
+                    {formData.sosDispatchRadiusKm}
+                  </span>
+                  <span className="ml-1 text-[11px] font-medium text-slate-500">
                     km
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Setting 1.2: Ticket Auto-Escalation SLA */}
-            <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/50 px-1 rounded-lg transition-colors">
-              <div className="max-w-xl space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <ClockIcon className="h-4 w-4 text-red-500 shrink-0" />
-                  <label className="text-sm font-bold text-slate-900">
-                    Auto-Escalation SLA Window
-                  </label>
-                  <span className="text-[11px] font-semibold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-md">
-                    SLA: 5 - 60 mins
                   </span>
                 </div>
-                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-                  If no volunteer claims the assignment within this window, an urgent alert triggers for Field Managers.
-                </p>
-              </div>
-              <div className="shrink-0">
-                <div className="flex items-center w-48 sm:w-52 rounded-xl border border-slate-200 bg-slate-50 shadow-2xs focus-within:border-red-400 focus-within:ring-2 focus-within:ring-red-200 focus-within:bg-white transition-all overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => updateField("autoEscalateTicketMinutes", Math.max(1, formData.autoEscalateTicketMinutes - 5))}
-                    className="flex h-10 w-10 shrink-0 items-center justify-center text-slate-500 hover:bg-slate-200/70 hover:text-slate-900 active:bg-slate-300/60 transition-colors cursor-pointer border-r border-slate-200"
-                    title="Decrease by 5 mins"
-                  >
-                    <span className="text-lg font-bold select-none">−</span>
-                  </button>
-                  <input
-                    type="number"
-                    min={1}
-                    max={180}
-                    step={1}
-                    value={formData.autoEscalateTicketMinutes}
-                    onChange={(e) => {
-                      const val = Number(e.target.value);
-                      if (!isNaN(val)) updateField("autoEscalateTicketMinutes", val);
-                    }}
-                    className="w-full bg-transparent px-2 py-2 text-sm sm:text-base font-black text-[#092f45] text-center focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => updateField("autoEscalateTicketMinutes", Math.min(180, formData.autoEscalateTicketMinutes + 5))}
-                    className="flex h-10 w-10 shrink-0 items-center justify-center text-slate-500 hover:bg-slate-200/70 hover:text-slate-900 active:bg-slate-300/60 transition-colors cursor-pointer border-l border-slate-200"
-                    title="Increase by 5 mins"
-                  >
-                    <span className="text-lg font-bold select-none">+</span>
-                  </button>
-                  <div className="shrink-0 bg-slate-100 border-l border-slate-200 px-3 py-2 text-xs sm:text-sm font-bold text-slate-700 select-none">
-                    mins
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => updateField("sosDispatchRadiusKm", Math.min(100, formData.sosDispatchRadiusKm + 5))}
+                  disabled={formData.sosDispatchRadiusKm >= 100}
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shrink-0"
+                  title="Increase radius (+5 km)"
+                >
+                  <PlusIcon className="h-3.5 w-3.5" />
+                </button>
               </div>
             </div>
 
-            {/* Setting 1.3: Guest SOS Toggle */}
-            <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/50 px-1 rounded-lg transition-colors">
-              <div className="max-w-xl space-y-0.5">
-                <span className="text-sm font-bold text-slate-900 block">
+            {/* 1.2 SLA Window */}
+            <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-100">
+              <div>
+                <label className="font-semibold text-slate-800 flex items-center gap-1.5">
+                  <span>Auto-Escalation SLA Window</span>
+                  <ClockIcon className="h-3.5 w-3.5 text-slate-400" />
+                </label>
+                <span className="text-[11px] text-slate-400">
+                  Alert Field Managers if no volunteer claims within this window
+                </span>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-0.5 shadow-2xs shrink-0 w-32">
+                <button
+                  type="button"
+                  onClick={() => updateField("autoEscalateTicketMinutes", Math.max(5, formData.autoEscalateTicketMinutes - 5))}
+                  disabled={formData.autoEscalateTicketMinutes <= 5}
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shrink-0"
+                  title="Decrease SLA window (-5 mins)"
+                >
+                  <MinusIcon className="h-3.5 w-3.5" />
+                </button>
+                <div className="flex items-baseline justify-center flex-1 text-center">
+                  <span className="font-bold text-slate-900 text-sm">
+                    {formData.autoEscalateTicketMinutes}
+                  </span>
+                  <span className="ml-1 text-[11px] font-medium text-slate-500">
+                    mins
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => updateField("autoEscalateTicketMinutes", Math.min(180, formData.autoEscalateTicketMinutes + 5))}
+                  disabled={formData.autoEscalateTicketMinutes >= 180}
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shrink-0"
+                  title="Increase SLA window (+5 mins)"
+                >
+                  <PlusIcon className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* 1.3 Guest SOS Toggle */}
+            <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-100">
+              <div>
+                <span className="font-semibold text-slate-800 block">
                   Allow Guest SOS Broadcasts
                 </span>
-                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-                  Allow tourists in distress to broadcast help requests immediately without mandatory prior authentication.
-                </p>
+                <span className="text-[11px] text-slate-400">
+                  Enable distress broadcast without mandatory prior login
+                </span>
               </div>
-              <div className="shrink-0">
-                <label className="inline-flex items-center gap-3 cursor-pointer p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={formData.allowGuestSosRequests}
-                    onChange={(e) => updateField("allowGuestSosRequests", e.target.checked)}
-                    className="h-5 w-5 accent-[#087f80] rounded cursor-pointer"
-                  />
-                  <span className="text-xs sm:text-sm font-bold text-slate-700 select-none pr-1">
-                    {formData.allowGuestSosRequests ? "Enabled (Public)" : "Disabled (Login Only)"}
-                  </span>
-                </label>
-              </div>
+              <label className="relative inline-flex cursor-pointer items-center shrink-0">
+                <input
+                  type="checkbox"
+                  checked={formData.allowGuestSosRequests}
+                  onChange={(e) => updateField("allowGuestSosRequests", e.target.checked)}
+                  className="peer sr-only"
+                />
+                <div className="peer h-5 w-9 rounded-full bg-slate-200 after:absolute after:top-[2px] after:left-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all peer-checked:bg-[#087f80] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+              </label>
             </div>
           </div>
         </div>
 
-        {/* SECTION 2: VOLUNTEER ACCREDITATION & PLATFORM SAFEGUARDS */}
-        <div className="space-y-2">
-          {/* Section Header */}
-          <div className="pb-3 border-b border-slate-200 flex items-center justify-between">
+        {/* CARD 2: VOLUNTEER SAFEGUARDS & ABUSE CONTROL */}
+        <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
-                <StarIcon className="h-4 w-4 fill-amber-500" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+                <ShieldCheckIcon className="h-4 w-4" />
               </div>
               <div>
-                <h3 className="text-base font-extrabold text-[#092f45]">
-                  2. Quality Standards & Platform Safeguards
+                <h3 className="text-sm font-bold text-[#092f45]">
+                  2. Quality & Anti-Abuse Safeguards
                 </h3>
-                <p className="text-xs text-slate-500">
-                  Establish performance review baselines and automatic anti-abuse account restrictions.
+                <p className="text-[11px] text-slate-400">
+                  Rating threshold, false alarm lockouts, and ID enforcement
                 </p>
               </div>
             </div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
-              Trust & Safety
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+              Safety
             </span>
           </div>
 
-          {/* Section Rows */}
-          <div className="divide-y divide-slate-100">
-            {/* Setting 2.1: Rating Threshold */}
-            <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/50 px-1 rounded-lg transition-colors">
-              <div className="max-w-xl space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <label className="text-sm font-bold text-slate-900">
-                    Minimum Review Rating Threshold
-                  </label>
-                  <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
-                    Baseline: 3.5 ★
+          <div className="space-y-4 text-xs">
+            {/* 2.1 Minimum Rating Threshold */}
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <label className="font-semibold text-slate-800 flex items-center gap-1.5">
+                  <span>Minimum Rating Threshold</span>
+                  <StarIcon className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
+                </label>
+                <span className="text-[11px] text-slate-400">
+                  Flag volunteers whose cumulative rating drops below baseline
+                </span>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-0.5 shadow-2xs shrink-0 w-32">
+                <button
+                  type="button"
+                  onClick={() => updateField("interpreterMinRatingThreshold", Number(Math.max(1.0, formData.interpreterMinRatingThreshold - 0.1).toFixed(1)))}
+                  disabled={formData.interpreterMinRatingThreshold <= 1.0}
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shrink-0"
+                  title="Decrease rating threshold (-0.1)"
+                >
+                  <MinusIcon className="h-3.5 w-3.5" />
+                </button>
+                <div className="flex items-center justify-center flex-1 text-center">
+                  <span className="font-bold text-slate-900 text-sm">
+                    {formData.interpreterMinRatingThreshold.toFixed(1)}
                   </span>
                 </div>
-                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-                  Volunteers whose cumulative rating falls below this threshold will be flagged for managerial review.
-                </p>
-              </div>
-              <div className="shrink-0">
-                <div className="flex items-center w-48 sm:w-52 rounded-xl border border-slate-200 bg-slate-50 shadow-2xs focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-200 focus-within:bg-white transition-all overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      updateField(
-                        "interpreterMinRatingThreshold",
-                        Number(Math.max(1.0, formData.interpreterMinRatingThreshold - 0.1).toFixed(1))
-                      )
-                    }
-                    className="flex h-10 w-10 shrink-0 items-center justify-center text-slate-500 hover:bg-slate-200/70 hover:text-slate-900 active:bg-slate-300/60 transition-colors cursor-pointer border-r border-slate-200"
-                    title="Decrease by 0.1 stars"
-                  >
-                    <span className="text-lg font-bold select-none">−</span>
-                  </button>
-                  <input
-                    type="number"
-                    min={1.0}
-                    max={5.0}
-                    step={0.1}
-                    value={formData.interpreterMinRatingThreshold}
-                    onChange={(e) => {
-                      const val = Number(e.target.value);
-                      if (!isNaN(val)) updateField("interpreterMinRatingThreshold", val);
-                    }}
-                    className="w-full bg-transparent px-2 py-2 text-sm sm:text-base font-black text-[#092f45] text-center focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      updateField(
-                        "interpreterMinRatingThreshold",
-                        Number(Math.min(5.0, formData.interpreterMinRatingThreshold + 0.1).toFixed(1))
-                      )
-                    }
-                    className="flex h-10 w-10 shrink-0 items-center justify-center text-slate-500 hover:bg-slate-200/70 hover:text-slate-900 active:bg-slate-300/60 transition-colors cursor-pointer border-l border-slate-200"
-                    title="Increase by 0.1 stars"
-                  >
-                    <span className="text-lg font-bold select-none">+</span>
-                  </button>
-                  <div className="shrink-0 bg-slate-100 border-l border-slate-200 px-3 py-2 text-xs sm:text-sm font-bold text-slate-700 select-none">
-                    ★ / 5.0
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => updateField("interpreterMinRatingThreshold", Number(Math.min(5.0, formData.interpreterMinRatingThreshold + 0.1).toFixed(1)))}
+                  disabled={formData.interpreterMinRatingThreshold >= 5.0}
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shrink-0"
+                  title="Increase rating threshold (+0.1)"
+                >
+                  <PlusIcon className="h-3.5 w-3.5" />
+                </button>
               </div>
             </div>
 
-            {/* Setting 2.2: Max False Alarms */}
-            <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/50 px-1 rounded-lg transition-colors">
-              <div className="max-w-xl space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <ShieldExclamationIcon className="h-4 w-4 text-red-500 shrink-0" />
-                  <label className="text-sm font-bold text-slate-900">
-                    Max False Alarms Before Soft Lock
-                  </label>
-                  <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
-                    Limit: 3 strikes
-                  </span>
-                </div>
-                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-                  Users with confirmed malicious or fake SOS requests exceeding this limit are automatically soft-locked.
-                </p>
+            {/* 2.2 Max False Alarms */}
+            <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-100">
+              <div>
+                <label className="font-semibold text-slate-800 flex items-center gap-1.5">
+                  <span>Max False Alarms Before Lock</span>
+                  <ShieldExclamationIcon className="h-3.5 w-3.5 text-red-500" />
+                </label>
+                <span className="text-[11px] text-slate-400">
+                  Confirmed fake SOS requests triggering automatic soft-lock
+                </span>
               </div>
-              <div className="shrink-0">
-                <div className="flex items-center w-48 sm:w-52 rounded-xl border border-slate-200 bg-slate-50 shadow-2xs focus-within:border-red-400 focus-within:ring-2 focus-within:ring-red-200 focus-within:bg-white transition-all overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      updateField("maxFalseAlarmsBeforeAutoLock", Math.max(1, formData.maxFalseAlarmsBeforeAutoLock - 1))
-                    }
-                    className="flex h-10 w-10 shrink-0 items-center justify-center text-slate-500 hover:bg-slate-200/70 hover:text-slate-900 active:bg-slate-300/60 transition-colors cursor-pointer border-r border-slate-200"
-                    title="Decrease by 1 strike"
-                  >
-                    <span className="text-lg font-bold select-none">−</span>
-                  </button>
-                  <input
-                    type="number"
-                    min={1}
-                    max={10}
-                    step={1}
-                    value={formData.maxFalseAlarmsBeforeAutoLock}
-                    onChange={(e) => {
-                      const val = Number(e.target.value);
-                      if (!isNaN(val)) updateField("maxFalseAlarmsBeforeAutoLock", val);
-                    }}
-                    className="w-full bg-transparent px-2 py-2 text-sm sm:text-base font-black text-[#092f45] text-center focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      updateField("maxFalseAlarmsBeforeAutoLock", Math.min(10, formData.maxFalseAlarmsBeforeAutoLock + 1))
-                    }
-                    className="flex h-10 w-10 shrink-0 items-center justify-center text-slate-500 hover:bg-slate-200/70 hover:text-slate-900 active:bg-slate-300/60 transition-colors cursor-pointer border-l border-slate-200"
-                    title="Increase by 1 strike"
-                  >
-                    <span className="text-lg font-bold select-none">+</span>
-                  </button>
-                  <div className="shrink-0 bg-slate-100 border-l border-slate-200 px-3 py-2 text-xs sm:text-sm font-bold text-slate-700 select-none">
+              <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-0.5 shadow-2xs shrink-0 w-32">
+                <button
+                  type="button"
+                  onClick={() => updateField("maxFalseAlarmsBeforeAutoLock", Math.max(1, formData.maxFalseAlarmsBeforeAutoLock - 1))}
+                  disabled={formData.maxFalseAlarmsBeforeAutoLock <= 1}
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shrink-0"
+                  title="Decrease strike allowance (-1 strike)"
+                >
+                  <MinusIcon className="h-3.5 w-3.5" />
+                </button>
+                <div className="flex items-baseline justify-center flex-1 text-center">
+                  <span className="font-bold text-slate-900 text-sm">
+                    {formData.maxFalseAlarmsBeforeAutoLock}
+                  </span>
+                  <span className="ml-1 text-[11px] font-medium text-slate-500">
                     Strikes
-                  </div>
+                  </span>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => updateField("maxFalseAlarmsBeforeAutoLock", Math.min(10, formData.maxFalseAlarmsBeforeAutoLock + 1))}
+                  disabled={formData.maxFalseAlarmsBeforeAutoLock >= 10}
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shrink-0"
+                  title="Increase strike allowance (+1 strike)"
+                >
+                  <PlusIcon className="h-3.5 w-3.5" />
+                </button>
               </div>
             </div>
 
-            {/* Setting 2.3: Mandatory ID Verification Toggle */}
-            <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/50 px-1 rounded-lg transition-colors">
-              <div className="max-w-xl space-y-0.5">
-                <span className="text-sm font-bold text-slate-900 block">
+            {/* 2.3 ID Verification Toggle */}
+            <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-100">
+              <div>
+                <span className="font-semibold text-slate-800 block">
                   Mandatory ID / Passport Verification
                 </span>
-                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-                  Require verified identity documents and manager review before approving volunteers.
-                </p>
+                <span className="text-[11px] text-slate-400">
+                  Require verified identity documents before approving volunteer status
+                </span>
               </div>
-              <div className="shrink-0">
-                <label className="inline-flex items-center gap-3 cursor-pointer p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={formData.mandatoryIdVerification}
-                    onChange={(e) => updateField("mandatoryIdVerification", e.target.checked)}
-                    className="h-5 w-5 accent-[#087f80] rounded cursor-pointer"
-                  />
-                  <span className="text-xs sm:text-sm font-bold text-slate-700 select-none pr-1">
-                    {formData.mandatoryIdVerification ? "Enforced (Required)" : "Optional (Self-declaration)"}
-                  </span>
-                </label>
-              </div>
+              <label className="relative inline-flex cursor-pointer items-center shrink-0">
+                <input
+                  type="checkbox"
+                  checked={formData.mandatoryIdVerification}
+                  onChange={(e) => updateField("mandatoryIdVerification", e.target.checked)}
+                  className="peer sr-only"
+                />
+                <div className="peer h-5 w-9 rounded-full bg-slate-200 after:absolute after:top-[2px] after:left-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all peer-checked:bg-[#087f80] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+              </label>
             </div>
           </div>
         </div>
 
-        {/* SECTION 3: TAXONOMIES & MASTER CATALOGS */}
-        <div className="space-y-2">
-          {/* Section Header */}
-          <div className="pb-3 border-b border-slate-200 flex items-center justify-between">
+        {/* CARD 3: OPERATIONAL TAXONOMIES & MASTER CATALOGS (SPAN FULL WIDTH) */}
+        <div className="col-span-1 lg:col-span-2 rounded-xl border border-slate-200 bg-white p-5 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
                 <LanguageIcon className="h-4 w-4" />
               </div>
               <div>
-                <h3 className="text-base font-extrabold text-[#092f45]">
-                  3. Operational Taxonomies & Catalogs
+                <h3 className="text-sm font-bold text-[#092f45]">
+                  3. Operational Taxonomies & Master Catalogs
                 </h3>
-                <p className="text-xs text-slate-500">
-                  Manage active operational languages and volunteer specialty service categories.
+                <p className="text-[11px] text-slate-400">
+                  Active languages and service specialty categories available across the platform
                 </p>
               </div>
             </div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full">
-              System Taxonomy
+            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+              Taxonomy
             </span>
           </div>
 
-          {/* Section Rows */}
-          <div className="divide-y divide-slate-100">
-            {/* Sub-section: Languages */}
-            <div className="py-4 space-y-3 hover:bg-slate-50/40 px-1 rounded-lg transition-colors">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="space-y-0.5">
-                  <label className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <LanguageIcon className="h-4 w-4 text-[#087f80] shrink-0" />
-                    <span>Supported Languages</span>
-                    <span className="text-xs font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
-                      {formData.languagesCatalog.length} active
-                    </span>
-                  </label>
-                  <p className="text-xs sm:text-sm text-slate-500">
-                    Selectable by tourists for emergency SOS and volunteer matching (Min 2 required).
-                  </p>
-                </div>
-                {/* Add Language Form */}
-                <div className="flex gap-2 w-full sm:w-auto sm:min-w-[320px]">
-                  <input
-                    type="text"
-                    value={newLanguage}
-                    onChange={(e) => setNewLanguage(e.target.value)}
-                    placeholder="Add operational language..."
-                    className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs sm:text-sm text-slate-800 focus:border-[#087f80] focus:bg-white focus:outline-none"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleAddLanguage();
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddLanguage}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#087f80] px-4 py-2 text-xs sm:text-sm font-bold text-white hover:bg-[#066869] cursor-pointer shadow-2xs shrink-0"
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                    <span>Add</span>
-                  </button>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+            {/* 3.1 Languages Catalog */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-slate-800 flex items-center gap-1.5">
+                  <span>Supported Languages ({formData.languagesCatalog.length})</span>
+                  <LanguageIcon className="h-3.5 w-3.5 text-[#087f80]" />
+                </label>
               </div>
-              {/* Language Chips */}
-              <div className="flex flex-wrap gap-2 pt-1">
+
+              {/* Add Language Inline */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newLanguage}
+                  onChange={(e) => setNewLanguage(e.target.value)}
+                  placeholder="New language (e.g. French, Arabic)..."
+                  className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:border-[#087f80] focus:outline-none"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddLanguage();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleAddLanguage}
+                  className="inline-flex items-center gap-1 rounded-lg bg-[#087f80] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#066869] transition-colors cursor-pointer shrink-0"
+                >
+                  <PlusIcon className="h-3.5 w-3.5" />
+                  <span>Add</span>
+                </button>
+              </div>
+
+              {/* Language Pills */}
+              <div className="flex flex-wrap gap-1.5 pt-1">
                 {formData.languagesCatalog.map((lang) => (
                   <span
                     key={lang}
-                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/90 px-3 py-1.5 text-xs sm:text-sm font-semibold text-slate-700 shadow-2xs"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700"
                   >
                     <span>{lang}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveLanguage(lang)}
-                      className="text-slate-400 hover:text-red-500 cursor-pointer text-base font-bold leading-none"
+                      className="text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
                       title={`Remove ${lang}`}
                     >
-                      ×
+                      <XMarkIcon className="h-3 w-3" />
                     </button>
                   </span>
                 ))}
               </div>
             </div>
 
-            {/* Sub-section: Categories */}
-            <div className="py-4 space-y-3 hover:bg-slate-50/40 px-1 rounded-lg transition-colors">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="space-y-0.5">
-                  <label className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <ShieldCheckIcon className="h-4 w-4 text-[#087f80] shrink-0" />
-                    <span>Specialty Service Categories</span>
-                    <span className="text-xs font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
-                      {formData.specialtyCategories.length} active
-                    </span>
-                  </label>
-                  <p className="text-xs sm:text-sm text-slate-500">
-                    Domains used to classify emergency missions and volunteer qualifications (Min 2 required).
-                  </p>
-                </div>
-                {/* Add Category Form */}
-                <div className="flex gap-2 w-full sm:w-auto sm:min-w-[320px]">
-                  <input
-                    type="text"
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
-                    placeholder="Add specialty domain..."
-                    className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs sm:text-sm text-slate-800 focus:border-[#087f80] focus:bg-white focus:outline-none"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleAddCategory();
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddCategory}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#087f80] px-4 py-2 text-xs sm:text-sm font-bold text-white hover:bg-[#066869] cursor-pointer shadow-2xs shrink-0"
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                    <span>Add</span>
-                  </button>
-                </div>
+            {/* 3.2 Specialty Categories */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-slate-800 flex items-center gap-1.5">
+                  <span>Specialty Categories ({formData.specialtyCategories.length})</span>
+                  <ShieldCheckIcon className="h-3.5 w-3.5 text-[#087f80]" />
+                </label>
               </div>
-              {/* Category Chips */}
-              <div className="flex flex-wrap gap-2 pt-1">
+
+              {/* Add Category Inline */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  placeholder="New domain (e.g. Legal, Tourism)..."
+                  className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:border-[#087f80] focus:outline-none"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddCategory();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleAddCategory}
+                  className="inline-flex items-center gap-1 rounded-lg bg-[#087f80] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#066869] transition-colors cursor-pointer shrink-0"
+                >
+                  <PlusIcon className="h-3.5 w-3.5" />
+                  <span>Add</span>
+                </button>
+              </div>
+
+              {/* Category Pills */}
+              <div className="flex flex-wrap gap-1.5 pt-1">
                 {formData.specialtyCategories.map((cat) => (
                   <span
                     key={cat}
-                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/90 px-3 py-1.5 text-xs sm:text-sm font-semibold text-slate-700 shadow-2xs"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700"
                   >
                     <span>{cat}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveCategory(cat)}
-                      className="text-slate-400 hover:text-red-500 cursor-pointer text-base font-bold leading-none"
+                      className="text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
                       title={`Remove ${cat}`}
                     >
-                      ×
+                      <XMarkIcon className="h-3 w-3" />
                     </button>
                   </span>
                 ))}
@@ -628,11 +537,11 @@ export function PlatformPoliciesView({ settings, onSave }: PlatformPoliciesViewP
       </div>
 
       {/* Footer Audit Information */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-slate-200 pt-4 text-xs sm:text-sm text-slate-500">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-slate-200 pt-4 text-xs text-slate-400">
         <div>
-          Last Policy Audit: <strong className="text-slate-700">{formData.lastUpdated || "2026-09-17 10:00:00"}</strong> by <strong className="text-slate-700">{formData.updatedBy || "Super Admin"}</strong>
+          Last Policy Audit: <strong className="text-slate-600 font-semibold">{formData.lastUpdated || "2026-09-17 10:00:00"}</strong> by <strong className="text-slate-600 font-semibold">{formData.updatedBy || "Super Admin"}</strong>
         </div>
-        <div className="text-xs text-slate-400">
+        <div>
           All modifications trigger an immutable entry in the Security Audit Trail.
         </div>
       </div>

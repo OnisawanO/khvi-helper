@@ -6,14 +6,15 @@ import {
   LockClosedIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
+import { UserStatusFilter } from "../types";
 
 interface AdminKpiCardsProps {
   totalUsersCount: number;
   totalInterpretersCount: number;
   lockedUsersCount: number;
   totalAdminsCount: number;
-  selectedStatusFilter: "All" | "Active" | "Locked";
-  setSelectedStatusFilter: (status: "All" | "Active" | "Locked") => void;
+  selectedStatusFilter: UserStatusFilter;
+  setSelectedStatusFilter: (status: UserStatusFilter) => void;
   selectedRoles: string[];
   toggleRoleFilter: (role: "User" | "Interpreter" | "Manager" | "Admin") => void;
   resetRoles: () => void;

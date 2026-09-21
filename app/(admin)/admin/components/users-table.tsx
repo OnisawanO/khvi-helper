@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import {
   AdjustmentsHorizontalIcon,
   BriefcaseIcon,
+  ChatBubbleLeftEllipsisIcon,
   CheckCircleIcon,
   CheckIcon,
   ChevronDownIcon,
@@ -25,8 +26,8 @@ interface UsersTableProps {
   selectedRoles: SystemRole[];
   toggleRoleFilter: (role: SystemRole) => void;
   resetRoles: () => void;
-  selectedStatusFilter: "All" | "Active" | "Locked";
-  setSelectedStatusFilter: (status: "All" | "Active" | "Locked") => void;
+  selectedStatusFilter: "All" | "Active" | "Locked" | "AppealPending";
+  setSelectedStatusFilter: (status: "All" | "Active" | "Locked" | "AppealPending") => void;
   selectedVerificationStatuses: string[];
   toggleVerificationStatusFilter: (status: string) => void;
   resetVerificationStatuses: () => void;
@@ -126,12 +127,13 @@ export function UsersTable({
           <div className="flex items-center gap-1.5">
             <select
               value={selectedStatusFilter}
-              onChange={(e) => setSelectedStatusFilter(e.target.value as "All" | "Active" | "Locked")}
+              onChange={(e) => setSelectedStatusFilter(e.target.value as "All" | "Active" | "Locked" | "AppealPending")}
               className="rounded-xl sm:rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 focus:border-[#087f80] focus:outline-none cursor-pointer"
             >
               <option value="All">All Statuses</option>
               <option value="Active">Active Only</option>
               <option value="Locked">Locked Only</option>
+              <option value="AppealPending">Appeal Pending ({users.filter(u => u.hasPendingAppeal).length})</option>
             </select>
           </div>
 
@@ -492,6 +494,15 @@ export function UsersTable({
                             </>
                           )}
                         </span>
+                        {u.isLocked && u.hasPendingAppeal && (
+                          <span
+                            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-300 shadow-2xs animate-pulse"
+                            title={`Appeal submitted on ${u.appealSubmittedAt || "recently"}: ${u.appealReason || ""}`}
+                          >
+                            <ChatBubbleLeftEllipsisIcon className="h-2.5 w-2.5 text-amber-600" />
+                            <span>Appeal Pending</span>
+                          </span>
+                        )}
                         {u.role === "Interpreter" && u.interpreterStats && (
                           <span
                             className={`text-[9px] font-bold uppercase tracking-wider ${

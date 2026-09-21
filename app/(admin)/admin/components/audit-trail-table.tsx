@@ -106,10 +106,7 @@ export function AuditTrailTable({
       <div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-slate-200">
           <div>
-            <h3 className="text-sm font-bold text-[#092f45]">System Security Audit Trail</h3>
-            <p className="text-xs text-slate-500">
-              Immutable historical event log tracking administrative authorization, role mutations, and account locks.
-            </p>
+            <h2 className="text-lg sm:text-xl font-bold text-[#092f45]">System Security Audit Trail</h2>
           </div>
 
           {/* Toggle Button: View 1 (Table Grid) vs View 2 (Activity Cards Feed) */}

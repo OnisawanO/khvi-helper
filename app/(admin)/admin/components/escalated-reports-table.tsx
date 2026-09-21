@@ -149,58 +149,9 @@ export function EscalatedReportsTable({
     (activeStatusFilter !== "All" ? 1 : 0) +
     selectedRoles.length +
     selectedReporterRoles.length;
-  const pendingReportsCount = reports.filter((r) => r.status === "Escalated to Admin").length;
 
   return (
     <div className="space-y-4 animate-in fade-in duration-200">
-      {/* Overview Banner & Filter bar: Flat Canvas Minimalist Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-slate-200">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600 border border-red-200/60">
-            <ShieldExclamationIcon className="h-5 w-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm sm:text-base font-extrabold text-[#092f45]">
-                Escalated Incident Reports
-              </h2>
-              {pendingReportsCount > 0 && (
-                <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black text-white animate-pulse">
-                  {pendingReportsCount} Pending Action
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-slate-500">
-              Critical platform misconduct cases escalated by Field Managers requiring Hard Ban or Security Lock decisions.
-            </p>
-          </div>
-        </div>
-
-        {/* Severity Filter Pills: Compact Flat Segmented Pills */}
-        <div className="flex items-center gap-1 self-start sm:self-auto rounded-lg border border-slate-200 bg-slate-50/70 p-0.5">
-          {(["All", "medium", "high", "critical"] as const).map((sev) => (
-            <button
-              key={sev}
-              type="button"
-              onClick={() => setFilterSeverity(sev)}
-              className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${
-                filterSeverity === sev
-                  ? "bg-white text-[#092f45] shadow-xs border border-slate-200/80"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
-              }`}
-            >
-              {sev === "All"
-                ? "All Severities"
-                : sev === "medium"
-                ? "Medium"
-                : sev === "high"
-                ? "High"
-                : "Critical"}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Search and Advanced Filter Toolbar: Flat Canvas Bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between py-1">
         {/* Search Bar */}
@@ -224,8 +175,32 @@ export function EscalatedReportsTable({
           )}
         </div>
 
-        {/* Filter Controls: Quick Status Select + Popover */}
-        <div className="flex items-center gap-2">
+        {/* Severity Pills + Quick Status + Popover */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Severity Filter Pills: Compact Flat Segmented Pills */}
+          <div className="flex items-center gap-0.5 rounded-lg border border-slate-200 bg-slate-50/70 p-0.5">
+            {(["All", "medium", "high", "critical"] as const).map((sev) => (
+              <button
+                key={sev}
+                type="button"
+                onClick={() => setFilterSeverity(sev)}
+                className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                  filterSeverity === sev
+                    ? "bg-white text-[#092f45] shadow-xs border border-slate-200/80"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                }`}
+              >
+                {sev === "All"
+                  ? "All"
+                  : sev === "medium"
+                  ? "Medium"
+                  : sev === "high"
+                  ? "High"
+                  : "Critical"}
+              </button>
+            ))}
+          </div>
+
           {/* Quick Status Filter on Toolbar */}
           <div className="flex items-center gap-1.5">
             <select

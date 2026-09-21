@@ -2,6 +2,8 @@ export type SystemRole = "User" | "Interpreter" | "Manager" | "Admin";
 
 export type AccountStatus = "Active" | "Locked" | "Banned";
 
+export type UserStatusFilter = "All" | "Active" | "Locked" | "AppealPending";
+
 export type AdminUserRecord = {
   id: string;
   name: string;
@@ -13,6 +15,11 @@ export type AdminUserRecord = {
   isLocked: boolean;
   lockReason?: string;
   accountStatus?: AccountStatus; // Active, Locked (Temporary), Banned (Permanent Hard Ban)
+  // Appeal fields for soft-banned users
+  hasPendingAppeal?: boolean;
+  appealReason?: string;
+  appealSubmittedAt?: string;
+  appealCategory?: "Accidental" | "Device Issue" | "Misunderstanding" | "Other";
   registeredAt: string;
   lastActive: string;
   // Interpreter specific fields if role === 'Interpreter'
