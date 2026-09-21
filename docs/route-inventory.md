@@ -8,7 +8,7 @@ The global UI language switcher supports English (en), Chinese (zh), Thai (th), 
 
 - Source routes now use Next.js route groups to keep role ownership visible in the file tree without changing public URLs: `(public)`, `(auth)`, `(workspace)`, `(user)`, `(interpreter)`, `(manager)`, and `(admin)`.
 - `User` uses `/request-help` to create a request and `/my-requests` to track requests created in the browser preview.
-- `Interpreter` uses `/find-requests` to review open request summaries and `/my-assignments` to track claimed, in-progress or completed assignments.
+- `Interpreter` uses `/find-requests` to review open request summaries and `/my-assignments` to claim matching open requests or track claimed, in-progress and completed assignments.
 - All four routes read the Supabase Auth session and redirect to the equivalent route when the signed-in role does not match.
 - Interpreter lists reuse browser-local preview records. Profile matching, account ownership, claim actions and server authorization remain planned.
 - `/find-requests` supports preview sorting by request creation time and by distance from the interpreter's browser GPS when location access is available.
@@ -27,7 +27,7 @@ The global UI language switcher supports English (en), Chinese (zh), Thai (th), 
 ## Requester preview flow update
 
 - Entry: `/welcome`.
-- Flow: welcome → `/request-help` → `/my-requests/[requestId]` → interpreter claim in `/find-requests` → requester confirmation → interpreter start → dual completion. Both roles return to the same canonical detail route.
+- Flow: welcome → `/request-help` → `/my-requests/[requestId]` → interpreter claim in `/find-requests` or the available-request section of `/my-assignments` → requester confirmation → interpreter start → dual completion. Both roles return to the same canonical detail route.
 - Requester pages now share browser-local storage (`khvi-requester-v1`) and start empty. Example records are not presented as the user's requests.
 - Creation, request detail edits during `Open` or `Claimed` before work starts, cancellation reasons and completion confirmations persist across reloads in the same browser. Storage errors leave the form available for retry.
 - Mission detail watches the current actor's browser geolocation while an active mission page is open and stores updates in a separate browser-local preview store. Each role sees its own marker update automatically; the other party's exact marker appears only after requester confirmation. Tracking stops when the page closes or the mission is no longer active. Missing locations remain empty instead of using invented coordinates.
@@ -61,7 +61,7 @@ This update supersedes the older mock-source and state-only behavior notes below
 | `/my-requests` | Requester resource list | Authenticated User (Supabase session; domain preview remains client-side) | `app/lib/request-store.ts` | Redirect Interpreter to `/my-assignments`; empty state | Implemented at `app/(user)/my-requests/page.tsx` |
 | `/my-requests/[requestId]` | Dynamic resource | เจ้าของคำขอ หรือ Interpreter ที่ Claim แล้ว (Supabase session + browser preview ownership) | `app/lib/request-store.ts` | `notFound()` สำหรับ ID ผิดรูปแบบ; browser-local missing/unauthorized state สำหรับ record ที่อ่านไม่ได้ | Implemented shared mission preview at `app/(user)/my-requests/[requestId]/page.tsx` |
 | `/find-requests` | Interpreter open-request list and claim entry | Authenticated Interpreter (Supabase session; domain preview remains client-side) | `app/lib/request-store.ts` open requests | Redirect User to `/request-help`; empty state; claim error stays on list | Implemented at `app/(interpreter)/find-requests/page.tsx` |
-| `/my-assignments` | Interpreter assignment list | Authenticated Interpreter (Supabase session; domain preview remains client-side) | `app/lib/request-store.ts` records assigned to the current Supabase user | Redirect User to `/my-requests`; empty state | Implemented at `app/(interpreter)/my-assignments/page.tsx` |
+| `/my-assignments` | Interpreter available-request and assignment list | Authenticated Interpreter (Supabase session) | Supabase `bookings` visible through matching-open and assigned-row RLS policies | Redirect User to `/my-requests`; approval guidance or empty state | Implemented at `app/(interpreter)/my-assignments/page.tsx` |
 | `/register` | Static auth route | Public | Supabase Auth + `public.profiles` trigger; UI locale is inherited from the Guest Welcome page | Not applicable | Implemented at `app/(auth)/register/page.tsx` |
 | `/login` | Static auth route | Public | Supabase Auth + `public.profiles`; development-only Fast Login uses server credentials | Not applicable | Implemented at `app/(auth)/login/page.tsx` |
 | `/api/auth/fast-login` | Auth action route | Development only; disabled in production | Supabase Auth accounts configured by `FAST_LOGIN_*` server environment variables | `400` invalid role; `503` missing dev account; `401` Auth failure | Implemented at `app/api/auth/fast-login/route.ts` |
@@ -70,7 +70,7 @@ This update supersedes the older mock-source and state-only behavior notes below
 `/my-requests` รับ query parameter `status` ค่าเดียวเท่านั้น: `open`, `claimed`, `in-progress`, `completed`, `cancelled`
 ค่าที่ไม่รู้จักจะถูกลดรูปเป็น `all` โดยไม่ตอบ 404 เพราะ query parameter ไม่ใช่ตัวระบุ resource
 
-`/my-assignments` รับ `status` เฉพาะ `claimed`, `in-progress` และ `completed` ค่าอื่นจะถูกลดรูปเป็น `all`
+`/my-assignments` แสดงงานเปิดที่ตรงความสามารถแยกจากงานที่รับแล้ว และรับ `status` เฉพาะ `claimed`, `in-progress` และ `completed` สำหรับกรองงานที่รับแล้ว ค่าอื่นจะถูกลดรูปเป็น `all`
 ส่วน `/find-requests` ใช้ตัวกรอง `All`, `Urgent` และ `Scheduled` ใน client โดยไม่เปลี่ยน URL เมื่อ Claim สำเร็จจะไป `/my-requests/[requestId]`
 
 `/my-requests/[requestId]` ตรวจ parameter ด้วย `isValidRequestId()` (ตัวเลขล้วน ตรงกับ `bookings.booking_id` ที่วางแผนไว้)

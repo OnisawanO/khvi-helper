@@ -14,7 +14,6 @@ import type { RealMissionLocations } from "@/app/lib/real-request-data";
 import type { UserProfile } from "@/app/lib/mock-auth";
 import { useEffect, useState, type SubmitEvent } from "react";
 import {
-  ArrowLeftIcon,
   ArrowPathIcon,
   CheckCircleIcon,
   ChatBubbleLeftRightIcon,
@@ -33,6 +32,7 @@ import { useCopyLocale } from "@/app/components/app-shell";
 import { ExpiryCountdown } from "@/app/components/expiry-countdown";
 import { MissionLocationMap, type MissionMapPoint } from "@/app/components/mission-location-map";
 import { StatusBadge, UrgencyBadge } from "@/app/components/request-badges";
+import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
 import {
   approximateCoordinates,
   categoryLabel,
@@ -51,8 +51,10 @@ const TIMELINE_STEPS = ["Open", "Claimed", "InProgress", "Completed"] as const;
 
 const copy = {
   en: {
-    back: "Back to my requests",
-    backInterpreter: "Back to my assignments",
+    breadcrumb: "Request detail breadcrumb",
+    main: "Main",
+    requestsLabel: "My requests",
+    assignmentsLabel: "My assignments",
     requesterView: "Requester mission room",
     interpreterView: "Interpreter mission room",
     requestPrefix: "Request",
@@ -147,8 +149,10 @@ const copy = {
     noActions: "No action is needed from you right now.",
   },
   zh: {
-    back: "返回我的求助",
-    backInterpreter: "返回我的任务",
+    breadcrumb: "求助详情面包屑导航",
+    main: "主页",
+    requestsLabel: "我的求助",
+    assignmentsLabel: "我的任务",
     requesterView: "求助者任务室",
     interpreterView: "口译员任务室",
     requestPrefix: "求助",
@@ -509,43 +513,45 @@ export function RequestDetail({
   return (
     <main id="main-content" className="flex-1 px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
       <div className="mx-auto max-w-[1180px]">
-        {cancelError && <p role="alert" className="mb-4 text-(--khvi-coral)">{cancelError}</p>}
-        <Link
-          className="inline-flex items-center gap-2 text-sm font-extrabold text-[#087f80] transition-colors hover:text-[#0a6465]"
-          href={isInterpreter ? "/my-assignments#main-content" : "/my-requests#main-content"}
-        >
-          <ArrowLeftIcon aria-hidden="true" className="h-4 w-4" />
-          {isInterpreter ? t.backInterpreter : t.back}
-        </Link>
+        <WorkspaceBreadcrumbs
+          ariaLabel={t.breadcrumb}
+          items={[
+            {
+              label: t.main,
+              href: isInterpreter ? "/welcome#welcome-Interpreter" : "/welcome#welcome-user",
+            },
+            {
+              label: isInterpreter ? t.assignmentsLabel : t.requestsLabel,
+              href: isInterpreter ? "/my-assignments#main-content" : "/my-requests#main-content",
+            },
+            { label: `${t.requestPrefix} #${request.requestId}` },
+          ]}
+        />
 
-        <div className="mt-6 flex flex-wrap items-center gap-2">
-          <StatusBadge status={status} copyLocale={copyLocale} />
-          <UrgencyBadge urgency={request.urgency} copyLocale={copyLocale} />
-          <span className="text-xs font-extrabold text-[#8a9aa0]">
-            {t.requestPrefix} #{request.requestId}
-          </span>
-        </div>
-
-        <p className="mt-3 text-sm font-extrabold text-[#087f80]">
-          {isInterpreter ? t.interpreterView : t.requesterView}
-        </p>
-
-        <h1 className="mt-3 text-3xl font-extrabold tracking-normal text-[#122b3e] sm:text-4xl">
-          {categoryLabel(request.categoryId, copyLocale)} · {languageLabel(request.languageId, copyLocale)}
-        </h1>
-
-        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-bold text-[#73848a]">
-          <span>
-            {t.created}: {request.createdAtLabel}
-          </span>
-          {request.scheduledAtLabel && (
-            <span>
-              {t.scheduled}: {request.scheduledAtLabel}
+        {cancelError && <p role="alert" className="mt-4 text-(--khvi-coral)">{cancelError}</p>}
+        <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-sm font-extrabold text-[#087f80]">
+              {isInterpreter ? t.interpreterView : t.requesterView}
+            </p>
+            <h1 className="mt-1.5 break-words text-3xl font-extrabold tracking-normal text-[#122b3e] sm:text-4xl">
+              {categoryLabel(request.categoryId, copyLocale)} · {languageLabel(request.languageId, copyLocale)}
+            </h1>
+            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-bold text-[#73848a]">
+              <span>{t.created}: {request.createdAtLabel}</span>
+              {request.scheduledAtLabel && <span>{t.scheduled}: {request.scheduledAtLabel}</span>}
+              {status === "Open" && request.expiresAt && (
+                <ExpiryCountdown seconds={0} expiresAt={request.expiresAt} copyLocale={copyLocale} compact />
+              )}
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+            <StatusBadge status={status} copyLocale={copyLocale} />
+            <UrgencyBadge urgency={request.urgency} copyLocale={copyLocale} />
+            <span className="text-xs font-extrabold text-[#8a9aa0]">
+              {t.requestPrefix} #{request.requestId}
             </span>
-          )}
-          {status === "Open" && request.expiresAt && (
-            <ExpiryCountdown seconds={0} expiresAt={request.expiresAt} copyLocale={copyLocale} compact />
-          )}
+          </div>
         </div>
 
         {isClosed && cancelledBy && (
@@ -569,7 +575,7 @@ export function RequestDetail({
           </section>
         )}
 
-        <div className="mt-6 grid items-start gap-5 lg:grid-cols-[1.25fr_0.75fr]">
+        <div className="mt-7 grid items-start gap-6">
           <div className="grid gap-5">
             <section className={sectionClass}>
               <h2 className={sectionTitleClass}>{t.timelineTitle}</h2>
@@ -865,7 +871,7 @@ export function RequestDetail({
             </section>
           </div>
 
-          <div className="grid gap-5">
+          <aside className="grid items-start gap-5 sm:grid-cols-2">
             {!isInterpreter && request.interpreter ? (
               <section className="border border-[#b6ddcd] bg-[#f3faf6] p-5 sm:p-6">
                 <h2 className="flex items-center gap-2 text-base font-extrabold text-[#0f3a2c]">
@@ -1075,7 +1081,7 @@ export function RequestDetail({
                 </p>
               )}
             </section>
-          </div>
+          </aside>
         </div>
       </div>
     </main>

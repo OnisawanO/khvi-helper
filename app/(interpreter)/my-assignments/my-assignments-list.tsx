@@ -1,15 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
+  CheckCircleIcon,
   ClipboardDocumentListIcon,
   MapPinIcon,
+  ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
 import { useCopyLocale } from "@/app/components/app-shell";
+import { ExpiryCountdown } from "@/app/components/expiry-countdown";
 import { StatusBadge, UrgencyBadge } from "@/app/components/request-badges";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
-import { cancelBookingAction } from "@/app/actions/booking-actions";
+import { cancelBookingAction, claimBookingAction } from "@/app/actions/booking-actions";
+import type { ApplicationStatus } from "@/app/lib/interpreter-application";
 import {
   categoryLabel,
   languageLabel,
@@ -26,8 +31,27 @@ const copy = {
     main: "Main",
     label: "Interpreter workspace",
     title: "My assignments",
-    intro: "Assignments you have claimed, ordered from the latest activity. Check each status before continuing the work.",
+    intro: "Claim matching requests and track the assignments you are handling.",
     findRequests: "Find requests",
+    availableTitle: "Available requests",
+    availableBody: "These open requests match the languages and service categories approved for your interpreter profile.",
+    availableCount: (count: number) => `${count} available ${count === 1 ? "request" : "requests"}`,
+    claimRequest: "Claim request",
+    claiming: "Claiming…",
+    claimFallback: "This request could not be claimed. Refresh the list and try again.",
+    claimSuccessTitle: "Request claimed",
+    claimSuccessBody: "The request is now listed under your assignments.",
+    openClaimedMission: "Open claimed mission",
+    noAvailableTitle: "No matching requests available",
+    noAvailableBody: "New requests will appear here when their language and category match your approved profile.",
+    approvalTitle: "Approval is required before you can claim work",
+    approvalMissingBody: "Complete your interpreter application with at least one language and one service category.",
+    approvalPendingBody: "Your application is waiting for review. Matching requests will appear after approval.",
+    approvalRevisionBody: "Review the manager's note and update your application before claiming work.",
+    approvalRejectedBody: "Review the application decision before submitting updated information.",
+    startApplication: "Start interpreter application",
+    viewApplicationStatus: "View application status",
+    assignmentsTitle: "Your assignments",
     filterLabel: "Filter assignments by status",
     filters: { all: "All", claimed: "Claimed", "in-progress": "In progress", completed: "Completed" },
     created: "Created",
@@ -52,8 +76,27 @@ const copy = {
     main: "主页",
     label: "口译员工作区",
     title: "我的任务",
-    intro: "查看你接取的任务和最新状态，继续工作前先确认当前步骤。",
+    intro: "接取符合条件的求助，并跟踪你正在处理的任务。",
     findRequests: "查找求助",
+    availableTitle: "可接取的求助",
+    availableBody: "这些开放求助符合你已批准的语言和服务类别。",
+    availableCount: (count: number) => `${count} 个可接任务`,
+    claimRequest: "接取任务",
+    claiming: "正在接取…",
+    claimFallback: "无法接取此任务，请刷新列表后重试。",
+    claimSuccessTitle: "任务已接取",
+    claimSuccessBody: "此任务现已显示在你的任务列表中。",
+    openClaimedMission: "打开已接任务",
+    noAvailableTitle: "暂无匹配的求助",
+    noAvailableBody: "当新求助的语言和类别符合你已批准的资料时，会显示在这里。",
+    approvalTitle: "获得批准后才能接取任务",
+    approvalMissingBody: "请完成口译员申请，并至少选择一种语言和一个服务类别。",
+    approvalPendingBody: "你的申请正在等待审核，批准后会显示匹配的求助。",
+    approvalRevisionBody: "请查看管理员的说明并更新申请，然后才能接取任务。",
+    approvalRejectedBody: "请查看申请结果，再提交更新后的资料。",
+    startApplication: "开始口译员申请",
+    viewApplicationStatus: "查看申请状态",
+    assignmentsTitle: "你的任务",
     filterLabel: "按状态筛选任务",
     filters: { all: "全部", claimed: "已接取", "in-progress": "进行中", completed: "已完成" },
     created: "创建时间",
@@ -86,11 +129,26 @@ function normalizeFilter(filterId: StatusFilterId): AssignmentFilterId {
   return ASSIGNMENT_FILTERS.includes(filterId as AssignmentFilterId) ? filterId as AssignmentFilterId : "all";
 }
 
-export function MyAssignmentsList({ activeFilter, initialAssignments }: { activeFilter: StatusFilterId; initialAssignments: HelpRequest[] }) {
+export function MyAssignmentsList({
+  activeFilter,
+  applicationStatus,
+  initialAssignments,
+  initialAvailableRequests,
+}: {
+  activeFilter: StatusFilterId;
+  applicationStatus: ApplicationStatus | null;
+  initialAssignments: HelpRequest[];
+  initialAvailableRequests: HelpRequest[];
+}) {
+  const router = useRouter();
   const allRequests = initialAssignments;
   const copyLocale = useCopyLocale();
   const t = copy[copyLocale];
   const [selectedFilter, setSelectedFilter] = useState<AssignmentFilterId>(() => normalizeFilter(activeFilter));
+  const [claimingId, setClaimingId] = useState<string | null>(null);
+  const [claimedRequestId, setClaimedRequestId] = useState<string | null>(null);
+  const [claimError, setClaimError] = useState<{ requestId: string; message: string } | null>(null);
+  const [claimSuccessId, setClaimSuccessId] = useState<string | null>(null);
   const [cancelRequestId, setCancelRequestId] = useState<string | null>(null);
   const [cancelDraft, setCancelDraft] = useState("");
   const [cancelError, setCancelError] = useState<string | null>(null);
@@ -101,6 +159,40 @@ export function MyAssignmentsList({ activeFilter, initialAssignments }: { active
   };
   const assignments = matching(selectedFilter);
   const counts = Object.fromEntries(ASSIGNMENT_FILTERS.map((filterId) => [filterId, matching(filterId).length]));
+  const availableRequests = initialAvailableRequests.filter(
+    (request) => request.status === "Open" && request.requestId !== claimedRequestId,
+  );
+  const applicationApproved = applicationStatus === "approved";
+  const applicationHref = applicationStatus === null
+    ? "/volunteer/apply#main-content"
+    : "/volunteer/status#main-content";
+  const applicationAction = applicationStatus === null ? t.startApplication : t.viewApplicationStatus;
+  const approvalBody = applicationStatus === null
+    ? t.approvalMissingBody
+    : applicationStatus === "needs_revision"
+      ? t.approvalRevisionBody
+      : applicationStatus === "rejected"
+        ? t.approvalRejectedBody
+        : t.approvalPendingBody;
+
+  async function handleClaimRequest(requestId: string) {
+    setClaimingId(requestId);
+    setClaimError(null);
+    setClaimSuccessId(null);
+
+    const result = await claimBookingAction(requestId);
+    if (result.ok) {
+      setClaimedRequestId(requestId);
+      setClaimSuccessId(requestId);
+      setClaimingId(null);
+      router.refresh();
+      return;
+    }
+
+    setClaimError({ requestId, message: result.error || t.claimFallback });
+    setClaimingId(null);
+    router.refresh();
+  }
 
   function openCancelForm(requestId: string) {
     setCancelRequestId(requestId);
@@ -153,7 +245,112 @@ export function MyAssignmentsList({ activeFilter, initialAssignments }: { active
           </Link>
         </div>
 
-        <div role="group" aria-label={t.filterLabel} className="mt-7 flex flex-wrap gap-2">
+        <section className="mt-7" aria-labelledby="available-requests-title">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 id="available-requests-title" className="text-xl font-extrabold text-[#173646]">{t.availableTitle}</h2>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-[#64777e]">{t.availableBody}</p>
+            </div>
+            {applicationApproved && (
+              <span className="text-xs font-extrabold text-[#64777e]" aria-live="polite">
+                {t.availableCount(availableRequests.length)}
+              </span>
+            )}
+          </div>
+
+          {!applicationApproved ? (
+            <div className="mt-4 flex flex-col gap-4 border-l-4 border-[#f0a35f] bg-white p-5 shadow-[0_8px_24px_rgba(16,40,58,0.06)] sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <ShieldCheckIcon aria-hidden="true" className="mt-0.5 h-6 w-6 shrink-0 text-[#b8752b]" />
+                <div>
+                  <h3 className="text-base font-extrabold text-[#173646]">{t.approvalTitle}</h3>
+                  <p className="mt-1.5 max-w-2xl text-sm leading-6 text-[#64777e]">{approvalBody}</p>
+                </div>
+              </div>
+              <Link
+                href={applicationHref}
+                className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg bg-(--khvi-navy) px-4 py-2 text-sm font-extrabold text-white transition-colors hover:bg-[#0c4960] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
+              >
+                {applicationAction}
+              </Link>
+            </div>
+          ) : availableRequests.length === 0 ? (
+            <div className="mt-4 border border-[#d6e0e4] bg-white p-6 text-center" aria-live="polite">
+              <ClipboardDocumentListIcon aria-hidden="true" className="mx-auto h-8 w-8 text-[#9aa9ae]" />
+              <h3 className="mt-3 text-base font-extrabold text-[#203d4d]">{t.noAvailableTitle}</h3>
+              <p className="mx-auto mt-1.5 max-w-lg text-sm leading-6 text-[#64777e]">{t.noAvailableBody}</p>
+            </div>
+          ) : (
+            <ul className="mt-4 grid gap-3">
+              {availableRequests.map((request) => {
+                const error = claimError?.requestId === request.requestId ? claimError.message : null;
+                const errorId = `claim-error-${request.requestId}`;
+
+                return (
+                  <li key={request.requestId}>
+                    <article className="border border-l-4 border-[#d6e0e4] border-l-(--khvi-teal) bg-white p-5 shadow-[0_8px_24px_rgba(16,40,58,0.05)]">
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <StatusBadge status={request.status} copyLocale={copyLocale} />
+                            <UrgencyBadge urgency={request.urgency} copyLocale={copyLocale} />
+                            <span className="text-xs font-extrabold text-[#8a9aa0]">#{request.requestId}</span>
+                          </div>
+                          <h3 className="mt-3 text-lg font-extrabold text-[#173646]">
+                            {categoryLabel(request.categoryId, copyLocale)} · {languageLabel(request.languageId, copyLocale)}
+                          </h3>
+                          <p className="mt-2 line-clamp-2 max-w-3xl break-words text-sm leading-6 text-[#52676f]">{request.description}</p>
+                          <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-bold text-[#73848a]">
+                            <span className="inline-flex items-center gap-1.5">
+                              <MapPinIcon aria-hidden="true" className="h-4 w-4 text-[#087f80]" />
+                              {t.area}: {request.areaName}
+                            </span>
+                            <span>{t.created}: {request.createdAtLabel}</span>
+                            {request.scheduledAtLabel && <span>{t.scheduled}: {request.scheduledAtLabel}</span>}
+                            {request.expiresAt && (
+                              <ExpiryCountdown seconds={0} expiresAt={request.expiresAt} copyLocale={copyLocale} compact />
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={claimingId !== null}
+                          aria-describedby={error ? errorId : undefined}
+                          onClick={() => void handleClaimRequest(request.requestId)}
+                          className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg bg-(--khvi-navy) px-5 py-2 text-sm font-extrabold text-white transition-colors hover:bg-[#0c4960] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun) disabled:cursor-wait disabled:opacity-60"
+                        >
+                          {claimingId === request.requestId ? t.claiming : t.claimRequest}
+                        </button>
+                      </div>
+                      {error && <p id={errorId} role="alert" className="mt-3 border-t border-[#f1d2cd] pt-3 text-sm font-bold text-(--khvi-coral)">{error}</p>}
+                    </article>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+
+        {claimSuccessId && (
+          <section className="mt-5 flex flex-col gap-3 border border-[#b7d9d2] bg-[#eef8f5] p-4 sm:flex-row sm:items-center sm:justify-between" role="status" aria-live="polite">
+            <div className="flex items-start gap-3">
+              <CheckCircleIcon aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-[#2b8177]" />
+              <div>
+                <p className="text-sm font-extrabold text-[#205f5a]">{t.claimSuccessTitle}</p>
+                <p className="mt-1 text-xs leading-5 text-[#4c7774]">{t.claimSuccessBody}</p>
+              </div>
+            </div>
+            <Link
+              href={`/my-requests/${claimSuccessId}#main-content`}
+              className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[#6aa99f] px-4 py-2 text-xs font-extrabold text-[#205f5a] transition-colors hover:bg-white focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
+            >
+              {t.openClaimedMission}
+            </Link>
+          </section>
+        )}
+
+        <h2 className="mt-8 text-xl font-extrabold text-[#173646]">{t.assignmentsTitle}</h2>
+        <div role="group" aria-label={t.filterLabel} className="mt-3 flex flex-wrap gap-2">
           {ASSIGNMENT_FILTERS.map((filterId) => {
             const isActive = filterId === selectedFilter;
             const href = filterId === "all" ? "/my-assignments#main-content" : `/my-assignments?status=${filterId}#main-content`;
