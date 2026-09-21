@@ -9,15 +9,11 @@ import {
   LockClosedIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
-import { SiteFooter } from "@/app/components/site-footer";
 import { LoginModal } from "@/app/components/auth/login-modal";
-import {
-  clearMockUserSession,
-  getMockUserSession,
-  getRedirectPathByRole,
-  UserProfile,
-  DEFAULT_MOCK_USERS,
-} from "@/app/lib/mock-auth";
+import { getRedirectPathByRole } from "@/app/lib/mock-auth";
+import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
+import { createClient } from "@/utils/supabase/client";
+import type { UserProfile } from "@/app/lib/mock-auth";
 
 import { AdminActiveTab, AdminUserRecord, AuditLogEntry, SystemRole } from "./types";
 import { initialUsers, initialAuditLogs } from "./mock-data";
@@ -28,9 +24,12 @@ import { UserEditModal } from "./components/user-edit-modal";
 import { UsersTable } from "./components/users-table";
 import { InterpretersTable } from "./components/interpreters-table";
 import { AuditTrailTable } from "./components/audit-trail-table";
+import { persistPreferredUiLanguage, useStoredLocale } from "@/app/lib/locale";
+import type { Locale } from "@/app/components/site-header";
 
 export default function AdminPage() {
   const router = useRouter();
+  const [locale, setLocale] = useStoredLocale();
   const [authChecked, setAuthChecked] = useState(false);
   const [activeTab, setActiveTab] = useState<AdminActiveTab>("users");
   const [auditViewMode, setAuditViewMode] = useState<"table" | "activity">("table");
@@ -38,12 +37,11 @@ export default function AdminPage() {
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(initialAuditLogs);
 
   // Filters
-  const [selectedRoleFilter, setSelectedRoleFilter] = useState<SystemRole | "All">("All");
+  const [selectedRoles, setSelectedRoles] = useState<SystemRole[]>([]);
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<"All" | "Active" | "Locked">("All");
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
-  const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   // Modal State
@@ -55,24 +53,49 @@ export default function AdminPage() {
   const [tempLockReason, setTempLockReason] = useState("");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(
-    DEFAULT_MOCK_USERS.Admin
-  );
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
-  useEffect(() => {
-    const session = getMockUserSession();
-
-    if (session?.role !== "Admin") {
-      router.replace(session ? getRedirectPathByRole(session.role) : "/#top");
-      return;
-    }
-
-    queueMicrotask(() => {
-      setCurrentUser(session);
-      setAuthChecked(true);
+  const handleLocaleChange = (nextLocale: Locale) => {
+    setLocale(nextLocale);
+    void persistPreferredUiLanguage(nextLocale).catch((error: unknown) => {
+      console.error("Unable to persist preferred UI language", error);
     });
-  }, [router]);
+  };
+
+  useEffect(() => {
+    const supabase = createClient();
+    let disposed = false;
+
+    const checkAdminSession = async () => {
+      const result = await getCurrentUserProfile(supabase);
+      if (disposed) return;
+
+      if (!result.profile) {
+        router.replace("/#top");
+        return;
+      }
+
+      if (result.profile.role !== "Admin") {
+        router.replace(getRedirectPathByRole(result.profile.role));
+        return;
+      }
+
+      setLocale(result.profile.preferredUiLanguage);
+      setCurrentUser(result.profile);
+      setAuthChecked(true);
+    };
+
+    void checkAdminSession();
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+      window.setTimeout(() => void checkAdminSession(), 0);
+    });
+
+    return () => {
+      disposed = true;
+      authListener.subscription.unsubscribe();
+    };
+  }, [router, setLocale]);
 
   const handleLoginSuccess = (user: UserProfile) => {
     setCurrentUser(user);
@@ -151,6 +174,12 @@ export default function AdminPage() {
     showToast(`อัปเดตข้อมูลและสิทธิ์ของ ${selectedUser.name} สำเร็จแล้ว พร้อมบันทึก Audit Log`);
   };
 
+  const toggleRoleFilter = (role: SystemRole) => {
+    setSelectedRoles((prev) =>
+      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
+    );
+  };
+
   const toggleLanguageFilter = (lang: string) => {
     setSelectedLanguages((prev) =>
       prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang]
@@ -166,7 +195,7 @@ export default function AdminPage() {
   // Filtered Users
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
-      if (selectedRoleFilter !== "All" && u.role !== selectedRoleFilter) {
+      if (selectedRoles.length > 0 && !selectedRoles.includes(u.role)) {
         return false;
       }
       if (selectedStatusFilter === "Active" && u.isLocked) return false;
@@ -194,14 +223,19 @@ export default function AdminPage() {
       }
 
       return true;
+    }).sort((a, b) => {
+      // Locked users are always sorted to the bottom of the table
+      if (a.isLocked && !b.isLocked) return 1;
+      if (!a.isLocked && b.isLocked) return -1;
+      return 0;
     });
-  }, [users, selectedRoleFilter, selectedStatusFilter, searchQuery, selectedLanguages, selectedCategories]);
+  }, [users, selectedRoles, selectedStatusFilter, searchQuery, selectedLanguages, selectedCategories]);
 
-  // Filtered Interpreters
+  // Filtered Interpreters (Active & Unlocked Only)
   const interpreterRanking = useMemo(() => {
     return users
       .filter((u) => {
-        if (u.role !== "Interpreter" || !u.interpreterStats) return false;
+        if (u.role !== "Interpreter" || !u.interpreterStats || u.isLocked) return false;
         if (selectedLanguages.length > 0) {
           const userLangs = [u.primaryLanguage, ...u.spokenLanguages];
           const hasAny = selectedLanguages.some((l) => userLangs.includes(l));
@@ -251,10 +285,7 @@ export default function AdminPage() {
         onClose={() => setIsMobileDrawerOpen(false)}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        selectedStatusFilter={selectedStatusFilter}
-        setSelectedStatusFilter={setSelectedStatusFilter}
         totalUsersCount={totalUsersCount}
-        lockedUsersCount={lockedUsersCount}
         totalInterpretersCount={totalInterpretersCount}
         auditLogsCount={auditLogs.length}
       />
@@ -264,10 +295,7 @@ export default function AdminPage() {
         onMenuClick={() => setIsMobileDrawerOpen((prev) => !prev)}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        selectedStatusFilter={selectedStatusFilter}
-        setSelectedStatusFilter={setSelectedStatusFilter}
         totalUsersCount={totalUsersCount}
-        lockedUsersCount={lockedUsersCount}
         totalInterpretersCount={totalInterpretersCount}
         auditLogsCount={auditLogs.length}
       />
@@ -278,62 +306,124 @@ export default function AdminPage() {
         <AdminHeader
           onMenuClick={() => setIsMobileDrawerOpen((prev) => !prev)}
           onSignOut={() => {
-            clearMockUserSession();
+            void createClient().auth.signOut();
+            setCurrentUser(null);
             setAuthChecked(false);
             router.replace("/#top");
           }}
           onChangeAccount={() => setIsLoginModalOpen(true)}
           currentUser={currentUser}
+          locale={locale}
+          onLocaleChange={handleLocaleChange}
         />
 
         {/* Content Workspace Scroll Area */}
         <div className="flex-1 overflow-y-auto min-w-0 flex flex-col">
             <main className="flex-1 p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6">
-              {/* Header KPI Summary Cards */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Total System Users</p>
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-                      <UserGroupIcon className="h-5 w-5" />
+              {/* Header KPI Summary Cards (Interactive Filter Shortcuts) */}
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
+                {/* 1. Total Users (Reset All Filters) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("users");
+                    setSelectedRoles([]);
+                    setSelectedStatusFilter("All");
+                    setSelectedLanguages([]);
+                    setSelectedCategories([]);
+                    setSearchQuery("");
+                  }}
+                  className={`rounded-2xl border p-3.5 sm:p-5 text-left transition-all cursor-pointer ${
+                    activeTab === "users" && selectedRoles.length === 0 && selectedStatusFilter === "All"
+                      ? "border-[#087f80] bg-white shadow-md ring-2 ring-[#087f80]/20"
+                      : "border-slate-200 bg-white shadow-xs hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
+                  }`}
+                  title="Click to view all users"
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 truncate">Total Users</p>
+                    <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                      <UserGroupIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                     </div>
                   </div>
-                  <p className="mt-2 text-3xl font-extrabold text-[#092f45]">{totalUsersCount}</p>
-                  <p className="mt-1 text-xs text-slate-500">All registered profiles across roles</p>
-                </div>
+                  <p className="mt-1.5 sm:mt-2 text-2xl sm:text-3xl font-extrabold text-[#092f45]">{totalUsersCount}</p>
+                  <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-slate-500 truncate">All registered profiles</p>
+                </button>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Active Interpreters</p>
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-50 text-[#087f80]">
-                      <CheckBadgeIcon className="h-5 w-5" />
+                {/* 2. Interpreters (Filter by Interpreter Role) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("users");
+                    setSelectedRoles(["Interpreter"]);
+                    setSelectedStatusFilter("All");
+                  }}
+                  className={`rounded-2xl border p-3.5 sm:p-5 text-left transition-all cursor-pointer ${
+                    activeTab === "users" && selectedRoles.length === 1 && selectedRoles[0] === "Interpreter"
+                      ? "border-[#087f80] bg-[#edf7f5]/40 shadow-md ring-2 ring-[#087f80]/30"
+                      : "border-slate-200 bg-white shadow-xs hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-md"
+                  }`}
+                  title="Click to filter certified interpreters"
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 truncate">Interpreters</p>
+                    <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-[#087f80]">
+                      <CheckBadgeIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                     </div>
                   </div>
-                  <p className="mt-2 text-3xl font-extrabold text-[#087f80]">{totalInterpretersCount}</p>
-                  <p className="mt-1 text-xs text-slate-500">Certified volunteer translators</p>
-                </div>
+                  <p className="mt-1.5 sm:mt-2 text-2xl sm:text-3xl font-extrabold text-[#087f80]">{totalInterpretersCount}</p>
+                  <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-slate-500 truncate">Certified volunteers</p>
+                </button>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Suspended / Locked</p>
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-[#f04f3e]">
-                      <LockClosedIcon className="h-5 w-5" />
+                {/* 3. Suspended (Filter by Locked Status) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("users");
+                    setSelectedStatusFilter("Locked");
+                    setSelectedRoles([]);
+                  }}
+                  className={`rounded-2xl border p-3.5 sm:p-5 text-left transition-all cursor-pointer ${
+                    activeTab === "users" && selectedStatusFilter === "Locked"
+                      ? "border-[#f04f3e] bg-red-50/40 shadow-md ring-2 ring-[#f04f3e]/30"
+                      : "border-slate-200 bg-white shadow-xs hover:-translate-y-0.5 hover:border-red-300 hover:shadow-md"
+                  }`}
+                  title="Click to filter suspended accounts"
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 truncate">Suspended</p>
+                    <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-lg bg-red-50 text-[#f04f3e]">
+                      <LockClosedIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                     </div>
                   </div>
-                  <p className="mt-2 text-3xl font-extrabold text-[#f04f3e]">{lockedUsersCount}</p>
-                  <p className="mt-1 text-xs text-slate-500">Accounts restricted by admin</p>
-                </div>
+                  <p className="mt-1.5 sm:mt-2 text-2xl sm:text-3xl font-extrabold text-[#f04f3e]">{lockedUsersCount}</p>
+                  <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-slate-500 truncate">Restricted accounts</p>
+                </button>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Privileged Staff</p>
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
-                      <KeyIcon className="h-5 w-5" />
+                {/* 4. Staff (Filter by Manager & Admin Roles) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("users");
+                    setSelectedRoles(["Manager", "Admin"]);
+                    setSelectedStatusFilter("All");
+                  }}
+                  className={`rounded-2xl border p-3.5 sm:p-5 text-left transition-all cursor-pointer ${
+                    activeTab === "users" && selectedRoles.includes("Manager") && selectedRoles.includes("Admin")
+                      ? "border-purple-600 bg-purple-50/40 shadow-md ring-2 ring-purple-600/30"
+                      : "border-slate-200 bg-white shadow-xs hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-md"
+                  }`}
+                  title="Click to filter staff (Managers & Admins)"
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 truncate">Staff</p>
+                    <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
+                      <KeyIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                     </div>
                   </div>
-                  <p className="mt-2 text-3xl font-extrabold text-purple-700">{totalAdminsCount}</p>
-                  <p className="mt-1 text-xs text-slate-500">Managers & Backoffice Admins</p>
-                </div>
+                  <p className="mt-1.5 sm:mt-2 text-2xl sm:text-3xl font-extrabold text-purple-700">{totalAdminsCount}</p>
+                  <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-slate-500 truncate">Managers & Admins</p>
+                </button>
               </div>
 
               {/* TAB 1: ALL USERS & ROLES */}
@@ -342,20 +432,19 @@ export default function AdminPage() {
                   users={filteredUsers}
                   searchQuery={searchQuery}
                   setSearchQuery={setSearchQuery}
-                  selectedRoleFilter={selectedRoleFilter}
-                  setSelectedRoleFilter={setSelectedRoleFilter}
+                  selectedRoles={selectedRoles}
+                  toggleRoleFilter={toggleRoleFilter}
+                  resetRoles={() => setSelectedRoles([])}
                   selectedStatusFilter={selectedStatusFilter}
                   setSelectedStatusFilter={setSelectedStatusFilter}
                   selectedLanguages={selectedLanguages}
                   toggleLanguageFilter={toggleLanguageFilter}
                   resetLanguages={() => setSelectedLanguages([])}
-                  isLanguageDropdownOpen={isLanguageDropdownOpen}
-                  setIsLanguageDropdownOpen={setIsLanguageDropdownOpen}
                   selectedCategories={selectedCategories}
                   toggleCategoryFilter={toggleCategoryFilter}
                   resetCategories={() => setSelectedCategories([])}
-                  isCategoryDropdownOpen={isCategoryDropdownOpen}
-                  setIsCategoryDropdownOpen={setIsCategoryDropdownOpen}
+                  filterMenuOpen={filterMenuOpen}
+                  setFilterMenuOpen={setFilterMenuOpen}
                   onSelectUser={handleOpenUserDetail}
                 />
               )}
@@ -377,29 +466,6 @@ export default function AdminPage() {
                 />
               )}
             </main>
-
-            {/* Global Footer inside right column */}
-            <SiteFooter
-              copy={{
-                description: "KHVI Central Administration & Security Console for Super Admins and Root Operators.",
-                note: "Internal Backoffice Governance Node",
-                explore: "Admin System",
-                safety: "Security Policies",
-                needHelp: "Infrastructure Help",
-                needHelpBody: "For database or auth infrastructure emergency escalation, contact the DevSecOps on-call lead.",
-                footerCta: "Export System Logs",
-                privacy: "All administrative operations, role reassignments, and account state modifications are logged under immutable audit trails.",
-                links: {
-                  map: "System Overview",
-                  how: "RBAC Matrix",
-                  roles: "Access Control",
-                  privacy: "Data Protection & PDPA",
-                  request: "Incident Response",
-                  signIn: "Switch Account",
-                },
-              }}
-              brandSubtitle="Admin Console"
-            />
           </div>
         </div>
 

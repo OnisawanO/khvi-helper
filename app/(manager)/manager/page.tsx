@@ -17,6 +17,7 @@ import {
   CheckCircleIcon,
   CheckIcon,
   ChevronDownIcon,
+  ClockIcon,
   Cog6ToothIcon,
   EllipsisHorizontalIcon,
   ExclamationTriangleIcon,
@@ -31,37 +32,51 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { BrandMark } from "@/app/components/brand-mark";
-import { SiteFooter } from "@/app/components/site-footer";
+import { UserAvatar } from "@/app/components/user-avatar";
+import { LanguageSwitcher, type Locale } from "@/app/components/site-header";
 
-import { InterpreterApplicant, HelpTicket, IncidentReport } from "./types";
 import {
-  initialApplicants,
+  InterpreterApplicant,
+  HelpTicket,
+  IncidentReport,
+  ManagerNavSection,
+  ManagerActivity,
+} from "./types";
+import {
   initialTickets,
   initialReports,
+  initialManagerActivities,
   formatBadgeCount,
 } from "./mock-data";
 import { ApplicantDetailModal } from "./components/applicant-detail-modal";
 import { LoginModal } from "@/app/components/auth/login-modal";
 import {
-  getMockUserSession,
-  clearMockUserSession,
-  getRedirectPathByRole,
   DEFAULT_MOCK_USERS,
+  getRedirectPathByRole,
   type UserProfile,
 } from "@/app/lib/mock-auth";
+import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
+import { persistPreferredUiLanguage, useStoredLocale } from "@/app/lib/locale";
+import { createClient } from "@/utils/supabase/client";
+import {
+  loadManagerInterpreterApplicationsAction,
+  reviewInterpreterApplicationAction,
+} from "@/app/actions/interpreter-application-actions";
 
 function ManagerTopHeader({
   onMenuClick,
   currentUser,
-  userInitials,
   onSignOut,
   onChangeAccount,
+  locale,
+  onLocaleChange,
 }: {
   onMenuClick?: () => void;
   currentUser: UserProfile | null;
-  userInitials: string;
   onSignOut: () => void;
   onChangeAccount: () => void;
+  locale: Locale;
+  onLocaleChange: (locale: Locale) => void;
 }) {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -81,14 +96,13 @@ function ManagerTopHeader({
 
   return (
     <header className="sticky top-0 z-30 border-b border-[#dbe3e7] bg-[#fbfdfc]/95 shadow-[0_8px_24px_rgba(21,52,67,0.06)] backdrop-blur select-none">
-      <div className="flex w-full items-center justify-between gap-3 px-2.5 py-2.5 sm:px-4 md:px-5">
-        {/* Brand & Sidebar Toggle Button (Aligned with sidebar edge for unified block feel) */}
+      <div className="flex w-full items-center justify-between gap-3 px-3 py-2.5 sm:px-4 md:px-6">
+        {/* Brand & Sidebar Toggle Button (Mobile only, desktop uses Rail Bar button) */}
         <div className="flex items-center gap-2.5 sm:gap-3.5">
-          {/* Unified Sidebar Pop-up / Drawer Toggle Button */}
           <button
             type="button"
             onClick={onMenuClick}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#c9d8de] bg-white text-[#092f45] shadow-xs hover:border-[#087f80] hover:bg-[#edf7f5] hover:text-[#087f80] transition-colors focus:outline-none focus:ring-2 focus:ring-[#087f80]/30 cursor-pointer"
+            className="flex md:hidden h-9 w-9 items-center justify-center rounded-xl border border-[#c9d8de] bg-white text-[#092f45] shadow-xs hover:border-[#087f80] hover:bg-[#edf7f5] hover:text-[#087f80] transition-colors focus:outline-none focus:ring-2 focus:ring-[#087f80]/30 cursor-pointer"
             aria-label="Toggle Navigation Menu"
             title="Toggle Navigation Menu (เปิด/ปิด เมนู)"
           >
@@ -98,13 +112,18 @@ function ManagerTopHeader({
           {/* Brand Mark with Subtitle */}
           <BrandMark
             subtitle="Interpreter Operations Hub"
-            href="/manager"
-            ariaLabel="KHVI Manager Home"
+            href="/"
+            ariaLabel="KHVI Home"
           />
         </div>
 
         {/* Right Section: Profile & Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
+          <LanguageSwitcher
+            copy={{ brandSubtitle: "", languageLabel: "Language", signIn: "", primaryAction: "", nav: [] }}
+            locale={locale}
+            onLocaleChange={onLocaleChange}
+          />
           {/* Profile Card with Dropdown Menu */}
           <div ref={profileMenuRef} className="relative">
             <button
@@ -114,10 +133,7 @@ function ManagerTopHeader({
               aria-expanded={profileMenuOpen}
               aria-haspopup="menu"
             >
-              {/* Round Initial Avatar */}
-              <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#087f80] bg-[#092f45] text-xs font-black text-white">
-                {userInitials}
-              </div>
+              <UserAvatar user={currentUser ?? DEFAULT_MOCK_USERS.Manager} size="sm" className="border border-[#087f80]" />
               <div className="text-left hidden sm:block">
                 <p className="text-xs font-extrabold leading-tight text-[#10283a]">
                   {currentUser?.name || "วิภา ตรวจสอบ"}
@@ -149,17 +165,14 @@ function ManagerTopHeader({
                   </span>
                 </div>
                 <div className="py-1 space-y-0.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setProfileMenuOpen(false);
-                      alert(`Manager Profile Details:\nName: ${currentUser?.name || "วิภา ตรวจสอบ"}\nEmail: ${currentUser?.email || "manager@khvi.org"}\nRole: ${currentUser?.role || "Manager"}`);
-                    }}
+                  <a
+                    href="/profile#main-content"
+                    onClick={() => setProfileMenuOpen(false)}
                     className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#2d4957] transition-colors hover:bg-[#f2f7f9] hover:text-[#087f80] cursor-pointer"
                   >
                     <UserCircleIcon className="h-4 w-4" />
                     Profile
-                  </button>
+                  </a>
                   <button
                     type="button"
                     onClick={() => {
@@ -196,24 +209,56 @@ function ManagerTopHeader({
 
 export default function ManagerDashboard() {
   const router = useRouter();
+  const [locale, setLocale] = useStoredLocale();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(
-    DEFAULT_MOCK_USERS.Manager
-  );
+  const [authChecked, setAuthChecked] = useState(false);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+
+  const handleLocaleChange = (nextLocale: Locale) => {
+    setLocale(nextLocale);
+    void persistPreferredUiLanguage(nextLocale).catch((error: unknown) => {
+      console.error("Unable to persist preferred UI language", error);
+    });
+  };
 
   useEffect(() => {
-    const session = getMockUserSession();
-    if (session) {
-      queueMicrotask(() => {
-        setCurrentUser(session);
-      });
-    }
-  }, []);
+    const supabase = createClient();
+    let disposed = false;
+
+    const checkManagerSession = async () => {
+      const result = await getCurrentUserProfile(supabase);
+      if (disposed) return;
+
+      if (!result.profile) {
+        router.replace("/#top");
+        return;
+      }
+
+      if (result.profile.role !== "Manager") {
+        router.replace(getRedirectPathByRole(result.profile.role));
+        return;
+      }
+
+      setLocale(result.profile.preferredUiLanguage);
+      setCurrentUser(result.profile);
+      setAuthChecked(true);
+    };
+
+    void checkManagerSession();
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+      window.setTimeout(() => void checkManagerSession(), 0);
+    });
+
+    return () => {
+      disposed = true;
+      authListener.subscription.unsubscribe();
+    };
+  }, [router, setLocale]);
 
   const handleSignOut = () => {
-    clearMockUserSession();
+    void createClient().auth.signOut();
     setCurrentUser(null);
-    router.push("/?signin=true");
+    router.push("/");
   };
 
   const handleLoginSuccess = (user: UserProfile) => {
@@ -224,24 +269,15 @@ export default function ManagerDashboard() {
     }
   };
 
-  const userInitials = useMemo(() => {
-    if (!currentUser?.name) return "VP";
-    const parts = currentUser.name.trim().split(/\s+/);
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return currentUser.name.slice(0, 2).toUpperCase();
-  }, [currentUser]);
-
-  const [applicants, setApplicants] = useState<InterpreterApplicant[]>(initialApplicants);
+  const [applicants, setApplicants] = useState<InterpreterApplicant[]>([]);
+  const [applicationError, setApplicationError] = useState<string | null>(null);
   const [tickets, setTickets] = useState<HelpTicket[]>(initialTickets);
   const [reports, setReports] = useState<IncidentReport[]>(initialReports);
-  const [selectedApplicantId, setSelectedApplicantId] = useState<string | null>(initialApplicants[0].id);
+  const [activities, setActivities] = useState<ManagerActivity[]>(initialManagerActivities);
+  const [selectedApplicantId, setSelectedApplicantId] = useState<string | null>(null);
   
-  // Navigation & View State (Strictly Manager scope: Verification + Support)
-  const [navSection, setNavSection] = useState<
-    "queue" | "approved" | "rejected" | "tickets" | "reports"
-  >("queue");
+  // Navigation & View State (Strictly Manager scope: Verification + Support + History)
+  const [navSection, setNavSection] = useState<ManagerNavSection>("queue");
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
 
@@ -255,6 +291,28 @@ export default function ManagerDashboard() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const filterMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!authChecked || !currentUser) return;
+    let disposed = false;
+
+    const loadApplications = async () => {
+      const result = await loadManagerInterpreterApplicationsAction();
+      if (disposed) return;
+      if (!result.ok) {
+        setApplicationError(result.error);
+        return;
+      }
+      setApplicationError(null);
+      setApplicants(result.data);
+      setSelectedApplicantId((current) => current ?? result.data[0]?.id ?? null);
+    };
+
+    void loadApplications();
+    return () => {
+      disposed = true;
+    };
+  }, [authChecked, currentUser]);
 
   // Toggle selection helpers
   const toggleLanguage = (lang: string) => {
@@ -342,14 +400,40 @@ export default function ManagerDashboard() {
   };
 
   // Handle Approve (FR-43)
-  const handleApprove = (id: string) => {
+  const handleApprove = async (id: string) => {
+    const result = await reviewInterpreterApplicationAction({ applicationId: id, decision: "approved" });
+    if (!result.ok) {
+      setApplicationError(result.error);
+      return;
+    }
+    const target = applicants.find((a) => a.id === id);
+    setApplicationError(null);
     setApplicants((prev) =>
       prev.map((app) => (app.id === id ? { ...app, status: "Approved" } : app))
     );
+    if (target) {
+      setActivities((prev) => {
+        const newAct: ManagerActivity = {
+          id: `ACT-APP-${id}-${prev.length + 1}`,
+          timestamp: "Just now",
+          type: "approval",
+          targetName: target.name,
+          description: `Approved volunteer interpreter application (${target.primaryLanguage}, ${target.specialtyCategories.join(", ")}).`,
+        };
+        return [newAct, ...prev];
+      });
+    }
   };
 
   // Handle Reject (FR-44, FR-45)
-  const handleReject = (id: string, reason: string) => {
+  const handleReject = async (id: string, reason: string) => {
+    const result = await reviewInterpreterApplicationAction({ applicationId: id, decision: "rejected", note: reason });
+    if (!result.ok) {
+      setApplicationError(result.error);
+      return;
+    }
+    const target = applicants.find((a) => a.id === id);
+    setApplicationError(null);
     setApplicants((prev) =>
       prev.map((app) =>
         app.id === id
@@ -357,11 +441,24 @@ export default function ManagerDashboard() {
           : app
       )
     );
+    if (target) {
+      setActivities((prev) => {
+        const newAct: ManagerActivity = {
+          id: `ACT-REJ-${id}-${prev.length + 1}`,
+          timestamp: "Just now",
+          type: "rejection",
+          targetName: target.name,
+          description: `Rejected application: ${reason}`,
+        };
+        return [newAct, ...prev];
+      });
+    }
   };
 
   // Handle Help Request Response (FR-52)
   const handleSendTicketReply = (ticketId: string) => {
     if (!ticketReplyText.trim()) return;
+    const target = tickets.find((t) => t.id === ticketId);
     setTickets((prev) =>
       prev.map((t) =>
         t.id === ticketId
@@ -373,12 +470,25 @@ export default function ManagerDashboard() {
           : t
       )
     );
+    if (target) {
+      setActivities((prev) => {
+        const newAct: ManagerActivity = {
+          id: `ACT-TCK-${ticketId}-${prev.length + 1}`,
+          timestamp: "Just now",
+          type: "ticket_reply",
+          targetName: `${target.requesterName} (${target.id})`,
+          description: `Replied & resolved help ticket: "${ticketReplyText.trim()}"`,
+        };
+        return [newAct, ...prev];
+      });
+    }
     setActiveReplyingTicketId(null);
     setTicketReplyText("");
   };
 
   // Handle Incident Report Escalation to Admin (FR-53 -> FR-76)
   const handleEscalateReport = (reportId: string) => {
+    const target = reports.find((r) => r.id === reportId);
     setReports((prev) =>
       prev.map((r) =>
         r.id === reportId
@@ -390,6 +500,18 @@ export default function ManagerDashboard() {
           : r
       )
     );
+    if (target) {
+      setActivities((prev) => {
+        const newAct: ManagerActivity = {
+          id: `ACT-REP-${reportId}-${prev.length + 1}`,
+          timestamp: "Just now",
+          type: "report_escalation",
+          targetName: `${target.reportedUserName} (${target.id})`,
+          description: `Escalated incident report regarding "${target.reason}" to Super Admin for account lock review.`,
+        };
+        return [newAct, ...prev];
+      });
+    }
   };
 
   // Counts for Badges
@@ -399,42 +521,44 @@ export default function ManagerDashboard() {
   const openTicketCount = tickets.filter((t) => t.status === "Open" || t.status === "In Progress").length;
   const pendingReportCount = reports.filter((r) => r.status === "Pending Investigation").length;
 
+  if (!authChecked) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#f7f9fa] text-[#092f45]" aria-busy="true">
+        <p role="status" className="text-sm font-bold">Checking manager session…</p>
+      </main>
+    );
+  }
+
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-[#f7f9fa] text-[#092f45] antialiased">
-      {/* 1. Global Top Header (Matching Admin portal standard) */}
-      <ManagerTopHeader
-        onMenuClick={() => setIsMobileDrawerOpen((prev) => !prev)}
-        currentUser={currentUser}
-        userInitials={userInitials}
-        onSignOut={handleSignOut}
-        onChangeAccount={() => setIsLoginModalOpen(true)}
-      />
-
-      {/* Main Container below Header: Pop-up Sidebar Drawer + Main Content Workspace */}
-      <div className="relative flex flex-1 flex-row overflow-hidden min-h-0">
-        {/* Universal Slide-out Pop-up Sidebar Drawer (Overlay across mobile, tablet, and desktop) */}
+    <div className="flex h-screen w-full flex-row overflow-hidden bg-[#f7f9fa] text-[#092f45] antialiased">
+      {applicationError && (
+        <div className="fixed left-1/2 top-4 z-[60] -translate-x-1/2 border border-[#f8c5be] bg-[#fff1f2] px-4 py-3 text-sm font-bold text-[#b8291b] shadow-lg" role="alert">
+          {applicationError}
+        </div>
+      )}
+      {/* Universal Slide-out Pop-up Sidebar Drawer (Overlay across mobile, tablet, and desktop) */}
+      <div
+        className={`fixed inset-0 z-50 transition-all duration-300 ${
+          isMobileDrawerOpen
+            ? "visible pointer-events-auto"
+            : "invisible pointer-events-none delay-300"
+        }`}
+        aria-hidden={!isMobileDrawerOpen}
+      >
+        {/* Backdrop overlay with smooth fade in/out */}
         <div
-          className={`fixed inset-0 z-50 transition-all duration-300 ${
-            isMobileDrawerOpen
-              ? "visible pointer-events-auto"
-              : "invisible pointer-events-none delay-300"
+          onClick={() => setIsMobileDrawerOpen(false)}
+          className={`fixed inset-0 bg-slate-950/50 backdrop-blur-xs transition-opacity duration-300 ${
+            isMobileDrawerOpen ? "opacity-100" : "opacity-0"
           }`}
-          aria-hidden={!isMobileDrawerOpen}
-        >
-          {/* Backdrop overlay with smooth fade in/out */}
-          <div
-            onClick={() => setIsMobileDrawerOpen(false)}
-            className={`fixed inset-0 bg-slate-950/50 backdrop-blur-xs transition-opacity duration-300 ${
-              isMobileDrawerOpen ? "opacity-100" : "opacity-0"
-            }`}
-          />
+        />
 
-          {/* Drawer content sliding smoothly from left with elegant shadow (Navy Dark Theme) */}
-          <aside
-            className={`relative z-10 flex h-full w-[290px] max-w-[85vw] flex-col justify-between bg-[#092f45] text-white p-4 shadow-2xl border-r border-[#16435c] transition-transform duration-300 [transition-timing-function:cubic-bezier(0.2,0,0,1)] select-none ${
-              isMobileDrawerOpen ? "translate-x-0" : "-translate-x-full"
-            }`}
-          >
+        {/* Drawer content sliding smoothly from left with elegant shadow (Navy Dark Theme) */}
+        <aside
+          className={`relative z-10 flex h-full w-[290px] max-w-[85vw] flex-col justify-between bg-[#092f45] text-white p-4 shadow-2xl border-r border-[#16435c] transition-transform duration-300 [transition-timing-function:cubic-bezier(0.2,0,0,1)] select-none ${
+            isMobileDrawerOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
             <div className="space-y-4">
               {/* Drawer Top Header */}
               <div className="flex items-center justify-between border-b border-[#16435c] pb-3">
@@ -446,11 +570,11 @@ export default function ManagerDashboard() {
                 >
                   <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#087f80]/40 bg-[#0d3b55] shadow-xs group-hover:border-[#087f80]">
                     <Image
-                      src="/khvi-logo.jpg"
+                      src="/khvi-logo.png"
                       alt="KHVI logo"
                       fill
                       sizes="36px"
-                      className="scale-[2.2] object-cover object-[50%_54%]"
+                      className="object-contain p-1"
                       priority
                     />
                   </div>
@@ -617,6 +741,32 @@ export default function ManagerDashboard() {
                       {formatBadgeCount(pendingReportCount)}
                     </span>
                   </button>
+
+                  <button
+                    onClick={() => {
+                      setNavSection("history");
+                      setIsMobileDrawerOpen(false);
+                    }}
+                    className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
+                      navSection === "history"
+                        ? "bg-[#087f80] text-white shadow-md"
+                        : "text-slate-200 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <ClockIcon className="h-5 w-5 text-slate-300" />
+                      <span>Operations History</span>
+                    </div>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                        navSection === "history"
+                          ? "bg-white/20 text-white"
+                          : "bg-slate-700/60 text-slate-300 border border-slate-600/50"
+                      }`}
+                    >
+                      {activities.length}
+                    </span>
+                  </button>
                 </nav>
               </div>
             </div>
@@ -631,16 +781,31 @@ export default function ManagerDashboard() {
                 title="Manager Settings"
               >
                 <Cog6ToothIcon className="h-5 w-5 shrink-0" />
-                <span>Settings</span>
+                <span>Proliles & Settings</span>
               </button>
             </div>
           </aside>
         </div>
 
-        {/* 2. Compact Left Rail Bar (Dark Navy Theme - Consistent & Unified) */}
-        <aside className="hidden md:flex flex-col w-[68px] shrink-0 items-center justify-between border-r border-[#16435c] bg-[#092f45] py-4 z-20 select-none shadow-[4px_0_16px_rgba(0,0,0,0.15)]">
+        {/* 2. Compact Left Rail Bar (Dark Navy Theme - Full Height Single Block) */}
+        <aside className="hidden md:flex flex-col w-[68px] shrink-0 items-center justify-between border-r border-[#16435c] bg-[#092f45] py-3.5 z-20 select-none shadow-[4px_0_16px_rgba(0,0,0,0.15)]">
           {/* Top: Section Quick Buttons with Notification Badges */}
           <div className="flex flex-col items-center gap-4 w-full px-2">
+            {/* Menu Hamburger Button: Seamless top corner block level with Header */}
+            <div className="flex h-9 w-full items-center justify-center">
+              <button
+                type="button"
+                onClick={() => setIsMobileDrawerOpen((prev) => !prev)}
+                className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-white shadow-xs hover:bg-[#087f80] hover:border-[#087f80] transition-all focus:outline-none focus:ring-2 focus:ring-[#087f80]/40 cursor-pointer"
+                aria-label="Toggle Navigation Drawer"
+                title="Toggle Navigation Menu (เปิด/ปิด เมนูด้านข้าง)"
+              >
+                <Bars3Icon className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="h-px w-8 bg-[#16435c]" />
+
             {/* Verification Group */}
             <div className="flex flex-col items-center gap-2.5 w-full">
               {/* Queue (Pending review with badge) */}
@@ -747,6 +912,21 @@ export default function ManagerDashboard() {
                   </span>
                 )}
               </button>
+
+              {/* Operations History */}
+              <button
+                type="button"
+                onClick={() => setNavSection("history")}
+                className={`relative flex h-10 w-10 items-center justify-center rounded-2xl transition-all cursor-pointer ${
+                  navSection === "history"
+                    ? "bg-[#087f80] text-white shadow-md"
+                    : "text-slate-300 hover:bg-white/10 hover:text-white"
+                }`}
+                title="Operations History (ประวัติการทำงาน)"
+                aria-label="Operations History"
+              >
+                <ClockIcon className="h-5 w-5" />
+              </button>
             </div>
           </div>
 
@@ -765,10 +945,20 @@ export default function ManagerDashboard() {
           </div>
         </aside>
 
-        {/* Right Column: Main Content Workspace + Footer */}
+        {/* Right Column: Top Header + Main Content Workspace + Footer */}
         <div className="flex flex-1 flex-col h-full overflow-hidden min-w-0">
-        {/* Main Content Workspace (Flex column with min-h-full ensures sticky footer at bottom) */}
-        <div className="flex-1 overflow-y-auto min-w-0 flex flex-col">
+          {/* Top Header inside right column */}
+          <ManagerTopHeader
+            onMenuClick={() => setIsMobileDrawerOpen((prev) => !prev)}
+            currentUser={currentUser}
+            onSignOut={handleSignOut}
+            onChangeAccount={() => setIsLoginModalOpen(true)}
+            locale={locale}
+            onLocaleChange={handleLocaleChange}
+          />
+
+          {/* Main Content Workspace (Flex column with min-h-full ensures sticky footer at bottom) */}
+          <div className="flex-1 overflow-y-auto min-w-0 flex flex-col">
           <main className="flex-1 p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6">
             {/* View Header with Search & Filter */}
             {(navSection === "queue" || navSection === "approved" || navSection === "rejected") && (
@@ -1351,33 +1541,94 @@ export default function ManagerDashboard() {
                 </div>
               </div>
             )}
-          </main>
 
-          {/* FOOTER inside right column */}
-          <SiteFooter
-            copy={{
-              description: "KHVI Operational Management Portal for authorized managers and team leads.",
-              note: "Internal Operations Hub",
-              explore: "Console",
-              safety: "Security Policy",
-              needHelp: "Operations Support",
-              needHelpBody: "For system administrator escalation, contact the root admin channel.",
-              footerCta: "View Audit Log",
-              privacy: "All manager actions are strictly logged for compliance and security audit.",
-              links: {
-                map: "Overview",
-                how: "Verification SOP",
-                roles: "Role Hierarchy",
-                privacy: "Privacy Standard",
-                request: "Support Desk",
-                signIn: "Switch Account",
-              },
-            }}
-            brandSubtitle="Operations Console"
-          />
+            {/* SECTION 4: Operations Activity History (ประวัติการทำงานของ Manager) */}
+            {navSection === "history" && (
+              <div className="flex-1 overflow-y-auto p-4 md:p-6">
+                <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-black tracking-tight text-[#092f45]">
+                      Operations Activity History
+                    </h2>
+                    <p className="mt-1 text-xs text-[#527082]">
+                      Log of administrative and operational actions taken by managers (Approvals, Rejections, Ticket Replies, and Admin Escalations).
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f1f5f8] px-3 py-1 text-xs font-bold text-[#2d4b5b] border border-[#dce6ed]">
+                      <ClockIcon className="h-3.5 w-3.5 text-[#087f80]" />
+                      Total Actions: {activities.length}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Activity Feed Timeline */}
+                <div className="space-y-3">
+                  {activities.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#c6d7e0] bg-white p-12 text-center">
+                      <ClockIcon className="h-10 w-10 text-slate-300" />
+                      <h4 className="mt-3 text-sm font-bold text-[#092f45]">No activity records found</h4>
+                      <p className="mt-1 text-xs text-[#6b8491]">Actions taken on applicants, help tickets, or reports will appear here in chronological order.</p>
+                    </div>
+                  ) : (
+                    activities.map((act) => {
+                      // Badge color and icon based on activity type
+                      let badgeBg = "bg-[#f0f9f5] text-[#087557] border-[#bfe5d7]";
+                      let typeLabel = "Approval";
+                      let IconComponent = CheckCircleIcon;
+
+                      if (act.type === "rejection") {
+                        badgeBg = "bg-[#fff1ef] text-[#d93829] border-[#fecac6]";
+                        typeLabel = "Rejection";
+                        IconComponent = XMarkIcon;
+                      } else if (act.type === "ticket_reply") {
+                        badgeBg = "bg-[#f0f7ff] text-[#0284c7] border-[#bae6fd]";
+                        typeLabel = "Ticket Reply";
+                        IconComponent = ChatBubbleLeftRightIcon;
+                      } else if (act.type === "report_escalation") {
+                        badgeBg = "bg-[#fffbeb] text-[#d97706] border-[#fde68a]";
+                        typeLabel = "Escalated to Admin";
+                        IconComponent = ShieldExclamationIcon;
+                      }
+
+                      return (
+                        <div
+                          key={act.id}
+                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-[#dbe6ec] bg-white p-4 transition-all hover:border-[#087f80] hover:shadow-xs"
+                        >
+                          <div className="flex items-start gap-3">
+                            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${badgeBg}`}>
+                              <IconComponent className="h-5 w-5" />
+                            </span>
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-xs font-black text-[#092f45]">
+                                  {act.targetName}
+                                </span>
+                                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-extrabold ${badgeBg}`}>
+                                  {typeLabel}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-xs text-[#4b6574] leading-relaxed">
+                                {act.description}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0 self-start sm:self-center pl-12 sm:pl-0">
+                            <span className="text-[11px] font-bold text-[#839ba8] whitespace-nowrap">
+                              {act.timestamp}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+          </main>
         </div>
       </div>
-    </div>
 
       {/* Centered Pop-up Modal (30% / 70% Split) & Reject Dialog */}
       <ApplicantDetailModal
@@ -1397,4 +1648,3 @@ export default function ManagerDashboard() {
     </div>
   );
 }
-

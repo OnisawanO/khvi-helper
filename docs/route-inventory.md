@@ -1,15 +1,28 @@
 # KHVI Route Inventory
 
+## UI language support
+
+The global UI language switcher supports English (en), Chinese (zh), Thai (th), Spanish (es) and Arabic (ar). Arabic sets document direction to RTL. UI language is separate from interpreter service-language data.
+
 ## Role-specific request workspaces
 
 - Source routes now use Next.js route groups to keep role ownership visible in the file tree without changing public URLs: `(public)`, `(auth)`, `(workspace)`, `(user)`, `(interpreter)`, `(manager)`, and `(admin)`.
 - `User` uses `/request-help` to create a request and `/my-requests` to track requests created in the browser preview.
 - `Interpreter` uses `/find-requests` to review open request summaries and `/my-assignments` to track claimed, in-progress or completed assignments.
-- All four routes read the mock signed-in session and redirect to the equivalent route when the signed-in role does not match.
+- All four routes read the Supabase Auth session and redirect to the equivalent route when the signed-in role does not match.
 - Interpreter lists reuse browser-local preview records. Profile matching, account ownership, claim actions and server authorization remain planned.
 - `/find-requests` supports preview sorting by request creation time and by distance from the interpreter's browser GPS when location access is available.
 - `/find-requests` renders an interactive Leaflet map with OpenStreetMap tiles, request markers and a browser-GPS marker when location access is available.
 - Both roles use the same signed-in header and footer as `/welcome`; the navigation labels and paths change with the role.
+
+## Shared profile route
+
+- `/profile` is the shared authenticated Profile & Settings route for `User`, `Interpreter`, `Manager`, and `Admin`.
+- The page reads the current Supabase Auth profile and redirects to `/#top` when no valid active session is available. Browser mock session fallback remains available for local preview without Supabase. Locked sessions cannot open the page.
+- Every role can edit only their own first name, last name, phone, date of birth, and preferred UI language in the current preview. The browser-local session is updated after validation.
+- Every role can change, crop, or remove an optional profile photo in the current preview. The cropped image is resized and stored as `avatarUrl` in the browser-local session; production storage and ownership checks remain planned.
+- Approved Interpreter profiles can add, type, or remove service language and matching category selections in the current preview. The UI keeps at least one language and two categories, stores standard IDs or custom values in the browser-local session, and does not replace the planned `interpreter_languages` or `interpreter_categories` relations. Production must validate custom values against the system catalog before persistence.
+- Role, lock status, interpreter approval status, and management permissions are shown as read-only context. Production ownership checks, Supabase persistence, role-specific profile tables, and server authorization remain planned.
 
 ## Requester preview flow update
 
@@ -42,15 +55,16 @@ This update supersedes the older mock-source and state-only behavior notes below
 |---|---|---|---|---|---|
 | `/` | Static | Public | None | Not applicable | Implemented at `app/(public)/page.tsx` |
 | `/_not-found` | Framework fallback | Public | None | Framework fallback | Implemented at `app/not-found.tsx` |
-| `/manager` | Static Mockup | Manager Role | Mock data (FR-14–18) | Not applicable | Implemented at `app/(manager)/manager/page.tsx` |
-| `/admin` | Static Mockup | Admin Role | Mock data | Not applicable | Implemented at `app/(admin)/admin/page.tsx` |
-| `/request-help` | Resource create route | Authenticated User (mock session; ยังไม่บังคับฝั่ง server) | `app/lib/request-store.ts` | Redirect Interpreter to `/find-requests` | Implemented at `app/(user)/request-help/page.tsx` |
-| `/my-requests` | Requester resource list | Authenticated User (mock session; ยังไม่บังคับฝั่ง server) | `app/lib/request-store.ts` | Redirect Interpreter to `/my-assignments`; empty state | Implemented at `app/(user)/my-requests/page.tsx` |
-| `/my-requests/[requestId]` | Dynamic resource | เจ้าของคำขอ หรือ Interpreter ที่ Claim แล้ว (ตรวจผ่าน mock session ฝั่ง client; server authorization ยังไม่บังคับ) | `app/lib/request-store.ts` | `notFound()` สำหรับ ID ผิดรูปแบบ; browser-local missing/unauthorized state สำหรับ record ที่อ่านไม่ได้ | Implemented shared mission preview at `app/(user)/my-requests/[requestId]/page.tsx` |
-| `/find-requests` | Interpreter open-request list and claim entry | Authenticated Interpreter (mock session; ยังไม่บังคับฝั่ง server) | `app/lib/request-store.ts` open requests | Redirect User to `/request-help`; empty state; claim error stays on list | Implemented at `app/(interpreter)/find-requests/page.tsx` |
-| `/my-assignments` | Interpreter assignment list | Authenticated Interpreter (mock session; ยังไม่บังคับฝั่ง server) | `app/lib/request-store.ts` records assigned to the current mock interpreter | Redirect User to `/my-requests`; empty state | Implemented at `app/(interpreter)/my-assignments/page.tsx` |
-| `/register` | Static auth route | Public | `app/lib/mock-auth.ts` (Mock session) | Not applicable | Implemented at `app/(auth)/register/page.tsx` |
-| `/login` | Static auth route | Public | `app/lib/mock-auth.ts` (Mock session) | Not applicable | Implemented at `app/(auth)/login/page.tsx` |
+| `/manager` | Static Mockup | Manager Role (Supabase session) | Mock data (FR-14–18) | Redirect unauthenticated or wrong role to public/role route | Implemented at `app/(manager)/manager/page.tsx` |
+| `/admin` | Static Mockup | Admin Role (Supabase session) | Mock data | Redirect unauthenticated or wrong role to public/role route | Implemented at `app/(admin)/admin/page.tsx` |
+| `/request-help` | Resource create route | Authenticated User (Supabase session; domain preview remains client-side) | `app/lib/request-store.ts` | Redirect Interpreter to `/find-requests` | Implemented at `app/(user)/request-help/page.tsx` |
+| `/my-requests` | Requester resource list | Authenticated User (Supabase session; domain preview remains client-side) | `app/lib/request-store.ts` | Redirect Interpreter to `/my-assignments`; empty state | Implemented at `app/(user)/my-requests/page.tsx` |
+| `/my-requests/[requestId]` | Dynamic resource | เจ้าของคำขอ หรือ Interpreter ที่ Claim แล้ว (Supabase session + browser preview ownership) | `app/lib/request-store.ts` | `notFound()` สำหรับ ID ผิดรูปแบบ; browser-local missing/unauthorized state สำหรับ record ที่อ่านไม่ได้ | Implemented shared mission preview at `app/(user)/my-requests/[requestId]/page.tsx` |
+| `/find-requests` | Interpreter open-request list and claim entry | Authenticated Interpreter (Supabase session; domain preview remains client-side) | `app/lib/request-store.ts` open requests | Redirect User to `/request-help`; empty state; claim error stays on list | Implemented at `app/(interpreter)/find-requests/page.tsx` |
+| `/my-assignments` | Interpreter assignment list | Authenticated Interpreter (Supabase session; domain preview remains client-side) | `app/lib/request-store.ts` records assigned to the current Supabase user | Redirect User to `/my-requests`; empty state | Implemented at `app/(interpreter)/my-assignments/page.tsx` |
+| `/register` | Static auth route | Public | Supabase Auth + `public.profiles` trigger; UI locale is inherited from the Guest Welcome page | Not applicable | Implemented at `app/(auth)/register/page.tsx` |
+| `/login` | Static auth route | Public | Supabase Auth + `public.profiles`; development-only Fast Login uses server credentials | Not applicable | Implemented at `app/(auth)/login/page.tsx` |
+| `/api/auth/fast-login` | Auth action route | Development only; disabled in production | Supabase Auth accounts configured by `FAST_LOGIN_*` server environment variables | `400` invalid role; `503` missing dev account; `401` Auth failure | Implemented at `app/api/auth/fast-login/route.ts` |
 | `/sign-in` | Static auth redirect | Public | None | Redirects to `/?signin=true` | Implemented at `app/(auth)/sign-in/page.tsx` |
 
 `/my-requests` รับ query parameter `status` ค่าเดียวเท่านั้น: `open`, `claimed`, `in-progress`, `completed`, `cancelled`
@@ -64,14 +78,14 @@ parameter ที่ผิดรูปแบบหรือไม่พบข้�
 
 `/register` เป็นระบบสมัครสมาชิกบัญชีผู้ใช้ใหม่ รับข้อมูลตาม Schema ตาราง `profiles` ใน `detail.md` ร่วมกับ Supabase Auth (ชื่อ-นามสกุล, อีเมล, รหัสผ่าน, เบอร์โทรศัพท์, วันเดือนปีเกิด, ภาษาหน้าจอ) โดยแสดงผลเป็น Modal Overlay แบบ 2 ฝั่ง (Split Card) ซ้อนบนหน้าแรก (`/`) และสามารถเข้าถึงผ่าน Direct URL `/register` ได้เช่นกัน
 
-`/login` (และ `/sign-in`) เป็นระบบลงชื่อเข้าใช้บัญชีผู้ใช้ที่มีอยู่แล้ว ตรวจสอบอีเมลและรหัสผ่าน พร้อมปุ่ม Quick Login สำหรับทดสอบ 4 บทบาท (User, Interpreter, Manager, Admin) โดยแสดงผลเป็น Modal Overlay แบบ 2 ฝั่ง (Split Card) ซ้อนบนหน้าแรก (`/`) และสามารถเข้าถึงผ่าน Direct URL ได้
+`/login` (และ `/sign-in`) เป็นระบบลงชื่อเข้าใช้บัญชีผู้ใช้ที่มีอยู่แล้วผ่าน Supabase Auth ตรวจสอบอีเมลและรหัสผ่าน พร้อมปุ่ม Fast Login สำหรับ development ที่ลงชื่อเข้าบัญชีทดสอบจริง 4 บทบาท (User, Interpreter, Manager, Admin) ผ่าน server route โดยไม่แสดงใน production หน้า login แสดงผลเป็น Modal Overlay แบบ 2 ฝั่ง (Split Card) ซ้อนบนหน้าแรก (`/`) และสามารถเข้าถึงผ่าน Direct URL ได้
 
 ## Routes ที่วางแผนไว้
 
 | Path | Type | Access | Data source | Not found behavior | Status |
 |---|---|---|---|---|---|
-| `/profile` | Static private route | Authenticated | User profile | Redirect to login | Planned |
-| `/welcome` | Static private route | Authenticated User/Interpreter | Browser mock session | Redirect by mock role | Implemented at `app/(workspace)/welcome/page.tsx` |
+| `/profile` | Static private route | Authenticated User, Interpreter, Manager, Admin (preview session) | `app/lib/mock-auth.ts` browser session | Redirect to `/#top` when session is missing or locked | Implemented at `app/(workspace)/profile/page.tsx` |
+| `/welcome` | Static private route | Authenticated User/Interpreter | Supabase Auth session + `public.profiles`; browser preview data | Redirect by Supabase profile role | Implemented at `app/(workspace)/welcome/page.tsx` |
 | `/map` | Resource map/list | Approved Interpreter | `bookings`, interpreter skills | Empty state or `403` | Planned |
 | `/volunteer/apply` | Resource create route | Authenticated User | `interpreter_profiles`, `languages`, `categories` | Redirect to current application status | Planned |
 | `/volunteer/status` | Resource detail route | Authenticated User | `interpreter_profiles` | Empty state if no application | Planned |

@@ -11,13 +11,16 @@ import {
   LockClosedIcon,
   SparklesIcon,
 } from "@heroicons/react/24/outline";
+import { getAuthCopy } from "@/app/lib/auth-copy";
+import { useStoredLocale } from "@/app/lib/locale";
+import { createClient } from "@/utils/supabase/client";
 import {
+  getAuthErrorMessage,
+  getCurrentUserProfile,
   getRedirectPathByRole,
-  loginMockUser,
-  quickLoginAsRole,
   type UserProfile,
   type UserRole,
-} from "@/app/lib/mock-auth";
+} from "@/app/lib/supabase-auth";
 
 export interface LoginFormProps {
   onSuccess?: (user: UserProfile) => void;
@@ -27,6 +30,10 @@ export interface LoginFormProps {
 
 export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: LoginFormProps) {
   const router = useRouter();
+  const supabase = createClient();
+  const fastLoginEnabled = process.env.NODE_ENV !== "production";
+  const [currentLocale, setStoredLocale] = useStoredLocale();
+  const copy = getAuthCopy(currentLocale);
 
   const emailId = useId();
   const passwordId = useId();
@@ -58,32 +65,86 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
     setIsSubmitting(true);
 
     try {
-      const result = await loginMockUser(email, password);
-      if (!result.success || !result.user) {
-        const errorMsg =
-          result.errors?.general ||
-          result.errors?.email ||
-          result.errors?.password ||
-          "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
-        setError(errorMsg);
+      const trimmedEmail = email.trim().toLowerCase();
+      if (!trimmedEmail) {
+        setError(copy.login.emptyEmail);
         setIsSubmitting(false);
         return;
       }
-      handleLoginSuccess(result.user);
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+        setError(copy.login.invalidEmail);
+        setIsSubmitting(false);
+        return;
+      }
+      if (!password) {
+        setError(copy.login.emptyPassword);
+        setIsSubmitting(false);
+        return;
+      }
+
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: trimmedEmail,
+        password,
+      });
+
+      if (signInError || !data.user) {
+        setError(getAuthErrorMessage(signInError, "login", currentLocale));
+        setIsSubmitting(false);
+        return;
+      }
+
+      const profileResult = await getCurrentUserProfile(supabase);
+      if (!profileResult.profile) {
+        await supabase.auth.signOut();
+        setError(profileResult.error || copy.login.profileError);
+        setIsSubmitting(false);
+        return;
+      }
+
+      setStoredLocale(profileResult.profile.preferredUiLanguage);
+      handleLoginSuccess(profileResult.profile);
     } catch {
-      setError("เกิดข้อผิดพลาดในการเข้าสู่ระบบ กรุณาลองใหม่อีกครั้ง");
+      setError(copy.login.genericError);
       setIsSubmitting(false);
     }
   }
 
-  function handleQuickLogin(role: UserRole) {
+  async function handleQuickLogin(role: UserRole) {
     setError(null);
     setIsSubmitting(true);
     try {
-      const user = quickLoginAsRole(role);
-      handleLoginSuccess(user);
+      const response = await fetch("/api/auth/fast-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role }),
+      });
+      const result = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        setError(result.error || copy.login.fastLoginError);
+        setIsSubmitting(false);
+        return;
+      }
+
+      const profileResult = await getCurrentUserProfile(supabase);
+      if (!profileResult.profile) {
+        await supabase.auth.signOut();
+        setError(profileResult.error || copy.login.profileError);
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (profileResult.profile.role !== role) {
+        await supabase.auth.signOut();
+        setError(copy.login.fastLoginRoleMismatch);
+        setIsSubmitting(false);
+        return;
+      }
+
+      setStoredLocale(profileResult.profile.preferredUiLanguage);
+      handleLoginSuccess(profileResult.profile);
     } catch {
-      setError("ไม่สามารถเข้าสู่ระบบจำลองได้");
+      setError(copy.login.fastLoginError);
       setIsSubmitting(false);
     }
   }
@@ -97,11 +158,11 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
       {/* Slogan & Title Header (Fastwork style) */}
       <div className="mb-5">
         <h2 className="text-2xl font-black tracking-tight text-[var(--khvi-ink)] sm:text-3xl">
-          ยินดีต้อนรับกลับมา
-          <span className="block text-[#087f80]">สู่ KHVI Helper</span>
+          {copy.login.title}
+          <span className="block text-[#087f80]">{copy.login.accent}</span>
         </h2>
         <p className="mt-1.5 text-xs text-[#5c727d]">
-          เข้าสู่ระบบเพื่อติดตามงาน ปักหมุดขอความช่วยเหลือ หรือปฏิบัติหน้าที่ล่าม
+          {copy.login.description}
         </p>
       </div>
 
@@ -114,10 +175,10 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
         >
           <CheckCircleIcon className="mx-auto h-12 w-12 text-[#0a8264]" aria-hidden="true" />
           <h3 className="mt-3 text-base font-extrabold text-[#095744]">
-            เข้าสู่ระบบสำเร็จ
+            {copy.login.successTitle}
           </h3>
           <p className="mt-1 text-xs text-[#186a55]">
-            ยินดีต้อนรับคุณ {successUser.name} (บทบาท: {successUser.role}) กำลังนำทาง...
+            {copy.login.successBody(successUser.name, copy.roleLabels[successUser.role])}
           </p>
         </div>
       ) : (
@@ -135,7 +196,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
             {/* Email */}
             <div>
               <label htmlFor={emailId} className="block text-xs font-extrabold text-[#294554]">
-                อีเมล <span className="text-[#e24432]">*</span>
+                {copy.register.email} <span className="text-[#e24432]">*</span>
               </label>
               <div className="relative mt-1">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#73848a]">
@@ -158,15 +219,11 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
             <div>
               <div className="flex items-center justify-between">
                 <label htmlFor={passwordId} className="block text-xs font-extrabold text-[#294554]">
-                  รหัสผ่าน <span className="text-[#e24432]">*</span>
+                  {copy.register.password} <span className="text-[#e24432]">*</span>
                 </label>
-                <button
-                  type="button"
-                  onClick={() => alert("ระบบ Mock อยู่ในระหว่างพัฒนา: สามารถใช้รหัสผ่านใดก็ได้ หรือใช้ปุ่ม Quick Login ด้านล่าง")}
-                  className="text-[11px] font-bold text-[#0d8587] hover:underline"
-                >
-                  ลืมรหัสผ่าน?
-                </button>
+                <span className="text-[11px] font-bold text-[#73848a]">
+                  {copy.login.forgotPassword} {copy.login.forgotPasswordSoon}
+                </span>
               </div>
               <div className="relative mt-1">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#73848a]">
@@ -177,7 +234,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
                   type={showPassword ? "text" : "password"}
                   required
                   autoComplete="current-password"
-                  placeholder="กรอกรหัสผ่านของคุณ"
+                  placeholder={copy.login.passwordPlaceholder}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full rounded-lg border border-[#cbd7dc] bg-white py-2.5 pl-9 pr-9 text-xs font-semibold text-[var(--khvi-ink)] transition-colors hover:border-[#8fbfc1] focus:border-[#0d8587] focus:outline-none focus:ring-2 focus:ring-[#0d8587]/20"
@@ -186,7 +243,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
                   className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-[#73848a] hover:text-[#294554]"
-                  aria-label={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
+                  aria-label={showPassword ? copy.login.hidePassword : copy.login.showPassword}
                 >
                   {showPassword ? (
                     <EyeSlashIcon className="h-4 w-4" aria-hidden="true" />
@@ -206,7 +263,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
                   onChange={(e) => setRememberMe(e.target.checked)}
                   className="h-3.5 w-3.5 rounded border-[#cbd7dc] text-[#087f80] focus:ring-[#087f80]"
                 />
-                <span>จดจำการเข้าสู่ระบบไว้</span>
+                <span>{copy.login.rememberMe}</span>
               </label>
             </div>
 
@@ -227,80 +284,66 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       />
                     </svg>
-                    กำลังเข้าสู่ระบบ...
+                    {copy.login.submitting}
                   </span>
                 ) : (
-                  "เข้าสู่ระบบ"
+                  copy.login.submit
                 )}
               </button>
             </div>
           </form>
 
-          {/* Quick Role Login Buttons for Easy Testing */}
-          <div className="pt-2 border-t border-[#edf2f4]">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-extrabold text-[#73848a] flex items-center gap-1">
-                <SparklesIcon className="h-3.5 w-3.5 text-[#0d8587]" />
-                ทดสอบเข้าสู่ระบบด่วนตามสิทธิ์ (Quick Login):
-              </span>
+          {/* Development-only Fast Login */}
+          {fastLoginEnabled && (
+            <div className="pt-2 border-t border-[#edf2f4]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-extrabold text-[#73848a] flex items-center gap-1">
+                  <SparklesIcon className="h-3.5 w-3.5 text-[#0d8587]" />
+                  {copy.login.fastLoginTitle}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {([
+                  ["User", copy.roleLabels.User, "text-[#10283a]", "hover:border-[#087f80] hover:bg-[#edf7f5]"],
+                  ["Interpreter", copy.roleLabels.Interpreter, "text-[#087f80]", "hover:border-[#087f80] hover:bg-[#edf7f5]"],
+                  ["Manager", copy.roleLabels.Manager, "text-[#b5680b]", "hover:border-[#b5680b] hover:bg-[#fff9ef]"],
+                  ["Admin", copy.roleLabels.Admin, "text-[#f04f3e]", "hover:border-[#f04f3e] hover:bg-[#fef4f3]"],
+                ] as const).map(([role, label, textColor, hoverColor]) => (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => handleQuickLogin(role)}
+                    disabled={isSubmitting}
+                    className={`flex flex-col items-center justify-center rounded-lg border border-[#cbd7dc] bg-[#f7f9fa] p-2 text-center transition-colors ${hoverColor}`}
+                  >
+                    <span className={`text-[11px] font-black ${textColor}`}>{role}</span>
+                    <span className="text-[9px] text-[#73848a]">{label}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-[10px] leading-4 text-[#73848a]">
+                {copy.login.fastLoginNote}
+              </p>
             </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("User")}
-                disabled={isSubmitting}
-                className="flex flex-col items-center justify-center rounded-lg border border-[#cbd7dc] bg-[#f7f9fa] p-2 text-center transition-colors hover:border-[#087f80] hover:bg-[#edf7f5]"
-              >
-                <span className="text-[11px] font-black text-[#10283a]">User</span>
-                <span className="text-[9px] text-[#73848a]">ผู้ขอรับบริการ</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("Interpreter")}
-                disabled={isSubmitting}
-                className="flex flex-col items-center justify-center rounded-lg border border-[#cbd7dc] bg-[#f7f9fa] p-2 text-center transition-colors hover:border-[#087f80] hover:bg-[#edf7f5]"
-              >
-                <span className="text-[11px] font-black text-[#087f80]">Interpreter</span>
-                <span className="text-[9px] text-[#73848a]">ล่ามจิตอาสา</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("Manager")}
-                disabled={isSubmitting}
-                className="flex flex-col items-center justify-center rounded-lg border border-[#cbd7dc] bg-[#f7f9fa] p-2 text-center transition-colors hover:border-[#b5680b] hover:bg-[#fff9ef]"
-              >
-                <span className="text-[11px] font-black text-[#b5680b]">Manager</span>
-                <span className="text-[9px] text-[#73848a]">ผู้จัดการ</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("Admin")}
-                disabled={isSubmitting}
-                className="flex flex-col items-center justify-center rounded-lg border border-[#cbd7dc] bg-[#f7f9fa] p-2 text-center transition-colors hover:border-[#f04f3e] hover:bg-[#fef4f3]"
-              >
-                <span className="text-[11px] font-black text-[#f04f3e]">Admin</span>
-                <span className="text-[9px] text-[#73848a]">ผู้ดูแลระบบ</span>
-              </button>
-            </div>
-          </div>
+          )}
 
           {/* Switch to Register */}
           <div className="border-t border-[#edf2f4] pt-3 text-center text-xs text-[#5c727d]">
-            <span>ยังไม่มีบัญชีผู้ใช้? </span>
+            <span>{copy.register.existingAccount} </span>
             {onSwitchToRegister ? (
               <button
                 type="button"
                 onClick={onSwitchToRegister}
                 className="font-extrabold text-[#0d8587] transition-colors hover:text-[#092f45] hover:underline"
               >
-                สมัครสมาชิกที่นี่
+                {copy.register.signUpHere}
               </button>
             ) : (
               <Link
                 href="/register"
                 className="font-extrabold text-[#0d8587] transition-colors hover:text-[#092f45] hover:underline"
               >
-                สมัครสมาชิกที่นี่
+                {copy.register.signUpHere}
               </Link>
             )}
           </div>

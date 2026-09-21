@@ -6,16 +6,13 @@ import { AppShell } from "@/app/components/app-shell";
 import { WorkspaceAccountActions } from "@/app/components/workspace-account-actions";
 import { WelcomeDashboard } from "@/app/components/welcome-dashboard";
 import {
-  AUTH_SESSION_STORAGE_KEY, clearMockUserSession, getMockUserSession,
-  getRedirectPathByRole, type UserProfile,
-} from "@/app/lib/mock-auth";
-import {
-  getActiveWorkspaceRole,
   getInterpreterWorkspaceMode,
   setInterpreterWorkspaceMode,
-  subscribeInterpreterWorkspaceMode,
   type InterpreterWorkspaceMode,
 } from "@/app/lib/workspace-mode";
+import { getRedirectPathByRole, type UserProfile } from "@/app/lib/mock-auth";
+import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
+import { createClient } from "@/utils/supabase/client";
 
 export function Welcome() {
   const router = useRouter();
@@ -23,36 +20,38 @@ export function Welcome() {
   const [interpreterMode, setInterpreterMode] = useState<InterpreterWorkspaceMode>("helper");
 
   useEffect(() => {
-    const refreshSession = () => {
-      const session = getMockUserSession();
-      if (!session || !["User", "Interpreter", "Manager", "Admin"].includes(session.role)) {
+    const supabase = createClient();
+    let disposed = false;
+
+    const refreshSession = async () => {
+      const result = await getCurrentUserProfile(supabase);
+      if (disposed) return;
+
+      if (!result.profile) {
         setUser(null);
         router.replace("/#top");
-      } else if (session.role === "Manager" || session.role === "Admin") {
+      } else if (result.profile.role === "Manager" || result.profile.role === "Admin") {
         setUser(null);
-        router.replace(getRedirectPathByRole(session.role));
+        router.replace(getRedirectPathByRole(result.profile.role));
       } else {
-        setUser(session);
-        const mode = getInterpreterWorkspaceMode(session);
-        const activeRole = getActiveWorkspaceRole(session) ?? "User";
-        setInterpreterMode(mode);
-        const roleHash = activeRole === "Interpreter" ? "#welcome-Interpreter" : "#welcome-user";
+        setUser(result.profile);
+        setInterpreterMode(getInterpreterWorkspaceMode(result.profile));
+        const roleHash = result.profile.role === "Interpreter" ? "#welcome-Interpreter" : "#welcome-user";
         if (!window.location.hash || window.location.hash === "#top" || window.location.hash === "#welcome-guide") {
           window.history.replaceState(null, "", roleHash);
         }
       }
     };
-    const onStorage = (event: StorageEvent) => {
-      if (event.key === AUTH_SESSION_STORAGE_KEY || event.key === null) refreshSession();
-    };
-    queueMicrotask(refreshSession);
-    const unsubscribeMode = subscribeInterpreterWorkspaceMode(refreshSession);
-    window.addEventListener("storage", onStorage);
-    window.addEventListener("focus", refreshSession);
+    void refreshSession();
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+      window.setTimeout(() => void refreshSession(), 0);
+    });
+    const onWindowFocus = () => void refreshSession();
+    window.addEventListener("focus", onWindowFocus);
     return () => {
-      unsubscribeMode();
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener("focus", refreshSession);
+      disposed = true;
+      authListener.subscription.unsubscribe();
+      window.removeEventListener("focus", onWindowFocus);
     };
   }, [router]);
 
@@ -61,14 +60,15 @@ export function Welcome() {
   const activeRole = user.role === "Interpreter" && interpreterMode === "helper" ? "Interpreter" : "User";
 
   function changeInterpreterMode(mode: InterpreterWorkspaceMode) {
+    if (!user) return;
     setInterpreterMode(mode);
-    setInterpreterWorkspaceMode(user!.userId, mode);
+    setInterpreterWorkspaceMode(user.userId, mode);
     window.history.replaceState(null, "", mode === "helper" ? "#welcome-Interpreter" : "#welcome-user");
   }
 
   return <div id={activeRole === "Interpreter" ? "welcome-Interpreter" : "welcome-user"} className="min-h-screen bg-(--khvi-paper) text-(--khvi-ink)">
     <AppShell welcomeRole={activeRole} accountActions={<WorkspaceAccountActions user={user} onSignOut={() => {
-      clearMockUserSession();
+      void createClient().auth.signOut();
       setUser(null);
       router.replace("/#top");
     }} />}>
