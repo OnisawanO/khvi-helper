@@ -9,6 +9,12 @@ import {
   type UserProfile,
 } from "@/app/lib/mock-auth";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
+import {
+  getInterpreterWorkspaceMode,
+  getWorkspaceRoleForMode,
+  subscribeInterpreterWorkspaceMode,
+  type InterpreterWorkspaceMode,
+} from "@/app/lib/workspace-mode";
 import { createClient } from "@/utils/supabase/client";
 
 export type WorkspaceRole = "User" | "Interpreter";
@@ -24,6 +30,7 @@ export function WorkspaceShell({ children, requiredRole, alternatePath }: {
 }) {
   const router = useRouter();
   const [user, setUser] = useState<(UserProfile & { role: WorkspaceRole }) | null>(null);
+  const [interpreterMode, setInterpreterMode] = useState<InterpreterWorkspaceMode>("helper");
 
   useEffect(() => {
     const supabase = createClient();
@@ -34,7 +41,11 @@ export function WorkspaceShell({ children, requiredRole, alternatePath }: {
       if (disposed) return;
 
       if (isWorkspaceUser(result.profile)) {
-        if (requiredRole && result.profile.role !== requiredRole) {
+        const nextMode = getInterpreterWorkspaceMode(result.profile);
+        const activeRole = getWorkspaceRoleForMode(result.profile, nextMode);
+        setInterpreterMode(nextMode);
+
+        if (requiredRole && activeRole !== requiredRole) {
           setUser(null);
           router.replace(alternatePath ?? getRedirectPathByRole(result.profile.role));
           return;
@@ -56,12 +67,16 @@ export function WorkspaceShell({ children, requiredRole, alternatePath }: {
     const { data: authListener } = supabase.auth.onAuthStateChange(() => {
       window.setTimeout(() => void refreshSession(), 0);
     });
+    const unsubscribeWorkspaceMode = subscribeInterpreterWorkspaceMode(() => {
+      window.setTimeout(() => void refreshSession(), 0);
+    });
     const onWindowFocus = () => void refreshSession();
     window.addEventListener("focus", onWindowFocus);
 
     return () => {
       disposed = true;
       authListener.subscription.unsubscribe();
+      unsubscribeWorkspaceMode();
       window.removeEventListener("focus", onWindowFocus);
     };
   }, [alternatePath, requiredRole, router]);
@@ -74,7 +89,7 @@ export function WorkspaceShell({ children, requiredRole, alternatePath }: {
     );
   }
 
-  const role = user.role;
+  const role = getWorkspaceRoleForMode(user, interpreterMode) ?? user.role;
 
   return (
     <div className="min-h-screen bg-(--khvi-paper) text-(--khvi-ink)">

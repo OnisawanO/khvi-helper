@@ -2,6 +2,14 @@
 
 เอกสารนี้เป็นข้อกำหนดฉบับใช้งานปัจจุบันของระบบ Map-based SOS Volunteer Interpreter Platform โดยยึด flow แบบ Job Pool และ Supabase Auth
 
+### UI language catalog
+
+ระบบรองรับภาษาหน้าจอ 5 ภาษา: English (en), Chinese (zh), Thai (th), Spanish (es) และ Arabic (ar) โดยภาษาอาหรับใช้ทิศทางการอ่านแบบ RTL
+
+- ผู้มาเยือนเลือกภาษาได้จากหน้า Welcome และระบบจำค่าผ่าน browser storage
+- ผู้ใช้ที่เข้าสู่ระบบแล้วใช้ค่าจาก profiles.preferred_ui_language เป็นค่าหลัก
+- ภาษาหน้าจอเป็นคนละข้อมูลกับภาษาที่ล่ามให้บริการ และไม่ใช้แทนตาราง languages
+
 ## 1. เป้าหมายระบบ
 
 ระบบเชื่อมผู้ขอความช่วยเหลือด้านภาษากับล่ามจิตอาสาที่อยู่ใกล้เคียง ผู้ขอสร้างหมุดคำขอ ส่วนล่ามที่มีภาษาและหมวดหมู่ตรงกันเลือกกด Claim จากแผนที่
@@ -56,7 +64,7 @@
 ### Scheduled
 
 - แสดงบนแผนที่ทันทีหลังสร้าง
-- นัดหมายล่วงหน้าได้ไม่เกิน 1 วัน
+- เลือกเวลานัดหมายได้ตั้งแต่วันถัดไปตามปฏิทิน โดยไม่จำกัดวันสูงสุด
 - หมดอายุเมื่อถึงเวลานัดหมาย
 - ต้องแสดงผลแตกต่างจากงาน Immediate
 
@@ -103,6 +111,7 @@ open -> claimed -> in_progress -> completed
 | FR-18 | Report | เริ่มทำหลัง Help Request | Manager/Admin |
 | FR-19 | Audit | บันทึก action สำคัญของ Manager และ Admin ใน phase ที่กำหนด | System |
 | FR-20 | Admin | Admin จัดการ role และข้อมูลผู้ใช้ | Admin |
+| FR-21 | Self-service account deletion | ผู้ใช้ปิดบัญชีตนเองแบบ soft delete หลังไม่มีงานที่ยังดำเนินอยู่ | ทุก role |
 
 ข้อกำหนดชุดนี้ไม่ใช้ flow ค้นหาและเลือกล่ามรายบุคคลแบบ marketplace, ปุ่ม Reject งานของล่าม, ระบบ Tip หรือการรีวิวสองฝ่าย ระบบใช้ Job Pool ที่ล่ามกด Claim งานเอง และให้ User รีวิว Interpreter ฝ่ายเดียวหลังงาน Completed ส่วนการ Reject ใน FR-15 หมายถึงการปฏิเสธใบสมัครล่ามโดย Manager/Admin พร้อมเหตุผล
 
@@ -256,14 +265,14 @@ open -> claimed -> in_progress -> completed
 - `Immediate` ใช้ข้อความระดับความเร่งด่วน เช่น “ต้องการความช่วยเหลือภายใน 15 นาที”
 - ข้อความ 15 นาทีเป็นข้อมูลแสดงผล ไม่ใช่ deadline บังคับเริ่มงาน
 - คำขอ Immediate ที่ยังไม่มีล่าม Claim ต้องหมดอายุ 30 นาทีหลังสร้าง
-- `Scheduled` ต้องกำหนด `scheduled_at` ล่วงหน้าไม่เกิน 1 วัน
+- `Scheduled` ต้องกำหนด `scheduled_at` ตั้งแต่วันถัดไปตามปฏิทิน โดยไม่จำกัดวันสูงสุด
 - คำขอ Scheduled ต้องแสดงใน Job Pool ทันทีหลังสร้างและมี visual แตกต่างจาก Immediate
 - คำขอ Scheduled ที่ยังไม่มีล่าม Claim ต้องหมดอายุเมื่อถึงเวลานัดหมาย
 - Server ต้องกำหนดและตรวจ `expires_at` ไม่พึ่ง countdown ใน browser เป็นผู้เปลี่ยนสถานะหลัก
 
 **ผลลัพธ์และเกณฑ์ตรวจรับ:**
 
-- เวลานัดที่เกิน 1 วันหรือไม่อยู่ในอนาคตถูกปฏิเสธ
+- เวลานัดที่อยู่ในวันปัจจุบันหรือวันที่ผ่านมาแล้วถูกปฏิเสธ
 - Immediate ที่ไม่มี Claim เปลี่ยนเป็น `expired` เมื่อครบ 30 นาที
 - Scheduled ที่ไม่มี Claim เปลี่ยนเป็น `expired` เมื่อถึงเวลานัดหมาย
 - Timer บน UI ใช้ deadline เดียวกับฐานข้อมูลและยังถูกต้องหลัง refresh
@@ -633,7 +642,6 @@ open -> claimed -> in_progress -> completed
 - Server ต้องป้องกัน privilege escalation จากผู้ที่ไม่ใช่ Admin
 - การเปลี่ยน role ต้องสร้าง Audit Log เมื่อ FR-19 เปิดใช้
 - Lock/Unlock อยู่ใน MVP โดยต้องตรวจสิทธิ์ฝั่ง server บังคับเหตุผล และสร้าง Audit Log การ Lock/Unlock ทุกครั้ง การมี control ใน mock UI เพียงอย่างเดียวไม่ถือว่า feature เสร็จ
-- การลบบัญชีไม่อยู่ใน FR-20 ปัจจุบันจนกว่าจะมี requirement เรื่อง retention, authorization และผลกระทบต่อข้อมูลย้อนหลัง
 
 **ผลลัพธ์และเกณฑ์ตรวจรับ:**
 
@@ -641,6 +649,31 @@ open -> claimed -> in_progress -> completed
 - Role ใหม่มีผลกับ route และ action หลังบันทึกโดยไม่ต้องพึ่ง client state เดิม
 - Manager และ role อื่นเรียก action เดียวกันแล้วถูกปฏิเสธ
 - การแก้ข้อมูลไม่ทำลาย booking, review, audit หรือ relation ที่ต้องเก็บย้อนหลัง
+
+#### FR-21: Self-service account deletion
+
+**Requirement:** ผู้ใช้ที่ Login แล้วสามารถปิดบัญชีของตนเองจาก Profile Settings ได้ โดยระบบต้องเก็บความสัมพันธ์และประวัติงานไว้
+
+**Actor:** User, Interpreter, Manager, Admin
+
+**Preconditions:**
+
+- Actor มี session ที่ผ่านการตรวจสอบและมี profile ของตนเอง
+- Actor ไม่มี booking สถานะ `open`, `claimed` หรือ `in_progress` ในฐานะผู้ขอหรือล่าม
+
+**รายละเอียด:**
+
+- ระบบต้องใช้ soft delete ด้วย `profiles.deleted_at` และไม่ลบ `profiles` หรือ `bookings` ออกจากฐานข้อมูล
+- ระบบต้องลบหรือทำให้ข้อมูลติดต่อส่วนตัวที่จำเป็นไม่สามารถใช้งานต่อได้ พร้อมตั้งบัญชีเป็น locked
+- ระบบต้องปฏิเสธการสร้างงานใหม่และการเข้าหน้า workspace หลังปิดบัญชี
+- หลังสำเร็จระบบต้อง sign out session ปัจจุบันและแสดงผลการกลับไปยังหน้าเริ่มต้น
+- หากมีงานที่ยังดำเนินอยู่ ต้องแสดงข้อผิดพลาดและไม่เปลี่ยนข้อมูลบัญชี
+
+**ผลลัพธ์และเกณฑ์ตรวจรับ:**
+
+- การลบบัญชีสำเร็จเก็บ booking, mission และ relation เดิมไว้
+- ผู้ใช้ที่ถูกลบไม่สามารถสร้างหรือรับงานใหม่ได้
+- การเรียก action โดยไม่มี session หรือ profile ที่ถูกลบแล้วถูกปฏิเสธฝั่ง server
 
 ## 7. Non-functional Requirements
 

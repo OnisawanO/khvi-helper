@@ -2,82 +2,44 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { calculateAge } from "@/app/lib/mock-auth";
-import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
-import { submitInterpreterApplication } from "@/app/lib/interpreter-application";
+import { useRouter } from "next/navigation";
+import {
+  submitInterpreterApplicationAction,
+  uploadInterpreterCertificateAction,
+} from "@/app/actions/interpreter-application-actions";
+import type { InterpreterApplicationReference } from "@/app/lib/real-interpreter-application-data";
 
-// 5 ภาษาหลักที่ระบุในโจทย์
-const coreLanguages = [
-  { id: "th", name: "ไทย (Thai)" },
-  { id: "en", name: "อังกฤษ (English)" },
-  { id: "zh", name: "จีน (Chinese)" },
-  { id: "es", name: "สเปน (Spanish)" },
-  { id: "ar", name: "อาหรับ (Arabic)" },
-];
+export function ApplicationForm({
+  availableLanguages,
+  availableCategories,
+}: {
+  availableLanguages: InterpreterApplicationReference[];
+  availableCategories: InterpreterApplicationReference[];
+}) {
+  const router = useRouter();
 
-// รายการภาษาอื่น ๆ ทั่วโลกสำหรับ Multi-select ค้นหาและเลือกเพิ่ม
-const globalLanguageCatalog = [
-  { id: "my", name: "พม่า (Burmese)" },
-  { id: "vi", name: "เวียดนาม (Vietnamese)" },
-  { id: "ja", name: "ญี่ปุ่น (Japanese)" },
-  { id: "ko", name: "เกาหลี (Korean)" },
-  { id: "fr", name: "ฝรั่งเศส (French)" },
-  { id: "de", name: "เยอรมัน (German)" },
-  { id: "ru", name: "รัสเซีย (Russian)" },
-  { id: "hi", name: "ฮินดี (Hindi)" },
-  { id: "id", name: "อินโดนีเซีย (Indonesian)" },
-  { id: "ms", name: "มาเลย์ (Malay)" },
-  { id: "tl", name: "ตากาล็อก (Tagalog / Filipino)" },
-  { id: "km", name: "เขมร (Khmer)" },
-  { id: "lo", name: "ลาว (Lao)" },
-  { id: "pt", name: "โปรตุเกส (Portuguese)" },
-  { id: "it", name: "อิตาลี (Italian)" },
-  { id: "tr", name: "ตุรกี (Turkish)" },
-  { id: "fa", name: "เปอร์เซีย (Persian / Farsi)" },
-  { id: "ur", name: "อูรดู (Urdu)" },
-  { id: "bn", name: "เบงกอล (Bengali)" },
-  { id: "sign", name: "ภาษามือไทย (Thai Sign Language - TSL)" },
-  { id: "asl", name: "ภาษามืออเมริกัน (American Sign Language - ASL)" },
-];
-
-const availableCategories = [
-  { id: 9, name: "การสื่อสารทั่วไปและชีวิตประจำวัน (General & Daily Life)", icon: "💬" },
-  { id: 1, name: "การแพทย์และโรงพยาบาล (Healthcare & Hospital)", icon: "🏥" },
-  { id: 2, name: "สถานีตำรวจและคดีความ (Police & Legal)", icon: "👮" },
-  { id: 3, name: "หน่วยงานราชการและตรวจคนเข้าเมือง (Government & Immigration)", icon: "🏛️" },
-  { id: 4, name: "อุบัติเหตุและกู้ชีพฉุกเฉิน (Accidents & Emergency SOS)", icon: "🚨" },
-  { id: 5, name: "การศึกษาและประสานงานสถาบัน (Education & Campus)", icon: "🎓" },
-  { id: 6, name: "การท่องเที่ยวและการเดินทาง (Tourism & Transit)", icon: "✈️" },
-  { id: 7, name: "การจ้างงานและสิทธิแรงงาน (Labour & Workplace Rights)", icon: "💼" },
-  { id: 8, name: "ภัยพิบัติและการช่วยเหลือผู้ประสบภัย (Disaster Relief & Aid)", icon: "🌊" },
-];
-
-export function ApplicationForm() {
-  // ค่าเริ่มต้นว่างไว้ทั้งหมด เพื่อให้เป็นหน้าที่ยังไม่มีใครใส่อะไรตามคำขอ
   const [selectedLangs, setSelectedLangs] = useState<string[]>([]);
-  const [customLanguageInput, setCustomLanguageInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  const [selectedCats, setSelectedCats] = useState<number[]>([]);
+  const [selectedCats, setSelectedCats] = useState<string[]>([]);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [extraContact, setExtraContact] = useState("");
-  const [certificateUrl, setCertificateUrl] = useState("");
+  const [certificateFile, setCertificateFile] = useState<File | null>(null);
   const [certificateFileName, setCertificateFileName] = useState("");
-  const [submitted, setSubmitted] = useState(false);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  // Toggle ภาษาหลัก (ไทย, อังกฤษ, จีน, สเปน, อาหรับ) หรือภาษาที่เลือกแล้ว
   const toggleLang = (id: string) => {
     setSelectedLangs((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
   };
 
-  // เพิ่มภาษาจาก Multi-select Dropdown
   const handleSelectAdditional = (id: string) => {
     if (!selectedLangs.includes(id)) {
       setSelectedLangs((prev) => [...prev, id]);
@@ -85,26 +47,28 @@ export function ApplicationForm() {
     setSearchQuery("");
   };
 
-  // เพิ่มภาษาเองอิสระในกรณีที่ต้องการระบุภาษาเฉพาะ (จากคำค้นหา)
   const handleAddCustomLanguage = (e?: React.KeyboardEvent | React.MouseEvent) => {
     if (e && "key" in e && e.key !== "Enter") return;
     if (e) e.preventDefault();
-    const candidate = searchQuery.trim() || customLanguageInput.trim();
-    if (candidate && !selectedLangs.includes(candidate)) {
-      setSelectedLangs((prev) => [...prev, candidate]);
+    const candidate = searchQuery.trim().toLowerCase();
+    const language = availableLanguages.find(
+      (item) => item.id.toLowerCase() === candidate || item.name.toLowerCase() === candidate
+    );
+    if (language && !selectedLangs.includes(language.id)) {
+      setSelectedLangs((prev) => [...prev, language.id]);
       setSearchQuery("");
-      setCustomLanguageInput("");
       setIsDropdownOpen(false);
     }
   };
 
-  const toggleCat = (id: number) => {
+  const toggleCat = (id: string) => {
     setSelectedCats((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Triggered when clicking "บันทึกข้อมูลและส่งใบสมัคร" in main form -> Open Confirmation Modal
+  const handleOpenConfirmModal = (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError("");
 
@@ -113,383 +77,406 @@ export function ApplicationForm() {
       return;
     }
 
+    const englishNameRegex = /^[A-Za-z\s\-']+$/;
+    if (!englishNameRegex.test(firstName.trim()) || !englishNameRegex.test(lastName.trim())) {
+      setSubmitError("กรุณากรอกชื่อจริงและนามสกุลเป็นภาษาอังกฤษเท่านั้น (English letters only)");
+      return;
+    }
+
+    setShowConfirmModal(true);
+  };
+
+  // Triggered inside Modal when clicking "ยืนยันและส่งใบสมัคร"
+  const handleConfirmSubmit = async () => {
+    setSubmitError("");
     setIsSubmitting(true);
+
     try {
-      const profileResult = await getCurrentUserProfile();
-      const user = profileResult.profile;
-      if (!user) {
-        setSubmitError(profileResult.error || "กรุณาเข้าสู่ระบบก่อนส่งใบสมัคร");
+      if (!certificateFile) {
+        setSubmitError("กรุณาแนบไฟล์เอกสารรับรองก่อนส่งใบสมัคร");
+        setShowConfirmModal(false);
         return;
       }
 
-      submitInterpreterApplication(user, {
-        applicantName: `${firstName.trim()} ${lastName.trim()}`,
+      const uploadData = new FormData();
+      uploadData.set("file", certificateFile);
+      const uploadResult = await uploadInterpreterCertificateAction(uploadData);
+      if (!uploadResult.ok) {
+        setSubmitError(uploadResult.error);
+        setShowConfirmModal(false);
+        return;
+      }
+
+      const result = await submitInterpreterApplicationAction({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
         phone: phone.trim(),
-        email: user.email,
-        age: calculateAge(user.dateOfBirth) ?? 0,
+        email: "",
         extraContact,
-        languages: selectedLangs.map((id) => ({
-          id,
-          name: getLanguageLabel(id),
-          type: id === "th" ? "Primary" : "Fluent",
-        })),
-        categories: selectedCats.map((id) => {
-          const found = availableCategories.find((category) => category.id === id);
-          return { id, name: found?.name ?? `หมวด ${id}`, icon: found?.icon };
-        }),
-        certificateFileName,
-        certificateUrl,
+        assignedArea: "",
+        languageCodes: selectedLangs,
+        categoryCodes: selectedCats,
+        certificateFileName: uploadResult.data.fileName,
+        certificateUrl: uploadResult.data.path,
       });
-      setSubmitted(true);
+
+      if (!result.ok) {
+        setSubmitError(result.error);
+        setShowConfirmModal(false);
+        return;
+      }
+
+      setShowConfirmModal(false);
+      // Redirect to volunteer application status page
+      router.push("/volunteer/status");
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "ไม่สามารถส่งใบสมัครได้ กรุณาลองใหม่");
+      setShowConfirmModal(false);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // ดึงชื่อภาษาสำหรับแสดงผลใน Tags/Badges
   const getLanguageLabel = (id: string) => {
-    const foundCore = coreLanguages.find((l) => l.id === id);
-    if (foundCore) return foundCore.name;
-    const foundCatalog = globalLanguageCatalog.find((l) => l.id === id);
-    if (foundCatalog) return foundCatalog.name;
-    return id; // ภาษาที่พิมพ์เพิ่มเอง
+    return availableLanguages.find((language) => language.id === id)?.name ?? id;
   };
 
-  // กรองภาษาอื่น ๆ ใน Dropdown ตามคำค้นหา
-  const filteredCatalog = globalLanguageCatalog.filter((lang) => {
+  const getCategoryLabel = (id: string) => {
+    return availableCategories.find((cat) => cat.id === id)?.name ?? id;
+  };
+
+  const filteredCatalog = availableLanguages.filter((lang) => {
     const matchesSearch =
       lang.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       lang.id.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesSearch && !selectedLangs.includes(lang.id);
   });
 
+  const coreLanguages = ["thai", "english", "chinese", "spanish", "arabic"]
+    .map((code) => availableLanguages.find((language) => language.id === code))
+    .filter((language): language is InterpreterApplicationReference => Boolean(language));
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {submitError && (
-        <div className="border border-[#f04f3e] bg-[#fff1f2] p-4 text-sm font-bold text-[#b8291b]" role="alert">
-          {submitError}
-        </div>
-      )}
-      {submitted && (
-        <div className="border border-[#087f80] bg-[#edf7f5] p-5 text-[#087557] shadow-sm">
-          <div className="flex items-center gap-2.5">
-            <svg className="h-6 w-6 text-[#087f80] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-            </svg>
-            <div>
-              <span className="font-extrabold text-sm block">บันทึกข้อมูลและส่งใบสมัครสำเร็จ!</span>
-              <p className="mt-0.5 text-xs text-[#087557]/80">
-                ระบบได้ส่งโปรไฟล์ของคุณเข้าคิวตรวจสอบของ Manager เรียบร้อยแล้ว เมื่อได้รับการอนุมัติจะสามารถเริ่มรับงานได้ทันที (BR-02)
-              </p>
+    <>
+      <form onSubmit={handleOpenConfirmModal} className="space-y-6">
+        {submitError && (
+          <div className="rounded-(--khvi-radius-sm) border border-[#f04f3e] bg-[#fff1f2] p-4 text-sm font-bold text-[#b8291b]" role="alert">
+            {submitError}
+          </div>
+        )}
+
+        {/* Centered Form Sections */}
+        <div className="space-y-6">
+          {/* 1. Languages Selection */}
+          <div className="rounded-(--khvi-radius-md) border border-[#d6e0e4] bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <label className="block text-sm font-extrabold text-[#10283a]">
+                1. ภาษาที่สามารถให้บริการแปลได้ (interpreter_languages)
+              </label>
+              <span className="rounded-(--khvi-radius-sm) border border-[#b9d9d6] bg-[#edf7f5] px-2.5 py-0.5 text-[11px] font-extrabold text-[#087f80]">
+                เลือกแล้ว {selectedLangs.length} ภาษา
+              </span>
             </div>
-          </div>
-        </div>
-      )}
+            <p className="text-xs text-[#64777e] mb-4">
+              เลือกภาษาหลัก 5 ภาษาด้านล่าง หรือใช้ตัวเลือก Multi-select เพื่อค้นหาและเพิ่มภาษาอื่น ๆ จากทุกภาษาทั่วโลก
+            </p>
 
-      {/* Centered Form Sections */}
-      <div className="space-y-6">
-        {/* 1. Languages Selection */}
-        <div className="border border-[#d6e0e4] bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between gap-2 mb-1">
-            <label className="block text-sm font-extrabold text-[#10283a]">
-              1. ภาษาที่สามารถให้บริการแปลได้ (interpreter_languages)
-            </label>
-            <span className="border border-[#b9d9d6] bg-[#edf7f5] px-2.5 py-0.5 text-[11px] font-extrabold text-[#087f80]">
-              เลือกแล้ว {selectedLangs.length} ภาษา
-            </span>
-          </div>
-          <p className="text-xs text-[#64777e] mb-4">
-            เลือกภาษาหลัก 5 ภาษาด้านล่าง หรือใช้ตัวเลือก Multi-select เพื่อค้นหาและเพิ่มภาษาอื่น ๆ จากทุกภาษาทั่วโลก
-          </p>
+            {/* 5 ภาษาหลักตามโจทย์: ไทย, อังกฤษ, จีน, สเปน, อาหรับ */}
+            <div className="mb-4">
+              <span className="block text-xs font-bold text-[#10283a] mb-2 uppercase tracking-wide">
+                ภาษาหลัก (Core Languages):
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {coreLanguages.map((lang) => {
+                  const isSelected = selectedLangs.includes(lang.id);
+                  return (
+                    <button
+                      type="button"
+                      key={lang.id}
+                      onClick={() => toggleLang(lang.id)}
+                      className={`rounded-(--khvi-radius-sm) border px-3.5 py-2 text-xs font-bold transition-colors ${
+                        isSelected
+                          ? "border-[#087f80] bg-[#087f80] text-white"
+                          : "border-[#d8e4e7] bg-white text-[#10283a] hover:border-[#087f80]"
+                      }`}
+                    >
+                      <span>{isSelected ? "✓ " : "+ "}</span>
+                      <span>{lang.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-          {/* 5 ภาษาหลักตามโจทย์: ไทย, อังกฤษ, จีน, สเปน, อาหรับ */}
-          <div className="mb-4">
-            <span className="block text-xs font-bold text-[#10283a] mb-2 uppercase tracking-wide">
-              ภาษาหลัก (Core Languages):
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {coreLanguages.map((lang) => {
-                const isSelected = selectedLangs.includes(lang.id);
-                return (
+            {/* Multi-select ค้นหาและเลือกภาษาอื่นจากทั่วโลก */}
+            <div className="border-t border-[#edf2f4] pt-4">
+              <span className="block text-xs font-bold text-[#10283a] mb-2 uppercase tracking-wide">
+                เพิ่มภาษาอื่น ๆ ทั่วโลก (Global Multi-Select):
+              </span>
+
+              <div className="relative">
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onFocus={() => setIsDropdownOpen(true)}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setIsDropdownOpen(true);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleAddCustomLanguage();
+                        }
+                      }}
+                      placeholder="พิมพ์เพื่อค้นหาภาษาทั่วโลก (เช่น พม่า, ฝรั่งเศส, ญี่ปุ่น, ภาษามือ...)"
+                      className="w-full rounded-(--khvi-radius-sm) border border-[#c3d1d6] bg-white px-3.5 py-2.5 text-xs text-[#10283a] focus:border-[#087f80] focus:outline-none"
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-[#73848a] hover:text-[#10283a]"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
                   <button
                     type="button"
-                    key={lang.id}
-                    onClick={() => toggleLang(lang.id)}
-                    className={`border px-3.5 py-2 text-xs font-bold transition-colors ${
+                    onClick={() => setIsDropdownOpen((prev) => !prev)}
+                    className="rounded-(--khvi-radius-sm) border border-[#c3d1d6] bg-[#f8fafb] px-3.5 py-2 text-xs font-bold text-[#39525d] hover:bg-[#edf3f1]"
+                  >
+                    {isDropdownOpen ? "ปิดรายการ ▲" : "เลือกภาษา ▼"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleAddCustomLanguage}
+                    className="rounded-(--khvi-radius-sm) border border-[#092f45] bg-[#092f45] px-4 py-2 text-xs font-bold text-white hover:bg-[#0c4960] transition-colors shrink-0"
+                    title="เพิ่มภาษาที่พิมพ์ในช่องค้นหา"
+                  >
+                    + เพิ่ม
+                  </button>
+                </div>
+
+                {/* Dropdown Options List */}
+                {isDropdownOpen && (
+                  <div className="absolute left-0 right-0 z-20 mt-1 max-h-56 overflow-y-auto rounded-(--khvi-radius-sm) border border-[#087f80] bg-white shadow-lg">
+                    <div className="border-b border-[#edf2f4] bg-[#f8fafb] px-3 py-1.5 text-[11px] font-bold text-[#64777e] flex justify-between items-center">
+                      <span>คลิกเพื่อเพิ่มภาษาที่ต้องการ ({filteredCatalog.length} ภาษา)</span>
+                      <button
+                        type="button"
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="text-[#087f80] font-bold hover:underline"
+                      >
+                        เสร็จสิ้น
+                      </button>
+                    </div>
+
+                    {filteredCatalog.length === 0 ? (
+                      <div className="p-3 text-center text-xs text-[#73848a]">
+                        ไม่พบภาษาในแคตตาล็อกที่พร้อมใช้งาน
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-[#f0f4f6]">
+                        {filteredCatalog.map((lang) => (
+                          <button
+                            type="button"
+                            key={lang.id}
+                            onClick={() => handleSelectAdditional(lang.id)}
+                            className="w-full px-3.5 py-2.5 text-left text-xs font-semibold text-[#10283a] hover:bg-[#edf7f5] hover:text-[#087557] flex items-center justify-between transition-colors"
+                          >
+                            <span>{lang.name}</span>
+                            <span className="text-[11px] font-mono text-[#087f80]">+ เพิ่ม</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Selected Languages Chips Display */}
+              {selectedLangs.length > 0 && (
+                <div className="mt-4 rounded-(--khvi-radius-sm) border border-[#e2ebee] bg-[#f8fafb] p-3">
+                  <span className="block text-[11px] font-bold text-[#53656c] mb-2 uppercase tracking-wide">
+                    ภาษาที่คุณเลือกให้บริการทั้งหมด ({selectedLangs.length}):
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedLangs.map((id) => (
+                      <span
+                        key={id}
+                        className="inline-flex items-center gap-1.5 rounded-(--khvi-radius-sm) border border-[#087f80] bg-[#edf7f5] px-2.5 py-1 text-xs font-bold text-[#087557]"
+                      >
+                        <span>✓ {getLanguageLabel(id)}</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleLang(id)}
+                          className="ml-1 text-[#087f80] hover:text-[#f04f3e] text-xs font-extrabold"
+                          title="ลบภาษานี้"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-4 border-t border-[#edf2f4] pt-3 text-xs text-[#64777e] flex items-center justify-between">
+                <span>ภาษาหลักของระบบ (primary_language_id): <strong className="text-[#10283a]">ไทย (Thai)</strong></span>
+                <span className="font-mono text-[11px] text-[#73848a]">Required</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Categories Selection */}
+          <div className="rounded-(--khvi-radius-md) border border-[#d6e0e4] bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <label className="block text-sm font-extrabold text-[#10283a]">
+                2. หมวดหมู่ภารกิจที่พร้อมช่วยเหลือ (interpreter_categories)
+              </label>
+              <span className="rounded-(--khvi-radius-sm) border border-[#b9d9d6] bg-[#edf7f5] px-2.5 py-0.5 text-[11px] font-extrabold text-[#087f80]">
+                เลือกแล้ว {selectedCats.length} หมวด
+              </span>
+            </div>
+            <p className="text-xs text-[#64777e] mb-4">
+              เลือกประเภทงานที่คุ้นเคยเพื่อช่วยเพิ่มความมั่นใจในการสื่อสารในสถานการณ์จริง
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+              {availableCategories.map((cat) => {
+                const isSelected = selectedCats.includes(cat.id);
+                return (
+                  <label
+                    key={cat.id}
+                    className={`flex cursor-pointer items-center gap-3 rounded-(--khvi-radius-sm) border p-3.5 text-xs font-semibold transition-colors select-none ${
                       isSelected
-                        ? "border-[#087f80] bg-[#087f80] text-white"
+                        ? "border-[#087f80] bg-[#edf7f5] text-[#087557]"
                         : "border-[#d8e4e7] bg-white text-[#10283a] hover:border-[#087f80]"
                     }`}
                   >
-                    <span>{isSelected ? "✓ " : "+ "}</span>
-                    <span>{lang.name}</span>
-                  </button>
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleCat(cat.id)}
+                      className="h-4 w-4 rounded accent-[#087f80]"
+                    />
+                    <span className="text-base">{cat.icon}</span>
+                    <span className="leading-snug">{cat.name}</span>
+                  </label>
                 );
               })}
             </div>
           </div>
 
-          {/* Multi-select ค้นหาและเลือกภาษาอื่นจากทั่วโลก */}
-          <div className="border-t border-[#edf2f4] pt-4">
-            <span className="block text-xs font-bold text-[#10283a] mb-2 uppercase tracking-wide">
-              เพิ่มภาษาอื่น ๆ ทั่วโลก (Global Multi-Select):
-            </span>
+          {/* 3. Contact Information (Data Dictionary Compliant) */}
+          <div className="rounded-(--khvi-radius-md) border border-[#d6e0e4] bg-white p-6 shadow-sm">
+            <label className="block text-sm font-extrabold text-[#10283a] mb-1">
+              3. ข้อมูลการติดต่อสำหรับการประสานงาน (Contact Details)
+            </label>
+            <p className="text-xs text-[#64777e] mb-4">
+              ข้อมูลส่วนนี้จะถูกเปิดเผยเฉพาะผู้ขอความช่วยเหลือเมื่อคุณกดรับงาน (Claim) แล้วเท่านั้น ตามกฎความปลอดภัย BR-04
+            </p>
 
-            <div className="relative">
-              <div className="flex gap-2">
-                <div className="relative flex-1">
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#10283a] mb-1.5">
+                    ชื่อจริง (First Name) <span className="text-[#f04f3e]">*</span>
+                    <span className="ml-1 text-[11px] font-normal text-[#64777e]">(ภาษาอังกฤษเท่านั้น)</span>
+                  </label>
                   <input
                     type="text"
-                    value={searchQuery}
-                    onFocus={() => setIsDropdownOpen(true)}
+                    value={firstName}
                     onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      setIsDropdownOpen(true);
+                      const englishOnly = e.target.value.replace(/[^a-zA-Z\s\-']/g, "");
+                      setFirstName(englishOnly);
                     }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleAddCustomLanguage();
-                      }
-                    }}
-                    placeholder="พิมพ์เพื่อค้นหาภาษาทั่วโลก (เช่น พม่า, ฝรั่งเศส, ญี่ปุ่น, ภาษามือ...)"
-                    className="w-full border border-[#c3d1d6] bg-white px-3.5 py-2.5 text-xs text-[#10283a] focus:border-[#087f80] focus:outline-none"
+                    required
+                    pattern="[A-Za-z\s\-']+"
+                    title="กรุณากรอกเป็นตัวอักษรภาษาอังกฤษเท่านั้น"
+                    className="w-full rounded-(--khvi-radius-sm) border border-[#c3d1d6] bg-white px-3.5 py-2.5 text-xs text-[#10283a] focus:border-[#087f80] focus:outline-none"
                   />
-                  {searchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setSearchQuery("")}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-[#73848a] hover:text-[#10283a]"
-                    >
-                      ✕
-                    </button>
-                  )}
+                  <span className="mt-1 block text-[11px] text-[#73848a]">บังคับภาษาอังกฤษ (English only)</span>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setIsDropdownOpen((prev) => !prev)}
-                  className="border border-[#c3d1d6] bg-[#f8fafb] px-3.5 py-2 text-xs font-bold text-[#39525d] hover:bg-[#edf3f1]"
-                >
-                  {isDropdownOpen ? "ปิดรายการ ▲" : "เลือกภาษา ▼"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleAddCustomLanguage}
-                  className="border border-[#092f45] bg-[#092f45] px-4 py-2 text-xs font-bold text-white hover:bg-[#0c4960] transition-colors shrink-0"
-                  title="เพิ่มภาษาที่พิมพ์ในช่องค้นหา"
-                >
-                  + เพิ่ม
-                </button>
-              </div>
-
-              {/* Dropdown Options List */}
-              {isDropdownOpen && (
-                <div className="absolute left-0 right-0 z-20 mt-1 max-h-56 overflow-y-auto border border-[#087f80] bg-white shadow-lg">
-                  <div className="border-b border-[#edf2f4] bg-[#f8fafb] px-3 py-1.5 text-[11px] font-bold text-[#64777e] flex justify-between items-center">
-                    <span>คลิกเพื่อเพิ่มภาษาที่ต้องการ ({filteredCatalog.length} ภาษา)</span>
-                    <button
-                      type="button"
-                      onClick={() => setIsDropdownOpen(false)}
-                      className="text-[#087f80] font-bold hover:underline"
-                    >
-                      เสร็จสิ้น
-                    </button>
-                  </div>
-
-                  {filteredCatalog.length === 0 ? (
-                    <div className="p-3 text-center text-xs text-[#73848a]">
-                      ไม่พบในแคตตาล็อก ท่านสามารถกดปุ่ม &quot;+ เพิ่ม&quot; ด้านบนเพื่อเพิ่มภาษานี้ได้ทันที
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-[#f0f4f6]">
-                      {filteredCatalog.map((lang) => (
-                        <button
-                          type="button"
-                          key={lang.id}
-                          onClick={() => handleSelectAdditional(lang.id)}
-                          className="w-full px-3.5 py-2.5 text-left text-xs font-semibold text-[#10283a] hover:bg-[#edf7f5] hover:text-[#087557] flex items-center justify-between transition-colors"
-                        >
-                          <span>{lang.name}</span>
-                          <span className="text-[11px] font-mono text-[#087f80]">+ เพิ่ม</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Selected Languages Chips Display */}
-            {selectedLangs.length > 0 && (
-              <div className="mt-4 border border-[#e2ebee] bg-[#f8fafb] p-3">
-                <span className="block text-[11px] font-bold text-[#53656c] mb-2 uppercase tracking-wide">
-                  ภาษาที่คุณเลือกให้บริการทั้งหมด ({selectedLangs.length}):
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {selectedLangs.map((id) => (
-                    <span
-                      key={id}
-                      className="inline-flex items-center gap-1.5 border border-[#087f80] bg-[#edf7f5] px-2.5 py-1 text-xs font-bold text-[#087557]"
-                    >
-                      <span>✓ {getLanguageLabel(id)}</span>
-                      <button
-                        type="button"
-                        onClick={() => toggleLang(id)}
-                        className="ml-1 text-[#087f80] hover:text-[#f04f3e] text-xs font-extrabold"
-                        title="ลบภาษานี้"
-                      >
-                        ✕
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="mt-4 border-t border-[#edf2f4] pt-3 text-xs text-[#64777e] flex items-center justify-between">
-              <span>ภาษาหลักของระบบ (primary_language_id): <strong className="text-[#10283a]">ไทย (Thai)</strong></span>
-              <span className="font-mono text-[11px] text-[#73848a]">Required</span>
-            </div>
-          </div>
-        </div>
-
-        {/* 2. Categories Selection */}
-        <div className="border border-[#d6e0e4] bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between gap-2 mb-1">
-            <label className="block text-sm font-extrabold text-[#10283a]">
-              2. หมวดหมู่ภารกิจที่พร้อมช่วยเหลือ (interpreter_categories)
-            </label>
-            <span className="border border-[#b9d9d6] bg-[#edf7f5] px-2.5 py-0.5 text-[11px] font-extrabold text-[#087f80]">
-              เลือกแล้ว {selectedCats.length} หมวด
-            </span>
-          </div>
-          <p className="text-xs text-[#64777e] mb-4">
-            เลือกประเภทงานที่คุ้นเคยเพื่อช่วยเพิ่มความมั่นใจในการสื่อสารในสถานการณ์จริง
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {availableCategories.map((cat) => {
-              const isSelected = selectedCats.includes(cat.id);
-              return (
-                <label
-                  key={cat.id}
-                  className={`flex cursor-pointer items-center gap-3 border p-3.5 text-xs font-semibold transition-colors select-none ${
-                    isSelected
-                      ? "border-[#087f80] bg-[#edf7f5] text-[#087557]"
-                      : "border-[#d8e4e7] bg-white text-[#10283a] hover:border-[#087f80]"
-                  }`}
-                >
+                <div>
+                  <label className="block text-xs font-bold text-[#10283a] mb-1.5">
+                    นามสกุล (Last Name) <span className="text-[#f04f3e]">*</span>
+                    <span className="ml-1 text-[11px] font-normal text-[#64777e]">(ภาษาอังกฤษเท่านั้น)</span>
+                  </label>
                   <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() => toggleCat(cat.id)}
-                    className="h-4 w-4 rounded-none accent-[#087f80]"
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => {
+                      const englishOnly = e.target.value.replace(/[^a-zA-Z\s\-']/g, "");
+                      setLastName(englishOnly);
+                    }}
+                    required
+                    pattern="[A-Za-z\s\-']+"
+                    title="กรุณากรอกเป็นตัวอักษรภาษาอังกฤษเท่านั้น"
+                    className="w-full rounded-(--khvi-radius-sm) border border-[#c3d1d6] bg-white px-3.5 py-2.5 text-xs text-[#10283a] focus:border-[#087f80] focus:outline-none"
                   />
-                  <span className="text-base">{cat.icon}</span>
-                  <span className="leading-snug">{cat.name}</span>
-                </label>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* 3. Contact Information (Data Dictionary Compliant) */}
-        <div className="border border-[#d6e0e4] bg-white p-6 shadow-sm">
-          <label className="block text-sm font-extrabold text-[#10283a] mb-1">
-            3. ข้อมูลการติดต่อสำหรับการประสานงาน (Contact Details)
-          </label>
-          <p className="text-xs text-[#64777e] mb-4">
-            ข้อมูลส่วนนี้จะถูกเปิดเผยเฉพาะผู้ขอความช่วยเหลือเมื่อคุณกดรับงาน (Claim) แล้วเท่านั้น ตามกฎความปลอดภัย BR-04
-          </p>
-
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-[#10283a] mb-1.5">
-                  ชื่อจริง (First Name) <span className="text-[#f04f3e]">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  required
-                  className="w-full border border-[#c3d1d6] bg-white px-3.5 py-2.5 text-xs text-[#10283a] focus:border-[#087f80] focus:outline-none"
-                  placeholder="เช่น ปกรณ์ (Pakorn)"
-                />
+                  <span className="mt-1 block text-[11px] text-[#73848a]">บังคับภาษาอังกฤษ (English only)</span>
+                </div>
               </div>
+              <span className="-mt-2 block text-[11px] text-[#73848a]">
+                ชื่อและนามสกุลภาษาอังกฤษจะรวมเป็น USER.name เพื่อแสดงบนหน้าโปรไฟล์และบัตรประจำตัวล่ามจิตอาสาเมื่อผ่านการอนุมัติ (BR-02)
+              </span>
 
-              <div>
-                <label className="block text-xs font-bold text-[#10283a] mb-1.5">
-                  นามสกุล (Last Name) <span className="text-[#f04f3e]">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  required
-                  className="w-full border border-[#c3d1d6] bg-white px-3.5 py-2.5 text-xs text-[#10283a] focus:border-[#087f80] focus:outline-none"
-                  placeholder="เช่น กิจเจริญชัย (Kitcharoenchai)"
-                />
-              </div>
-            </div>
-            <span className="-mt-2 block text-[11px] text-[#73848a]">
-              ชื่อและนามสกุลจะรวมเป็น USER.name เพื่อแสดงบนหน้าโปรไฟล์และบัตรประจำตัวล่ามจิตอาสาเมื่อผ่านการอนุมัติ (BR-02)
-            </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#10283a] mb-1.5">
+                    หมายเลขโทรศัพท์หลัก (USER.phone) <span className="text-[#f04f3e]">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    required
+                    className="w-full rounded-(--khvi-radius-sm) border border-[#c3d1d6] bg-white px-3.5 py-2.5 text-xs text-[#10283a] focus:border-[#087f80] focus:outline-none"
+                    placeholder="080-XXX-XXXX"
+                  />
+                  <span className="mt-1 block text-[11px] text-[#73848a]">ใช้โทรติดต่อด่วนเมื่อเกิดเหตุฉุกเฉิน</span>
+                </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-[#10283a] mb-1.5">
-                  หมายเลขโทรศัพท์หลัก (USER.phone) <span className="text-[#f04f3e]">*</span>
-                </label>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  required
-                  className="w-full border border-[#c3d1d6] bg-white px-3.5 py-2.5 text-xs text-[#10283a] focus:border-[#087f80] focus:outline-none"
-                  placeholder="เช่น 081-234-5678"
-                />
-                <span className="mt-1 block text-[11px] text-[#73848a]">ใช้โทรติดต่อด่วนเมื่อเกิดเหตุฉุกเฉิน</span>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-[#10283a] mb-1.5">
-                  ช่องทางติดต่อสำรอง (extra_contact)
-                </label>
-                <input
-                  type="text"
-                  value={extraContact}
-                  onChange={(e) => setExtraContact(e.target.value)}
-                  className="w-full border border-[#c3d1d6] bg-white px-3.5 py-2.5 text-xs text-[#10283a] focus:border-[#087f80] focus:outline-none"
-                  placeholder="เช่น LINE ID: @volunteer_id, WhatsApp"
-                />
-                <span className="mt-1 block text-[11px] text-[#73848a]">LINE ID, WhatsApp หรือ Telegram</span>
+                <div>
+                  <label className="block text-xs font-bold text-[#10283a] mb-1.5">
+                    LINE ID
+                  </label>
+                  <input
+                    type="text"
+                    value={extraContact}
+                    onChange={(e) => setExtraContact(e.target.value)}
+                    className="w-full rounded-(--khvi-radius-sm) border border-[#c3d1d6] bg-white px-3.5 py-2.5 text-xs text-[#10283a] focus:border-[#087f80] focus:outline-none"
+                    placeholder="LINE ID"
+                  />
+                  <span className="mt-1 block text-[11px] text-[#73848a]">LINE ID สำหรับการประสานงาน</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* 4. Certificate & Verification (INTERPRETER_APPLICATIONS: certificate_url) */}
-        <div className="border border-[#d6e0e4] bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between gap-2 mb-1">
-            <label className="block text-sm font-extrabold text-[#10283a]">
-              4. เอกสารรับรองคุณวุฒิหรือทักษะทางภาษา (INTERPRETER_APPLICATIONS.certificate_url)
-            </label>
-            <span className="border border-[#b9d9d6] bg-[#edf7f5] px-2 py-0.5 text-[11px] font-extrabold text-[#087f80]">
-              Manager Review Required
-            </span>
-          </div>
-          <p className="text-xs text-[#64777e] mb-4">
-            แนบไฟล์ใบประกาศนียบัตร, ผลสอบวัดระดับภาษา (เช่น HSK, JLPT, IELTS, ใบรับรองล่าม) เพื่อให้ Manager ตรวจสอบความถูกต้องก่อนอนุมัติ
-          </p>
+          {/* 4. Certificate & Verification (INTERPRETER_APPLICATIONS: certificate_url) */}
+          <div className="rounded-(--khvi-radius-md) border border-[#d6e0e4] bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <label className="block text-sm font-extrabold text-[#10283a]">
+                4. เอกสารรับรองคุณวุฒิหรือทักษะทางภาษา (INTERPRETER_APPLICATIONS.certificate_url)
+              </label>
+              <span className="rounded-(--khvi-radius-sm) border border-[#b9d9d6] bg-[#edf7f5] px-2.5 py-0.5 text-[11px] font-extrabold text-[#087f80]">
+                Manager Review Required
+              </span>
+            </div>
+            <p className="text-xs text-[#64777e] mb-4">
+              แนบไฟล์ใบประกาศนียบัตร, ผลสอบวัดระดับภาษา (เช่น HSK, JLPT, IELTS, ใบรับรองล่าม) เพื่อให้ Manager ตรวจสอบความถูกต้องก่อนอนุมัติ
+            </p>
 
-          <div className="space-y-4">
-            {/* File Upload Zone */}
-            <div className="border-2 border-dashed border-[#c3d1d6] bg-[#f8fafb] p-5 text-center hover:border-[#087f80] transition-colors">
+            <div className="flex flex-wrap items-center gap-3">
               <input
                 type="file"
                 id="cert-upload"
@@ -498,84 +485,210 @@ export function ApplicationForm() {
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) {
+                    setCertificateFile(file);
                     setCertificateFileName(file.name);
-                    setCertificateUrl(`https://storage.khvi.org/certificates/${file.name}`);
                   }
                 }}
               />
-              <label htmlFor="cert-upload" className="cursor-pointer block">
-                <div className="mx-auto flex h-10 w-10 items-center justify-center border border-[#8ed5c4] bg-white text-[#087f80] mb-2">
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                </div>
-                <span className="text-xs font-bold text-[#087f80] hover:underline">
-                  คลิกเพื่ออัปโหลดไฟล์เอกสาร (PDF, JPG, PNG)
-                </span>
-                <span className="mt-1 block text-[11px] text-[#73848a]">
-                  ขนาดไฟล์ไม่เกิน 10 MB ต่อเอกสาร
-                </span>
+              <label
+                htmlFor="cert-upload"
+                className="inline-flex cursor-pointer items-center gap-2 rounded-(--khvi-radius-sm) border border-[#087f80] bg-[#087f80] px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-[#0c6b6c]"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <span>{certificateFileName ? "เปลี่ยนไฟล์เอกสาร" : "เลือกไฟล์เอกสาร..."}</span>
               </label>
 
-              {certificateFileName && (
-                <div className="mt-3 inline-flex items-center gap-2 border border-[#8ed5c4] bg-[#edf7f5] px-3 py-1.5 text-xs font-bold text-[#087557]">
+              {certificateFileName ? (
+                <div className="inline-flex items-center gap-2 rounded-(--khvi-radius-sm) border border-[#8ed5c4] bg-[#edf7f5] px-3 py-1.5 text-xs font-bold text-[#087557]">
                   <span>📄 {certificateFileName}</span>
                   <button
                     type="button"
                     onClick={() => {
                       setCertificateFileName("");
-                      setCertificateUrl("");
+                      setCertificateFile(null);
                     }}
-                    className="text-[#f04f3e] hover:underline font-extrabold ml-1"
+                    className="ml-1 font-extrabold text-[#f04f3e] hover:underline"
+                    title="นำไฟล์ออก"
                   >
-                    ✕ นำออก
+                    ✕
                   </button>
                 </div>
+              ) : (
+                <span className="text-xs text-[#73848a]">
+                  รองรับไฟล์ PDF, JPG, PNG (ขนาดไม่เกิน 10 MB)
+                </span>
               )}
             </div>
           </div>
-        </div>
 
-        {/* Profile Verification & Privacy Shield Callout */}
-        <div className="border border-[#b9d9d6] bg-[#edf7f5] p-5 text-xs text-[#10283a] shadow-sm flex items-start gap-3">
-          <span className="text-base font-bold text-[#087557] shrink-0">✓</span>
-          <div className="space-y-1">
-            <h4 className="font-extrabold text-sm text-[#087557]">
-              มาตรฐานความปลอดภัยและสิทธิ์การรับงาน (BR-02, BR-03, BR-04)
-            </h4>
-            <p className="leading-relaxed text-[#53656c]">
-              แบบฟอร์มนี้ตรงตาม Data Dictionary 100% โดยไม่มีฟิลด์ส่วนเกิน ข้อมูลติดต่อและพิกัดละเอียดจะถูกปกปิดไว้จนกว่าคุณจะกด Claim งานสำเร็จ
-            </p>
+          {/* Profile Verification & Privacy Shield Callout */}
+          <div className="rounded-(--khvi-radius-sm) border border-[#b9d9d6] bg-[#edf7f5] p-5 text-xs text-[#10283a] shadow-sm flex items-start gap-3">
+            <span className="text-base font-bold text-[#087557] shrink-0">✓</span>
+            <div className="space-y-1">
+              <h4 className="font-extrabold text-sm text-[#087557]">
+                มาตรฐานความปลอดภัยและสิทธิ์การรับงาน (BR-02, BR-03, BR-04)
+              </h4>
+              <p className="leading-relaxed text-[#53656c]">
+                แบบฟอร์มนี้ตรงตาม Data Dictionary 100% โดยไม่มีฟิลด์ส่วนเกิน ข้อมูลติดต่อและพิกัดละเอียดจะถูกปกปิดไว้จนกว่าคุณจะกด Claim งานสำเร็จ
+              </p>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+            <Link
+              href="/welcome"
+              className="inline-flex min-h-11 items-center justify-center rounded-(--khvi-radius-sm) border border-[#cbd7dc] bg-white px-5 py-2.5 text-sm font-bold text-[#53656c] hover:bg-[#f4f7f8] hover:text-[#10283a] transition-colors"
+            >
+              ← ยกเลิกสมัครเพื่อออกและกลับสู่หน้าหลัก
+            </Link>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="rounded-(--khvi-radius-sm) border border-[#092f45] bg-[#092f45] px-8 py-3 text-sm font-extrabold text-white shadow-sm hover:bg-[#0c4960] transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              บันทึกข้อมูลและส่งใบสมัคร
+            </button>
           </div>
         </div>
+      </form>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
-          <div className="flex items-center gap-2">
-            <Link
-              href="/"
-              className="text-xs font-bold text-[#64777e] hover:text-[#10283a] transition-colors"
-            >
-              ← ยกเลิกและกลับสู่หน้าหลัก
-            </Link>
-            <span className="text-[#d8e4e7]">|</span>
-            <Link
-              href="/volunteer/status#main-content"
-              className="inline-flex items-center gap-1.5 border border-[#c3d1d6] bg-white px-3 py-1.5 text-xs font-bold text-[#087f80] hover:bg-[#edf7f5] transition-colors"
-            >
-              <span>🔍 ดูหน้าต่างสถานะใบสมัคร</span>
-            </Link>
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-in fade-in">
+          <div className="relative w-full max-w-xl overflow-hidden rounded-2xl border border-[#d6e0e4] bg-white p-6 shadow-[0_24px_56px_rgba(15,38,54,0.25)] space-y-5">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-[#eef3f5] pb-3">
+              <div>
+                <span className="inline-block rounded-full bg-[#edf7f5] px-2.5 py-0.5 text-[10px] font-extrabold text-[#087f80] uppercase tracking-wider mb-1">
+                  ตรวจสอบความถูกต้องก่อนส่ง
+                </span>
+                <h3 className="text-lg font-extrabold text-[#10283a]">
+                  ยืนยันข้อมูลการสมัครล่ามจิตอาสา
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                className="rounded-lg p-1 text-[#6c8591] hover:bg-[#edf3f6] hover:text-[#112d3e] transition-colors"
+                title="ปิด"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Summary Information Grid */}
+            <div className="space-y-3.5 text-xs text-[#2b4857] max-h-[60vh] overflow-y-auto pr-1">
+              <div className="rounded-xl border border-[#e4edf0] bg-[#f8fbfc] p-3.5 space-y-2">
+                <div className="text-[11px] font-black uppercase tracking-wider text-[#6b8593]">
+                  ข้อมูลส่วนตัวและการติดต่อ
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-[#7d939f] block">ชื่อ-นามสกุล (อังกฤษ):</span>
+                    <strong className="text-[#10283a]">{firstName} {lastName}</strong>
+                  </div>
+                  <div>
+                    <span className="text-[#7d939f] block">หมายเลขโทรศัพท์:</span>
+                    <strong className="text-[#10283a]">{phone}</strong>
+                  </div>
+                  {extraContact && (
+                    <div className="col-span-2">
+                      <span className="text-[#7d939f] block">LINE ID:</span>
+                      <strong className="text-[#10283a]">{extraContact}</strong>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Languages */}
+              <div className="rounded-xl border border-[#e4edf0] bg-[#f8fbfc] p-3.5 space-y-2">
+                <div className="text-[11px] font-black uppercase tracking-wider text-[#6b8593]">
+                  ภาษาที่เลือกให้บริการ ({selectedLangs.length} ภาษา)
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedLangs.map((id) => (
+                    <span
+                      key={id}
+                      className="rounded-md border border-[#cbe3dd] bg-white px-2.5 py-1 font-bold text-[#087557]"
+                    >
+                      ✓ {getLanguageLabel(id)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Categories */}
+              <div className="rounded-xl border border-[#e4edf0] bg-[#f8fbfc] p-3.5 space-y-2">
+                <div className="text-[11px] font-black uppercase tracking-wider text-[#6b8593]">
+                  หมวดหมู่ภารกิจ ({selectedCats.length} หมวด)
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedCats.map((id) => (
+                    <span
+                      key={id}
+                      className="rounded-md border border-[#e1ebef] bg-white px-2.5 py-1 font-bold text-[#204354]"
+                    >
+                      {getCategoryLabel(id)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Credential File */}
+              <div className="rounded-xl border border-[#e4edf0] bg-[#f8fbfc] p-3.5 space-y-1.5">
+                <div className="text-[11px] font-black uppercase tracking-wider text-[#6b8593]">
+                  เอกสารรับรองที่แนบ
+                </div>
+                <div className="flex items-center gap-2 font-bold text-[#10283a]">
+                  <span>📄</span>
+                  <span className="truncate">{certificateFileName}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Bottom Actions */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#eef3f5] pt-3">
+              <Link
+                href="/welcome"
+                className="rounded-(--khvi-radius-sm) px-2.5 py-1.5 text-xs font-bold text-[#b8291b] hover:bg-[#fff1f2] hover:underline transition-colors"
+              >
+                ยกเลิกสมัครเพื่อออกและกลับสู่หน้าหลัก
+              </Link>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => setShowConfirmModal(false)}
+                  className="rounded-(--khvi-radius-sm) border border-[#c3d1d6] bg-white px-4 py-2 text-xs font-extrabold text-[#3b5463] hover:bg-[#f4f8f9] transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  ← กลับไปแก้ไข
+                </button>
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={handleConfirmSubmit}
+                  className="inline-flex items-center gap-2 rounded-(--khvi-radius-sm) border border-[#087f80] bg-[#087f80] px-5 py-2 text-xs font-extrabold text-white shadow-sm hover:bg-[#0c6b6c] transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <svg className="h-4 w-4 animate-spin text-white" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                      </svg>
+                      <span>กำลังส่งข้อมูล...</span>
+                    </>
+                  ) : (
+                    <span>✓ ยืนยันและส่งใบสมัคร</span>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="border border-[#092f45] bg-[#092f45] px-8 py-3 text-sm font-extrabold text-white shadow-sm hover:bg-[#0c4960] transition-colors disabled:opacity-50"
-          >
-            {isSubmitting ? "กำลังส่งข้อมูล..." : "บันทึกข้อมูลและส่งใบสมัคร"}
-          </button>
         </div>
-      </div>
-
-    </form>
+      )}
+    </>
   );
 }

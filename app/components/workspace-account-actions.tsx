@@ -1,29 +1,23 @@
 "use client";
 
-import { ArrowRightOnRectangleIcon, ChevronDownIcon, UserCircleIcon } from "@heroicons/react/24/outline";
+import { ArrowRightOnRectangleIcon, ChevronDownIcon, IdentificationIcon, UserCircleIcon } from "@heroicons/react/24/outline";
 import { useEffect, useRef, useState } from "react";
-import type { UserProfile } from "@/app/lib/mock-auth";
+import { getDisplayName, type UserProfile } from "@/app/lib/mock-auth";
 import { useUiLocale } from "./app-shell";
+import { UserAvatar } from "./user-avatar";
 
 const accountCopy = {
-  en: { menu: "Open profile menu", profileSettings: "Profile & Settings", signOut: "Sign out" },
-  th: { menu: "เปิดเมนูโปรไฟล์", profileSettings: "โปรไฟล์และการตั้งค่า", signOut: "ออกจากระบบ" },
-  zh: { menu: "打开个人资料菜单", profileSettings: "个人资料与设置", signOut: "退出" },
-  my: { menu: "ပရိုဖိုင်မီနူး ဖွင့်ရန်", profileSettings: "ပရိုဖိုင်နှင့် ဆက်တင်များ", signOut: "ထွက်ရန်" },
-  vi: { menu: "Mở menu hồ sơ", profileSettings: "Hồ sơ và cài đặt", signOut: "Đăng xuất" },
+  en: { menu: "Open profile menu", profileSettings: "Profile & Settings", volunteerApply: "Volunteer Application", signOut: "Sign out" },
+  th: { menu: "เปิดเมนูโปรไฟล์", profileSettings: "โปรไฟล์และการตั้งค่า", volunteerApply: "สมัครเป็นล่ามอาสา", signOut: "ออกจากระบบ" },
+  zh: { menu: "打开个人资料菜单", profileSettings: "个人资料与设置", volunteerApply: "申请志愿口译员", signOut: "退出" },
+  es: { menu: "Abrir menú de perfil", profileSettings: "Perfil y configuración", volunteerApply: "Solicitud de voluntariado", signOut: "Cerrar sesión" },
+  ar: { menu: "فتح قائمة الملف الشخصي", profileSettings: "الملฟ الشخصي والإعدادات", volunteerApply: "طلب التطوع كمترجم", signOut: "تسجيل الخروج" },
 } as const;
-
-function getInitials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-
-  if (parts.length === 0) return "U";
-
-  return parts.slice(0, 2).map((part) => Array.from(part)[0]).join("").toUpperCase();
-}
 
 export function WorkspaceAccountActions({ user, onSignOut }: { user: UserProfile; onSignOut: () => void }) {
   const locale = useUiLocale();
   const copy = accountCopy[locale];
+  const displayName = getDisplayName(user.name);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
@@ -58,11 +52,9 @@ export function WorkspaceAccountActions({ user, onSignOut }: { user: UserProfile
         aria-expanded={profileMenuOpen}
         aria-haspopup="menu"
       >
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-(--khvi-navy) text-xs font-extrabold text-white">
-          {getInitials(user.name)}
-        </span>
+        <UserAvatar user={user} size="sm" />
         <span className="hidden min-w-0 text-left md:block">
-          <span className="block max-w-36 truncate text-xs font-extrabold leading-tight text-(--khvi-ink)">{user.name}</span>
+          <span className="block max-w-36 truncate text-xs font-extrabold leading-tight text-(--khvi-ink)">{displayName}</span>
           <span className="mt-0.5 block text-[11px] font-semibold text-(--khvi-teal)">{user.role}</span>
         </span>
         <ChevronDownIcon
@@ -77,7 +69,7 @@ export function WorkspaceAccountActions({ user, onSignOut }: { user: UserProfile
           className="absolute right-0 z-50 mt-2 w-64 rounded-(--khvi-radius-md) border border-(--khvi-teal)/20 bg-(--khvi-surface) p-2 shadow-[0_18px_36px_rgba(19,52,68,0.16)]"
         >
           <div className="border-b border-(--khvi-teal)/15 px-3 py-2.5">
-            <p className="truncate text-sm font-extrabold text-(--khvi-ink)">{user.name}</p>
+            <p className="truncate text-sm font-extrabold text-(--khvi-ink)">{displayName}</p>
             <p className="mt-0.5 truncate text-xs text-(--khvi-ink)/60">{user.email}</p>
             <span className="mt-2 inline-flex rounded-md bg-(--khvi-teal)/10 px-2 py-0.5 text-[11px] font-bold text-(--khvi-teal)">
               {user.role}
@@ -85,7 +77,7 @@ export function WorkspaceAccountActions({ user, onSignOut }: { user: UserProfile
           </div>
           <div className="py-1">
             <a
-              href="#profile"
+              href="/profile#main-content"
               role="menuitem"
               onClick={() => setProfileMenuOpen(false)}
               className="flex w-full items-center gap-2.5 rounded-(--khvi-radius-sm) px-3 py-2 text-xs font-bold text-(--khvi-ink)/80 transition-colors hover:bg-(--khvi-paper) hover:text-(--khvi-teal) focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--khvi-sun)"
@@ -93,6 +85,17 @@ export function WorkspaceAccountActions({ user, onSignOut }: { user: UserProfile
               <UserCircleIcon className="h-4 w-4" aria-hidden="true" />
               {copy.profileSettings}
             </a>
+            {user.role === "User" && (
+              <a
+                href="/volunteer/apply#main-content"
+                role="menuitem"
+                onClick={() => setProfileMenuOpen(false)}
+                className="flex w-full items-center gap-2.5 rounded-(--khvi-radius-sm) px-3 py-2 text-xs font-bold text-(--khvi-ink)/80 transition-colors hover:bg-(--khvi-paper) hover:text-(--khvi-teal) focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--khvi-sun)"
+              >
+                <IdentificationIcon className="h-4 w-4" aria-hidden="true" />
+                {copy.volunteerApply}
+              </a>
+            )}
           </div>
           <div className="border-t border-(--khvi-teal)/15 pt-1">
             <button

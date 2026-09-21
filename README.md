@@ -12,6 +12,10 @@
 > 🌐 **Language / ภาษา:**  
 > [🇹🇭 ภาษาไทย](#-ภาษาไทย) | [🇬🇧 English](#-english)
 
+### UI languages
+
+The application UI supports English (en), Chinese (zh), Thai (th), Spanish (es) and Arabic (ar). Arabic uses right-to-left layout. The UI language preference is stored in profiles.preferred_ui_language for signed-in users and is separate from interpreter service languages.
+
 ---
 
 ## 🇹🇭 ภาษาไทย
@@ -151,6 +155,8 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ### 📑 Detailed Documentation
 สำหรับเอกสารข้อกำหนดเชิงเทคนิค, Business Rules, Use-case Diagram, และ ER Diagram ฉบับเต็ม กรุณาอ่านเพิ่มเติมได้ที่ 👉 **[requirements.md](docs/requirements.md)**
+
+คู่มือการเชื่อมต่อ Supabase, database contract, RPC, RLS, Storage และ migration สำหรับ agent อยู่ที่ 👉 **[database-integration.md](docs/database-integration.md)**
 
 เอกสาร workflow การพัฒนาอยู่ที่ 👉 **[development-workflow.md](docs/development-workflow.md)**
 

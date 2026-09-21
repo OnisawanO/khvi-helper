@@ -66,11 +66,11 @@ export function AdminDrawer({
             >
               <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#087f80]/40 bg-[#0d3b55] shadow-xs group-hover:border-[#087f80]">
                 <Image
-                  src="/khvi-logo.jpg"
+                  src="/khvi-logo.png"
                   alt="KHVI logo"
                   fill
                   sizes="36px"
-                  className="scale-[2.2] object-cover object-[50%_54%]"
+                  className="object-contain p-1"
                   priority
                 />
               </div>

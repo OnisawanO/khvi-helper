@@ -1,21 +1,26 @@
 import type { Locale } from "@/app/components/site-header";
+import { getAuthCopy } from "@/app/lib/auth-copy";
 
 export type UserRole = "User" | "Interpreter" | "Manager" | "Admin";
 
 export interface UserProfile {
   userId: string;
   name: string;
+  avatarUrl?: string;
   email: string;
   phone: string;
   dateOfBirth: string;
   role: UserRole;
   isLocked: boolean;
   preferredUiLanguage: Locale;
+  serviceLanguageIds?: string[];
+  matchingCategoryIds?: string[];
   createdAt: string;
 }
 
 export interface RegisterInput {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   confirmPassword: string;
@@ -25,7 +30,8 @@ export interface RegisterInput {
 }
 
 export interface ValidationErrors {
-  name?: string;
+  firstName?: string;
+  lastName?: string;
   email?: string;
   password?: string;
   confirmPassword?: string;
@@ -36,6 +42,11 @@ export interface ValidationErrors {
 }
 
 export const AUTH_SESSION_STORAGE_KEY = "khvi_mock_auth_user";
+
+export function getDisplayName(name: string): string {
+  const displayName = name.replace(/\s*\((?:General User|Volunteer Interpreter)\)\s*$/i, "").trim();
+  return displayName || name;
+}
 
 export function calculateAge(dateOfBirthString: string): number | null {
   if (!dateOfBirthString) return null;
@@ -54,60 +65,68 @@ export function calculateAge(dateOfBirthString: string): number | null {
   return age >= 0 ? age : null;
 }
 
-export function validateRegisterInput(input: RegisterInput): ValidationErrors {
+export function validateRegisterInput(input: RegisterInput, locale: Locale = "th"): ValidationErrors {
   const errors: ValidationErrors = {};
+  const copy = getAuthCopy(locale).validation;
 
-  const trimmedName = input.name?.trim() || "";
-  if (!trimmedName) {
-    errors.name = "กรุณากรอกชื่อ-นามสกุล";
-  } else if (trimmedName.length < 2) {
-    errors.name = "ชื่อต้องมีความยาวอย่างน้อย 2 ตัวอักษร";
+  const trimmedFirstName = input.firstName?.trim() || "";
+  if (!trimmedFirstName) {
+    errors.firstName = copy.firstNameRequired;
+  } else if (trimmedFirstName.length < 2) {
+    errors.firstName = copy.firstNameMin;
+  }
+
+  const trimmedLastName = input.lastName?.trim() || "";
+  if (!trimmedLastName) {
+    errors.lastName = copy.lastNameRequired;
+  } else if (trimmedLastName.length < 2) {
+    errors.lastName = copy.lastNameMin;
   }
 
   const trimmedEmail = input.email?.trim() || "";
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!trimmedEmail) {
-    errors.email = "กรุณากรอกอีเมล";
+    errors.email = copy.emailRequired;
   } else if (!emailRegex.test(trimmedEmail)) {
-    errors.email = "รูปแบบอีเมลไม่ถูกต้อง";
+    errors.email = copy.emailInvalid;
   }
 
   if (!input.password) {
-    errors.password = "กรุณากำหนดรหัสผ่าน";
+    errors.password = copy.passwordRequired;
   } else if (input.password.length < 8) {
-    errors.password = "รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร";
+    errors.password = copy.passwordMin;
   }
 
   if (!input.confirmPassword) {
-    errors.confirmPassword = "กรุณายืนยันรหัสผ่าน";
+    errors.confirmPassword = copy.confirmPasswordRequired;
   } else if (input.password !== input.confirmPassword) {
-    errors.confirmPassword = "รหัสผ่านไม่ตรงกัน";
+    errors.confirmPassword = copy.passwordsMismatch;
   }
 
   const cleanedPhone = (input.phone || "").replace(/[\s-]/g, "");
   const phoneRegex = /^0\d{8,9}$/;
   if (!cleanedPhone) {
-    errors.phone = "กรุณากรอกเบอร์โทรศัพท์";
+    errors.phone = copy.phoneRequired;
   } else if (!phoneRegex.test(cleanedPhone)) {
-    errors.phone = "กรุณากรอกเบอร์โทรศัพท์ที่ถูกต้อง (เช่น 0812345678)";
+    errors.phone = copy.phoneInvalid;
   }
 
   if (!input.dateOfBirth) {
-    errors.dateOfBirth = "กรุณาเลือกวันเดือนปีเกิด";
+    errors.dateOfBirth = copy.dateOfBirthRequired;
   } else {
     const age = calculateAge(input.dateOfBirth);
     if (age === null) {
-      errors.dateOfBirth = "วันเดือนปีเกิดไม่ถูกต้อง";
+      errors.dateOfBirth = copy.dateOfBirthInvalid;
     } else if (age < 13) {
-      errors.dateOfBirth = "ผู้ใช้งานต้องมีอายุอย่างน้อย 13 ปีขึ้นไป";
+      errors.dateOfBirth = copy.minimumAge;
     } else if (age > 120) {
-      errors.dateOfBirth = "กรุณาระบุวันเดือนปีเกิดที่ถูกต้อง";
+      errors.dateOfBirth = copy.dateOfBirthRange;
     }
   }
 
-  const validLocales: Locale[] = ["th", "en", "zh", "my", "vi"];
+  const validLocales: Locale[] = ["th", "en", "zh", "es", "ar"];
   if (!input.preferredUiLanguage || !validLocales.includes(input.preferredUiLanguage)) {
-    errors.preferredUiLanguage = "กรุณาเลือกภาษาหน้าจอที่รองรับ";
+    errors.preferredUiLanguage = copy.localeInvalid;
   }
 
   return errors;
@@ -158,7 +177,7 @@ export async function registerMockUser(input: RegisterInput): Promise<{
 
   const newUser: UserProfile = {
     userId: mockUserId,
-    name: input.name.trim(),
+    name: `${input.firstName.trim()} ${input.lastName.trim()}`.trim(),
     email: input.email.trim().toLowerCase(),
     phone: input.phone.trim(),
     dateOfBirth: input.dateOfBirth,
@@ -179,7 +198,7 @@ export async function registerMockUser(input: RegisterInput): Promise<{
 export const DEFAULT_MOCK_USERS: Record<UserRole, UserProfile & { password: string }> = {
   User: {
     userId: "mock-user-id-001",
-    name: "สมชาย มีความหวัง (General User)",
+    name: "สมชาย มีความหวัง",
     email: "user@khvi.org",
     phone: "0812345678",
     dateOfBirth: "1995-05-12",
@@ -191,13 +210,15 @@ export const DEFAULT_MOCK_USERS: Record<UserRole, UserProfile & { password: stri
   },
   Interpreter: {
     userId: "mock-interpreter-id-002",
-    name: "หลิน หลิน (Volunteer Interpreter)",
+    name: "หลิน หลิน",
     email: "volunteer@khvi.org",
     phone: "0898765432",
     dateOfBirth: "1992-08-20",
     role: "Interpreter",
     isLocked: false,
     preferredUiLanguage: "zh",
+    serviceLanguageIds: ["burmese", "english", "sign"],
+    matchingCategoryIds: ["medical", "government", "accident"],
     createdAt: "2026-01-02T00:00:00.000Z",
     password: "password123",
   },
@@ -282,6 +303,8 @@ export async function loginMockUser(
       role: matchedUser.role,
       isLocked: matchedUser.isLocked,
       preferredUiLanguage: matchedUser.preferredUiLanguage,
+      serviceLanguageIds: matchedUser.serviceLanguageIds,
+      matchingCategoryIds: matchedUser.matchingCategoryIds,
       createdAt: matchedUser.createdAt,
     };
     saveMockUserSession(profile);
@@ -328,6 +351,8 @@ export function quickLoginAsRole(role: UserRole): UserProfile {
     role: target.role,
     isLocked: target.isLocked,
     preferredUiLanguage: target.preferredUiLanguage,
+    serviceLanguageIds: target.serviceLanguageIds,
+    matchingCategoryIds: target.matchingCategoryIds,
     createdAt: target.createdAt,
   };
   saveMockUserSession(profile);

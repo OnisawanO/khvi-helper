@@ -18,7 +18,7 @@
 - หน้าแรก: แถบภาษา FAQ ป้ายแผนที่ตัวอย่าง ขอบเขตบริการ และ login/register intent ที่พา User ไปสร้างคำขอหรือส่วนข้อมูลสมัครล่ามบน Welcome หลังเข้าสู่ระบบ
 - User: คำขอปัจจุบัน ขั้นตอนถัดไป ป้ายความเร่งด่วน countdown จาก expiresAt ชื่อล่ามเมื่อมีข้อมูล รายการล่าสุด ข้อมูลสมัครล่าม และสถานะระบบรีวิว
 - Interpreter: ภารกิจในเครื่องที่ยังดำเนินอยู่ ตัวกรองงาน GPS/รัศมี ประวัติในเครื่อง และสถานะข้อมูลโปรไฟล์
-- เพิ่มภาษาไทยให้หน้าแรก Welcome เมนูของ Welcome และ badge/countdown ที่ใช้บนหน้านี้ โดยคงอังกฤษ/จีน ภาษา UI พม่า/เวียดนามยัง fallback อังกฤษตามระบบเดิม
+- ระบบภาษา UI รองรับ English, Chinese, Thai, Spanish และ Arabic โดย Arabic ใช้ทิศทาง RTL; ภาษาที่ล่ามให้บริการยังคงเป็นข้อมูลอีกชุดหนึ่ง
 - Login/Register modal รองรับข้อความจุดประสงค์ วน keyboard focus ภายใน modal และคืน focus เมื่อปิด
 
 ## การตรวจสอบรอบนี้
@@ -49,7 +49,7 @@
 | Request activity | request-store.ts stores device-wide records with no requester or interpreter identity. | Label activity as saved on this device. Interpreter routes may show status-based request summaries for preview, but must not present them as account-owned or skill-matched data. |
 | Interpreter jobs | Map, profile matching, claims and account-scoped job history have no implemented data source. | Use `/find-requests` for open summaries and `/my-assignments` for claimed, in-progress or completed summaries. Keep Claim unavailable until its workflow exists. |
 | Privacy | FR-10/11 require requester confirmation before sensitive details unlock. | Explain the confirmation gate consistently in the requester and interpreter guidance. |
-| Scheduling | Current code implements strictly over 30 minutes and at most 24 hours ahead per earlier user instruction. | Describe existing appointment limits; leave expiry implementation unchanged. |
+| Scheduling | Scheduled requests start on the next calendar day and have no maximum future date. | Explain the next-day minimum; scheduled requests still expire at the appointment time. |
 
 No database schema, claim workflow, request ownership or server authorization is changed. Existing design tokens, header, footer, badges and navigation anchors are reused. Welcome displays the signed-in name and role in a profile menu, with sign-out inside that menu, plus role-specific links. There is no availability switch, chat or rating data.
 
