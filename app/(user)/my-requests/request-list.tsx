@@ -168,14 +168,13 @@ export function RequestList({
               <li key={request.requestId}>
                 <Link
                   href={`/my-requests/${request.requestId}`}
-                  aria-label={`${t.view} #${request.requestId}: ${categoryLabel(request.categoryId, copyLocale)} · ${languageLabel(request.languageId, copyLocale)}`}
+                  aria-label={`${t.view}: ${categoryLabel(request.categoryId, copyLocale)} · ${languageLabel(request.languageId, copyLocale)}, ${request.scheduledAtLabel ?? request.createdAtLabel}`}
                   className="group flex flex-col gap-4 border border-[#d6e0e4] bg-white p-5 transition-colors hover:border-[#087f80] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun) lg:flex-row lg:items-center lg:justify-between"
                 >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <StatusBadge status={request.status} copyLocale={copyLocale} />
                       <UrgencyBadge urgency={request.urgency} copyLocale={copyLocale} />
-                      <span className="text-xs font-extrabold text-[#8a9aa0]">#{request.requestId}</span>
                     </div>
 
                     <h2 className="mt-3 text-lg font-extrabold text-[#173646]">

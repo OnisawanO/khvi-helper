@@ -72,6 +72,12 @@ type LocationRow = {
   updated_at: string;
 };
 
+type QueryError = { code?: string; message?: string } | null;
+
+function isPermissionDenied(error: QueryError): boolean {
+  return error?.code === "42501" || Boolean(error?.message?.includes("not_authorized"));
+}
+
 const BOOKING_COLUMNS = [
   "booking_id",
   "user_id",
@@ -159,21 +165,15 @@ async function loadDetails(supabase: SupabaseClient, bookingId: number) {
     supabase.rpc("get_mission_locations", { p_booking_id: bookingId }),
   ]);
 
-  if (privateError && !privateError.message?.includes("not_authorized")) {
-    console.debug("[real-request-data] get_booking_private_details debug:", privateError.message);
-  }
-  if (contactError) {
-    console.debug("[real-request-data] get_booking_contacts debug:", contactError.message);
-  }
-  if (locationError) {
-    console.debug("[real-request-data] get_mission_locations debug:", locationError.message);
-  }
+  if (privateError && !isPermissionDenied(privateError)) throw privateError;
+  if (contactError && !isPermissionDenied(contactError)) throw contactError;
+  if (locationError && !isPermissionDenied(locationError)) throw locationError;
 
-  const privateDetails = !privateError && privateData
-    ? ((Array.isArray(privateData) ? privateData[0] : privateData) as PrivateDetails | undefined)
-    : undefined;
-  const contacts = !contactError && contactData ? ((contactData ?? []) as ContactRow[]) : [];
-  const locations = !locationError && locationData ? ((locationData ?? []) as LocationRow[]) : [];
+  const privateDetails = privateError
+    ? undefined
+    : (Array.isArray(privateData) ? privateData[0] : privateData) as PrivateDetails | undefined;
+  const contacts = (contactError ? [] : contactData ?? []) as ContactRow[];
+  const locations = (locationError ? [] : locationData ?? []) as LocationRow[];
 
   return {
     privateDetails,
@@ -416,6 +416,7 @@ export async function loadOpenInterpreterRequests(supabaseClient?: SupabaseClien
     .from("bookings")
     .select(BOOKING_COLUMNS)
     .eq("status", "open")
+    .neq("user_id", userId)
     .order("created_at", { ascending: false });
 
   if (bookingError) {
