@@ -404,17 +404,20 @@ export default function Home() {
       />
 
       <section id="main-content" className="mx-auto max-w-[1480px] scroll-mt-24 px-4 pt-4 sm:px-8 sm:pt-6 lg:px-8 lg:pt-8">
-        <div className="relative overflow-hidden rounded-2xl border border-[#d8e3e7] bg-white shadow-[0_18px_50px_rgba(21,52,67,0.10)]">
-          <div className="absolute inset-0 hidden lg:block">
-            <Image src="/khvi-landing-hero.png" alt={t.hero.imageAlt} fill priority className="object-cover object-center" sizes="(min-width: 1480px) 1420px, calc(100vw - 64px)" />
-          </div>
-          <div aria-hidden="true" className={`absolute inset-0 hidden lg:block ${locale === "ar" ? "bg-[linear-gradient(270deg,#ffffff_0%,rgba(255,255,255,0.98)_35%,rgba(255,255,255,0.86)_49%,rgba(255,255,255,0)_72%)]" : "bg-[linear-gradient(90deg,#ffffff_0%,rgba(255,255,255,0.98)_35%,rgba(255,255,255,0.86)_49%,rgba(255,255,255,0)_72%)]"}`} />
-          <div className="relative z-10 flex max-w-[720px] flex-col justify-center px-5 py-8 sm:px-10 sm:py-10 lg:min-h-[500px] lg:px-12">
-            <h1 className="max-w-[720px] text-[2.65rem] font-extrabold leading-[1.04] tracking-[-0.035em] text-[#0b3550] text-balance sm:text-[3.5rem] lg:text-[clamp(3.4rem,5vw,5rem)]">
+        <div className="relative isolate min-h-[540px] overflow-hidden rounded-2xl border border-[#d8e3e7] bg-(--khvi-navy) shadow-[0_18px_50px_rgba(21,52,67,0.10)] sm:min-h-[580px] lg:min-h-[500px]">
+          <ResponsiveHeroImage
+            desktopSrc="/khvi-landing-hero.png"
+            mobileSrc="/khvi-landing-hero-mobile.png"
+            alt={t.hero.imageAlt}
+            sizes="(min-width: 1480px) 1420px, (min-width: 1024px) calc(100vw - 64px), (min-width: 640px) calc(100vw - 64px), calc(100vw - 32px)"
+          />
+          <div aria-hidden="true" className={`absolute inset-0 bg-[linear-gradient(180deg,rgba(9,47,69,0.90)_0%,rgba(9,47,69,0.76)_62%,rgba(9,47,69,0.60)_100%)] ${locale === "ar" ? "lg:bg-[linear-gradient(270deg,rgba(9,47,69,0.97)_0%,rgba(9,47,69,0.88)_40%,rgba(9,47,69,0.42)_62%,rgba(9,47,69,0.08)_100%)]" : "lg:bg-[linear-gradient(90deg,rgba(9,47,69,0.97)_0%,rgba(9,47,69,0.88)_40%,rgba(9,47,69,0.42)_62%,rgba(9,47,69,0.08)_100%)]"}`} />
+          <div className="relative z-10 flex min-h-[540px] max-w-[720px] flex-col justify-end px-5 py-8 text-white sm:min-h-[580px] sm:justify-center sm:px-10 sm:py-10 lg:min-h-[500px] lg:px-12">
+            <h1 className="max-w-[720px] text-[2.65rem] font-extrabold leading-[1.04] tracking-[-0.035em] text-white text-balance sm:text-[3.5rem] lg:text-[clamp(3.4rem,5vw,5rem)]">
               <span className="block">{t.hero.lead}</span>
               <span className="mt-1 block text-[#ef5b47]">{t.hero.accent}</span>
             </h1>
-            <p className="mt-5 max-w-[620px] text-pretty text-[15px] font-semibold leading-7 text-[#294b60] sm:mt-6 sm:text-lg sm:leading-8">{t.hero.body}</p>
+            <p className="mt-5 max-w-[620px] text-pretty text-[15px] font-semibold leading-7 text-white/85 sm:mt-6 sm:text-lg sm:leading-8">{t.hero.body}</p>
             <a href="/request-help#main-content" className="mt-6 inline-flex min-h-14 w-full max-w-[390px] items-center justify-center gap-3 rounded-xl bg-[#ef5b47] px-5 py-3 text-base font-extrabold text-white shadow-[0_12px_25px_rgba(239,91,71,0.24)] transition-colors hover:bg-[#d94a38] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#092f45] sm:mt-7 sm:px-6 sm:text-lg">
               <BellAlertIcon aria-hidden="true" className="h-7 w-7" />
               {t.hero.action}
