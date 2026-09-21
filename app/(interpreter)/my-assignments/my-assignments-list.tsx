@@ -294,7 +294,6 @@ export function MyAssignmentsList({
                           <div className="flex flex-wrap items-center gap-2">
                             <StatusBadge status={request.status} copyLocale={copyLocale} />
                             <UrgencyBadge urgency={request.urgency} copyLocale={copyLocale} />
-                            <span className="text-xs font-extrabold text-[#8a9aa0]">#{request.requestId}</span>
                           </div>
                           <h3 className="mt-3 text-lg font-extrabold text-[#173646]">
                             {categoryLabel(request.categoryId, copyLocale)} · {languageLabel(request.languageId, copyLocale)}
@@ -401,7 +400,6 @@ export function MyAssignmentsList({
                     <div className="flex flex-wrap items-center gap-2">
                       <StatusBadge status={request.status} copyLocale={copyLocale} />
                       <UrgencyBadge urgency={request.urgency} copyLocale={copyLocale} />
-                      <span className="text-xs font-extrabold text-[#8a9aa0]">#{request.requestId}</span>
                     </div>
                     <h2 className="mt-3 text-lg font-extrabold text-[#173646]">
                       {categoryLabel(request.categoryId, copyLocale)} · {languageLabel(request.languageId, copyLocale)}

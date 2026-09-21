@@ -72,6 +72,12 @@ type LocationRow = {
   updated_at: string;
 };
 
+type QueryError = { code?: string } | null;
+
+function isPermissionDenied(error: QueryError): boolean {
+  return error?.code === "42501";
+}
+
 const BOOKING_COLUMNS = [
   "booking_id",
   "user_id",
@@ -155,13 +161,15 @@ async function loadDetails(supabase: SupabaseClient, bookingId: number) {
     supabase.rpc("get_mission_locations", { p_booking_id: bookingId }),
   ]);
 
-  if (privateError) throw privateError;
-  if (contactError) throw contactError;
-  if (locationError) throw locationError;
+  if (privateError && !isPermissionDenied(privateError)) throw privateError;
+  if (contactError && !isPermissionDenied(contactError)) throw contactError;
+  if (locationError && !isPermissionDenied(locationError)) throw locationError;
 
-  const privateDetails = (Array.isArray(privateData) ? privateData[0] : privateData) as PrivateDetails | undefined;
-  const contacts = (contactData ?? []) as ContactRow[];
-  const locations = (locationData ?? []) as LocationRow[];
+  const privateDetails = privateError
+    ? undefined
+    : (Array.isArray(privateData) ? privateData[0] : privateData) as PrivateDetails | undefined;
+  const contacts = (contactError ? [] : contactData ?? []) as ContactRow[];
+  const locations = (locationError ? [] : locationData ?? []) as LocationRow[];
 
   return {
     privateDetails,
@@ -269,7 +277,9 @@ async function loadRows(supabase: SupabaseClient, mode: "requester" | "interpret
   if (mode === "requester") {
     query = query.eq("user_id", profileResult.profile.userId);
   } else if (mode === "interpreter-open") {
-    query = query.eq("status", "open");
+    query = query
+      .eq("status", "open")
+      .neq("user_id", profileResult.profile.userId);
   } else {
     query = query.eq("interpreter_id", profileResult.profile.userId);
   }

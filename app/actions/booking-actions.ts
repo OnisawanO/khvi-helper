@@ -1,11 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
+import {
+  loadInterpreterAssignments,
+  loadOpenInterpreterRequests,
+  loadRequesterRequests,
+} from "@/app/lib/real-request-data";
+import type { HelpRequest } from "@/app/lib/mock-requests";
 import { createClient } from "@/utils/supabase/server";
 
 type ActionSuccess<T = undefined> = { ok: true; data: T };
 type ActionFailure = { ok: false; error: string };
 export type BookingActionResult<T = undefined> = ActionSuccess<T> | ActionFailure;
+export type WelcomeRequestView = "requester" | "interpreter";
 
 function friendlyError(error: { message?: string } | null): string {
   const message = error?.message ?? "";
@@ -49,6 +57,51 @@ async function runVoidRpc(functionName: string, args: Record<string, unknown>): 
   revalidatePath("/my-assignments");
   revalidatePath("/find-requests");
   return { ok: true, data: undefined };
+}
+
+export async function loadWelcomeRequestsAction(
+  view: WelcomeRequestView,
+): Promise<BookingActionResult<HelpRequest[]>> {
+  const supabase = await createClient();
+  const { profile } = await getCurrentUserProfile(supabase);
+
+  if (!profile) {
+    return { ok: false, error: "Your session has expired. Please sign in again." };
+  }
+
+  if (view !== "requester" && view !== "interpreter") {
+    return { ok: false, error: "This mission view is not available." };
+  }
+
+  if (view === "interpreter" && profile.role !== "Interpreter") {
+    return { ok: false, error: "Only interpreters can load assignments." };
+  }
+
+  if (profile.role !== "User" && profile.role !== "Interpreter") {
+    return { ok: false, error: "This account cannot access the mission workspace." };
+  }
+
+  try {
+    if (view === "requester") {
+      return { ok: true, data: await loadRequesterRequests(supabase) };
+    }
+
+    const [assignments, openRequests] = await Promise.all([
+      loadInterpreterAssignments(supabase),
+      loadOpenInterpreterRequests(supabase),
+    ]);
+    const requestsById = new Map<string, HelpRequest>();
+
+    for (const request of [...assignments, ...openRequests]) {
+      if (!requestsById.has(request.requestId)) {
+        requestsById.set(request.requestId, request);
+      }
+    }
+
+    return { ok: true, data: [...requestsById.values()] };
+  } catch {
+    return { ok: false, error: "Could not load your missions. Please try again." };
+  }
 }
 
 export async function createBookingAction(input: {

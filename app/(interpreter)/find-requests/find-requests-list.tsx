@@ -91,7 +91,6 @@ const copy = {
     claimTitle: "Review before you claim",
     claimBody: "Confirm that this request matches your language and category before claiming it.",
     description: "What help is needed",
-    requestId: "Request",
     privacy: "Exact address, coordinates and contact details stay hidden until the requester confirms you.",
     close: "Close",
     cancel: "Keep browsing",
@@ -148,7 +147,6 @@ const copy = {
     claimTitle: "接取前请确认",
     claimBody: "接取前请确认语言和类别符合你的服务能力。",
     description: "求助内容",
-    requestId: "任务",
     privacy: "求助者确认你之后，系统才会显示准确地址、坐标和联系方式。",
     close: "关闭",
     cancel: "继续浏览",
@@ -589,8 +587,7 @@ export function FindRequestsList({ initialRequests }: { initialRequests: HelpReq
           <section className="max-h-[calc(100vh-2rem)] w-full max-w-xl overflow-y-auto rounded-(--khvi-radius-md) bg-white shadow-[0_24px_70px_rgba(16,40,58,0.26)]" role="dialog" aria-modal="true" aria-labelledby="claim-dialog-title">
             <div className="flex items-start justify-between gap-4 border-b border-[#e4ebed] px-5 py-5 sm:px-6">
               <div>
-                <p className="text-xs font-extrabold text-(--khvi-teal)">{t.requestId} #{claimRequest.requestId}</p>
-                <h2 id="claim-dialog-title" className="mt-1.5 text-xl font-extrabold text-[#173646]">{t.claimTitle}</h2>
+                <h2 id="claim-dialog-title" className="text-xl font-extrabold text-[#173646]">{t.claimTitle}</h2>
                 <p className="mt-2 max-w-md text-sm leading-6 text-[#64777e]">{t.claimBody}</p>
               </div>
               <button type="button" aria-label={t.close} className="rounded-full p-2 text-[#64777e] hover:bg-[#f1f5f6]" onClick={() => setClaimRequest(null)}><XMarkIcon aria-hidden="true" className="h-5 w-5" /></button>
