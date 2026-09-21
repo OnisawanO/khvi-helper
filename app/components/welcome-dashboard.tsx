@@ -140,19 +140,31 @@ export function WelcomeDashboard({ user, interpreterMode = "helper", onInterpret
       {active.length > 1 && <p className={muted}>{tr("พบหลายรายการในข้อมูลต้นแบบ ดูรายการทั้งหมดเพื่อเลือกงานที่ต้องการ", "This preview contains multiple active records. Open the full list to choose one.", "预览中有多个进行中的记录，请在完整列表中选择。")}</p>}
     </section>}
     <div className="grid gap-5 lg:grid-cols-[1.5fr_1fr]">
-      <section className="flex flex-col items-start rounded-(--khvi-radius-lg) bg-(--khvi-navy) p-6 text-white sm:p-9">
-        <span className="flex items-center gap-2 text-sm text-white/80"><LanguageIcon className="h-5 w-5" aria-hidden="true" /> KHVI · {tr("สื่อสารเข้าใจ ช่วยเหลือใกล้ตัว", "Community language help", "社区语言帮助")}</span>
-        <h2 className="mt-6 max-w-lg text-3xl font-bold leading-tight sm:text-4xl">{interpreter ? tr("ใช้ภาษาที่คุณถนัด ช่วยให้ใครสักคนเข้าใจ", "Help someone be understood.", "用你的语言能力，帮助身边的人。") : tr("ต้องการความช่วยเหลือด้านภาษา เริ่มได้ที่นี่", "A little language help starts here.", "沟通有困难？从这里开始。")}</h2>
-        <p className="mt-4 max-w-lg leading-8 text-white/80">{interpreter ? tr("ค้นหาคำขอตามภาษา หมวดหมู่ และระยะทาง ตรวจสอบก่อนรับงาน และรับผิดชอบครั้งละหนึ่งภารกิจ", "Explore requests by language, category and distance. Review each request and take one assignment at a time.", "按语言、类别和距离查找请求。确认详情后接单，一次只接受一个任务。") : tr("เลือกภาษา หมวดหมู่ และจุดนัดพบ ล่ามที่ตรงเงื่อนไขจะเป็นผู้เลือกกดรับคำขอของคุณ", "Choose a language, category and meeting point. A suitable interpreter chooses to claim your request.", "选择语言、类别和见面地点，符合条件的口译员会自行接单。")}</p>
-        <div className="mt-7 flex flex-wrap gap-3">
-          <Link className={lightButton} href={current ? `/my-requests/${current.requestId}#main-content` : interpreter ? "/find-requests#main-content" : "/request-help#main-content"}>
-            {current ? tr("ติดตามงานปัจจุบัน", "Continue current work", "继续当前任务") : interpreter ? tr("ค้นหางาน", "Find requests", "查找求助") : tr("ขอความช่วยเหลือ", "Create a help request", "创建求助请求")}
-          </Link>
-          <Link className={`${button} border border-white/40`} href={listPath}>
-            {interpreter ? tr("งานของฉัน", "My assignments", "我的任务") : tr("คำขอทั้งหมด", "All requests", "全部请求")}
-          </Link>
+      <section className="relative min-h-[500px] overflow-hidden rounded-(--khvi-radius-lg) bg-(--khvi-navy) text-white sm:min-h-[460px]">
+        <ResponsiveHeroImage
+          desktopSrc={interpreter ? "/khvi-interpreter-hero.png" : "/khvi-requester-hero.png"}
+          mobileSrc={interpreter ? "/khvi-interpreter-hero-mobile.png" : "/khvi-requester-hero-mobile.png"}
+          alt={interpreter
+            ? tr("ล่ามอาสาช่วยผู้ใช้สื่อสารกับเจ้าหน้าที่บริการชุมชน", "A volunteer interpreter helping a user speak with a community service worker", "志愿口译员帮助用户与社区服务人员沟通")
+            : tr("ผู้ขอความช่วยเหลือกำลังรับคำอธิบายจากล่ามอาสา", "A requester receiving an explanation from a volunteer interpreter", "求助者正在听志愿口译员讲解")}
+          sizes="(min-width: 1024px) 60vw, 100vw"
+          className="object-center md:object-[58%_center]"
+        />
+        <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(180deg,rgba(9,47,69,0.30)_0%,rgba(9,47,69,0.82)_58%,rgba(9,47,69,0.97)_100%)] md:bg-[linear-gradient(90deg,rgba(9,47,69,0.97)_0%,rgba(9,47,69,0.82)_50%,rgba(9,47,69,0.18)_100%)]" />
+        <div className="relative z-10 flex min-h-[500px] flex-col items-start justify-end p-6 sm:min-h-[460px] sm:p-9">
+          <span className="flex items-center gap-2 text-sm text-white/80"><LanguageIcon className="h-5 w-5" aria-hidden="true" /> KHVI · {tr("สื่อสารเข้าใจ ช่วยเหลือใกล้ตัว", "Community language help", "社区语言帮助")}</span>
+          <h2 className="mt-6 max-w-lg text-3xl font-bold leading-tight sm:text-4xl">{interpreter ? tr("ใช้ภาษาที่คุณถนัด ช่วยให้ใครสักคนเข้าใจ", "Help someone be understood.", "用你的语言能力，帮助身边的人。") : tr("ต้องการความช่วยเหลือด้านภาษา เริ่มได้ที่นี่", "A little language help starts here.", "沟通有困难？从这里开始。")}</h2>
+          <p className="mt-4 max-w-lg leading-8 text-white/80">{interpreter ? tr("ค้นหาคำขอตามภาษา หมวดหมู่ และระยะทาง ตรวจสอบก่อนรับงาน และรับผิดชอบครั้งละหนึ่งภารกิจ", "Explore requests by language, category and distance. Review each request and take one assignment at a time.", "按语言、类别和距离查找请求。确认详情后接单，一次只接受一个任务。") : tr("เลือกภาษา หมวดหมู่ และจุดนัดพบ ล่ามที่ตรงเงื่อนไขจะเป็นผู้เลือกกดรับคำขอของคุณ", "Choose a language, category and meeting point. A suitable interpreter chooses to claim your request.", "选择语言、类别和见面地点，符合条件的口译员会自行接单。")}</p>
+          <div className="mt-7 flex flex-wrap gap-3">
+            <Link className={lightButton} href={current ? `/my-requests/${current.requestId}#main-content` : interpreter ? "/find-requests#main-content" : "/request-help#main-content"}>
+              {current ? tr("ติดตามงานปัจจุบัน", "Continue current work", "继续当前任务") : interpreter ? tr("ค้นหางาน", "Find requests", "查找求助") : tr("ขอความช่วยเหลือ", "Create a help request", "创建求助请求")}
+            </Link>
+            <Link className={`${button} border border-white/40`} href={listPath}>
+              {interpreter ? tr("งานของฉัน", "My assignments", "我的任务") : tr("คำขอทั้งหมด", "All requests", "全部请求")}
+            </Link>
+          </div>
+          <p className="mt-7 text-xs leading-6 text-white/75">{tr("หากมีอันตรายฉุกเฉิน ให้ติดต่อหน่วยงานฉุกเฉินในพื้นที่ก่อน", "For immediate danger, contact local emergency services first.", "如有紧急危险，请先联系当地紧急救援服务。")}</p>
         </div>
-        <p className="mt-7 text-xs leading-6 text-white/75">{tr("หากมีอันตรายฉุกเฉิน ให้ติดต่อหน่วยงานฉุกเฉินในพื้นที่ก่อน", "For immediate danger, contact local emergency services first.", "如有紧急危险，请先联系当地紧急救援服务。")}</p>
       </section>
       <aside className={panel}><MapPinIcon className="h-7 w-7 text-(--khvi-teal)" aria-hidden="true" /><h2 className="mt-4 text-xl font-bold">{interpreter ? tr("ตำแหน่งและระยะค้นหา", "Location & search radius", "位置和搜索范围") : tr("เลือกเวลาที่เหมาะกับคุณ", "Help on your schedule", "按你的时间安排")}</h2>
         {interpreter ? <><p className={muted}>{tr("ใช้ตำแหน่งเพื่อกรองรายการด้านล่าง พิกัดของคุณจะไม่ถูกบันทึก", "Use your location to filter the list below. Your coordinates are not saved.", "使用位置筛选下方列表，您的坐标不会被保存。")}</p><button className={`${button} mt-4 w-full disabled:opacity-50`} onClick={locate} disabled={geo === "loading"}>{geo === "loading" ? tr("กำลังค้นหาตำแหน่ง…", "Locating…", "正在定位…") : tr("ใช้ตำแหน่งของฉัน", "Use my location", "使用我的位置")}</button><p role="status" className={muted}>{geo === "error" ? tr("เข้าถึงตำแหน่งไม่ได้ ลองใหม่หรือดูทุกระยะ", "Location unavailable. Retry or browse all distances.", "无法获取位置，请重试或查看所有距离。") : geo === "ready" ? tr("พร้อมใช้ตำแหน่งปัจจุบัน", "Current location connected", "已连接当前位置") : tr("ยังไม่ได้เปิดใช้ตำแหน่ง", "Location has not been shared", "尚未共享位置")}</p><label className="mt-4 block text-sm font-bold" htmlFor="welcome-radius">{tr("รัศมีค้นหา", "Search radius", "搜索半径")}</label><select id="welcome-radius" className="mt-2 min-h-12 w-full rounded-lg border border-(--khvi-teal)/30 bg-white px-3" value={radius} onChange={e => setRadius(e.target.value)}><option value="all">{tr("ทุกระยะ", "Any distance", "任何距离")}</option>{[5, 10, 25].map(n => <option key={n} value={n} disabled={!location}>{n} km</option>)}</select></> : <div className="mt-5 space-y-5"><div><h3 className="font-bold">{tr("ต้องการความช่วยเหลือด่วน", "Need help soon", "紧急求助")}</h3><p className={muted}>{tr("คำขอหมดอายุใน 30 นาที หากยังไม่มีล่ามรับงาน", "Requests expire after 30 minutes if no interpreter claims them.", "若30分钟内无人接单，请求将过期。")}</p></div><div className="border-t border-(--khvi-teal)/20 pt-5"><h3 className="font-bold">{tr("นัดหมายล่วงหน้า", "Plan a meeting", "预约帮助")}</h3><p className={muted}>{tr("เลือกเวลามากกว่า 30 นาทีจากตอนนี้ และไม่เกิน 24 ชั่วโมง", "Choose a time more than 30 minutes ahead, within 24 hours.", "选择超过30分钟后、24小时内的时间。")}</p></div></div>}
