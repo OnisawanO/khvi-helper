@@ -568,7 +568,7 @@ export function ApplicationStatusModal({
           <div className="flex items-center gap-2">
             {status === "approved" ? (
               <Link
-                href="/volunteer/dashboard"
+                href="/find-requests"
                 onClick={onClose}
                 className="border border-[#087557] bg-[#087557] px-5 py-2 text-xs font-extrabold text-white hover:bg-[#065e46] transition-colors shadow-xs"
               >

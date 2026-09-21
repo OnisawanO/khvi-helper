@@ -7,13 +7,13 @@ import { useCopyLocale, useUiLocale } from "./app-shell";
 import { ExpiryCountdown } from "./expiry-countdown";
 import { ResponsiveHeroImage } from "./responsive-hero-image";
 import { StatusBadge, UrgencyBadge } from "./request-badges";
-import { useRequests } from "@/app/lib/request-store";
 import { categoryLabel, languageLabel, LANGUAGES, CATEGORIES, type HelpRequest } from "@/app/lib/mock-requests";
 import type { UserProfile } from "@/app/lib/mock-auth";
 import { useMyInterpreterApplication, type InterpreterApplication } from "@/app/lib/interpreter-application";
 import { loadMyInterpreterApplicationAction } from "@/app/actions/interpreter-application-actions";
 import { ApplicationStatusCard } from "@/components/volunteer/ApplicationStatusCard";
 import type { InterpreterWorkspaceMode } from "@/app/lib/workspace-mode";
+import type { OpenRequestsDiagnostic } from "@/app/lib/real-request-data";
 
 const button = "inline-flex min-h-12 items-center justify-center gap-2 rounded-(--khvi-radius-sm) bg-(--khvi-navy) px-5 py-3 text-sm font-bold text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--khvi-sun)";
 const lightButton = "inline-flex min-h-12 items-center justify-center gap-2 rounded-(--khvi-radius-sm) bg-white px-5 py-3 text-sm font-bold text-(--khvi-navy) hover:bg-(--khvi-paper) focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--khvi-sun)";
@@ -31,17 +31,28 @@ function distance(request: HelpRequest, location: GeolocationCoordinates | null)
   return 6371 * 2 * Math.asin(Math.sqrt(Math.min(1, a)));
 }
 
-export function WelcomeDashboard({ user, interpreterMode = "helper", onInterpreterModeChange }: {
+export function WelcomeDashboard({
+  user,
+  interpreterMode = "helper",
+  onInterpreterModeChange,
+  openRequests = [],
+  assignments = [],
+  requesterRequests = [],
+  diagnostic,
+}: {
   user: UserProfile;
   interpreterMode?: InterpreterWorkspaceMode;
   onInterpreterModeChange?: (mode: InterpreterWorkspaceMode) => void;
+  openRequests?: HelpRequest[];
+  assignments?: HelpRequest[];
+  requesterRequests?: HelpRequest[];
+  diagnostic?: OpenRequestsDiagnostic;
 }) {
   const locale = useUiLocale();
   const copyLocale = useCopyLocale();
   const tr = (th: string, en: string, zh: string) => locale === "th" ? th : locale === "zh" ? zh : en;
   const interpreterAccount = user.role === "Interpreter";
   const interpreter = interpreterAccount && interpreterMode === "helper";
-  const { requests, ready } = useRequests();
   const { application: volunteerApplication } = useMyInterpreterApplication(user.userId);
   const [supabaseApplication, setSupabaseApplication] = useState<InterpreterApplication | null>(null);
 
@@ -65,11 +76,25 @@ export function WelcomeDashboard({ user, interpreterMode = "helper", onInterpret
   const [radius, setRadius] = useState("all");
   const [language, setLanguage] = useState("all");
   const [category, setCategory] = useState("all");
-  const active = requests.filter(r => interpreter ? ["Claimed", "InProgress"].includes(r.status) : ["Open", "Claimed", "InProgress"].includes(r.status));
+  const active = interpreter
+    ? assignments.filter((r) => ["Claimed", "InProgress"].includes(r.status))
+    : requesterRequests.filter((r) => ["Open", "Claimed", "InProgress"].includes(r.status));
   const current = active[0];
-  const completed = requests.filter(r => r.status === "Completed");
-  const recent = requests.filter(r => interpreter ? ["Completed", "Cancelled"].includes(r.status) && r.interpreter !== null : r.requestId !== current?.requestId).slice(0, 3);
-  const open = requests.filter(r => r.status === "Open" && (language === "all" || r.languageId === language) && (category === "all" || r.categoryId === category) && (radius === "all" || (distance(r, location) !== null && distance(r, location)! <= Number(radius)))).slice(0, 3);
+  const completed = interpreter
+    ? assignments.filter((r) => r.status === "Completed")
+    : requesterRequests.filter((r) => r.status === "Completed");
+  const recent = interpreter
+    ? assignments.filter((r) => ["Completed", "Cancelled"].includes(r.status) && r.interpreter !== null).slice(0, 3)
+    : requesterRequests.filter((r) => r.requestId !== current?.requestId).slice(0, 3);
+  const open = openRequests
+    .filter(
+      (r) =>
+        r.status === "Open" &&
+        (language === "all" || r.languageId === language) &&
+        (category === "all" || r.categoryId === category) &&
+        (radius === "all" || (distance(r, location) !== null && distance(r, location)! <= Number(radius)))
+    )
+    .slice(0, 3);
   const lang = (r: HelpRequest) => locale === "th" ? thaiLanguages[r.languageId] : languageLabel(r.languageId, copyLocale);
   const cat = (r: HelpRequest) => locale === "th" ? thaiCategories[r.categoryId] : categoryLabel(r.categoryId, copyLocale);
   const listPath = interpreter ? "/my-assignments#main-content" : "/my-requests#main-content";
@@ -129,15 +154,14 @@ export function WelcomeDashboard({ user, interpreterMode = "helper", onInterpret
         </div>
       )}
     </div>
-    <p className="mb-6 rounded-lg bg-(--khvi-sun)/10 px-4 py-3 text-xs leading-6">{tr("โหมดต้นแบบ · รายการบันทึกอยู่ในเบราว์เซอร์นี้ ยังไม่ได้แยกตามบัญชีหรือยืนยันการจับคู่จริง", "Preview · Records are saved in this browser, not scoped to your account or verified as matches.", "预览模式 · 记录保存在此浏览器，尚未按账户区分或验证匹配。")}</p>
-    {!ready ? <div className={`${panel} mb-6`} role="status">{tr("กำลังโหลดคำขอ…", "Loading requests…", "正在加载请求…")}</div> : current && <section className={`${panel} mb-6 border-l-4 border-l-(--khvi-teal)`} aria-labelledby="current-title">
-      <div className="flex flex-wrap justify-between gap-3"><h2 id="current-title" className="text-xl font-bold">{interpreter ? tr("ภารกิจที่ดำเนินอยู่ในเครื่องนี้", "Active assignment on this device", "此设备上的当前任务") : tr("คำขอปัจจุบันในเครื่องนี้", "Current request on this device", "此设备上的当前请求")}</h2><div className="flex flex-wrap gap-2"><UrgencyBadge urgency={current.urgency} copyLocale={locale === "th" ? "th" : copyLocale} /><StatusBadge status={current.status} copyLocale={locale === "th" ? "th" : copyLocale} /></div></div>
+    {current && <section className={`${panel} mb-6 border-l-4 border-l-(--khvi-teal)`} aria-labelledby="current-title">
+      <div className="flex flex-wrap justify-between gap-3"><h2 id="current-title" className="text-xl font-bold">{interpreter ? tr("ภารกิจที่กำลังดำเนินการ", "Current active assignment", "进行中的任务") : tr("คำขอความช่วยเหลือปัจจุบัน", "Current help request", "当前求助")}</h2><div className="flex flex-wrap gap-2"><UrgencyBadge urgency={current.urgency} copyLocale={locale === "th" ? "th" : copyLocale} /><StatusBadge status={current.status} copyLocale={locale === "th" ? "th" : copyLocale} /></div></div>
       <p className="mt-4 text-lg font-bold">#{current.requestId} · {lang(current)} · {cat(current)}</p><p className={muted}>{current.scheduledAtLabel ?? current.createdAtLabel}</p>
       {current.status === "Open" && current.expiresAt && <div className="mt-3"><ExpiryCountdown key={current.requestId} seconds={0} expiresAt={current.expiresAt} copyLocale={locale === "th" ? "th" : copyLocale} /></div>}
       <p className="my-5 rounded-lg bg-(--khvi-teal)/10 px-4 py-3 text-sm leading-7" role="status">{nextAction}</p>
       {current.interpreter && <div className="mb-5 flex items-center gap-3"><LanguageIcon className="h-6 w-6 text-(--khvi-teal)" aria-hidden="true" /><div><p className="font-bold">{current.interpreter.name}</p><p className="text-sm text-(--khvi-ink)/70">{current.interpreter.primaryLanguage}</p></div></div>}
       <Link className={button} href={`/my-requests/${current.requestId}#main-content`}>{tr("กลับไปติดตามภารกิจ", "Continue this request", "继续查看任务")}<ArrowRightIcon className="h-4 w-4" aria-hidden="true" /></Link>
-      {active.length > 1 && <p className={muted}>{tr("พบหลายรายการในข้อมูลต้นแบบ ดูรายการทั้งหมดเพื่อเลือกงานที่ต้องการ", "This preview contains multiple active records. Open the full list to choose one.", "预览中有多个进行中的记录，请在完整列表中选择。")}</p>}
+      {active.length > 1 && <p className={muted}>{tr("คุณมีหลายรายการที่กำลังดำเนินการ สามารถเปิดดูรายการทั้งหมดได้", "You have multiple active records. Open the full list to view them all.", "您有多个进行中的记录，请在完整列表中查看。")}</p>}
     </section>}
     <div className="grid gap-5 lg:grid-cols-[1.5fr_1fr]">
       <section className="relative min-h-[500px] overflow-hidden rounded-(--khvi-radius-lg) bg-(--khvi-navy) text-white sm:min-h-[460px]">
@@ -170,8 +194,8 @@ export function WelcomeDashboard({ user, interpreterMode = "helper", onInterpret
         {interpreter ? <><p className={muted}>{tr("ใช้ตำแหน่งเพื่อกรองรายการด้านล่าง พิกัดของคุณจะไม่ถูกบันทึก", "Use your location to filter the list below. Your coordinates are not saved.", "使用位置筛选下方列表，您的坐标不会被保存。")}</p><button className={`${button} mt-4 w-full disabled:opacity-50`} onClick={locate} disabled={geo === "loading"}>{geo === "loading" ? tr("กำลังค้นหาตำแหน่ง…", "Locating…", "正在定位…") : tr("ใช้ตำแหน่งของฉัน", "Use my location", "使用我的位置")}</button><p role="status" className={muted}>{geo === "error" ? tr("เข้าถึงตำแหน่งไม่ได้ ลองใหม่หรือดูทุกระยะ", "Location unavailable. Retry or browse all distances.", "无法获取位置，请重试或查看所有距离。") : geo === "ready" ? tr("พร้อมใช้ตำแหน่งปัจจุบัน", "Current location connected", "已连接当前位置") : tr("ยังไม่ได้เปิดใช้ตำแหน่ง", "Location has not been shared", "尚未共享位置")}</p><label className="mt-4 block text-sm font-bold" htmlFor="welcome-radius">{tr("รัศมีค้นหา", "Search radius", "搜索半径")}</label><select id="welcome-radius" className="mt-2 min-h-12 w-full rounded-lg border border-(--khvi-teal)/30 bg-white px-3" value={radius} onChange={e => setRadius(e.target.value)}><option value="all">{tr("ทุกระยะ", "Any distance", "任何距离")}</option>{[5, 10, 25].map(n => <option key={n} value={n} disabled={!location}>{n} km</option>)}</select></> : <div className="mt-5 space-y-5"><div><h3 className="font-bold">{tr("ต้องการความช่วยเหลือด่วน", "Need help soon", "紧急求助")}</h3><p className={muted}>{tr("คำขอหมดอายุใน 30 นาที หากยังไม่มีล่ามรับงาน", "Requests expire after 30 minutes if no interpreter claims them.", "若30分钟内无人接单，请求将过期。")}</p></div><div className="border-t border-(--khvi-teal)/20 pt-5"><h3 className="font-bold">{tr("นัดหมายล่วงหน้า", "Plan a meeting", "预约帮助")}</h3><p className={muted}>{tr("เลือกเวลามากกว่า 30 นาทีจากตอนนี้ และไม่เกิน 24 ชั่วโมง", "Choose a time more than 30 minutes ahead, within 24 hours.", "选择超过30分钟后、24小时内的时间。")}</p></div></div>}
       </aside>
     </div>
-    {interpreter && <section className={`${panel} mt-7`} aria-labelledby="discover-title"><h2 id="discover-title" className="text-xl font-bold">{tr("ค้นหาคำขอที่เหมาะกับคุณ", "Explore suitable requests", "查找合适的请求")}</h2><p className={muted}>{tr("เลือกความถนัดเพื่อกรองคำขอในเครื่อง ยังไม่ใช่ผลจับคู่จากโปรไฟล์ล่าม", "Filter browser records by your skills. These are not verified profile matches.", "按技能筛选浏览器记录，尚非经过验证的个人资料匹配。")}</p><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold">{tr("ภาษา", "Language", "语言")}<select className="mt-2 min-h-12 w-full rounded-lg border border-(--khvi-teal)/30 bg-white px-3" value={language} onChange={e => setLanguage(e.target.value)}><option value="all">{tr("ทุกภาษา", "All languages", "全部语言")}</option>{LANGUAGES.map(l => <option key={l.id} value={l.id}>{locale === "th" ? thaiLanguages[l.id] : l[copyLocale]}</option>)}</select></label><label className="text-sm font-bold">{tr("หมวดหมู่", "Category", "类别")}<select className="mt-2 min-h-12 w-full rounded-lg border border-(--khvi-teal)/30 bg-white px-3" value={category} onChange={e => setCategory(e.target.value)}><option value="all">{tr("ทุกหมวดหมู่", "All categories", "全部类别")}</option>{CATEGORIES.map(c => <option key={c.id} value={c.id}>{locale === "th" ? thaiCategories[c.id] : c[copyLocale]}</option>)}</select></label></div>{open.length ? <ul className="mt-3 divide-y divide-(--khvi-teal)/20">{open.map(r => requestRow(r, true))}</ul> : <p role="status" className="my-6 rounded-lg bg-(--khvi-paper) p-5 text-sm leading-7">{tr("ยังไม่มีคำขอในเครื่องที่ตรงตัวกรอง ลองเปลี่ยนภาษา หมวดหมู่ หรือระยะค้นหา", "No browser records match these filters. Try another language, category or distance.", "没有符合筛选条件的浏览器记录，请调整语言、类别或距离。")}</p>}<Link className="inline-flex min-h-11 items-center gap-2 font-bold underline underline-offset-4" href="/find-requests#main-content">{tr("เปิดแผนที่ทั้งหมด", "Open the full map", "打开完整地图")}<ArrowRightIcon className="h-4 w-4" aria-hidden="true" /></Link></section>}
-    <section className={`${panel} mt-7`}><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-bold">{interpreter ? tr("ภารกิจที่ผ่านมาในเครื่องนี้", "Past assignments on this device", "此设备上的历史任务") : tr("คำขอล่าสุด", "Recent requests", "最近的请求")}</h2><Link className="inline-flex min-h-11 items-center font-bold underline underline-offset-4" href={listPath}>{tr("ดูทั้งหมด", "View all", "查看全部")}</Link></div>{recent.length ? <ul className="divide-y divide-(--khvi-teal)/20">{recent.map(r => requestRow(r))}</ul> : <div className="flex items-start gap-4 py-6"><ClipboardDocumentListIcon className="h-8 w-8 shrink-0 text-(--khvi-teal)" aria-hidden="true" /><p className="text-sm leading-7">{tr("ยังไม่มีประวัติในเบราว์เซอร์นี้ เมื่อมีรายการแล้วคุณจะกลับมาติดตามได้ที่นี่", "No history in this browser yet. Return here to follow saved requests.", "此浏览器暂无历史记录，保存后可在此查看。")}</p></div>}</section>
+    {interpreter && <section className={`${panel} mt-7`} aria-labelledby="discover-title"><h2 id="discover-title" className="text-xl font-bold">{tr("ค้นหาคำขอที่เหมาะกับคุณ", "Explore suitable requests", "查找合适的请求")}</h2><p className={muted}>{tr("ค้นหาและกรองคำขอที่ตรงกับความสามารถของคุณ", "Filter open requests that match your skills.", "按技能筛选符合您能力的求助任务。")}</p><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold">{tr("ภาษา", "Language", "语言")}<select className="mt-2 min-h-12 w-full rounded-lg border border-(--khvi-teal)/30 bg-white px-3" value={language} onChange={e => setLanguage(e.target.value)}><option value="all">{tr("ทุกภาษา", "All languages", "全部语言")}</option>{LANGUAGES.map(l => <option key={l.id} value={l.id}>{locale === "th" ? thaiLanguages[l.id] : l[copyLocale]}</option>)}</select></label><label className="text-sm font-bold">{tr("หมวดหมู่", "Category", "类别")}<select className="mt-2 min-h-12 w-full rounded-lg border border-(--khvi-teal)/30 bg-white px-3" value={category} onChange={e => setCategory(e.target.value)}><option value="all">{tr("ทุกหมวดหมู่", "All categories", "全部类别")}</option>{CATEGORIES.map(c => <option key={c.id} value={c.id}>{locale === "th" ? thaiCategories[c.id] : c[copyLocale]}</option>)}</select></label></div>{open.length ? <ul className="mt-3 divide-y divide-(--khvi-teal)/20">{open.map(r => requestRow(r, true))}</ul> : <p role="status" className="my-6 rounded-lg bg-(--khvi-paper) p-5 text-sm leading-7">{diagnostic?.status === "application_not_approved" ? tr("ใบสมัครล่ามของคุณยังไม่ได้รับการอนุมัติ จึงยังไม่สามารถดูคำขอเปิดได้", "Your interpreter application is pending approval.", "您的口译员申请正在审核中，暂无法查看开放任务。") : diagnostic?.status === "no_matching_skills" ? tr("ยังไม่มีคำขอเปิดที่ตรงกับภาษาหรือหมวดหมู่ที่คุณได้รับอนุมัติ", "No open requests currently match your approved skills.", "当前暂无符合您获批技能的求助任务。") : tr("ยังไม่มีคำขอเปิดที่ตรงกับเงื่อนไขการค้นหา ลองเปลี่ยนภาษา หมวดหมู่ หรือระยะค้นหา", "No open requests match these filters. Try another language, category or distance.", "没有符合筛选条件的开放求助，请调整语言、类别或距离。")}</p>}<Link className="inline-flex min-h-11 items-center gap-2 font-bold underline underline-offset-4" href="/find-requests#main-content">{tr("เปิดแผนที่ทั้งหมด", "Open the full map", "打开完整地图")}<ArrowRightIcon className="h-4 w-4" aria-hidden="true" /></Link></section>}
+    <section className={`${panel} mt-7`}><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-bold">{interpreter ? tr("ภารกิจที่ผ่านมาของคุณ", "Your past assignments", "您的历史任务") : tr("คำขอล่าสุด", "Recent requests", "最近的请求")}</h2><Link className="inline-flex min-h-11 items-center font-bold underline underline-offset-4" href={listPath}>{tr("ดูทั้งหมด", "View all", "查看全部")}</Link></div>{recent.length ? <ul className="divide-y divide-(--khvi-teal)/20">{recent.map(r => requestRow(r))}</ul> : <div className="flex items-start gap-4 py-6"><ClipboardDocumentListIcon className="h-8 w-8 shrink-0 text-(--khvi-teal)" aria-hidden="true" /><p className="text-sm leading-7">{tr("ยังไม่มีประวัติภารกิจ เมื่อคุณสร้างหรือรับงานจะแสดงที่นี่", "No history yet. Past requests and assignments will appear here.", "暂无记录，您创建或接取任务后将在此显示。")}</p></div>}</section>
     <div className="mt-7 grid gap-5 md:grid-cols-2">
       <section id="volunteer-application" className="scroll-mt-28"><ApplicationStatusCard application={activeApplication} /></section>
       <section className={panel}><ShieldCheckIcon className="h-7 w-7 text-(--khvi-teal)" aria-hidden="true" /><h2 className="mt-3 text-xl font-bold">{interpreter ? tr("ดูแลความเป็นส่วนตัว", "Look after privacy", "保护隐私") : tr("รีวิวหลังจบภารกิจ", "Review after completion", "完成后评价")}</h2><p className={muted}>{interpreter ? tr("ก่อนผู้ขอยืนยันล่าม ให้ใช้เฉพาะพื้นที่กว้าง ๆ และข้อมูลที่จำเป็นต่อการตัดสินใจรับงาน", "Before requester confirmation, use only the broad area and information needed to assess the request.", "求助者确认前，仅使用大致区域和判断任务所需的信息。") : completed.length ? tr(`มีงานที่เสร็จแล้ว ${completed.length} รายการในเครื่องนี้ ระบบยังตรวจไม่ได้ว่างานใดรีวิวแล้ว`, `${completed.length} completed records on this device. Review status is not available yet.`, `此设备有${completed.length}条已完成记录，评价状态尚不可用。`) : tr("เมื่อทั้งสองฝ่ายยืนยันจบงาน คุณจึงให้คะแนนล่ามได้ ยังไม่มีงานที่เสร็จในเครื่องนี้", "Reviews follow confirmation from both people. There are no completed records on this device yet.", "双方确认完成后才能评价，此设备暂无已完成记录。")}</p>{!interpreter && <p className="mt-4 rounded-lg bg-(--khvi-paper) p-3 text-sm leading-6">{tr("ระบบส่งรีวิวยังไม่เปิดใช้งาน", "Review submission is not available yet.", "评价提交尚未开放。")}</p>}</section>

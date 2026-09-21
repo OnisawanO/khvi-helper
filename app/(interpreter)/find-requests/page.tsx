@@ -9,11 +9,11 @@ export const metadata: Metadata = {
 };
 
 export default async function FindRequestsPage() {
-  const requests = await loadOpenInterpreterRequests();
+  const { requests, diagnostic } = await loadOpenInterpreterRequests();
 
   return (
     <WorkspaceShell requiredRole="Interpreter" alternatePath="/request-help#main-content">
-      <FindRequestsList initialRequests={requests} />
+      <FindRequestsList initialRequests={requests} diagnostic={diagnostic} />
     </WorkspaceShell>
   );
 }
