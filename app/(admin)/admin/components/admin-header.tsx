@@ -7,7 +7,6 @@ import {
   Bars3Icon,
   CheckBadgeIcon,
   ChevronDownIcon,
-  UserCircleIcon,
 } from "@heroicons/react/24/outline";
 import { BrandMark } from "@/app/components/brand-mark";
 import { UserProfile } from "@/app/lib/mock-auth";
@@ -94,7 +93,7 @@ export function AdminHeader({
 
             {/* Profile Dropdown Menu */}
             {profileMenuOpen && (
-              <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-[#d6e0e4] bg-white p-2 shadow-[0_18px_36px_rgba(19,52,68,0.16)] animate-in fade-in zoom-in-95 z-50">
+              <div role="menu" aria-label="Admin profile menu" className="absolute right-0 mt-2 w-64 rounded-2xl border border-[#d6e0e4] bg-white p-2 shadow-[0_18px_36px_rgba(19,52,68,0.16)] animate-in fade-in zoom-in-95 z-50">
                 <div className="border-b border-[#eef3f5] px-3 py-2.5">
                   <p className="text-sm font-extrabold text-[#153447]">
                     {currentUser?.name || "Ilham Khamsikeaw"}
@@ -112,19 +111,9 @@ export function AdminHeader({
                     type="button"
                     onClick={() => {
                       setProfileMenuOpen(false);
-                      alert(`Admin Profile Details:\nName: ${currentUser?.name || "Ilham Khamsikeaw"}\nEmail: ${currentUser?.email || "ilham.k@khvi-admin.org"}\nRole: ${currentUser?.role || "Admin"}`);
-                    }}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#2d4957] transition-colors hover:bg-[#f2f7f9] hover:text-[#087f80] cursor-pointer"
-                  >
-                    <UserCircleIcon className="h-4 w-4" />
-                    Profile
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setProfileMenuOpen(false);
                       onChangeAccount();
                     }}
+                    role="menuitem"
                     className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#2d4957] transition-colors hover:bg-[#f2f7f9] hover:text-[#087f80] cursor-pointer"
                   >
                     <ArrowsRightLeftIcon className="h-4 w-4" />
@@ -138,6 +127,7 @@ export function AdminHeader({
                       setProfileMenuOpen(false);
                       onSignOut();
                     }}
+                    role="menuitem"
                     className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#d93829] transition-colors hover:bg-[#fff2f0] cursor-pointer"
                   >
                     <ArrowLeftOnRectangleIcon className="h-4 w-4" />

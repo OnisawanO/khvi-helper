@@ -98,8 +98,8 @@ export function UsersTable({
 
   return (
     <div className="space-y-4">
-      {/* Filter Controls Bar */}
-      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+      {/* Filter Controls Bar: Flat Canvas Bar */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between py-1">
         {/* Search Bar */}
         <div className="relative flex-1">
           <input
@@ -107,7 +107,7 @@ export function UsersTable({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by name, email, phone or ID..."
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-10 pr-4 text-xs text-slate-800 placeholder-slate-400 focus:border-[#087f80] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#087f80]"
+            className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-10 pr-4 text-xs text-slate-800 placeholder-slate-400 focus:border-[#087f80] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#087f80]"
           />
           <DocumentMagnifyingGlassIcon className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
           {searchQuery && (
@@ -127,26 +127,23 @@ export function UsersTable({
             <select
               value={selectedStatusFilter}
               onChange={(e) => setSelectedStatusFilter(e.target.value as "All" | "Active" | "Locked")}
-              className="rounded-xl sm:rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 focus:border-[#087f80] focus:outline-none"
+              className="rounded-xl sm:rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 focus:border-[#087f80] focus:outline-none cursor-pointer"
             >
               <option value="All">All Statuses</option>
-              <option value="Active">Active</option>
-              <option value="Locked">Locked</option>
               <option value="Active">Active Only</option>
               <option value="Locked">Locked Only</option>
             </select>
           </div>
 
-          {/* Unified Filter Button (Roles, Languages & Categories) */}
           {/* Unified Filter Button (Roles, Verification, Languages & Categories) */}
           <div className="relative" ref={filterMenuRef}>
             <button
               type="button"
               onClick={() => setFilterMenuOpen(!filterMenuOpen)}
-              className={`flex items-center justify-center gap-2 rounded-xl sm:rounded-lg border px-3 py-1.5 text-xs font-bold transition-all shadow-xs cursor-pointer ${
+              className={`flex items-center justify-center gap-2 rounded-xl sm:rounded-lg border px-3 py-2 text-xs font-bold transition-all shadow-2xs cursor-pointer ${
                 activeFiltersCount > 0
                   ? "border-[#087f80] bg-[#edf7f5] text-[#087f80]"
-                  : "border-[#c9d8de] bg-white text-[#2d4957] hover:border-[#087f80] hover:bg-[#edf7f5]"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
               }`}
             >
               <AdjustmentsHorizontalIcon className="h-4 w-4 text-[#087f80]" />
@@ -193,8 +190,7 @@ export function UsersTable({
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-[11px] font-bold text-[#557180] flex items-center gap-1">
                       <UserCircleIcon className="h-3.5 w-3.5 text-[#087f80]" />
-                      Roles (เลือกได้มากกว่า 1 บทบาท)
-                      Roles
+                      Roles (Multi-Select)
                     </label>
                     {selectedRoles.length > 0 && (
                       <button
@@ -382,22 +378,22 @@ export function UsersTable({
         </div>
       </div>
 
-      {/* Users Table with Clean Modern Borderless Look */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-xs">
+      {/* Users Table: Clean Flat Canvas with Hairline Grid */}
+      <div className="border-y border-slate-200">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left text-xs text-slate-600">
-            <thead className="border-b border-slate-200/80 bg-slate-50/75 font-bold uppercase tracking-wider text-slate-500">
+            <thead className="border-b border-slate-200 bg-slate-50/75 font-bold uppercase tracking-wider text-slate-500">
               <tr>
-                <th className="py-3.5 pl-5 pr-4 w-[24%]">User & Contact</th>
+                <th className="py-3.5 pl-3 pr-4 w-[24%]">User & Contact</th>
                 <th className="px-3.5 py-3.5 w-[11%] text-center">Role</th>
-                <th className="px-3.5 py-3.5 w-[10%] text-center">Rating</th>
                 <th className="px-3.5 py-3.5 w-[13%]">Primary Lang</th>
                 <th className="px-3.5 py-3.5 w-[20%]">Spoken Languages</th>
+                <th className="px-3.5 py-3.5 w-[10%] text-center">Rating</th>
                 <th className="px-3.5 py-3.5 w-[11%] text-center">Status</th>
-                <th className="py-3.5 pl-3 pr-5 text-right w-[11%]">Last Active</th>
+                <th className="py-3.5 pl-3 pr-3 text-right w-[11%]">Last Active</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100/90">
+            <tbody className="divide-y divide-slate-100">
               {users.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-400">
@@ -416,7 +412,7 @@ export function UsersTable({
                     }`}
                   >
                     {/* User & Contact */}
-                    <td className="py-3.5 pl-5 pr-4">
+                    <td className="py-3.5 pl-3 pr-4">
                       <div className="font-bold text-[#092f45]">{u.name}</div>
                       <div className="text-[11px] text-slate-500 truncate">{u.email}</div>
                       <div className="text-[10px] text-slate-400 font-mono">
@@ -441,18 +437,6 @@ export function UsersTable({
                       </span>
                     </td>
 
-                    {/* Rating */}
-                    <td className="px-3.5 py-3.5 text-center">
-                      {u.interpreterStats?.rating ? (
-                        <span className="inline-flex items-center justify-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-extrabold text-amber-700 border border-amber-200">
-                          <StarIcon className="h-3 w-3 fill-amber-500 text-amber-500" />
-                          <span>{u.interpreterStats.rating.toFixed(1)}</span>
-                        </span>
-                      ) : (
-                        <span className="text-slate-300 font-semibold">-</span>
-                      )}
-                    </td>
-
                     {/* Primary Language */}
                     <td className="px-3.5 py-3.5 font-semibold text-[#092f45]">
                       <span className="inline-flex items-center gap-1">
@@ -463,10 +447,10 @@ export function UsersTable({
                     {/* Spoken Languages */}
                     <td className="px-3.5 py-3.5">
                       <div className="flex flex-wrap gap-1">
-                        {u.spokenLanguages.map((lang) => (
+                        {u.spokenLanguages?.map((lang) => (
                           <span
                             key={lang}
-                            className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 border border-slate-200/50"
+                            className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 border border-slate-200"
                           >
                             {lang}
                           </span>
@@ -474,23 +458,58 @@ export function UsersTable({
                       </div>
                     </td>
 
-                    {/* Security Status */}
+                    {/* Rating / Review Stats */}
                     <td className="px-3.5 py-3.5 text-center">
-                      {u.isLocked ? (
-                        <div className="inline-flex items-center justify-center gap-1 min-w-[72px] rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-[#f04f3e] border border-red-200/70">
-                          <LockClosedIcon className="h-3 w-3 shrink-0" />
-                          <span>Locked</span>
+                      {u.role === "Interpreter" && u.interpreterStats ? (
+                        <div className="inline-flex items-center gap-1 text-amber-600 font-bold">
+                          <StarIcon className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
+                          <span>{u.interpreterStats.rating.toFixed(1)}</span>
                         </div>
                       ) : (
-                        <div className="inline-flex items-center justify-center gap-1 min-w-[72px] rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200/70">
-                          <CheckCircleIcon className="h-3 w-3 shrink-0" />
-                          <span>Active</span>
-                        </div>
+                        <span className="text-slate-300 font-mono">-</span>
                       )}
                     </td>
 
+                    {/* Status & Accreditation */}
+                    <td className="px-3.5 py-3.5 text-center">
+                      <div className="inline-flex flex-col items-center gap-1">
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                            u.isLocked
+                              ? "bg-red-100 text-red-700 border border-red-200/80"
+                              : "bg-emerald-100 text-emerald-700 border border-emerald-200/80"
+                          }`}
+                        >
+                          {u.isLocked ? (
+                            <>
+                              <LockClosedIcon className="h-3 w-3" />
+                              <span>Locked</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                              <span>Active</span>
+                            </>
+                          )}
+                        </span>
+                        {u.role === "Interpreter" && u.interpreterStats && (
+                          <span
+                            className={`text-[9px] font-bold uppercase tracking-wider ${
+                              u.interpreterStats.verificationStatus === "Approved"
+                                ? "text-[#087f80]"
+                                : u.interpreterStats.verificationStatus === "Pending"
+                                ? "text-amber-600"
+                                : "text-slate-400"
+                            }`}
+                          >
+                            {u.interpreterStats.verificationStatus}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
                     {/* Last Active */}
-                    <td className="py-3.5 pl-3 pr-5 text-right text-slate-500 text-[11px] font-medium whitespace-nowrap">
+                    <td className="py-3.5 pl-3 pr-3 text-right text-slate-500 text-[11px] font-medium whitespace-nowrap">
                       {u.lastActive}
                     </td>
                   </tr>

@@ -61,6 +61,7 @@ export function AdminRailBar({
             }`}
             title="System Overview & Analytics (ภาพรวมและสถิติระบบ)"
             aria-label="System Overview"
+            aria-pressed={activeTab === "overview"}
           >
             <ChartBarSquareIcon className="h-5 w-5" />
           </button>
@@ -78,6 +79,7 @@ export function AdminRailBar({
             }`}
             title="User Management (จัดการผู้ใช้ทั้งหมด)"
             aria-label="User Management"
+            aria-pressed={activeTab === "users"}
           >
             <UserGroupIcon className="h-5 w-5" />
             {totalUsersCount > 0 && (
@@ -98,10 +100,11 @@ export function AdminRailBar({
             }`}
             title="Escalated Incident Reports (รายงานพฤติกรรมไม่เหมาะสมจาก Manager)"
             aria-label="Escalated Incident Reports"
+            aria-pressed={activeTab === "reports"}
           >
             <ShieldExclamationIcon className="h-5 w-5" />
             {pendingReportsCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-black text-white ring-1 ring-[#092f45] animate-pulse">
+              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-black text-white ring-1 ring-[#092f45]">
                 {pendingReportsCount}
               </span>
             )}
@@ -118,6 +121,7 @@ export function AdminRailBar({
             }`}
             title="System Audit Trail (บันทึกความปลอดภัยและประวัติ)"
             aria-label="System Audit Trail"
+            aria-pressed={activeTab === "audit"}
           >
             <DocumentMagnifyingGlassIcon className="h-5 w-5" />
             {auditLogsCount > 0 && (
@@ -138,6 +142,7 @@ export function AdminRailBar({
             }`}
             title="Platform Governance Policies (นโยบายและข้อกำหนดแพลตฟอร์ม)"
             aria-label="Platform Governance Policies"
+            aria-pressed={activeTab === "policies"}
           >
             <Cog6ToothIcon className="h-5 w-5" />
           </button>

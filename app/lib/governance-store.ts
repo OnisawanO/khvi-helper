@@ -179,6 +179,15 @@ export const governanceStore = {
     });
   },
 
+  reloadFromStorage: () => {
+    if (typeof window !== "undefined") {
+      memoryUsers = loadFromStorage<AdminUserRecord[]>(USERS_KEY, initialUsers);
+      memoryReports = loadFromStorage<AdminIncidentReport[]>(REPORTS_KEY, initialEscalatedReports);
+      memoryAuditLogs = loadFromStorage<AuditLogEntry[]>(AUDIT_KEY, initialAuditLogs);
+      notify();
+    }
+  },
+
   subscribe: (listener: () => void) => {
     listeners.add(listener);
     return () => {
@@ -204,6 +213,7 @@ export function useGovernanceStore() {
     escalateReportToAdmin: governanceStore.escalateReportToAdmin,
     resolveReport: governanceStore.resolveReport,
     addAuditLog: governanceStore.addAuditLog,
+    reloadFromStorage: governanceStore.reloadFromStorage,
   };
 }
 

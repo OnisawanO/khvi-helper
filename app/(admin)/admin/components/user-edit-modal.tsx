@@ -12,9 +12,6 @@ import {
   XMarkIcon,
   ExclamationTriangleIcon,
   UserMinusIcon,
-  NoSymbolIcon,
-  LockOpenIcon,
-  BoltIcon,
 } from "@heroicons/react/24/outline";
 import { AdminIncidentReport, AdminUserRecord, SystemRole } from "../types";
 
@@ -31,9 +28,7 @@ interface UserEditModalProps {
   onSave: () => void;
   incidentReports?: AdminIncidentReport[];
   onRevokeInterpreter?: (user: AdminUserRecord, reason: string) => void;
-  onDirectLock?: (user: AdminUserRecord) => void;
   onDirectHardBan?: (user: AdminUserRecord) => void;
-  onDirectUnlock?: (user: AdminUserRecord) => void;
 }
 
 export function UserEditModal({
@@ -49,9 +44,7 @@ export function UserEditModal({
   onSave,
   incidentReports = [],
   onRevokeInterpreter,
-  onDirectLock,
   onDirectHardBan,
-  onDirectUnlock,
 }: UserEditModalProps) {
   const [isRevoking, setIsRevoking] = useState(false);
   const [revokeReason, setRevokeReason] = useState("");
@@ -180,72 +173,29 @@ export function UserEditModal({
                 <p className="mt-1 text-[10px] leading-relaxed opacity-90">{riskAssessment.desc}</p>
               </div>
 
-              {/* Account Security Status & Quick Enforcement */}
-              <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-2 shadow-2xs">
-                <div>
-                  <span className="font-bold text-slate-400 uppercase text-[10px] block">Security Enforcement Status</span>
-                  <div className="flex items-center justify-between mt-0.5">
-                    <p className={`font-bold text-xs ${user.isLocked ? "text-[#f04f3e]" : "text-emerald-600"}`}>
-                      {user.accountStatus === "Banned"
-                        ? "Permanently Banned"
-                        : user.isLocked
-                        ? "Suspended (Locked)"
-                        : "Active / Operational"}
-                    </p>
-                    <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${
-                      user.isLocked ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"
-                    }`}>
-                      {user.isLocked ? "Restricted" : "Clear"}
-                    </span>
-                  </div>
-                  {user.lockReason && (
-                    <p className="mt-1 text-[10px] text-red-600 bg-red-50/70 p-1.5 rounded border border-red-100 italic">
-                      &ldquo;{user.lockReason}&rdquo;
-                    </p>
-                  )}
+              {/* Account Security Status (Read-only status display) */}
+              <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-1.5 shadow-2xs">
+                <span className="font-bold text-slate-400 uppercase text-[10px] block">
+                  Security Enforcement Status
+                </span>
+                <div className="flex items-center justify-between mt-0.5">
+                  <p className={`font-bold text-xs ${user.isLocked ? "text-[#f04f3e]" : "text-emerald-600"}`}>
+                    {user.accountStatus === "Banned"
+                      ? "Permanently Banned"
+                      : user.isLocked
+                      ? "Suspended (Locked)"
+                      : "Active / Operational"}
+                  </p>
+                  <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${
+                    user.isLocked ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"
+                  }`}>
+                    {user.isLocked ? "Restricted" : "Clear"}
+                  </span>
                 </div>
-
-                {/* Direct Enforcement Quick Action Buttons (Admin Only) */}
-                {user.role !== "Admin" && (
-                  <div className="pt-2 border-t border-slate-100 space-y-1.5">
-                    <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase">
-                      <BoltIcon className="h-3 w-3 text-amber-500" />
-                      <span>Direct Enforcement</span>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-1.5">
-                      {user.isLocked ? (
-                        <button
-                          type="button"
-                          onClick={() => onDirectUnlock && onDirectUnlock(user)}
-                          className="flex w-full items-center justify-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer shadow-2xs"
-                        >
-                          <LockOpenIcon className="h-3.5 w-3.5 text-emerald-600" />
-                          <span>Unlock Account</span>
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => onDirectLock && onDirectLock(user)}
-                          className="flex w-full items-center justify-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition-colors cursor-pointer shadow-2xs"
-                        >
-                          <LockClosedIcon className="h-3.5 w-3.5 text-amber-600" />
-                          <span>Suspend / Soft Lock</span>
-                        </button>
-                      )}
-
-                      {!isHardBanned && (
-                        <button
-                          type="button"
-                          onClick={() => onDirectHardBan && onDirectHardBan(user)}
-                          className="flex w-full items-center justify-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100 transition-colors cursor-pointer shadow-2xs"
-                        >
-                          <NoSymbolIcon className="h-3.5 w-3.5 text-red-600" />
-                          <span>Hard Ban Account</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
+                {user.lockReason && (
+                  <p className="mt-1 text-[10px] text-red-600 bg-red-50/70 p-1.5 rounded border border-red-100 italic">
+                    &ldquo;{user.lockReason}&rdquo;
+                  </p>
                 )}
               </div>
 
@@ -371,17 +321,36 @@ export function UserEditModal({
               )}
 
               {tempRole !== "Admin" && tempIsLocked && (
-                <div className="space-y-2 animate-in fade-in">
-                  <label className="block text-xs font-bold text-[#f04f3e]">
-                    Reason for Account Suspension (Mandatory for Audit Trail):
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={tempLockReason}
-                    onChange={(e) => setTempLockReason(e.target.value)}
-                    placeholder="e.g. Disciplinary breach, false distress signal generation, or security compromise..."
-                    className="w-full rounded-xl border border-red-300 bg-red-50/20 p-3 text-xs text-slate-800 placeholder-slate-400 focus:border-[#f04f3e] focus:outline-none focus:ring-1 focus:ring-[#f04f3e]"
-                  />
+                <div className="space-y-3 animate-in fade-in">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-[#f04f3e]">
+                      Reason for Account Suspension (Mandatory for Audit Trail):
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={tempLockReason}
+                      onChange={(e) => setTempLockReason(e.target.value)}
+                      placeholder="e.g. Disciplinary breach, false distress signal generation, or security compromise..."
+                      className="w-full rounded-xl border border-red-300 bg-red-50/20 p-3 text-xs text-slate-800 placeholder-slate-400 focus:border-[#f04f3e] focus:outline-none focus:ring-1 focus:ring-[#f04f3e]"
+                    />
+                  </div>
+
+                  {/* Optional Permanent Hard Ban Escalation */}
+                  {user.accountStatus !== "Banned" && onDirectHardBan && (
+                    <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50/50 p-3">
+                      <div>
+                        <p className="text-xs font-bold text-red-900">Permanent Hard Ban</p>
+                        <p className="text-[11px] text-red-700/80">Permanently terminate account credentials and blacklists device</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onDirectHardBan(user)}
+                        className="rounded-lg border border-red-300 bg-white px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100 transition-colors cursor-pointer shadow-2xs shrink-0"
+                      >
+                        Hard Ban Account
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

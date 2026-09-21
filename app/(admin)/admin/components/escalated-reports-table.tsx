@@ -153,11 +153,11 @@ export function EscalatedReportsTable({
 
   return (
     <div className="space-y-4 animate-in fade-in duration-200">
-      {/* Overview Banner & Filter bar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-red-200 bg-red-50/40 p-4 shadow-xs">
+      {/* Overview Banner & Filter bar: Flat Canvas Minimalist Header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-slate-200">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600">
-            <ShieldExclamationIcon className="h-6 w-6" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600 border border-red-200/60">
+            <ShieldExclamationIcon className="h-5 w-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -170,23 +170,23 @@ export function EscalatedReportsTable({
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-slate-500">
               Critical platform misconduct cases escalated by Field Managers requiring Hard Ban or Security Lock decisions.
             </p>
           </div>
         </div>
 
-        {/* Severity Filter Pills: Sorted from low to high */}
-        <div className="flex items-center gap-1.5 self-start sm:self-auto bg-white/80 p-1 rounded-xl border border-slate-200">
+        {/* Severity Filter Pills: Compact Flat Segmented Pills */}
+        <div className="flex items-center gap-1 self-start sm:self-auto rounded-lg border border-slate-200 bg-slate-50/70 p-0.5">
           {(["All", "medium", "high", "critical"] as const).map((sev) => (
             <button
               key={sev}
               type="button"
               onClick={() => setFilterSeverity(sev)}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+              className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${
                 filterSeverity === sev
-                  ? "bg-[#092f45] text-white shadow-xs"
-                  : "text-slate-600 hover:bg-slate-100"
+                  ? "bg-white text-[#092f45] shadow-xs border border-slate-200/80"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
               }`}
             >
               {sev === "All"
@@ -201,8 +201,8 @@ export function EscalatedReportsTable({
         </div>
       </div>
 
-      {/* Search and Advanced Filter Toolbar */}
-      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs md:flex-row md:items-center md:justify-between">
+      {/* Search and Advanced Filter Toolbar: Flat Canvas Bar */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between py-1">
         {/* Search Bar */}
         <div className="relative flex-1">
           <input
@@ -210,7 +210,7 @@ export function EscalatedReportsTable({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search cases by ID, user, volunteer, booking or incident reason..."
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-10 pr-4 text-xs text-slate-800 placeholder-slate-400 focus:border-[#087f80] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#087f80]"
+            className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-10 pr-4 text-xs text-slate-800 placeholder-slate-400 focus:border-[#087f80] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#087f80]"
           />
           <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
           {searchQuery && (
@@ -231,7 +231,7 @@ export function EscalatedReportsTable({
             <select
               value={activeStatusFilter}
               onChange={(e) => handleStatusChange(e.target.value as ReportStatusFilter)}
-              className="rounded-xl sm:rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 focus:border-[#087f80] focus:outline-none"
+              className="rounded-xl sm:rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 focus:border-[#087f80] focus:outline-none cursor-pointer"
             >
               <option value="All">All Statuses</option>
               <option value="Pending">Pending Action Only</option>
@@ -246,10 +246,10 @@ export function EscalatedReportsTable({
             <button
               type="button"
               onClick={() => setFilterMenuOpen(!filterMenuOpen)}
-              className={`flex items-center justify-center gap-2 rounded-xl sm:rounded-lg border px-3 py-1.5 text-xs font-bold transition-all shadow-xs cursor-pointer ${
+              className={`flex items-center justify-center gap-2 rounded-xl sm:rounded-lg border px-3 py-2 text-xs font-bold transition-all shadow-2xs cursor-pointer ${
                 activeFiltersCount > 0
                   ? "border-[#087f80] bg-[#edf7f5] text-[#087f80]"
-                  : "border-[#c9d8de] bg-white text-[#2d4957] hover:border-[#087f80] hover:bg-[#edf7f5]"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
               }`}
             >
               <AdjustmentsHorizontalIcon className="h-4 w-4 text-[#087f80]" />
@@ -395,8 +395,8 @@ export function EscalatedReportsTable({
         </div>
       </div>
 
-      {/* Reports Table Container */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs">
+      {/* Reports Table Container: Clean Flat Canvas with Hairline Grid */}
+      <div className="border-y border-slate-200">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
@@ -605,6 +605,8 @@ export function EscalatedReportsTable({
                               ? "bg-slate-900 text-red-300 border border-slate-700"
                               : report.status === "Resolved (Locked)"
                               ? "bg-amber-100 text-amber-800 border border-amber-200"
+                              : report.status === "Resolved (Unlocked)"
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                               : "bg-slate-100 text-slate-600 border border-slate-200"
                           }`}
                         >
@@ -744,43 +746,194 @@ export function EscalatedReportsTable({
       )}
 
       {/* Case Resolution Detail Modal */}
-      {selectedReportDetail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-extrabold text-[#092f45]">
-                Case History & Details • {selectedReportDetail.id}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setSelectedReportDetail(null)}
-                className="text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="space-y-2 text-xs text-slate-700">
-              <p><strong>Reported User:</strong> {selectedReportDetail.reportedUserName} ({selectedReportDetail.reportedUserId})</p>
-              <p><strong>Escalated by:</strong> {selectedReportDetail.reporterName} ({selectedReportDetail.reporterRole})</p>
-              <p><strong>Reason (English):</strong> {selectedReportDetail.reason}</p>
-              {selectedReportDetail.originalReason && (
-                <p><strong>Original Reason ({selectedReportDetail.originalLanguage}):</strong> {selectedReportDetail.originalReason}</p>
-              )}
-              <p><strong>Enforcement Status:</strong> {selectedReportDetail.status}</p>
-              <p><strong>Action Log Note:</strong> {selectedReportDetail.actionTaken || "-"}</p>
-            </div>
-            <div className="flex justify-end pt-2">
-              <button
-                type="button"
-                onClick={() => setSelectedReportDetail(null)}
-                className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
-              >
-                Close
-              </button>
+      {selectedReportDetail && (() => {
+        const reportedUser = users.find((u) => u.id === selectedReportDetail.reportedUserId);
+        const reporterUser = users.find((u) => u.name === selectedReportDetail.reporterName);
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs animate-in fade-in">
+            <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl space-y-5 animate-in zoom-in-95">
+              {/* Modal Header */}
+              <div className="flex items-start justify-between border-b border-slate-100 pb-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      {selectedReportDetail.id}
+                    </span>
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase ${
+                        selectedReportDetail.severity === "critical"
+                          ? "bg-red-50 text-red-700 border border-red-200"
+                          : selectedReportDetail.severity === "high"
+                          ? "bg-amber-50 text-amber-800 border border-amber-200"
+                          : "bg-blue-50 text-blue-700 border border-blue-200"
+                      }`}
+                    >
+                      <ExclamationTriangleIcon className="h-3 w-3" />
+                      {selectedReportDetail.severity} Severity
+                    </span>
+                    <span
+                      className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                        selectedReportDetail.status === "Escalated to Admin"
+                          ? "bg-red-50 text-red-600 border border-red-200"
+                          : selectedReportDetail.status === "Resolved (Hard Banned)"
+                          ? "bg-slate-900 text-red-300 border border-slate-700"
+                          : selectedReportDetail.status === "Resolved (Locked)"
+                          ? "bg-amber-100 text-amber-800 border border-amber-200"
+                          : selectedReportDetail.status === "Resolved (Unlocked)"
+                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                          : "bg-slate-100 text-slate-600 border border-slate-200"
+                      }`}
+                    >
+                      {selectedReportDetail.status}
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-extrabold text-[#092f45]">
+                    Incident Dossier & Case History
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Logged: {selectedReportDetail.createdAt} • Mission ID: <span className="font-mono font-medium text-slate-700">{selectedReportDetail.bookingId}</span>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedReportDetail(null)}
+                  className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 cursor-pointer transition-colors"
+                >
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Parties Involved Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Reported User Card */}
+                <div className="rounded-xl border border-red-100 bg-red-50/30 p-3.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-red-600 uppercase tracking-wide flex items-center gap-1">
+                      <ShieldExclamationIcon className="h-3.5 w-3.5" />
+                      Reported Target
+                    </span>
+                    <span className="rounded-full bg-white border border-red-200 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                      {selectedReportDetail.reportedUserRole}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-red-100 font-bold text-red-700 text-xs shadow-2xs">
+                      {selectedReportDetail.reportedUserName.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-extrabold text-slate-900 truncate">
+                        {selectedReportDetail.reportedUserName}
+                      </p>
+                      <p className="font-mono text-[11px] text-slate-500">
+                        {selectedReportDetail.reportedUserId}
+                      </p>
+                    </div>
+                  </div>
+                  {reportedUser && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedReportDetail(null);
+                        onOpenUserDetail(reportedUser);
+                      }}
+                      className="w-full text-center text-[11px] font-bold text-[#092f45] hover:underline pt-1 cursor-pointer"
+                    >
+                      View User Profile & Governance &rarr;
+                    </button>
+                  )}
+                </div>
+
+                {/* Reporter Card */}
+                <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wide flex items-center gap-1">
+                      <ShieldCheckIcon className="h-3.5 w-3.5 text-slate-500" />
+                      Reported By
+                    </span>
+                    <span className="rounded-full bg-white border border-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                      {selectedReportDetail.reporterRole}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 font-bold text-slate-700 text-xs shadow-2xs">
+                      {selectedReportDetail.reporterName.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-extrabold text-slate-900 truncate">
+                        {selectedReportDetail.reporterName}
+                      </p>
+                      <p className="text-[11px] text-slate-500">
+                        Incident Escalator
+                      </p>
+                    </div>
+                  </div>
+                  {reporterUser && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedReportDetail(null);
+                        onOpenUserDetail(reporterUser);
+                      }}
+                      className="w-full text-center text-[11px] font-bold text-[#092f45] hover:underline pt-1 cursor-pointer"
+                    >
+                      View Reporter Profile &rarr;
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Incident Description & Testimony */}
+              <div className="space-y-2.5">
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                  Incident Report & Description
+                </label>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-xs text-slate-800 leading-relaxed space-y-2">
+                  <p className="font-semibold text-slate-900">
+                    &ldquo;{selectedReportDetail.reason}&rdquo;
+                  </p>
+
+                  {/* Native Language Testimony snippet if available */}
+                  {selectedReportDetail.originalReason && (
+                    <div className="mt-2 rounded-lg border border-amber-200/80 bg-amber-50/50 p-2.5 text-[11px] text-amber-900">
+                      <div className="flex items-center gap-1.5 font-bold text-amber-800 mb-1">
+                        <LanguageIcon className="h-3.5 w-3.5 text-amber-700" />
+                        Original Native Testimony ({selectedReportDetail.originalLanguage || "Original"})
+                      </div>
+                      <p className="italic font-medium text-amber-950/80">
+                        &ldquo;{selectedReportDetail.originalReason}&rdquo;
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Resolution & Enforcement Audit Log Note */}
+              <div className="rounded-xl border border-slate-200 bg-white p-3.5 space-y-1.5 shadow-2xs">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                  Resolution & Enforcement Audit Note
+                </span>
+                <p className="text-xs text-slate-700 font-mono">
+                  {selectedReportDetail.actionTaken || "No enforcement actions or notes recorded yet."}
+                </p>
+              </div>
+
+              {/* Action Footer */}
+              <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+                <div className="text-[11px] text-slate-400">
+                  Case ID: <span className="font-mono">{selectedReportDetail.id}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedReportDetail(null)}
+                  className="rounded-xl bg-slate-900 px-5 py-2 text-xs font-bold text-white hover:bg-slate-800 shadow-xs cursor-pointer transition-colors"
+                >
+                  Close Dossier
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

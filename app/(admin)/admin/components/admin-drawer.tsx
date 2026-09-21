@@ -101,6 +101,8 @@ export function AdminDrawer({
                   setActiveTab("overview");
                   onClose();
                 }}
+                type="button"
+                aria-current={activeTab === "overview" ? "page" : undefined}
                 className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
                   activeTab === "overview"
                     ? "bg-[#087f80] text-white shadow-md"
@@ -125,6 +127,8 @@ export function AdminDrawer({
                   setActiveTab("users");
                   onClose();
                 }}
+                type="button"
+                aria-current={activeTab === "users" ? "page" : undefined}
                 className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
                   activeTab === "users"
                     ? "bg-[#087f80] text-white shadow-md"
@@ -159,6 +163,8 @@ export function AdminDrawer({
                   setActiveTab("reports");
                   onClose();
                 }}
+                type="button"
+                aria-current={activeTab === "reports" ? "page" : undefined}
                 className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
                   activeTab === "reports"
                     ? "bg-red-600 text-white shadow-md shadow-red-900/40"
@@ -170,7 +176,7 @@ export function AdminDrawer({
                   <span>Escalated Reports</span>
                 </div>
                 {pendingReportsCount > 0 && (
-                  <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black text-white ring-1 ring-white/20 animate-pulse">
+                  <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black text-white ring-1 ring-white/20">
                     {pendingReportsCount}
                   </span>
                 )}
@@ -181,6 +187,8 @@ export function AdminDrawer({
                   setActiveTab("audit");
                   onClose();
                 }}
+                type="button"
+                aria-current={activeTab === "audit" ? "page" : undefined}
                 className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
                   activeTab === "audit"
                     ? "bg-[#087f80] text-white shadow-md"
@@ -207,6 +215,8 @@ export function AdminDrawer({
                   setActiveTab("policies");
                   onClose();
                 }}
+                type="button"
+                aria-current={activeTab === "policies" ? "page" : undefined}
                 className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
                   activeTab === "policies"
                     ? "bg-[#087f80] text-white shadow-md"

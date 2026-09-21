@@ -10,6 +10,7 @@ import {
   StarIcon,
   ClockIcon,
   PlusIcon,
+  MinusIcon,
   TrashIcon,
   CheckIcon,
 } from "@heroicons/react/24/outline";
@@ -155,31 +156,52 @@ export function SystemSettingsModal({
                   <div className="flex items-center gap-2">
                     <SignalIcon className="h-5 w-5 text-[#087f80]" />
                     <label className="text-sm font-bold text-[#092f45]">
-                      Emergency SOS Dispatch Radius
+                      รัศมีค้นหาล่าม (Emergency SOS Dispatch Radius)
                     </label>
                   </div>
-                  <span className="rounded-full bg-[#edf7f5] px-3 py-1 text-xs font-extrabold text-[#087f80]">
-                    {formData.sosDispatchRadiusKm} km
+                  <span className="text-[11px] font-semibold text-slate-400">
+                    ค่าแนะนำ: 3 - 50 km
                   </span>
                 </div>
                 <p className="text-xs text-slate-500">
-                  Maximum proximity distance for volunteer interpreters to receive SOS broadcast distress notifications.
+                  ระยะทางสูงสุดจากพิกัดเกิดเหตุที่จะส่งสัญญาณแจ้งเตือนไปยังล่ามอาสาในพื้นที่
                 </p>
-                <input
-                  type="range"
-                  min={3}
-                  max={50}
-                  step={1}
-                  value={formData.sosDispatchRadiusKm}
-                  onChange={(e) =>
-                    setFormData({ ...formData, sosDispatchRadiusKm: Number(e.target.value) })
-                  }
-                  className="w-full accent-[#087f80] cursor-pointer"
-                />
-                <div className="flex justify-between text-[11px] text-slate-400">
-                  <span>3 km (Dense Urban)</span>
-                  <span>15 km (Standard)</span>
-                  <span>50 km (Rural / Wide Area)</span>
+                <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50/70 shadow-2xs focus-within:border-slate-300 focus-within:ring-2 focus-within:ring-slate-200/60 focus-within:bg-white transition-all overflow-hidden max-w-md">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFormData({ ...formData, sosDispatchRadiusKm: Math.max(1, formData.sosDispatchRadiusKm - 1) })
+                    }
+                    className="flex h-10 w-10 shrink-0 items-center justify-center text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 active:bg-slate-200 transition-colors cursor-pointer border-r border-slate-200"
+                    title="ลดลง 1 km"
+                  >
+                    <MinusIcon className="h-4 w-4" />
+                  </button>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    step={1}
+                    value={formData.sosDispatchRadiusKm}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      if (!isNaN(val)) setFormData({ ...formData, sosDispatchRadiusKm: val });
+                    }}
+                    className="w-full bg-transparent px-3 py-2 text-sm font-extrabold text-[#092f45] text-center focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFormData({ ...formData, sosDispatchRadiusKm: Math.min(100, formData.sosDispatchRadiusKm + 1) })
+                    }
+                    className="flex h-10 w-10 shrink-0 items-center justify-center text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 active:bg-slate-200 transition-colors cursor-pointer border-l border-slate-200"
+                    title="เพิ่มขึ้น 1 km"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                  </button>
+                  <div className="shrink-0 bg-slate-100 border-l border-slate-200 px-3.5 py-2.5 text-xs font-bold text-slate-600 select-none">
+                    กิโลเมตร (km)
+                  </div>
                 </div>
               </div>
 
@@ -189,34 +211,58 @@ export function SystemSettingsModal({
                   <div className="flex items-center gap-2">
                     <StarIcon className="h-5 w-5 text-amber-500 fill-amber-500" />
                     <label className="text-sm font-bold text-[#092f45]">
-                      Interpreter Minimum Quality Rating Threshold
+                      เกณฑ์คะแนนรีวิวขั้นต่ำ (Interpreter Min Rating Threshold)
                     </label>
                   </div>
-                  <span className="rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-extrabold text-amber-700">
-                    ★ {formData.interpreterMinRatingThreshold} / 5.0
+                  <span className="text-[11px] font-semibold text-slate-400">
+                    เกณฑ์มาตรฐาน: 3.5 ดาว
                   </span>
                 </div>
                 <p className="text-xs text-slate-500">
-                  Interpreters falling below this rating score after 5 missions are flagged automatically for Manager counseling review.
+                  ล่ามอาสาที่มีคะแนนรีวิวสะสมต่ำกว่าเกณฑ์นี้จะถูกส่งเรื่องให้ Manager ตรวจสอบพฤติกรรม
                 </p>
-                <input
-                  type="range"
-                  min={3.0}
-                  max={4.8}
-                  step={0.1}
-                  value={formData.interpreterMinRatingThreshold}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      interpreterMinRatingThreshold: Number(e.target.value),
-                    })
-                  }
-                  className="w-full accent-amber-500 cursor-pointer"
-                />
-                <div className="flex justify-between text-[11px] text-slate-400">
-                  <span>3.0 (Relaxed)</span>
-                  <span>3.5 (Recommended)</span>
-                  <span>4.8 (High Assurance)</span>
+                <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50/70 shadow-2xs focus-within:border-slate-300 focus-within:ring-2 focus-within:ring-slate-200/60 focus-within:bg-white transition-all overflow-hidden max-w-md">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFormData({
+                        ...formData,
+                        interpreterMinRatingThreshold: Number(Math.max(1.0, formData.interpreterMinRatingThreshold - 0.1).toFixed(1)),
+                      })
+                    }
+                    className="flex h-10 w-10 shrink-0 items-center justify-center text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 active:bg-slate-200 transition-colors cursor-pointer border-r border-slate-200"
+                    title="ลดลง 0.1 ดาว"
+                  >
+                    <MinusIcon className="h-4 w-4" />
+                  </button>
+                  <input
+                    type="number"
+                    min={1.0}
+                    max={5.0}
+                    step={0.1}
+                    value={formData.interpreterMinRatingThreshold}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      if (!isNaN(val)) setFormData({ ...formData, interpreterMinRatingThreshold: val });
+                    }}
+                    className="w-full bg-transparent px-3 py-2 text-sm font-extrabold text-[#092f45] text-center focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFormData({
+                        ...formData,
+                        interpreterMinRatingThreshold: Number(Math.min(5.0, formData.interpreterMinRatingThreshold + 0.1).toFixed(1)),
+                      })
+                    }
+                    className="flex h-10 w-10 shrink-0 items-center justify-center text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 active:bg-slate-200 transition-colors cursor-pointer border-l border-slate-200"
+                    title="เพิ่มขึ้น 0.1 ดาว"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                  </button>
+                  <div className="shrink-0 bg-slate-100 border-l border-slate-200 px-3.5 py-2.5 text-xs font-bold text-slate-600 select-none">
+                    ★ ดาว / 5.0 (Rating)
+                  </div>
                 </div>
               </div>
 
@@ -226,34 +272,58 @@ export function SystemSettingsModal({
                   <div className="flex items-center gap-2">
                     <ClockIcon className="h-5 w-5 text-[#f04f3e]" />
                     <label className="text-sm font-bold text-[#092f45]">
-                      Urgent Ticket Auto-Escalation SLA
+                      เวลาส่งต่อเคสอัตโนมัติ (Urgent Ticket Auto-Escalation SLA)
                     </label>
                   </div>
-                  <span className="rounded-full bg-red-50 border border-red-200 px-3 py-1 text-xs font-extrabold text-red-700">
-                    {formData.autoEscalateTicketMinutes} Minutes
+                  <span className="text-[11px] font-semibold text-slate-400">
+                    ค่าแนะนำ: 5 - 60 mins
                   </span>
                 </div>
                 <p className="text-xs text-slate-500">
-                  If an urgent SOS assistance ticket is not responded to by a coordinator within this window, it escalates directly to the Administrator high-priority queue.
+                  หากไม่มีล่ามกดรับงานภายในเวลาที่กำหนด ระบบจะแจ้งเตือนเร่งด่วนไปยัง Field Manager
                 </p>
-                <input
-                  type="range"
-                  min={5}
-                  max={60}
-                  step={5}
-                  value={formData.autoEscalateTicketMinutes}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      autoEscalateTicketMinutes: Number(e.target.value),
-                    })
-                  }
-                  className="w-full accent-[#f04f3e] cursor-pointer"
-                />
-                <div className="flex justify-between text-[11px] text-slate-400">
-                  <span>5 mins (Emergency Critical)</span>
-                  <span>20 mins (Standard)</span>
-                  <span>60 mins (Relaxed)</span>
+                <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50/70 shadow-2xs focus-within:border-slate-300 focus-within:ring-2 focus-within:ring-slate-200/60 focus-within:bg-white transition-all overflow-hidden max-w-md">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFormData({
+                        ...formData,
+                        autoEscalateTicketMinutes: Math.max(1, formData.autoEscalateTicketMinutes - 5),
+                      })
+                    }
+                    className="flex h-10 w-10 shrink-0 items-center justify-center text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 active:bg-slate-200 transition-colors cursor-pointer border-r border-slate-200"
+                    title="ลดลง 5 นาที"
+                  >
+                    <MinusIcon className="h-4 w-4" />
+                  </button>
+                  <input
+                    type="number"
+                    min={1}
+                    max={180}
+                    step={1}
+                    value={formData.autoEscalateTicketMinutes}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      if (!isNaN(val)) setFormData({ ...formData, autoEscalateTicketMinutes: val });
+                    }}
+                    className="w-full bg-transparent px-3 py-2 text-sm font-extrabold text-[#092f45] text-center focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFormData({
+                        ...formData,
+                        autoEscalateTicketMinutes: Math.min(180, formData.autoEscalateTicketMinutes + 5),
+                      })
+                    }
+                    className="flex h-10 w-10 shrink-0 items-center justify-center text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 active:bg-slate-200 transition-colors cursor-pointer border-l border-slate-200"
+                    title="เพิ่มขึ้น 5 นาที"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                  </button>
+                  <div className="shrink-0 bg-slate-100 border-l border-slate-200 px-3.5 py-2.5 text-xs font-bold text-slate-600 select-none">
+                    นาที (mins)
+                  </div>
                 </div>
               </div>
 

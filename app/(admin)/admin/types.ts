@@ -39,7 +39,7 @@ export type AdminIncidentReport = {
   originalLanguage?: string; // e.g., "Spanish", "Thai", "Russian", "Japanese"
   severity: "high" | "critical" | "medium";
   createdAt: string;
-  status: "Escalated to Admin" | "Resolved (Locked)" | "Resolved (Hard Banned)" | "Dismissed";
+  status: "Escalated to Admin" | "Resolved (Locked)" | "Resolved (Hard Banned)" | "Resolved (Unlocked)" | "Dismissed";
   actionTaken?: string;
 };
 

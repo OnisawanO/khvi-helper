@@ -103,8 +103,8 @@ export function AuditTrailTable({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100">
+      <div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-slate-200">
           <div>
             <h3 className="text-sm font-bold text-[#092f45]">System Security Audit Trail</h3>
             <p className="text-xs text-slate-500">
@@ -113,38 +113,38 @@ export function AuditTrailTable({
           </div>
 
           {/* Toggle Button: View 1 (Table Grid) vs View 2 (Activity Cards Feed) */}
-          <div className="flex items-center gap-1 self-start sm:self-auto rounded-xl border border-slate-200 bg-slate-50 p-1">
+          <div className="flex items-center gap-1 self-start sm:self-auto rounded-lg border border-slate-200 bg-slate-50/70 p-0.5">
             <button
               type="button"
               onClick={() => setAuditViewMode("table")}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
                 auditViewMode === "table"
-                  ? "bg-white text-[#087f80] shadow-xs"
-                  : "text-slate-500 hover:text-slate-800"
+                  ? "bg-white text-[#087f80] shadow-xs border border-slate-200/80"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
               }`}
               title="Table Grid View"
             >
-              <TableCellsIcon className="h-4 w-4" />
+              <TableCellsIcon className="h-3.5 w-3.5" />
               <span>Table</span>
             </button>
             <button
               type="button"
               onClick={() => setAuditViewMode("activity")}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
                 auditViewMode === "activity"
-                  ? "bg-white text-[#087f80] shadow-xs"
-                  : "text-slate-500 hover:text-slate-800"
+                  ? "bg-white text-[#087f80] shadow-xs border border-slate-200/80"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
               }`}
               title="Recent Activity Feed View"
             >
-              <ListBulletIcon className="h-4 w-4" />
+              <ListBulletIcon className="h-3.5 w-3.5" />
               <span>Activity Feed</span>
             </button>
           </div>
         </div>
 
-        {/* Search and Audit Filter Toolbar */}
-        <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-3.5 shadow-2xs md:flex-row md:items-center md:justify-between">
+        {/* Search and Audit Filter Toolbar: Flat Canvas Bar */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between py-2">
           {/* Search Bar */}
           <div className="relative flex-1">
             <input
@@ -171,10 +171,10 @@ export function AuditTrailTable({
             <button
               type="button"
               onClick={() => setFilterMenuOpen(!filterMenuOpen)}
-              className={`flex items-center justify-center gap-2 rounded-xl sm:rounded-lg border px-3 py-1.5 text-xs font-bold transition-all shadow-xs cursor-pointer ${
+              className={`flex items-center justify-center gap-2 rounded-xl sm:rounded-lg border px-3 py-2 text-xs font-bold transition-all shadow-2xs cursor-pointer ${
                 activeFiltersCount > 0
                   ? "border-[#087f80] bg-[#edf7f5] text-[#087f80]"
-                  : "border-[#c9d8de] bg-white text-[#2d4957] hover:border-[#087f80] hover:bg-[#edf7f5]"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
               }`}
             >
               <AdjustmentsHorizontalIcon className="h-4 w-4 text-[#087f80]" />
@@ -365,7 +365,7 @@ export function AuditTrailTable({
 
         {/* VIEW 1: DEDICATED TABLE VIEW */}
         {auditViewMode === "table" && (
-          <div className="mt-4 overflow-x-auto">
+          <div className="mt-4 border-y border-slate-200 overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-600">
               <thead className="border-b border-slate-200 bg-slate-50 font-bold uppercase tracking-wider text-slate-500">
                 <tr>
@@ -416,9 +416,9 @@ export function AuditTrailTable({
           </div>
         )}
 
-        {/* VIEW 2: DEDICATED RECENT ACTIVITY FEED CARDS */}
+        {/* VIEW 2: DEDICATED RECENT ACTIVITY FEED CARDS: Flat Hairline Feed */}
         {auditViewMode === "activity" && (
-          <div className="mt-4 space-y-3">
+          <div className="mt-2 divide-y divide-slate-100 border-y border-slate-200">
             {paginatedLogs.length === 0 ? (
               <div className="py-12 text-center text-slate-400 text-xs">
                 No audit events match your search/filter criteria.
@@ -427,22 +427,22 @@ export function AuditTrailTable({
               paginatedLogs.map((log) => (
                 <div
                   key={log.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-slate-50/70 p-4 transition-all hover:bg-slate-100/80 hover:border-slate-300"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3.5 px-2 transition-colors hover:bg-slate-50/70"
                 >
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span
-                        className={`rounded-md px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide ${
+                        className={`rounded px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide ${
                           log.severity === "danger"
-                            ? "bg-red-100 text-[#f04f3e]"
+                            ? "bg-red-50 text-red-700 border border-red-200/80"
                             : log.severity === "warning"
-                            ? "bg-amber-100 text-amber-700"
-                            : "bg-teal-100 text-[#087f80]"
+                            ? "bg-amber-50 text-amber-800 border border-amber-200/80"
+                            : "bg-teal-50 text-teal-800 border border-teal-200/80"
                         }`}
                       >
                         {log.action}
                       </span>
-                      <span className="text-xs font-black text-[#092f45]">
+                      <span className="text-xs font-bold text-[#092f45]">
                         {log.targetUser}
                       </span>
                       <span className="text-[11px] text-slate-400">
@@ -454,11 +454,11 @@ export function AuditTrailTable({
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-200/60">
+                  <div className="flex items-center gap-2 shrink-0 border-t sm:border-t-0 pt-1.5 sm:pt-0 border-slate-100">
                     <span className="text-xs font-mono text-slate-400">
                       {log.timestamp}
                     </span>
-                    <span className="rounded bg-white border border-slate-200 px-2 py-0.5 text-[10px] font-mono text-slate-500">
+                    <span className="rounded bg-slate-50 border border-slate-200/80 px-2 py-0.5 text-[10px] font-mono font-medium text-slate-600">
                       {log.id}
                     </span>
                   </div>
