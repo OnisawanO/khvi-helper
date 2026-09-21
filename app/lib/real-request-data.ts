@@ -149,19 +149,31 @@ async function loadReferences(supabase: SupabaseClient) {
 }
 
 async function loadDetails(supabase: SupabaseClient, bookingId: number) {
-  const [{ data: privateData, error: privateError }, { data: contactData, error: contactError }, { data: locationData, error: locationError }] = await Promise.all([
+  const [
+    { data: privateData, error: privateError },
+    { data: contactData, error: contactError },
+    { data: locationData, error: locationError },
+  ] = await Promise.all([
     supabase.rpc("get_booking_private_details", { p_booking_id: bookingId }),
     supabase.rpc("get_booking_contacts", { p_booking_id: bookingId }),
     supabase.rpc("get_mission_locations", { p_booking_id: bookingId }),
   ]);
 
-  if (privateError) throw privateError;
-  if (contactError) throw contactError;
-  if (locationError) throw locationError;
+  if (privateError && !privateError.message?.includes("not_authorized")) {
+    console.debug("[real-request-data] get_booking_private_details debug:", privateError.message);
+  }
+  if (contactError) {
+    console.debug("[real-request-data] get_booking_contacts debug:", contactError.message);
+  }
+  if (locationError) {
+    console.debug("[real-request-data] get_mission_locations debug:", locationError.message);
+  }
 
-  const privateDetails = (Array.isArray(privateData) ? privateData[0] : privateData) as PrivateDetails | undefined;
-  const contacts = (contactData ?? []) as ContactRow[];
-  const locations = (locationData ?? []) as LocationRow[];
+  const privateDetails = !privateError && privateData
+    ? ((Array.isArray(privateData) ? privateData[0] : privateData) as PrivateDetails | undefined)
+    : undefined;
+  const contacts = !contactError && contactData ? ((contactData ?? []) as ContactRow[]) : [];
+  const locations = !locationError && locationData ? ((locationData ?? []) as LocationRow[]) : [];
 
   return {
     privateDetails,
@@ -257,9 +269,26 @@ function toRequest(
   };
 }
 
-async function loadRows(supabase: SupabaseClient, mode: "requester" | "interpreter-open" | "interpreter-assigned") {
+export type OpenRequestsDiagnostic =
+  | { status: "no_session"; message: string }
+  | { status: "no_profile"; message: string }
+  | { status: "not_interpreter"; message: string; role?: string }
+  | { status: "application_not_approved"; message: string; applicationStatus: string | null }
+  | { status: "no_matching_skills"; message: string; approvedLanguageCount: number; approvedCategoryCount: number; openRequestsCount: number }
+  | { status: "db_error"; message: string; error: string }
+  | { status: "success"; message: string };
+
+export type OpenRequestsResult = {
+  requests: HelpRequest[];
+  diagnostic: OpenRequestsDiagnostic;
+};
+
+async function loadRows(supabase: SupabaseClient, mode: "requester" | "interpreter-assigned") {
   const profileResult = await getCurrentUserProfile(supabase);
-  if (!profileResult.profile) return [];
+  if (!profileResult.profile) {
+    console.warn(`[real-request-data] loadRows (${mode}): No profile found for session`);
+    return [];
+  }
 
   let query = supabase
     .from("bookings")
@@ -268,14 +297,15 @@ async function loadRows(supabase: SupabaseClient, mode: "requester" | "interpret
 
   if (mode === "requester") {
     query = query.eq("user_id", profileResult.profile.userId);
-  } else if (mode === "interpreter-open") {
-    query = query.eq("status", "open");
   } else {
     query = query.eq("interpreter_id", profileResult.profile.userId);
   }
 
   const { data, error } = await query;
-  if (error) throw error;
+  if (error) {
+    console.error(`[real-request-data] loadRows (${mode}) query error:`, error.message);
+    throw error;
+  }
 
   const references = await loadReferences(supabase);
   const rows = (data ?? []) as unknown as BookingRow[];
@@ -287,16 +317,153 @@ async function loadRows(supabase: SupabaseClient, mode: "requester" | "interpret
   return requests.filter((request): request is HelpRequest => request !== null);
 }
 
-export async function loadRequesterRequests(supabase?: SupabaseClient) {
-  return loadRows(supabase ?? await createClient(), "requester");
+export async function loadRequesterRequests(supabase?: SupabaseClient): Promise<HelpRequest[]> {
+  try {
+    return await loadRows(supabase ?? await createClient(), "requester");
+  } catch (error) {
+    console.error("[real-request-data] loadRequesterRequests error:", error);
+    return [];
+  }
 }
 
-export async function loadOpenInterpreterRequests(supabase?: SupabaseClient) {
-  return loadRows(supabase ?? await createClient(), "interpreter-open");
+export async function loadInterpreterAssignments(supabase?: SupabaseClient): Promise<HelpRequest[]> {
+  try {
+    return await loadRows(supabase ?? await createClient(), "interpreter-assigned");
+  } catch (error) {
+    console.error("[real-request-data] loadInterpreterAssignments error:", error);
+    return [];
+  }
 }
 
-export async function loadInterpreterAssignments(supabase?: SupabaseClient) {
-  return loadRows(supabase ?? await createClient(), "interpreter-assigned");
+export async function loadOpenInterpreterRequests(supabaseClient?: SupabaseClient): Promise<OpenRequestsResult> {
+  const supabase = supabaseClient ?? (await createClient());
+
+  // a. Check session
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData?.user) {
+    console.warn("[real-request-data] loadOpenInterpreterRequests: No authenticated user session");
+    return {
+      requests: [],
+      diagnostic: {
+        status: "no_session",
+        message: "No authenticated session. Please sign in as an interpreter.",
+      },
+    };
+  }
+
+  const userId = userData.user.id;
+
+  // b. Check profile
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("role, is_locked")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (profileError || !profile) {
+    console.error("[real-request-data] loadOpenInterpreterRequests: Profile lookup failed for user", userId, profileError?.message);
+    return {
+      requests: [],
+      diagnostic: {
+        status: "no_profile",
+        message: "User profile was not found. Please verify user creation trigger.",
+      },
+    };
+  }
+
+  // c. Check role
+  if (profile.role !== "Interpreter") {
+    console.warn("[real-request-data] loadOpenInterpreterRequests: Non-interpreter role accessed open pool:", profile.role);
+    return {
+      requests: [],
+      diagnostic: {
+        status: "not_interpreter",
+        role: profile.role,
+        message: `Account role is currently "${profile.role}". An approved "Interpreter" role is required.`,
+      },
+    };
+  }
+
+  // d. Check approved interpreter application
+  const { data: applications, error: appError } = await supabase
+    .from("interpreter_applications")
+    .select("application_id, status, interpreter_application_languages(language_id), interpreter_application_categories(category_id)")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (appError) {
+    console.error("[real-request-data] loadOpenInterpreterRequests: Application lookup error:", appError.message);
+  }
+
+  const approvedApp = applications?.find((a) => a.status === "approved");
+  if (!approvedApp) {
+    const latestStatus = applications?.[0]?.status ?? null;
+    console.info("[real-request-data] loadOpenInterpreterRequests: No approved application. Latest status:", latestStatus);
+    return {
+      requests: [],
+      diagnostic: {
+        status: "application_not_approved",
+        applicationStatus: latestStatus,
+        message: latestStatus
+          ? `Interpreter application status is "${latestStatus}". Requests become visible after approval.`
+          : "No interpreter application submitted. Please submit an application and await manager approval.",
+      },
+    };
+  }
+
+  // e. Query open bookings with current user's authenticated client (subject to RLS)
+  const { data: bookingRows, error: bookingError } = await supabase
+    .from("bookings")
+    .select(BOOKING_COLUMNS)
+    .eq("status", "open")
+    .order("created_at", { ascending: false });
+
+  if (bookingError) {
+    console.error("[real-request-data] loadOpenInterpreterRequests: Database query error:", bookingError.message);
+    return {
+      requests: [],
+      diagnostic: {
+        status: "db_error",
+        error: bookingError.message,
+        message: "Failed to query open requests from the database.",
+      },
+    };
+  }
+
+  const rows = (bookingRows ?? []) as unknown as BookingRow[];
+  const references = await loadReferences(supabase);
+
+  const requests = (
+    await Promise.all(
+      rows.map(async (row) => {
+        const details = await loadDetails(supabase, Number(row.booking_id));
+        return toRequest(row, references, details);
+      }),
+    )
+  ).filter((request): request is HelpRequest => request !== null);
+
+  if (requests.length === 0) {
+    const appLangs = (approvedApp.interpreter_application_languages ?? []) as { language_id: number }[];
+    const appCats = (approvedApp.interpreter_application_categories ?? []) as { category_id: number }[];
+    return {
+      requests: [],
+      diagnostic: {
+        status: "no_matching_skills",
+        approvedLanguageCount: appLangs.length,
+        approvedCategoryCount: appCats.length,
+        openRequestsCount: 0,
+        message: "No open requests currently match your approved language and category skills.",
+      },
+    };
+  }
+
+  return {
+    requests,
+    diagnostic: {
+      status: "success",
+      message: `Loaded ${requests.length} open requests successfully.`,
+    },
+  };
 }
 
 export async function loadBookingById(
@@ -321,6 +488,10 @@ export async function loadBookingById(
 
   const booking = data as unknown as BookingRow;
   return request
-    ? { request, locations: toMissionLocations(details.locations, booking.user_id, booking.interpreter_id) }
+    ? {
+        request,
+        requesterId: booking.user_id,
+        locations: toMissionLocations(details.locations, booking.user_id, booking.interpreter_id),
+      }
     : null;
 }

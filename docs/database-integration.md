@@ -47,7 +47,7 @@ Role ที่ระบบรองรับ:
 User | Interpreter | Manager | Admin
 ```
 
-`profiles` เปิด RLS และให้ผู้ใช้ที่ login แล้วอ่านหรือแก้ไขเฉพาะ profile ของตนเอง ฟิลด์ role, lock status และสิทธิ์สำคัญต้องเปลี่ยนผ่าน server-side authorization เมื่อมี feature รองรับในอนาคต อย่าใช้ `user_metadata` เป็นแหล่งตัดสินสิทธิ์
+`profiles` เปิด RLS และให้ผู้ใช้ที่ login แล้วอ่านหรือแก้ไขเฉพาะ profile ของตนเอง ฟิลด์ role, lock status และ `is_super_interpreter` ต้องเปลี่ยนผ่าน server-side authorization เท่านั้น อย่าใช้ `user_metadata` เป็นแหล่งตัดสินสิทธิ์
 
 Fast Login ใช้เฉพาะ development ผ่าน `FAST_LOGIN_*` server environment variables และ `/api/auth/fast-login` ไม่ควรนำไปใช้เป็น production login flow
 
@@ -70,7 +70,7 @@ auth.users
 
 | Table | หน้าที่ | ข้อควรจำ |
 |---|---|---|
-| `public.profiles` | application profile และ role | `user_id` เป็น UUID จาก `auth.users.id` |
+| `public.profiles` | application profile, role และสิทธิ์ test interpreter | `user_id` เป็น UUID จาก `auth.users.id`; `is_super_interpreter` เป็น server-managed flag สำหรับบัญชีทดสอบ |
 | `public.languages` | reference ภาษา | อ่านเฉพาะรายการที่ `is_active = true` |
 | `public.categories` | reference หมวดหมู่งาน | อ่านเฉพาะรายการที่ `is_active = true` |
 | `public.interpreter_applications` | ใบสมัครล่าม | มี active application ได้หนึ่งรายการต่อ user |
@@ -167,7 +167,7 @@ open -> claimed -> in_progress -> completed
 ```
 
 - User ห้าม claim booking ของตนเอง
-- Claim ได้เฉพาะ profile ที่ role เป็น `Interpreter`, ไม่ locked และมี application `approved` ที่ตรงทั้งภาษาและหมวดหมู่
+- Claim ได้เฉพาะ profile ที่ role เป็น `Interpreter`, ไม่ locked และมี application `approved`; ล่ามทั่วไปต้องตรงทั้งภาษาและหมวดหมู่ ส่วนบัญชีที่มี `is_super_interpreter = true` ใช้ทดสอบได้กับคำขอเปิดทุกภาษาและหมวดหมู่
 - Interpreter ที่มีงาน `claimed` หรือ `in_progress` อยู่แล้วห้าม claim งานใหม่
 - `start_booking` ต้องเกิดหลัง requester ยืนยัน interpreter
 - `completed` จะเกิดเมื่อ requester และ interpreter ยืนยันจบงานครบทั้งสองฝ่าย
@@ -215,6 +215,7 @@ Project นี้ใช้ imperative migration ใน `supabase/migrations/` �
 5. `20260917094342_real_interpreter_application_flow.sql`
 6. `20260917095513_real_interpreter_certificate_storage.sql`
 7. `20260917100148_complete_interpreter_reference_catalog.sql`
+8. `20260921085918_create_super_interpreter_test_access.sql`
 
 เมื่อต้องเปลี่ยน schema, policy, RPC หรือ Storage ให้เพิ่ม migration ใหม่ตามลำดับ ห้ามแก้ migration ที่เคย apply ไปแล้วใน shared project
 
@@ -231,6 +232,22 @@ npm run dev
 ก่อนใช้ remote project ต้อง link project ให้ถูกต้องและตรวจ migration ก่อน `db push` เสมอ การ push schema ไป shared หรือ production ต้องได้รับอนุมัติจากผู้ดูแลโครงการ
 
 ใน repository ยังไม่มี `supabase/seed.sql` หรือ committed test users ดังนั้น local reset ไม่ได้สร้างบัญชี Fast Login ให้เอง บัญชีทดสอบต้องมีทั้ง Supabase Auth user และ `public.profiles` ที่ตรงกัน
+
+### บัญชี Super Interpreter สำหรับทดสอบ
+
+บัญชีใน `FAST_LOGIN_INTERPRETER_EMAIL` ที่ต้องการใช้เป็นบัญชีทดสอบพิเศษสามารถเปิดสิทธิ์ด้วย SQL นี้หลังจากมี profile และใบสมัครที่ `approved` แล้ว:
+
+```sql
+update public.profiles p
+set is_super_interpreter = true
+from auth.users u
+where u.id = p.user_id
+  and u.email = '<FAST_LOGIN_INTERPRETER_EMAIL>'
+  and p.role = 'Interpreter'
+  and p.is_locked = false;
+```
+
+สิทธิ์นี้ยังไม่ทำให้บัญชีที่ถูกล็อกหรือไม่มีใบสมัคร approved เห็นคำขอ และไม่ควรเปิดใช้กับบัญชี production จริง
 
 ## สถานะของ feature บน branch นี้
 

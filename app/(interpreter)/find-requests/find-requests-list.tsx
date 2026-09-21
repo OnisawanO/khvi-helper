@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   AdjustmentsHorizontalIcon,
+  ArrowPathIcon,
   CheckCircleIcon,
   ClipboardDocumentListIcon,
   ClockIcon,
@@ -20,6 +21,7 @@ import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
 import type { UserProfile } from "@/app/lib/mock-auth";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { claimBookingAction } from "@/app/actions/booking-actions";
+import type { OpenRequestsDiagnostic } from "@/app/lib/real-request-data";
 import { RequestMap } from "./request-map";
 import {
   CATEGORIES,
@@ -96,9 +98,19 @@ const copy = {
     close: "Close",
     cancel: "Keep browsing",
     confirmClaim: "Confirm claim",
-    claimedTitle: "Request claimed in preview",
-    claimedBody: "The request was removed from this map for this preview session.",
+    claimedTitle: "Request claimed successfully",
+    claimedBody: "You have claimed this request. Head to your assignments to coordinate with the requester.",
     goAssignments: "Open my assignments",
+    refresh: "Refresh",
+    refreshing: "Refreshing…",
+    diagnosticNotApprovedTitle: "Interpreter application pending approval",
+    diagnosticNotApprovedBody: (status: string | null) =>
+      `Your volunteer interpreter application status is "${status || "pending"}". Requests become visible once approved by a manager.`,
+    checkApplicationStatus: "Check application status →",
+    diagnosticNoMatchingSkillsTitle: "No open requests match your skills",
+    diagnosticNoMatchingSkillsBody: (openCount: number, langCount: number, catCount: number) =>
+      `There are currently no open requests matching your approved skills (${langCount} languages, ${catCount} categories). You will see requests as soon as matching ones are created.`,
+    diagnosticDbErrorTitle: "Unable to load requests",
     noMatching: "No requests match these filters",
     noMatchingBody: "Try a wider distance or clear one of the filters.",
     loading: "Loading the request map…",
@@ -153,9 +165,19 @@ const copy = {
     close: "关闭",
     cancel: "继续浏览",
     confirmClaim: "确认接取",
-    claimedTitle: "任务已在预览中接取",
-    claimedBody: "此任务已从本次预览地图中移除。",
+    claimedTitle: "任务接取成功",
+    claimedBody: "你已接取此任务。可前往我的任务列表查看详情与确认步骤。",
     goAssignments: "打开我的任务",
+    refresh: "刷新",
+    refreshing: "正在刷新…",
+    diagnosticNotApprovedTitle: "口译员申请正在审核中",
+    diagnosticNotApprovedBody: (status: string | null) =>
+      `您的志愿者口译员申请状态为 "${status || "待审核"}"。经管理员批准后即可查看求助任务。`,
+    checkApplicationStatus: "查看申请状态 →",
+    diagnosticNoMatchingSkillsTitle: "暂无符合技能的求助任务",
+    diagnosticNoMatchingSkillsBody: (openCount: number, langCount: number, catCount: number) =>
+      `目前暂无与您获批技能（${langCount} 种语言，${catCount} 个类别）匹配的开放求助。有匹配任务时将在此处显示。`,
+    diagnosticDbErrorTitle: "无法加载求助任务",
     noMatching: "没有符合筛选条件的求助",
     noMatchingBody: "可以扩大距离范围或清除筛选条件。",
     loading: "正在加载求助地图…",
@@ -193,8 +215,15 @@ function compareRequestIds(first: HelpRequest, second: HelpRequest): number {
   return Number(second.requestId) - Number(first.requestId);
 }
 
-export function FindRequestsList({ initialRequests }: { initialRequests: HelpRequest[] }) {
+export function FindRequestsList({
+  initialRequests,
+  diagnostic,
+}: {
+  initialRequests: HelpRequest[];
+  diagnostic?: OpenRequestsDiagnostic;
+}) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [activeFilter, setActiveFilter] = useState<RequestFilterId>("all");
   const [languageFilter, setLanguageFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -336,6 +365,12 @@ export function FindRequestsList({ initialRequests }: { initialRequests: HelpReq
     }
   };
 
+  const handleRefresh = () => {
+    startTransition(() => {
+      router.refresh();
+    });
+  };
+
   return (
     <main id="main-content" className="flex-1 px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
       <div className="mx-auto max-w-[1180px]">
@@ -352,14 +387,60 @@ export function FindRequestsList({ initialRequests }: { initialRequests: HelpReq
             <h1 className="mt-1.5 text-3xl font-extrabold tracking-normal text-[#122b3e] sm:text-4xl">{t.title}</h1>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-[#64777e]">{t.intro}</p>
           </div>
-          <Link
-            className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-lg bg-(--khvi-navy) px-5 text-sm font-extrabold text-white transition-colors hover:bg-[#0c4960]"
-            href="/my-assignments#main-content"
-          >
-            <ClipboardDocumentListIcon aria-hidden="true" className="h-5 w-5" />
-            {t.assignments}
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={isPending}
+              className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-lg border border-[#cbd7dc] bg-white px-4 text-sm font-extrabold text-[#122b3e] transition-colors hover:bg-[#f6f9fa] disabled:opacity-60"
+            >
+              <ArrowPathIcon aria-hidden="true" className={`h-5 w-5 ${isPending ? "animate-spin text-(--khvi-teal)" : "text-[#64777e]"}`} />
+              {isPending ? t.refreshing : t.refresh}
+            </button>
+            <Link
+              className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-lg bg-(--khvi-navy) px-5 text-sm font-extrabold text-white transition-colors hover:bg-[#0c4960]"
+              href="/my-assignments#main-content"
+            >
+              <ClipboardDocumentListIcon aria-hidden="true" className="h-5 w-5" />
+              {t.assignments}
+            </Link>
+          </div>
         </div>
+
+        {diagnostic && diagnostic.status === "application_not_approved" && (
+          <aside aria-label="application-status-notice" className="mt-6 flex items-start gap-3.5 rounded-(--khvi-radius-md) border border-amber-300 bg-amber-50 p-4 text-amber-900 shadow-sm">
+            <InformationCircleIcon aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+            <div>
+              <h3 className="text-sm font-extrabold text-amber-950">{t.diagnosticNotApprovedTitle}</h3>
+              <p className="mt-1 text-xs leading-5 text-amber-800">{t.diagnosticNotApprovedBody(diagnostic.applicationStatus)}</p>
+              <Link href="/volunteer/status" className="mt-2 inline-flex items-center text-xs font-extrabold text-amber-950 underline hover:no-underline">
+                {t.checkApplicationStatus}
+              </Link>
+            </div>
+          </aside>
+        )}
+
+        {diagnostic && diagnostic.status === "no_matching_skills" && (
+          <aside aria-label="matching-skills-notice" className="mt-6 flex items-start gap-3.5 rounded-(--khvi-radius-md) border border-blue-200 bg-blue-50 p-4 text-blue-900 shadow-sm">
+            <InformationCircleIcon aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+            <div>
+              <h3 className="text-sm font-extrabold text-blue-950">{t.diagnosticNoMatchingSkillsTitle}</h3>
+              <p className="mt-1 text-xs leading-5 text-blue-800">
+                {t.diagnosticNoMatchingSkillsBody(diagnostic.openRequestsCount, diagnostic.approvedLanguageCount, diagnostic.approvedCategoryCount)}
+              </p>
+            </div>
+          </aside>
+        )}
+
+        {diagnostic && diagnostic.status === "db_error" && (
+          <aside aria-label="db-error-notice" className="mt-6 flex items-start gap-3.5 rounded-(--khvi-radius-md) border border-red-200 bg-red-50 p-4 text-red-900 shadow-sm">
+            <XMarkIcon aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+            <div>
+              <h3 className="text-sm font-extrabold text-red-950">{t.diagnosticDbErrorTitle}</h3>
+              <p className="mt-1 text-xs leading-5 text-red-800">{diagnostic.error}</p>
+            </div>
+          </aside>
+        )}
 
         <section className="mt-7 rounded-(--khvi-radius-md) border border-[#d6e0e4] bg-white p-4 shadow-[0_10px_30px_rgba(16,40,58,0.06)] sm:p-5" aria-label={t.filtersLabel}>
           <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
@@ -543,8 +624,20 @@ export function FindRequestsList({ initialRequests }: { initialRequests: HelpReq
               {requests.length === 0 ? (
                 <div className="px-4 py-10 text-center">
                   <ClipboardDocumentListIcon aria-hidden="true" className="mx-auto h-9 w-9 text-[#9aa9ae]" />
-                  <h3 className="mt-3 text-sm font-extrabold text-[#203d4d]">{t.noMatching}</h3>
-                  <p className="mt-2 text-xs leading-5 text-[#64777e]">{t.noMatchingBody}</p>
+                  <h3 className="mt-3 text-sm font-extrabold text-[#203d4d]">
+                    {diagnostic?.status === "application_not_approved"
+                      ? t.diagnosticNotApprovedTitle
+                      : diagnostic?.status === "no_matching_skills"
+                      ? t.diagnosticNoMatchingSkillsTitle
+                      : t.noMatching}
+                  </h3>
+                  <p className="mt-2 text-xs leading-5 text-[#64777e]">
+                    {diagnostic?.status === "application_not_approved"
+                      ? t.diagnosticNotApprovedBody(diagnostic.applicationStatus)
+                      : diagnostic?.status === "no_matching_skills"
+                      ? t.diagnosticNoMatchingSkillsBody(diagnostic.openRequestsCount, diagnostic.approvedLanguageCount, diagnostic.approvedCategoryCount)
+                      : t.noMatchingBody}
+                  </p>
                 </div>
               ) : sortedRequests.map((request) => (
                 <article key={request.requestId} className={`rounded-(--khvi-radius-sm) border p-4 transition-colors ${selectedRequest?.requestId === request.requestId ? "border-(--khvi-teal) bg-[#f5fbfa]" : "border-[#e1e9eb] bg-white hover:border-[#a8c5c5]"}`}>

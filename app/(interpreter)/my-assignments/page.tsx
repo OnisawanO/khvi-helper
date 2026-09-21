@@ -16,11 +16,12 @@ export default async function MyAssignmentsPage(props: PageProps<"/my-assignment
   const { status } = await props.searchParams;
   const activeFilter = resolveStatusFilter(status);
   const supabase = await createClient();
-  const [assignments, availableRequests, application] = await Promise.all([
+  const [assignments, openRequestsResult, application] = await Promise.all([
     loadInterpreterAssignments(supabase),
     loadOpenInterpreterRequests(supabase),
     loadMyInterpreterApplication(supabase),
   ]);
+  const availableRequests = openRequestsResult.requests;
   const applicationStatus: ApplicationStatus | null = application?.status ?? null;
 
   return (
