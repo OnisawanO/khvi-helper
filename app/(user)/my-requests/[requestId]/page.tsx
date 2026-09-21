@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { WorkspaceShell } from "@/app/components/workspace-shell";
+import type { UserRole } from "@/app/lib/mock-auth";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { loadBookingById } from "@/app/lib/real-request-data";
 import { createClient } from "@/utils/supabase/server";
@@ -34,9 +35,19 @@ export default async function RequestStatusPage(props: PageProps<"/my-requests/[
     notFound();
   }
 
+  const viewerRole: UserRole = loaded.requesterId === viewerResult.profile.userId
+    ? "User"
+    : loaded.request.interpreterId === viewerResult.profile.userId
+      ? "Interpreter"
+      : viewerResult.profile.role;
+
   return (
     <WorkspaceShell>
-      <RequestDetail request={loaded.request} viewer={viewerResult.profile} initialMissionLocations={loaded.locations} />
+      <RequestDetail
+        request={loaded.request}
+        viewer={{ ...viewerResult.profile, role: viewerRole }}
+        initialMissionLocations={loaded.locations}
+      />
     </WorkspaceShell>
   );
 }
