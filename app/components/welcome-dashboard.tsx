@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { ArrowRightIcon, MapPinIcon, LanguageIcon, ShieldCheckIcon, ClipboardDocumentListIcon } from "@heroicons/react/24/outline";
 import { useCopyLocale, useUiLocale } from "./app-shell";
 import { ExpiryCountdown } from "./expiry-countdown";
+import { ResponsiveHeroImage } from "./responsive-hero-image";
 import { StatusBadge, UrgencyBadge } from "./request-badges";
 import { useRequests } from "@/app/lib/request-store";
 import { categoryLabel, languageLabel, LANGUAGES, CATEGORIES, type HelpRequest } from "@/app/lib/mock-requests";

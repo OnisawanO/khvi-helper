@@ -14,6 +14,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { SiteFooter } from "@/app/components/site-footer";
 import { SiteHeader } from "@/app/components/site-header";
+import { ResponsiveHeroImage } from "@/app/components/responsive-hero-image";
 import { RegisterModal } from "@/app/components/auth/register-modal";
 import { LoginModal } from "@/app/components/auth/login-modal";
 import { useStoredLocale } from "@/app/lib/locale";
@@ -418,10 +419,7 @@ export default function Home() {
               <BellAlertIcon aria-hidden="true" className="h-7 w-7" />
               {t.hero.action}
             </a>
-            <p className="mt-3 text-sm font-semibold text-[#536c79]">{t.hero.note}</p>
-          </div>
-          <div className="relative aspect-[4/3] sm:aspect-[16/9] lg:hidden">
-            <Image src="/khvi-landing-hero.png" alt={t.hero.imageAlt} fill priority className="object-cover object-[58%_center]" sizes="(min-width: 640px) calc(100vw - 64px), calc(100vw - 32px)" />
+            <p className="mt-3 text-sm font-semibold text-white/75">{t.hero.note}</p>
           </div>
         </div>
 
