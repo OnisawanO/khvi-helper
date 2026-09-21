@@ -257,6 +257,7 @@ where u.id = p.user_id
 - `/my-requests`, `/find-requests`, `/my-assignments` อ่าน booking จริง
 - `/my-requests/[requestId]` อ่าน booking และข้อมูล private ผ่าน guarded RPC
 - Claim, confirm, start, complete, cancel และ mission location ใช้ booking RPC
+- `/profile` ปิดบัญชีตนเองผ่าน `delete_my_account` แบบ soft delete โดยป้องกันการลบเมื่อมีงาน `open`, `claimed` หรือ `in_progress`
 - `/volunteer/apply` อ่าน reference จริงและส่ง application จริง
 - `/volunteer/status` อ่านและจัดการ application จริง
 - Manager application queue อ่านข้อมูลจริงและ review ผ่าน RPC
