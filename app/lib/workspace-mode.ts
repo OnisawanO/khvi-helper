@@ -33,9 +33,16 @@ export function setInterpreterWorkspaceMode(userId: string, mode: InterpreterWor
 }
 
 export function getActiveWorkspaceRole(user: UserProfile): WorkspaceRole | null {
+  return getWorkspaceRoleForMode(user, getInterpreterWorkspaceMode(user));
+}
+
+export function getWorkspaceRoleForMode(
+  user: UserProfile,
+  mode: InterpreterWorkspaceMode,
+): WorkspaceRole | null {
   if (user.role === "User") return "User";
   if (user.role !== "Interpreter") return null;
-  return getInterpreterWorkspaceMode(user) === "requester" ? "User" : "Interpreter";
+  return mode === "requester" ? "User" : "Interpreter";
 }
 
 export function getWorkspaceActorSession(): UserProfile | null {

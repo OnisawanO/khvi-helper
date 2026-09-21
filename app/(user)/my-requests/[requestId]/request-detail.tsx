@@ -3,17 +3,17 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  cancelMission,
-  confirmInterpreterSelection,
-  confirmRequestCompletion,
-  startRequest,
-  updateRequestDetailsBeforeStart,
-} from "@/app/lib/request-store";
-import { saveMissionLocation, useMissionLocations } from "@/app/lib/mission-location-store";
+  cancelBookingAction,
+  confirmBookingCompletionAction,
+  confirmBookingInterpreterAction,
+  saveMissionLocationAction,
+  startBookingAction,
+  updateBookingDetailsAction,
+} from "@/app/actions/booking-actions";
+import type { RealMissionLocations } from "@/app/lib/real-request-data";
 import type { UserProfile } from "@/app/lib/mock-auth";
 import { useEffect, useState, type SubmitEvent } from "react";
 import {
-  ArrowLeftIcon,
   ArrowPathIcon,
   CheckCircleIcon,
   ChatBubbleLeftRightIcon,
@@ -32,6 +32,7 @@ import { useCopyLocale } from "@/app/components/app-shell";
 import { ExpiryCountdown } from "@/app/components/expiry-countdown";
 import { MissionLocationMap, type MissionMapPoint } from "@/app/components/mission-location-map";
 import { StatusBadge, UrgencyBadge } from "@/app/components/request-badges";
+import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
 import {
   approximateCoordinates,
   categoryLabel,
@@ -50,11 +51,12 @@ const TIMELINE_STEPS = ["Open", "Claimed", "InProgress", "Completed"] as const;
 
 const copy = {
   en: {
-    back: "Back to my requests",
-    backInterpreter: "Back to my assignments",
+    breadcrumb: "Request detail breadcrumb",
+    main: "Main",
+    requestsLabel: "My requests",
+    assignmentsLabel: "My assignments",
     requesterView: "Requester mission room",
     interpreterView: "Interpreter mission room",
-    requestPrefix: "Request",
     created: "Created",
     scheduled: "Appointment",
     timelineTitle: "Progress",
@@ -90,10 +92,17 @@ const copy = {
     contactLockedBody: "The requester must confirm the assigned interpreter before sensitive details appear.",
     mapTitle: "Requester and interpreter map",
     mapIntro: "Each marker updates from that person's live location while this mission page is open.",
-    zoomInMap: "Zoom in",
-    zoomOutMap: "Zoom out",
     requesterMarker: "Requester",
     interpreterMarker: "Interpreter",
+    youMarker: "You",
+    coordinatesMapLabel: "Coordinates",
+    accuracyMapLabel: "Accuracy",
+    updatedMapLabel: "Updated",
+    expandMapLabel: "Open full-screen map",
+    collapseMapLabel: "Close full-screen map",
+    touchZoomLabel: "Drag the map or pinch with two fingers to zoom.",
+    liveGpsLabel: "Live GPS",
+    requestLocationLabel: "Request location",
     readingLocation: "Starting live location…",
     locationSaved: "Live location is on",
     locationDenied: "Location permission was denied. Allow location access in your browser, then reload this page.",
@@ -139,11 +148,12 @@ const copy = {
     noActions: "No action is needed from you right now.",
   },
   zh: {
-    back: "返回我的求助",
-    backInterpreter: "返回我的任务",
+    breadcrumb: "求助详情面包屑导航",
+    main: "主页",
+    requestsLabel: "我的求助",
+    assignmentsLabel: "我的任务",
     requesterView: "求助者任务室",
     interpreterView: "口译员任务室",
-    requestPrefix: "求助",
     created: "创建时间",
     scheduled: "预约时间",
     timelineTitle: "进度",
@@ -179,10 +189,17 @@ const copy = {
     contactLockedBody: "求助者确认已接单的口译员后，系统才会显示敏感信息。",
     mapTitle: "求助者与口译员地图",
     mapIntro: "任务页面打开期间，每个标记都会根据本人的实时位置更新。",
-    zoomInMap: "放大地图",
-    zoomOutMap: "缩小地图",
     requesterMarker: "求助者",
     interpreterMarker: "口译员",
+    youMarker: "你",
+    coordinatesMapLabel: "坐标",
+    accuracyMapLabel: "精度",
+    updatedMapLabel: "更新时间",
+    expandMapLabel: "全屏查看地图",
+    collapseMapLabel: "关闭全屏地图",
+    touchZoomLabel: "拖动地图，或用双指缩放。",
+    liveGpsLabel: "实时 GPS",
+    requestLocationLabel: "求助位置",
     readingLocation: "正在启动实时位置…",
     locationSaved: "实时位置已开启",
     locationDenied: "位置权限被拒绝。请在浏览器中允许位置访问，然后重新加载此页面。",
@@ -256,7 +273,11 @@ function stepStates(status: RequestStatus): Record<(typeof TIMELINE_STEPS)[numbe
 const sectionClass = "border border-[#d6e0e4] bg-white p-5 sm:p-6";
 const sectionTitleClass = "text-base font-extrabold text-[#173646]";
 
-export function RequestDetail({ request, viewer }: { request: HelpRequest; viewer: UserProfile }) {
+export function RequestDetail({
+  request,
+  viewer,
+  initialMissionLocations = {},
+}: { request: HelpRequest; viewer: UserProfile; initialMissionLocations?: RealMissionLocations }) {
   const router = useRouter();
   const copyLocale = useCopyLocale();
   const t = copy[copyLocale];
@@ -274,7 +295,7 @@ export function RequestDetail({ request, viewer }: { request: HelpRequest; viewe
   const [editError, setEditError] = useState<string | null>(null);
   const [editSuccess, setEditSuccess] = useState(false);
   const [locationState, setLocationState] = useState<"loading" | "saved" | "denied" | "unavailable" | "error">("loading");
-  const missionLocations = useMissionLocations(request.requestId);
+  const [missionLocations, setMissionLocations] = useState<RealMissionLocations>(initialMissionLocations);
   const userConfirmedAt = request.userConfirmedDoneAtLabel;
 
   const interpreterConfirmedAt = request.interpreterConfirmedDoneAtLabel;
@@ -316,8 +337,30 @@ export function RequestDetail({ request, viewer }: { request: HelpRequest; viewe
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
         try {
-          saveMissionLocation(request, viewer, position.coords.latitude, position.coords.longitude);
-          setLocationState("saved");
+          void saveMissionLocationAction({
+            bookingId: request.requestId,
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          }).then((result) => {
+            if (!result.ok) {
+              setLocationState("error");
+              return;
+            }
+            const point = {
+              actorId: viewer.userId,
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              updatedAtLabel: new Date().toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }),
+              accuracyMeters: position.coords.accuracy,
+            };
+            setMissionLocations((current) => ({
+              ...current,
+              ...(isInterpreter ? { interpreter: point } : { requester: point }),
+            }));
+            setLocationState("saved");
+          }).catch(() => {
+            setLocationState("error");
+          });
         } catch {
           setLocationState("error");
         }
@@ -327,13 +370,18 @@ export function RequestDetail({ request, viewer }: { request: HelpRequest; viewe
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, [canTrackLocation, request, viewer]);
+  }, [canTrackLocation, isInterpreter, request.requestId, viewer.userId]);
 
   if (!isInterpreter && requesterLocation) {
     mapPoints.push({
       id: "requester",
       label: t.requesterMarker,
+      name: request.requester?.name ?? viewer.name,
       detail: `${requesterLocation.latitude.toFixed(5)}, ${requesterLocation.longitude.toFixed(5)}`,
+      sourceLabel: savedRequesterLocation ? t.liveGpsLabel : t.requestLocationLabel,
+      updatedAtLabel: savedRequesterLocation?.updatedAtLabel ?? request.createdAtLabel,
+      accuracyMeters: savedRequesterLocation?.accuracyMeters ?? null,
+      isCurrentViewer: true,
       latitude: requesterLocation.latitude,
       longitude: requesterLocation.longitude,
     });
@@ -342,7 +390,12 @@ export function RequestDetail({ request, viewer }: { request: HelpRequest; viewe
     mapPoints.push({
       id: "interpreter",
       label: t.interpreterMarker,
+      name: request.interpreter?.name ?? viewer.name,
       detail: `${interpreterLocation.latitude.toFixed(5)}, ${interpreterLocation.longitude.toFixed(5)}`,
+      sourceLabel: t.liveGpsLabel,
+      updatedAtLabel: savedInterpreterLocation?.updatedAtLabel ?? null,
+      accuracyMeters: savedInterpreterLocation?.accuracyMeters ?? null,
+      isCurrentViewer: true,
       latitude: interpreterLocation.latitude,
       longitude: interpreterLocation.longitude,
     });
@@ -351,7 +404,12 @@ export function RequestDetail({ request, viewer }: { request: HelpRequest; viewe
     mapPoints.push({
       id: "requester",
       label: t.requesterMarker,
+      name: request.requester?.name ?? t.requesterMarker,
       detail: `${requesterLocation.latitude.toFixed(5)}, ${requesterLocation.longitude.toFixed(5)}`,
+      sourceLabel: savedRequesterLocation ? t.liveGpsLabel : t.requestLocationLabel,
+      updatedAtLabel: savedRequesterLocation?.updatedAtLabel ?? request.createdAtLabel,
+      accuracyMeters: savedRequesterLocation?.accuracyMeters ?? null,
+      isCurrentViewer: false,
       latitude: requesterLocation.latitude,
       longitude: requesterLocation.longitude,
     });
@@ -360,7 +418,12 @@ export function RequestDetail({ request, viewer }: { request: HelpRequest; viewe
     mapPoints.push({
       id: "interpreter",
       label: t.interpreterMarker,
+      name: request.interpreter?.name ?? t.interpreterMarker,
       detail: `${interpreterLocation.latitude.toFixed(5)}, ${interpreterLocation.longitude.toFixed(5)}`,
+      sourceLabel: t.liveGpsLabel,
+      updatedAtLabel: savedInterpreterLocation?.updatedAtLabel ?? null,
+      accuracyMeters: savedInterpreterLocation?.accuracyMeters ?? null,
+      isCurrentViewer: false,
       latitude: interpreterLocation.latitude,
       longitude: interpreterLocation.longitude,
     });
@@ -373,34 +436,42 @@ export function RequestDetail({ request, viewer }: { request: HelpRequest; viewe
     Completed: status === "Completed" ? (request.endedAtLabel ?? userConfirmedAt ?? interpreterConfirmedAt) : null,
   };
 
-  function confirmCancellation() {
+  async function confirmCancellation() {
     if (!cancelDraft.trim()) {
       setCancelError(t.cancelReasonMissing);
       return;
     }
 
+    const result = await cancelBookingAction(request.requestId, cancelDraft);
+    if (!result.ok) {
+      setCancelError(result.error);
+      return;
+    }
     try {
-      cancelMission(request.requestId, viewer, cancelDraft);
       setCancelError(null);
       setCancelFormOpen(false);
       if (isInterpreter && status === "Claimed") router.replace("/find-requests#main-content");
+      else router.refresh();
     } catch { setCancelError("Could not save this change. Please try again."); }
   }
 
   /** BR-05: the request only reaches Completed once both sides confirm. */
-  function confirmDone() {
-    try { confirmRequestCompletion(request.requestId, viewer); }
-    catch { setCancelError("Could not save your confirmation. Please try again."); }
+  async function confirmDone() {
+    const result = await confirmBookingCompletionAction(request.requestId);
+    if (!result.ok) setCancelError(result.error);
+    else router.refresh();
   }
 
-  function confirmAssignedInterpreter() {
-    try { confirmInterpreterSelection(request.requestId, viewer); }
-    catch { setCancelError("Could not confirm this interpreter. Please try again."); }
+  async function confirmAssignedInterpreter() {
+    const result = await confirmBookingInterpreterAction(request.requestId);
+    if (!result.ok) setCancelError(result.error);
+    else router.refresh();
   }
 
-  function beginWork() {
-    try { startRequest(request.requestId, viewer); }
-    catch (error) { setCancelError(error instanceof Error ? error.message : "Could not start this assignment."); }
+  async function beginWork() {
+    const result = await startBookingAction(request.requestId);
+    if (!result.ok) setCancelError(result.error);
+    else router.refresh();
   }
 
   function openEditForm() {
@@ -413,68 +484,69 @@ export function RequestDetail({ request, viewer }: { request: HelpRequest; viewe
     setEditFormOpen(true);
   }
 
-  function saveEditedDetails(event: SubmitEvent<HTMLFormElement>) {
+  async function saveEditedDetails(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!editMeetingPoint.trim()) {
       setEditError(t.meetingPointRequired);
       return;
     }
 
-    try {
-      updateRequestDetailsBeforeStart(request.requestId, viewer, {
-        languageId: editLanguageId,
-        categoryId: editCategoryId,
-        description: editDescription,
-        exactAddress: editMeetingPoint,
-      });
+    const result = await updateBookingDetailsAction({
+      bookingId: request.requestId,
+      languageId: editLanguageId,
+      categoryId: editCategoryId,
+      description: editDescription,
+      locationName: editMeetingPoint,
+    });
+    if (result.ok) {
       setEditError(null);
       setEditSuccess(true);
       setEditFormOpen(false);
-    } catch (error) {
-      setEditError(error instanceof Error ? error.message : "Could not update this request.");
+      router.refresh();
+    } else {
+      setEditError(result.error);
     }
   }
 
   return (
     <main id="main-content" className="flex-1 px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
       <div className="mx-auto max-w-[1180px]">
-        {cancelError && <p role="alert" className="mb-4 text-(--khvi-coral)">{cancelError}</p>}
-        <Link
-          className="inline-flex items-center gap-2 text-sm font-extrabold text-[#087f80] transition-colors hover:text-[#0a6465]"
-          href={isInterpreter ? "/my-assignments#main-content" : "/my-requests#main-content"}
-        >
-          <ArrowLeftIcon aria-hidden="true" className="h-4 w-4" />
-          {isInterpreter ? t.backInterpreter : t.back}
-        </Link>
+        <WorkspaceBreadcrumbs
+          ariaLabel={t.breadcrumb}
+          items={[
+            {
+              label: t.main,
+              href: isInterpreter ? "/welcome#welcome-Interpreter" : "/welcome#welcome-user",
+            },
+            {
+              label: isInterpreter ? t.assignmentsLabel : t.requestsLabel,
+              href: isInterpreter ? "/my-assignments#main-content" : "/my-requests#main-content",
+            },
+            { label: t.detailsTitle },
+          ]}
+        />
 
-        <div className="mt-6 flex flex-wrap items-center gap-2">
-          <StatusBadge status={status} copyLocale={copyLocale} />
-          <UrgencyBadge urgency={request.urgency} copyLocale={copyLocale} />
-          <span className="text-xs font-extrabold text-[#8a9aa0]">
-            {t.requestPrefix} #{request.requestId}
-          </span>
-        </div>
-
-        <p className="mt-3 text-sm font-extrabold text-[#087f80]">
-          {isInterpreter ? t.interpreterView : t.requesterView}
-        </p>
-
-        <h1 className="mt-3 text-3xl font-extrabold tracking-normal text-[#122b3e] sm:text-4xl">
-          {categoryLabel(request.categoryId, copyLocale)} · {languageLabel(request.languageId, copyLocale)}
-        </h1>
-
-        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-bold text-[#73848a]">
-          <span>
-            {t.created}: {request.createdAtLabel}
-          </span>
-          {request.scheduledAtLabel && (
-            <span>
-              {t.scheduled}: {request.scheduledAtLabel}
-            </span>
-          )}
-          {status === "Open" && request.expiresAt && (
-            <ExpiryCountdown seconds={0} expiresAt={request.expiresAt} copyLocale={copyLocale} compact />
-          )}
+        {cancelError && <p role="alert" className="mt-4 text-(--khvi-coral)">{cancelError}</p>}
+        <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-sm font-extrabold text-[#087f80]">
+              {isInterpreter ? t.interpreterView : t.requesterView}
+            </p>
+            <h1 className="mt-1.5 break-words text-3xl font-extrabold tracking-normal text-[#122b3e] sm:text-4xl">
+              {categoryLabel(request.categoryId, copyLocale)} · {languageLabel(request.languageId, copyLocale)}
+            </h1>
+            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-bold text-[#73848a]">
+              <span>{t.created}: {request.createdAtLabel}</span>
+              {request.scheduledAtLabel && <span>{t.scheduled}: {request.scheduledAtLabel}</span>}
+              {status === "Open" && request.expiresAt && (
+                <ExpiryCountdown seconds={0} expiresAt={request.expiresAt} copyLocale={copyLocale} compact />
+              )}
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+            <StatusBadge status={status} copyLocale={copyLocale} />
+            <UrgencyBadge urgency={request.urgency} copyLocale={copyLocale} />
+          </div>
         </div>
 
         {isClosed && cancelledBy && (
@@ -498,7 +570,7 @@ export function RequestDetail({ request, viewer }: { request: HelpRequest; viewe
           </section>
         )}
 
-        <div className="mt-6 grid items-start gap-5 lg:grid-cols-[1.25fr_0.75fr]">
+        <div className="mt-7 grid items-start gap-6">
           <div className="grid gap-5">
             <section className={sectionClass}>
               <h2 className={sectionTitleClass}>{t.timelineTitle}</h2>
@@ -751,8 +823,14 @@ export function RequestDetail({ request, viewer }: { request: HelpRequest; viewe
                     <MissionLocationMap
                       points={mapPoints}
                       title={t.mapTitle}
-                      zoomInLabel={t.zoomInMap}
-                      zoomOutLabel={t.zoomOutMap}
+                      loadingLabel={t.readingLocation}
+                      youLabel={t.youMarker}
+                      coordinatesLabel={t.coordinatesMapLabel}
+                      accuracyLabel={t.accuracyMapLabel}
+                      updatedLabel={t.updatedMapLabel}
+                      expandMapLabel={t.expandMapLabel}
+                      collapseMapLabel={t.collapseMapLabel}
+                      touchZoomLabel={t.touchZoomLabel}
                     />
                   ) : (
                     <div className="flex min-h-40 items-center justify-center rounded-xl border border-dashed border-[#b9c8ce] bg-[#f7f9fa] px-6 text-center">
@@ -788,7 +866,7 @@ export function RequestDetail({ request, viewer }: { request: HelpRequest; viewe
             </section>
           </div>
 
-          <div className="grid gap-5">
+          <aside className="grid items-start gap-5 sm:grid-cols-2">
             {!isInterpreter && request.interpreter ? (
               <section className="border border-[#b6ddcd] bg-[#f3faf6] p-5 sm:p-6">
                 <h2 className="flex items-center gap-2 text-base font-extrabold text-[#0f3a2c]">
@@ -998,7 +1076,7 @@ export function RequestDetail({ request, viewer }: { request: HelpRequest; viewe
                 </p>
               )}
             </section>
-          </div>
+          </aside>
         </div>
       </div>
     </main>

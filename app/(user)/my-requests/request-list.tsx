@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useRequests } from "@/app/lib/request-store";
 import { ChevronRightIcon, InboxIcon, MapPinIcon, PlusIcon, UserCircleIcon } from "@heroicons/react/24/outline";
 import { useCopyLocale } from "@/app/components/app-shell";
 import { ExpiryCountdown } from "@/app/components/expiry-countdown";
@@ -15,6 +14,7 @@ import {
   STATUS_FILTERS,
   type StatusFilterId,
 } from "@/app/lib/mock-requests";
+import type { HelpRequest } from "@/app/lib/mock-requests";
 
 const copy = {
   en: {
@@ -81,10 +81,12 @@ const copy = {
 
 export function RequestList({
   activeFilter,
+  initialRequests,
 }: {
   activeFilter: StatusFilterId;
+  initialRequests: HelpRequest[];
 }) {
-  const { requests: allRequests, ready } = useRequests();
+  const allRequests = initialRequests;
   const [selectedFilter, setSelectedFilter] = useState(activeFilter);
   const matching = (id: StatusFilterId) => {
     const statuses: readonly string[] | null = STATUS_FILTERS.find((f) => f.id === id)?.statuses ?? null;
@@ -147,7 +149,7 @@ export function RequestList({
           })}
         </div>
 
-        {!ready ? <p role="status" className="mt-6">Loading your requests…</p> : requests.length === 0 ? (
+        {requests.length === 0 ? (
           <section id="request-results" className="mt-6 border border-[#d6e0e4] bg-white p-10 text-center">
             <InboxIcon aria-hidden="true" className="mx-auto h-10 w-10 text-[#9aa9ae]" />
             <h2 className="mt-4 text-lg font-extrabold text-[#203d4d]">{t.emptyTitle}</h2>
@@ -166,14 +168,13 @@ export function RequestList({
               <li key={request.requestId}>
                 <Link
                   href={`/my-requests/${request.requestId}`}
-                  aria-label={`${t.view} #${request.requestId}: ${categoryLabel(request.categoryId, copyLocale)} · ${languageLabel(request.languageId, copyLocale)}`}
+                  aria-label={`${t.view}: ${categoryLabel(request.categoryId, copyLocale)} · ${languageLabel(request.languageId, copyLocale)}, ${request.scheduledAtLabel ?? request.createdAtLabel}`}
                   className="group flex flex-col gap-4 border border-[#d6e0e4] bg-white p-5 transition-colors hover:border-[#087f80] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun) lg:flex-row lg:items-center lg:justify-between"
                 >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <StatusBadge status={request.status} copyLocale={copyLocale} />
                       <UrgencyBadge urgency={request.urgency} copyLocale={copyLocale} />
-                      <span className="text-xs font-extrabold text-[#8a9aa0]">#{request.requestId}</span>
                     </div>
 
                     <h2 className="mt-3 text-lg font-extrabold text-[#173646]">

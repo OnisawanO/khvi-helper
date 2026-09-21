@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   ArrowLeftOnRectangleIcon,
   ArrowsRightLeftIcon,
@@ -10,13 +10,17 @@ import {
   UserCircleIcon,
 } from "@heroicons/react/24/outline";
 import { BrandMark } from "@/app/components/brand-mark";
-import { UserProfile } from "@/app/lib/mock-auth";
+import { UserAvatar } from "@/app/components/user-avatar";
+import { DEFAULT_MOCK_USERS, UserProfile } from "@/app/lib/mock-auth";
+import { LanguageSwitcher, type Locale } from "@/app/components/site-header";
 
 interface AdminHeaderProps {
   onMenuClick?: () => void;
   onSignOut: () => void;
   onChangeAccount: () => void;
   currentUser: UserProfile | null;
+  locale: Locale;
+  onLocaleChange: (locale: Locale) => void;
 }
 
 export function AdminHeader({
@@ -24,6 +28,8 @@ export function AdminHeader({
   onSignOut,
   onChangeAccount,
   currentUser,
+  locale,
+  onLocaleChange,
 }: AdminHeaderProps) {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -37,15 +43,6 @@ export function AdminHeader({
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, []);
-
-  const userInitials = useMemo(() => {
-    if (!currentUser?.name) return "IK";
-    const parts = currentUser.name.trim().split(/\s+/);
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return currentUser.name.slice(0, 2).toUpperCase();
-  }, [currentUser]);
 
   return (
     <header className="sticky top-0 z-30 border-b border-[#dbe3e7] bg-[#fbfdfc]/95 shadow-[0_8px_24px_rgba(21,52,67,0.06)] backdrop-blur">
@@ -66,6 +63,11 @@ export function AdminHeader({
 
         {/* Right Section: Profile & Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
+          <LanguageSwitcher
+            copy={{ brandSubtitle: "", languageLabel: "Language", signIn: "", primaryAction: "", nav: [] }}
+            locale={locale}
+            onLocaleChange={onLocaleChange}
+          />
           <div ref={profileMenuRef} className="relative">
             <button
               type="button"
@@ -74,9 +76,7 @@ export function AdminHeader({
               aria-expanded={profileMenuOpen}
               aria-haspopup="menu"
             >
-              <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#087f80] bg-[#092f45] text-xs font-black text-white">
-                {userInitials}
-              </div>
+              <UserAvatar user={currentUser ?? DEFAULT_MOCK_USERS.Admin} size="sm" className="border border-[#087f80]" />
               <div className="text-left hidden sm:block">
                 <p className="text-xs font-extrabold leading-tight text-[#10283a]">
                   {currentUser?.name || "Ilham Khamsikeaw"}
@@ -108,17 +108,14 @@ export function AdminHeader({
                   </span>
                 </div>
                 <div className="py-1 space-y-0.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setProfileMenuOpen(false);
-                      alert(`Admin Profile Details:\nName: ${currentUser?.name || "Ilham Khamsikeaw"}\nEmail: ${currentUser?.email || "ilham.k@khvi-admin.org"}\nRole: ${currentUser?.role || "Admin"}`);
-                    }}
+                  <a
+                    href="/profile#main-content"
+                    onClick={() => setProfileMenuOpen(false)}
                     className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#2d4957] transition-colors hover:bg-[#f2f7f9] hover:text-[#087f80] cursor-pointer"
                   >
                     <UserCircleIcon className="h-4 w-4" />
                     Profile
-                  </button>
+                  </a>
                   <button
                     type="button"
                     onClick={() => {

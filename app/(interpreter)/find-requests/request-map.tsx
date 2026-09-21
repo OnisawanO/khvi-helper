@@ -64,8 +64,10 @@ export function RequestMap({
       zoomControl: false,
     }).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "&copy; OpenStreetMap contributors",
+      detectRetina: true,
+      keepBuffer: 4,
       maxZoom: 19,
       minZoom: 3,
     }).addTo(map);

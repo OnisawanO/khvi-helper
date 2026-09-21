@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ShieldCheckIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
 
 import {
   InterpreterApplicant,
@@ -38,6 +40,7 @@ import {
   reviewInterpreterApplication,
   type InterpreterApplication as StoreApplication,
 } from "@/app/lib/interpreter-application";
+import { governanceStore } from "@/app/lib/governance-store";
 
 function toInterpreterApplicant(app: StoreApplication): InterpreterApplicant {
   const primary = app.primaryLanguage || (app.languages[0]?.name ?? "ไทย (Thai)");
@@ -100,7 +103,7 @@ export default function ManagerDashboard() {
         return;
       }
 
-      if (result.profile.role !== "Manager") {
+      if (result.profile.role !== "Manager" && result.profile.role !== "Admin") {
         router.replace(getRedirectPathByRole(result.profile.role));
         return;
       }
@@ -326,6 +329,25 @@ export default function ManagerDashboard() {
       )
     );
     if (target) {
+      // Sync to shared governance store for Admin Portal real-time pickup
+      governanceStore.escalateReportToAdmin(
+        {
+          id: target.id,
+          reporterName: target.reporterName,
+          reporterRole: target.reporterRole,
+          reportedUserId: target.reportedUserRole === "Interpreter" ? "USR-005" : "USR-006",
+          reportedUserName: target.reportedUserName,
+          reportedUserRole: target.reportedUserRole,
+          bookingId: target.bookingId,
+          reason: target.reason,
+          severity: "high",
+          createdAt: target.createdAt,
+          status: "Escalated to Admin",
+          actionTaken: "Escalated by Manager for Super Admin review and account restriction.",
+        },
+        `${currentUser?.name || "Manager Coordinator"} (Manager)`
+      );
+
       setActivities((prev) => [
         {
           id: `ACT-REP-${reportId}-${prev.length + 1}`,
@@ -390,6 +412,25 @@ export default function ManagerDashboard() {
           onSignOut={handleSignOut}
           onChangeAccount={() => setIsLoginModalOpen(true)}
         />
+
+        {/* Administrator Supervisory Override Banner */}
+        {currentUser?.role === "Admin" && (
+          <div className="flex items-center justify-between border-b border-amber-300 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-900 shadow-xs">
+            <div className="flex items-center gap-2">
+              <ShieldCheckIcon className="h-4 w-4 text-amber-700 shrink-0" />
+              <span>
+                <strong>Administrator Mode:</strong> You have full supervisory override authority across all operational queues.
+              </span>
+            </div>
+            <Link
+              href="/admin"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-1 text-[11px] font-bold text-amber-800 shadow-2xs hover:bg-amber-100/50 transition-colors"
+            >
+              <ArrowLeftIcon className="h-3 w-3" />
+              <span>Return to Admin Console</span>
+            </Link>
+          </div>
+        )}
 
         {/* Content Workspace */}
         <div className="flex-1 overflow-y-auto min-w-0 flex flex-col">
