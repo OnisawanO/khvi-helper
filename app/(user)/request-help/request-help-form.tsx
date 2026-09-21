@@ -17,7 +17,8 @@ import {
   MapPinIcon,
 } from "@heroicons/react/24/outline";
 import { useCopyLocale } from "@/app/components/app-shell";
-import { CATEGORIES, LANGUAGES, type CategoryId, type LanguageId, type Urgency } from "@/app/lib/mock-requests";
+import type { Urgency } from "@/app/lib/mock-requests";
+import type { ReferenceOption } from "@/app/lib/reference-catalog";
 import { LocationMapPicker, type LocationCoordinates } from "./location-map-picker";
 
 const copy = {
@@ -395,15 +396,21 @@ function TimeWheel({ id, label, value, max, onChange }: TimeWheelProps) {
   );
 }
 
-export function RequestHelpForm() {
+export function RequestHelpForm({
+  languageOptions,
+  categoryOptions,
+}: {
+  languageOptions: ReferenceOption[];
+  categoryOptions: ReferenceOption[];
+}) {
   const saving = useRef(false);
   const router = useRouter();
   const copyLocale = useCopyLocale();
   const t = copy[copyLocale];
 
   const [urgency, setUrgency] = useState<Urgency>("Immediate");
-  const [languageId, setLanguageId] = useState<LanguageId | "">("");
-  const [categoryId, setCategoryId] = useState<CategoryId | "">("");
+  const [languageId, setLanguageId] = useState<string>("");
+  const [categoryId, setCategoryId] = useState<string>("");
   const [description, setDescription] = useState("");
   const [place, setPlace] = useState("");
   const [scheduledDate, setScheduledDate] = useState("");
@@ -621,12 +628,12 @@ export function RequestHelpForm() {
                     className={`mt-2 ${fieldClass}`}
                     value={languageId}
                     aria-invalid={Boolean(errors.language)}
-                    onChange={(event) => setLanguageId(event.target.value as LanguageId)}
+                    onChange={(event) => setLanguageId(event.target.value)}
                   >
                     <option value="">{t.languagePlaceholder}</option>
-                    {LANGUAGES.map((language) => (
+                    {languageOptions.map((language) => (
                       <option key={language.id} value={language.id}>
-                        {language[copyLocale]}
+                        {copyLocale === "zh" ? language.nameZh : language.name}
                       </option>
                     ))}
                   </select>
@@ -642,12 +649,12 @@ export function RequestHelpForm() {
                     className={`mt-2 ${fieldClass}`}
                     value={categoryId}
                     aria-invalid={Boolean(errors.category)}
-                    onChange={(event) => setCategoryId(event.target.value as CategoryId)}
+                    onChange={(event) => setCategoryId(event.target.value)}
                   >
                     <option value="">{t.categoryPlaceholder}</option>
-                    {CATEGORIES.map((category) => (
+                    {categoryOptions.map((category) => (
                       <option key={category.id} value={category.id}>
-                        {category[copyLocale]}
+                        {copyLocale === "zh" ? category.nameZh : category.name}
                       </option>
                     ))}
                   </select>

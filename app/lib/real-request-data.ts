@@ -208,14 +208,17 @@ function toRequest(
 ): HelpRequest | null {
   const languageId = references.languages.get(Number(row.language_id));
   const categoryId = references.categories.get(Number(row.category_id));
-  const status = statusMap[row.status];
+  const rawStatus = statusMap[row.status];
   const urgency = urgencyMap[row.urgency];
 
-  if (!languageId || !categoryId || !status || !urgency) return null;
+  if (!languageId || !categoryId || !rawStatus || !urgency) return null;
 
   const requesterContact = contactFor(details.contacts, "requester");
   const interpreterContact = contactFor(details.contacts, "interpreter");
   const expiry = new Date(row.expires_at).getTime();
+  const status = rawStatus === "Open" && Number.isFinite(expiry) && expiry <= Date.now()
+    ? "Expired"
+    : rawStatus;
   const expiresInSeconds = status === "Open" && Number.isFinite(expiry)
     ? Math.max(0, Math.floor((expiry - Date.now()) / 1000))
     : null;
