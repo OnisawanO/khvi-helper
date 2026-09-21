@@ -215,6 +215,7 @@ Project นี้ใช้ imperative migration ใน `supabase/migrations/` �
 5. `20260917094342_real_interpreter_application_flow.sql`
 6. `20260917095513_real_interpreter_certificate_storage.sql`
 7. `20260917100148_complete_interpreter_reference_catalog.sql`
+8. `20260921000100_add_self_account_deletion.sql`
 
 เมื่อต้องเปลี่ยน schema, policy, RPC หรือ Storage ให้เพิ่ม migration ใหม่ตามลำดับ ห้ามแก้ migration ที่เคย apply ไปแล้วใน shared project
 
@@ -240,6 +241,7 @@ npm run dev
 - `/my-requests`, `/find-requests`, `/my-assignments` อ่าน booking จริง
 - `/my-requests/[requestId]` อ่าน booking และข้อมูล private ผ่าน guarded RPC
 - Claim, confirm, start, complete, cancel และ mission location ใช้ booking RPC
+- `/profile` ปิดบัญชีตนเองผ่าน `delete_my_account` แบบ soft delete โดยป้องกันการลบเมื่อมีงาน `open`, `claimed` หรือ `in_progress`
 - `/volunteer/apply` อ่าน reference จริงและส่ง application จริง
 - `/volunteer/status` อ่านและจัดการ application จริง
 - Manager application queue อ่านข้อมูลจริงและ review ผ่าน RPC

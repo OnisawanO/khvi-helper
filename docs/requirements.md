@@ -111,6 +111,7 @@ open -> claimed -> in_progress -> completed
 | FR-18 | Report | เริ่มทำหลัง Help Request | Manager/Admin |
 | FR-19 | Audit | บันทึก action สำคัญของ Manager และ Admin ใน phase ที่กำหนด | System |
 | FR-20 | Admin | Admin จัดการ role และข้อมูลผู้ใช้ | Admin |
+| FR-21 | Self-service account deletion | ผู้ใช้ปิดบัญชีตนเองแบบ soft delete หลังไม่มีงานที่ยังดำเนินอยู่ | ทุก role |
 
 ข้อกำหนดชุดนี้ไม่ใช้ flow ค้นหาและเลือกล่ามรายบุคคลแบบ marketplace, ปุ่ม Reject งานของล่าม, ระบบ Tip หรือการรีวิวสองฝ่าย ระบบใช้ Job Pool ที่ล่ามกด Claim งานเอง และให้ User รีวิว Interpreter ฝ่ายเดียวหลังงาน Completed ส่วนการ Reject ใน FR-15 หมายถึงการปฏิเสธใบสมัครล่ามโดย Manager/Admin พร้อมเหตุผล
 
@@ -641,7 +642,6 @@ open -> claimed -> in_progress -> completed
 - Server ต้องป้องกัน privilege escalation จากผู้ที่ไม่ใช่ Admin
 - การเปลี่ยน role ต้องสร้าง Audit Log เมื่อ FR-19 เปิดใช้
 - Lock/Unlock อยู่ใน MVP โดยต้องตรวจสิทธิ์ฝั่ง server บังคับเหตุผล และสร้าง Audit Log การ Lock/Unlock ทุกครั้ง การมี control ใน mock UI เพียงอย่างเดียวไม่ถือว่า feature เสร็จ
-- การลบบัญชีไม่อยู่ใน FR-20 ปัจจุบันจนกว่าจะมี requirement เรื่อง retention, authorization และผลกระทบต่อข้อมูลย้อนหลัง
 
 **ผลลัพธ์และเกณฑ์ตรวจรับ:**
 
@@ -649,6 +649,31 @@ open -> claimed -> in_progress -> completed
 - Role ใหม่มีผลกับ route และ action หลังบันทึกโดยไม่ต้องพึ่ง client state เดิม
 - Manager และ role อื่นเรียก action เดียวกันแล้วถูกปฏิเสธ
 - การแก้ข้อมูลไม่ทำลาย booking, review, audit หรือ relation ที่ต้องเก็บย้อนหลัง
+
+#### FR-21: Self-service account deletion
+
+**Requirement:** ผู้ใช้ที่ Login แล้วสามารถปิดบัญชีของตนเองจาก Profile Settings ได้ โดยระบบต้องเก็บความสัมพันธ์และประวัติงานไว้
+
+**Actor:** User, Interpreter, Manager, Admin
+
+**Preconditions:**
+
+- Actor มี session ที่ผ่านการตรวจสอบและมี profile ของตนเอง
+- Actor ไม่มี booking สถานะ `open`, `claimed` หรือ `in_progress` ในฐานะผู้ขอหรือล่าม
+
+**รายละเอียด:**
+
+- ระบบต้องใช้ soft delete ด้วย `profiles.deleted_at` และไม่ลบ `profiles` หรือ `bookings` ออกจากฐานข้อมูล
+- ระบบต้องลบหรือทำให้ข้อมูลติดต่อส่วนตัวที่จำเป็นไม่สามารถใช้งานต่อได้ พร้อมตั้งบัญชีเป็น locked
+- ระบบต้องปฏิเสธการสร้างงานใหม่และการเข้าหน้า workspace หลังปิดบัญชี
+- หลังสำเร็จระบบต้อง sign out session ปัจจุบันและแสดงผลการกลับไปยังหน้าเริ่มต้น
+- หากมีงานที่ยังดำเนินอยู่ ต้องแสดงข้อผิดพลาดและไม่เปลี่ยนข้อมูลบัญชี
+
+**ผลลัพธ์และเกณฑ์ตรวจรับ:**
+
+- การลบบัญชีสำเร็จเก็บ booking, mission และ relation เดิมไว้
+- ผู้ใช้ที่ถูกลบไม่สามารถสร้างหรือรับงานใหม่ได้
+- การเรียก action โดยไม่มี session หรือ profile ที่ถูกลบแล้วถูกปฏิเสธฝั่ง server
 
 ## 7. Non-functional Requirements
 
