@@ -14,6 +14,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { SiteFooter } from "@/app/components/site-footer";
 import { SiteHeader } from "@/app/components/site-header";
+import { ResponsiveHeroImage } from "@/app/components/responsive-hero-image";
 import { RegisterModal } from "@/app/components/auth/register-modal";
 import { LoginModal } from "@/app/components/auth/login-modal";
 import { useStoredLocale } from "@/app/lib/locale";
@@ -201,7 +202,6 @@ export default function Home() {
   const t = locale === "th" ? landingCopy.th : locale === "zh" ? landingCopy.zh : landingCopy.en;
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
-
   function continueAfterLogin(user: UserProfile | null = getMockUserSession()) {
     if (!user) return;
     setIsSignInOpen(false);
@@ -267,25 +267,25 @@ export default function Home() {
       />
 
       <section id="main-content" className="mx-auto max-w-[1320px] scroll-mt-24 px-4 pt-4 sm:px-8 sm:pt-6 lg:px-12 lg:pt-8">
-        <div className="relative overflow-hidden rounded-2xl border border-[#d8e3e7] bg-white shadow-[0_18px_50px_rgba(21,52,67,0.10)]">
-          <div className="absolute inset-0 hidden lg:block">
-            <Image src="/khvi-landing-hero.png" alt={t.hero.imageAlt} fill priority className="object-cover object-center" sizes="(min-width: 1320px) 1224px, calc(100vw - 96px)" />
-          </div>
-          <div aria-hidden="true" className="absolute inset-0 hidden bg-[linear-gradient(90deg,#ffffff_0%,rgba(255,255,255,0.98)_35%,rgba(255,255,255,0.86)_49%,rgba(255,255,255,0)_72%)] lg:block" />
-          <div className="relative z-10 flex max-w-[650px] flex-col justify-center px-5 py-8 sm:px-10 sm:py-10 lg:min-h-[500px] lg:px-12">
-            <h1 className="text-[2.65rem] font-extrabold leading-[1.04] tracking-[-0.035em] text-[#0b3550] sm:text-[3.5rem] lg:text-[clamp(3.7rem,5.6vw,5.4rem)]">
+        <div className="relative isolate min-h-[540px] overflow-hidden rounded-2xl border border-[#d8e3e7] bg-(--khvi-navy) shadow-[0_18px_50px_rgba(21,52,67,0.10)] sm:min-h-[580px] lg:min-h-[500px]">
+          <ResponsiveHeroImage
+            desktopSrc="/khvi-landing-hero.png"
+            mobileSrc="/khvi-landing-hero-mobile.png"
+            alt={t.hero.imageAlt}
+            sizes="(min-width: 1320px) 1224px, (min-width: 1024px) calc(100vw - 96px), (min-width: 640px) calc(100vw - 64px), calc(100vw - 32px)"
+          />
+          <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(180deg,rgba(9,47,69,0.94)_0%,rgba(9,47,69,0.78)_62%,rgba(9,47,69,0.58)_100%)] sm:bg-[linear-gradient(90deg,rgba(9,47,69,0.96)_0%,rgba(9,47,69,0.86)_52%,rgba(9,47,69,0.30)_100%)] lg:bg-[linear-gradient(90deg,rgba(9,47,69,0.97)_0%,rgba(9,47,69,0.88)_40%,rgba(9,47,69,0.42)_62%,rgba(9,47,69,0.08)_100%)]" />
+          <div className="relative z-10 flex min-h-[540px] max-w-[650px] flex-col justify-end px-5 py-8 text-white sm:min-h-[580px] sm:justify-center sm:px-10 sm:py-10 lg:min-h-[500px] lg:px-12">
+            <h1 className="text-[2.65rem] font-extrabold leading-[1.04] tracking-[-0.035em] text-white sm:text-[3.5rem] lg:text-[clamp(3.7rem,5.6vw,5.4rem)]">
               <span className="block">{t.hero.lead}</span>
               <span className="mt-1 block text-[#ef5b47]">{t.hero.accent}</span>
             </h1>
-            <p className="mt-5 whitespace-pre-line text-[15px] font-semibold leading-7 text-[#294b60] sm:mt-6 sm:text-lg sm:leading-8">{t.hero.body}</p>
+            <p className="mt-5 max-w-xl whitespace-pre-line text-[15px] font-semibold leading-7 text-white/82 sm:mt-6 sm:text-lg sm:leading-8">{t.hero.body}</p>
             <a href="/request-help#main-content" className="mt-6 inline-flex min-h-14 w-full max-w-[390px] items-center justify-center gap-3 rounded-xl bg-[#ef5b47] px-5 py-3 text-base font-extrabold text-white shadow-[0_12px_25px_rgba(239,91,71,0.24)] transition-colors hover:bg-[#d94a38] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#092f45] sm:mt-7 sm:px-6 sm:text-lg">
               <BellAlertIcon aria-hidden="true" className="h-7 w-7" />
               {t.hero.action}
             </a>
-            <p className="mt-3 text-sm font-semibold text-[#536c79]">{t.hero.note}</p>
-          </div>
-          <div className="relative aspect-[4/3] sm:aspect-[16/9] lg:hidden">
-            <Image src="/khvi-landing-hero.png" alt={t.hero.imageAlt} fill priority className="object-cover object-[58%_center]" sizes="(min-width: 640px) calc(100vw - 64px), calc(100vw - 32px)" />
+            <p className="mt-3 text-sm font-semibold text-white/75">{t.hero.note}</p>
           </div>
         </div>
 
