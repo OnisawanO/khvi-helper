@@ -40,34 +40,6 @@ function friendlyError(error: { message?: string } | null): string {
   return "Could not save this application change. Please try again.";
 }
 
-export async function uploadInterpreterCertificateAction(formData: FormData): Promise<InterpreterApplicationActionResult<{ path: string; fileName: string }>> {
-  const fileValue = formData.get("file");
-  if (!fileValue || typeof fileValue === "string" || typeof fileValue.arrayBuffer !== "function") {
-    return { ok: false, error: "Choose a certificate file before uploading." };
-  }
-
-  const file = fileValue as File;
-  if (file.size <= 0 || file.size > 10 * 1024 * 1024) {
-    return { ok: false, error: "Certificate files must be between 1 byte and 10 MB." };
-  }
-  if (!["application/pdf", "image/jpeg", "image/png"].includes(file.type)) {
-    return { ok: false, error: "Only PDF, JPG, and PNG certificate files are supported." };
-  }
-
-  const supabase = await createClient();
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-  if (userError || !userData.user) return { ok: false, error: "Your session has expired. Please sign in again." };
-
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
-  const path = `${userData.user.id}/${crypto.randomUUID()}-${safeName}`;
-  const { error } = await supabase.storage
-    .from("interpreter-certificates")
-    .upload(path, file, { contentType: file.type, upsert: false });
-  if (error) return { ok: false, error: "The certificate upload failed. Please try again." };
-
-  return { ok: true, data: { path, fileName: file.name } };
-}
-
 export async function loadMyInterpreterApplicationAction() {
   try {
     return { ok: true as const, data: await loadMyInterpreterApplication() };

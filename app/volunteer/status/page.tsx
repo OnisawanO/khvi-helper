@@ -6,9 +6,9 @@ import {
   cancelInterpreterApplicationAction,
   loadMyInterpreterApplicationAction,
   reuploadInterpreterCertificateAction,
-  uploadInterpreterCertificateAction,
 } from "@/app/actions/interpreter-application-actions";
 import type { InterpreterApplication } from "@/app/lib/interpreter-application";
+import { uploadInterpreterCertificate } from "@/app/lib/interpreter-certificate-upload";
 import { ApplicationStatusPanel } from "@/components/volunteer/ApplicationStatusPanel";
 
 export default function VolunteerStatusPage() {
@@ -85,25 +85,23 @@ export default function VolunteerStatusPage() {
               }}
               onReupload={(file) => {
                 setError(null);
-                const uploadData = new FormData();
-                uploadData.set("file", file);
-                void uploadInterpreterCertificateAction(uploadData).then((uploadResult) => {
-                  if (!uploadResult.ok) {
-                    setError(uploadResult.error);
-                    return;
-                  }
-                  void reuploadInterpreterCertificateAction({
-                    applicationId: application.id,
-                    fileName: uploadResult.data.fileName,
-                    fileUrl: uploadResult.data.path,
-                  }).then((result) => {
+                void (async () => {
+                  try {
+                    const uploadResult = await uploadInterpreterCertificate(file);
+                    const result = await reuploadInterpreterCertificateAction({
+                      applicationId: application.id,
+                      fileName: uploadResult.fileName,
+                      fileUrl: uploadResult.path,
+                    });
                     if (!result.ok) {
                       setError(result.error);
                       return;
                     }
-                    void reloadApplication();
-                  });
-                });
+                    await reloadApplication();
+                  } catch (uploadError) {
+                    setError(uploadError instanceof Error ? uploadError.message : "ไม่สามารถอัปโหลดเอกสารได้ กรุณาลองใหม่");
+                  }
+                })();
               }}
             />
           </>

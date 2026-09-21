@@ -2,10 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import {
-  submitInterpreterApplicationAction,
-  uploadInterpreterCertificateAction,
-} from "@/app/actions/interpreter-application-actions";
+import { submitInterpreterApplicationAction } from "@/app/actions/interpreter-application-actions";
+import { uploadInterpreterCertificate } from "@/app/lib/interpreter-certificate-upload";
 import type { InterpreterApplicationReference } from "@/app/lib/real-interpreter-application-data";
 
 export function ApplicationForm({
@@ -83,13 +81,7 @@ export function ApplicationForm({
         return;
       }
 
-      const uploadData = new FormData();
-      uploadData.set("file", certificateFile);
-      const uploadResult = await uploadInterpreterCertificateAction(uploadData);
-      if (!uploadResult.ok) {
-        setSubmitError(uploadResult.error);
-        return;
-      }
+      const uploadResult = await uploadInterpreterCertificate(certificateFile);
 
       const result = await submitInterpreterApplicationAction({
         firstName: firstName.trim(),
@@ -100,8 +92,8 @@ export function ApplicationForm({
         assignedArea: "",
         languageCodes: selectedLangs,
         categoryCodes: selectedCats,
-        certificateFileName: uploadResult.data.fileName,
-        certificateUrl: uploadResult.data.path,
+        certificateFileName: uploadResult.fileName,
+        certificateUrl: uploadResult.path,
       });
       if (!result.ok) {
         setSubmitError(result.error);
