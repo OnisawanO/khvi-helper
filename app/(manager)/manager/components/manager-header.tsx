@@ -119,17 +119,14 @@ export function ManagerHeader({
                   </span>
                 </div>
                 <div className="py-1 space-y-0.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setProfileMenuOpen(false);
-                      alert(`Manager Profile Details:\nName: ${currentUser?.name || "Wipha Inspector"}\nEmail: ${currentUser?.email || "manager@khvi.org"}\nRole: ${currentUser?.role || "Manager"}`);
-                    }}
+                  <a
+                    href="/profile#main-content"
+                    onClick={() => setProfileMenuOpen(false)}
                     className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#2d4957] transition-colors hover:bg-[#f2f7f9] hover:text-[#087f80] cursor-pointer"
                   >
                     <UserCircleIcon className="h-4 w-4" />
-                    Profile Details
-                  </button>
+                    Profile
+                  </a>
                   <button
                     type="button"
                     onClick={() => {
