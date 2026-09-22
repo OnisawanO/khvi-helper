@@ -21,9 +21,10 @@ Environment ที่ต้องมีใน `.env.local`:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+SUPABASE_SECRET_KEY=your_supabase_secret_key
 ```
 
-`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` ใช้ได้ทั้ง browser และ server เพราะเป็น publishable key ตามชื่อ environment ห้ามนำ `service_role` key หรือ secret key มาใส่ใน client code หรือ commit ลง repository
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` ใช้ได้ทั้ง browser และ server เพราะเป็น publishable key ตามชื่อ environment ส่วน `SUPABASE_SECRET_KEY` ใช้เฉพาะ Server Action สำหรับลบบัญชีถาวร ห้ามเติม prefix `NEXT_PUBLIC_`, นำไปใช้ใน client code หรือ commit ค่าจริงลง repository ระบบยังรองรับชื่อ legacy `SUPABASE_SERVICE_ROLE_KEY` สำหรับ environment เดิม
 
 ใช้ client ตาม execution boundary:
 
@@ -204,8 +205,8 @@ pending | under_review | needs_revision | approved | rejected | cancelled
 - `authenticated` เข้าถึงตาม policy ที่ผูกกับ `auth.uid()` และ role ใน `profiles`
 - Application mutation revoke direct table write ใน migration ล่าสุดแล้ว ส่วน `bookings` และ `booking_private_details` ยังมีสิทธิ์ insert สำหรับ `authenticated` ตาม policy เดิม แต่ application code ต้องใช้ RPC เพื่อรักษา validation, expiry, private details และ atomic flow
 - RPC ที่อยู่ใน `public` ต้อง `revoke all ... from public` และ grant เฉพาะ role ที่ต้องใช้
-- `SECURITY DEFINER` ที่มีอยู่ต้องคง `auth.uid()` check และ `set search_path = public, pg_temp` ไว้
-- ห้ามใช้ `service_role` key ใน browser หรือ Server Action ของ user-facing flow
+- `SECURITY DEFINER` ที่มีอยู่ต้องคง `auth.uid()` check และกำหนด `search_path`; function ใหม่ควรใช้ `set search_path = ''` พร้อมระบุ schema ของ relation ทุกจุด
+- ห้ามใช้ `service_role` หรือ secret key ใน browser โดยเด็ดขาด Server Action ใช้ได้เฉพาะ operation ระดับระบบที่ต้องใช้ Admin API เช่นการลบบัญชีถาวร โดยต้องตรวจ Supabase session ก่อนและห้ามรับ target user ID จาก client
 
 Certificate upload ใช้ bucket private:
 
@@ -273,7 +274,7 @@ where u.id = p.user_id
 - `/my-requests`, `/find-requests`, `/my-assignments` อ่าน booking จริง
 - `/my-requests/[requestId]` อ่าน booking และข้อมูล private ผ่าน guarded RPC
 - Claim, confirm, start, complete, cancel และ mission location ใช้ booking RPC
-- `/profile` ปิดบัญชีตนเองผ่าน `delete_my_account` แบบ soft delete โดยป้องกันการลบเมื่อมีงาน `open`, `claimed` หรือ `in_progress`
+- `/profile` เริ่มการลบผ่าน `begin_permanent_account_deletion`, ลบไฟล์ใบสมัครล่ามด้วย server-only Storage client แล้วลบ Supabase Auth user แบบถาวรผ่าน Admin API ระบบป้องกันการลบเมื่อมีงาน `open` ที่ยังไม่หมดอายุหรือมีงาน `claimed`, `in_progress`
 - `/volunteer/apply` อ่าน reference จริงและส่ง application จริง
 - `/volunteer/status` อ่านและจัดการ application จริง
 - Manager application queue อ่านข้อมูลจริงและ review ผ่าน RPC

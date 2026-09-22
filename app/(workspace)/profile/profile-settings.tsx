@@ -100,7 +100,7 @@ function ProfileLoading({ copy }: { copy: ProfileCopy }) {
   );
 }
 
-export function ProfileSettings() {
+export function ProfileSettings({ accountDeletionConfigured }: { accountDeletionConfigured: boolean }) {
   const router = useRouter();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [canDeleteAccount, setCanDeleteAccount] = useState(false);
@@ -127,7 +127,7 @@ export function ProfileSettings() {
         const previewSession = getMockUserSession();
         const sameAccountPreview = previewSession?.userId === supabaseResult.profile.userId ? previewSession : null;
         setUser(sameAccountPreview ? { ...supabaseResult.profile, ...sameAccountPreview } : supabaseResult.profile);
-        setCanDeleteAccount(supabaseResult.accountDeletionAvailable !== false);
+        setCanDeleteAccount(accountDeletionConfigured && supabaseResult.accountDeletionAvailable !== false);
         setReady(true);
         return;
       }
@@ -176,7 +176,7 @@ export function ProfileSettings() {
       window.removeEventListener("focus", onWindowFocus);
       authListener.subscription.unsubscribe();
     };
-  }, [router]);
+  }, [accountDeletionConfigured, router]);
 
   if (!ready || !user) return <ProfileLoading copy={copy} />;
 
@@ -203,7 +203,7 @@ export function ProfileSettings() {
           canDeleteAccount={canDeleteAccount}
           onAccountDeleted={async () => {
             clearMockUserSession();
-            await authApi.logout();
+            await createClient().auth.signOut({ scope: "local" });
             setUser(null);
             setCanDeleteAccount(false);
             router.replace("/#top");
@@ -476,14 +476,19 @@ function AccountDeletionCard({
     setBusy(true);
     setError(null);
 
-    const result = await deleteOwnAccountAction();
-    if (!result.ok) {
-      setError(result.error);
-      setBusy(false);
-      return;
-    }
+    try {
+      const result = await deleteOwnAccountAction();
+      if (!result.ok) {
+        setError(result.error);
+        setBusy(false);
+        return;
+      }
 
-    await onDeleted();
+      await onDeleted();
+    } catch {
+      setError(copy.accountDeletion.genericError);
+      setBusy(false);
+    }
   };
 
   return (

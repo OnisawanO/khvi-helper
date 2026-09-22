@@ -88,7 +88,7 @@ parameter ที่ผิดรูปแบบหรือไม่พบข้�
 
 | Path | Type | Access | Data source | Not found behavior | Status |
 |---|---|---|---|---|---|
-| `/profile` | Static private route | Authenticated User, Interpreter, Manager, Admin (preview session) | Supabase Auth `profiles`; browser mock session fallback | Redirect to `/#top` when session is missing, locked, or soft-deleted | Implemented at `app/(workspace)/profile/page.tsx`; self-service soft delete is available for Supabase sessions |
+| `/profile` | Static private route | Authenticated User, Interpreter, Manager, Admin (preview session) | Supabase Auth `profiles`; server-only Admin API for permanent deletion; browser mock session fallback | Redirect to `/#top` when session is missing or locked | Implemented at `app/(workspace)/profile/page.tsx`; permanent self-service deletion requires no active booking and a server secret key |
 | `/welcome` | Static private route | Authenticated User/Interpreter | Supabase Auth session + `public.profiles`; role-scoped `bookings` data through RLS | Redirect by Supabase profile role | Implemented at `app/(workspace)/welcome/page.tsx` |
 | `/map` | Resource map/list | Approved Interpreter | `bookings`, interpreter skills | Empty state or `403` | Planned |
 | `/volunteer/apply` | Resource create route | Authenticated User | `interpreter_profiles`, `languages`, `categories` | Redirect to current application status | Planned |
