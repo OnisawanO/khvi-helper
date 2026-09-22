@@ -111,7 +111,7 @@ open -> claimed -> in_progress -> completed
 | FR-18 | Report | เริ่มทำหลัง Help Request | Manager/Admin |
 | FR-19 | Audit | บันทึก action สำคัญของ Manager และ Admin ใน phase ที่กำหนด | System |
 | FR-20 | Admin | Admin จัดการ role และข้อมูลผู้ใช้ | Admin |
-| FR-21 | Self-service account deletion | ผู้ใช้ปิดบัญชีตนเองแบบ soft delete หลังไม่มีงานที่ยังดำเนินอยู่ | ทุก role |
+| FR-21 | Self-service account deletion | ผู้ใช้ลบบัญชี Supabase Auth และข้อมูลที่ผูกกับบัญชีแบบถาวรหลังไม่มีงานที่ยังดำเนินอยู่ | ทุก role |
 
 ข้อกำหนดชุดนี้ไม่ใช้ flow ค้นหาและเลือกล่ามรายบุคคลแบบ marketplace, ปุ่ม Reject งานของล่าม, ระบบ Tip หรือการรีวิวสองฝ่าย ระบบใช้ Job Pool ที่ล่ามกด Claim งานเอง และให้ User รีวิว Interpreter ฝ่ายเดียวหลังงาน Completed ส่วนการ Reject ใน FR-15 หมายถึงการปฏิเสธใบสมัครล่ามโดย Manager/Admin พร้อมเหตุผล
 
@@ -652,28 +652,32 @@ open -> claimed -> in_progress -> completed
 
 #### FR-21: Self-service account deletion
 
-**Requirement:** ผู้ใช้ที่ Login แล้วสามารถปิดบัญชีของตนเองจาก Profile Settings ได้ โดยระบบต้องเก็บความสัมพันธ์และประวัติงานไว้
+**Requirement:** ผู้ใช้ที่ Login แล้วสามารถลบบัญชีของตนเองแบบถาวรจาก Profile Settings ได้
 
 **Actor:** User, Interpreter, Manager, Admin
 
 **Preconditions:**
 
 - Actor มี session ที่ผ่านการตรวจสอบและมี profile ของตนเอง
-- Actor ไม่มี booking สถานะ `open`, `claimed` หรือ `in_progress` ในฐานะผู้ขอหรือล่าม
+- Actor ไม่มี booking สถานะ `open` ที่ยังไม่หมดอายุ หรือสถานะ `claimed`, `in_progress` ในฐานะผู้ขอหรือล่าม
+- Server ตั้งค่า `SUPABASE_SECRET_KEY` หรือ legacy `SUPABASE_SERVICE_ROLE_KEY` สำหรับเรียก Supabase Admin API
 
 **รายละเอียด:**
 
-- ระบบต้องใช้ soft delete ด้วย `profiles.deleted_at` และไม่ลบ `profiles` หรือ `bookings` ออกจากฐานข้อมูล
-- ระบบต้องลบหรือทำให้ข้อมูลติดต่อส่วนตัวที่จำเป็นไม่สามารถใช้งานต่อได้ พร้อมตั้งบัญชีเป็น locked
-- ระบบต้องปฏิเสธการสร้างงานใหม่และการเข้าหน้า workspace หลังปิดบัญชี
-- หลังสำเร็จระบบต้อง sign out session ปัจจุบันและแสดงผลการกลับไปยังหน้าเริ่มต้น
+- Server ต้องตรวจ session และล็อก profile ชั่วคราวระหว่างกระบวนการลบเพื่อป้องกันการสร้างหรือ Claim งานใหม่พร้อมกัน
+- ระบบต้องเปลี่ยนคำขอ `open` ที่หมดเวลาแล้วเป็น `expired` ก่อนตรวจงาน active
+- Server ต้องลบไฟล์ใบสมัครล่ามของผู้ใช้ใน Storage ก่อนลบ Supabase Auth user ผ่าน Admin API แบบ hard delete
+- การลบ Auth user ต้องลบ profile, คำขอที่ผู้ใช้สร้าง, ใบสมัครล่าม, ตำแหน่งภารกิจ และ review ที่อ้างถึงผู้ใช้นั้นตาม foreign key; booking ของผู้ขอรายอื่นที่ผู้ใช้เคยเป็นล่ามให้คงอยู่โดยล้าง `interpreter_id`
+- หลังสำเร็จ browser ต้องล้าง session ปัจจุบันและกลับไปยังหน้าเริ่มต้น
+- หากการลบล้มเหลวก่อน Auth user ถูกลบ ระบบต้องยกเลิกสถานะล็อกชั่วคราวและแสดงข้อผิดพลาด
 - หากมีงานที่ยังดำเนินอยู่ ต้องแสดงข้อผิดพลาดและไม่เปลี่ยนข้อมูลบัญชี
 
 **ผลลัพธ์และเกณฑ์ตรวจรับ:**
 
-- การลบบัญชีสำเร็จเก็บ booking, mission และ relation เดิมไว้
-- ผู้ใช้ที่ถูกลบไม่สามารถสร้างหรือรับงานใหม่ได้
-- การเรียก action โดยไม่มี session หรือ profile ที่ถูกลบแล้วถูกปฏิเสธฝั่ง server
+- การลบบัญชีสำเร็จแล้วไม่พบ Auth user, profile, ไฟล์ใบสมัคร หรือข้อมูลที่ foreign key กำหนดให้ลบตามผู้ใช้
+- ผู้ใช้ไม่สามารถ Login, refresh session, สร้างคำขอ หรือ Claim งานด้วยบัญชีเดิมได้
+- คำขอที่ยังไม่หมดอายุและงาน `claimed` หรือ `in_progress` ป้องกันการลบบัญชี
+- การเรียก action โดยไม่มี session ถูกปฏิเสธฝั่ง server และ secret key ไม่ถูกส่งไปยัง browser
 
 ## 7. Non-functional Requirements
 

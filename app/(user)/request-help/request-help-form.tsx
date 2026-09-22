@@ -512,12 +512,15 @@ function TimeWheel({ id, label, value, max, onChange }: TimeWheelProps) {
 export function RequestHelpForm({
   languageOptions,
   categoryOptions,
+  blockingTask,
 }: {
   languageOptions: ReferenceOption[];
   categoryOptions: ReferenceOption[];
+  blockingTask: { requestId: string; kind: "request" | "assignment" } | null;
 }) {
   const saving = useRef(false);
   const successDialogRef = useRef<HTMLDialogElement>(null);
+  const blockedDialogRef = useRef<HTMLDialogElement>(null);
   const router = useRouter();
   const locale = useUiLocale();
   const copyLocale = useCopyLocale();
@@ -527,6 +530,11 @@ export function RequestHelpForm({
     : locale === "zh"
       ? { title: "求助已创建！", body: "您的求助已发布，请等待志愿口译员接单。", next: "即将打开求助详情…", track: "查看我的求助", saving: "正在提交…", error: "提交失败，请重试。" }
       : { title: "Your request is ready!", body: "Your request is posted. A volunteer interpreter can now pick it up.", next: "Taking you to your request…", track: "View my request", saving: "Sending request…", error: "Could not send your request. Please try again." };
+  const blockedCopy = locale === "th"
+    ? { title: "ยังมีงานที่กำลังดำเนินการอยู่", body: blockingTask?.kind === "assignment" ? "คุณกำลังรับงานล่ามอยู่ จึงยังสร้างคำขอใหม่ไม่ได้" : "คุณมีคำขอความช่วยเหลือที่ยังไม่เสร็จ จึงยังสร้างคำขอใหม่ไม่ได้", detail: "กรุณาดำเนินงานเดิมให้เสร็จหรือยกเลิกก่อน แล้วจึงสร้างคำขอใหม่ได้", close: "ปิด" }
+    : locale === "zh"
+      ? { title: "已有进行中的任务", body: blockingTask?.kind === "assignment" ? "您正在处理一个口译任务，暂时无法创建新的求助。" : "您已有一个未完成的求助，暂时无法创建新的求助。", detail: "请先完成或取消当前任务，然后再创建新的求助。", close: "关闭" }
+      : { title: "You already have an active task", body: blockingTask?.kind === "assignment" ? "You are currently handling an interpreter assignment, so you cannot create a new request." : "You already have an unfinished help request, so you cannot create a new one.", detail: "Finish or cancel the current task before creating another request.", close: "Close" };
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdRequestId, setCreatedRequestId] = useState<string | null>(null);
 
@@ -596,6 +604,10 @@ export function RequestHelpForm({
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saving.current) return;
+    if (blockingTask) {
+      if (!blockedDialogRef.current?.open) blockedDialogRef.current?.showModal();
+      return;
+    }
 
     const nextErrors: Errors = {};
 
@@ -651,6 +663,9 @@ export function RequestHelpForm({
           setCreatedRequestId(result.data.requestId);
         } else {
           saving.current = false;
+          if (result.code === "active_workspace_task_exists" || result.code === "active_assignment_exists") {
+            if (!blockedDialogRef.current?.open) blockedDialogRef.current?.showModal();
+          }
           setSaveError(result.error);
         }
       } catch {
@@ -685,6 +700,21 @@ export function RequestHelpForm({
           <div aria-hidden="true" className={styles.progress}><span /></div>
         </dialog>
       )}
+      <dialog
+        ref={blockedDialogRef}
+        aria-labelledby="active-task-title"
+        aria-describedby="active-task-body active-task-detail"
+        className={styles.dialog}
+        onCancel={(event) => event.preventDefault()}
+      >
+        <div aria-hidden="true" className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-(--khvi-coral)/10">
+          <ExclamationTriangleIcon className="h-10 w-10 text-(--khvi-coral)" />
+        </div>
+        <h2 id="active-task-title" className="mt-5 text-2xl font-extrabold text-(--khvi-navy)">{blockedCopy.title}</h2>
+        <p id="active-task-body" className="mt-3 text-sm leading-7 text-(--khvi-ink)/80">{blockedCopy.body}</p>
+        <p id="active-task-detail" className="mt-3 text-xs leading-5 text-(--khvi-ink)/70">{blockedCopy.detail}</p>
+        <button type="button" onClick={() => blockedDialogRef.current?.close()} className="mt-5 min-h-11 rounded-(--khvi-radius-sm) bg-(--khvi-navy) px-5 text-sm font-bold text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-teal)">{blockedCopy.close}</button>
+      </dialog>
       <div className="mx-auto max-w-[1180px]">
         <WorkspaceBreadcrumbs
           ariaLabel={t.breadcrumb}

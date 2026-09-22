@@ -12,6 +12,7 @@ import {
   type RequestStatus,
   type Urgency,
 } from "@/app/lib/mock-requests";
+import { isActiveHelpRequest } from "@/app/lib/workspace-activity";
 
 export type RealMissionLocation = {
   actorId: string;
@@ -24,6 +25,11 @@ export type RealMissionLocation = {
 export type RealMissionLocations = {
   requester?: RealMissionLocation;
   interpreter?: RealMissionLocation;
+};
+
+export type WorkspaceActivity = {
+  requester: HelpRequest | null;
+  assignment: HelpRequest | null;
 };
 
 type BookingRow = {
@@ -389,6 +395,19 @@ export async function loadInterpreterAssignments(supabase?: SupabaseClient): Pro
     console.error("[real-request-data] loadInterpreterAssignments error:", error);
     return [];
   }
+}
+
+export async function loadWorkspaceActivity(supabase?: SupabaseClient): Promise<WorkspaceActivity> {
+  const client = supabase ?? (await createClient());
+  const [requesterRequests, assignments] = await Promise.all([
+    loadRequesterRequests(client),
+    loadInterpreterAssignments(client),
+  ]);
+
+  return {
+    requester: requesterRequests.find(isActiveHelpRequest) ?? null,
+    assignment: assignments.find(isActiveHelpRequest) ?? null,
+  };
 }
 
 export async function loadOpenInterpreterRequests(supabaseClient?: SupabaseClient): Promise<OpenRequestsResult> {

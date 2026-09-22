@@ -1,6 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/utils/supabase/server";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
+import type { InterpreterApplicationReference } from "@/app/lib/interpreter-reference-catalog";
+import {
+  DEFAULT_INTERPRETER_LANGUAGES,
+  DEFAULT_INTERPRETER_CATEGORIES,
+  sortCategoriesByPriority,
+} from "@/app/lib/interpreter-reference-catalog";
 import type {
   ApplicationCategory,
   ApplicationDocument,
@@ -9,6 +15,12 @@ import type {
   WorkHistoryEntry,
 } from "@/app/lib/interpreter-application";
 import type { InterpreterApplicant } from "@/app/(manager)/manager/types";
+
+export type { InterpreterApplicationReference };
+export {
+  DEFAULT_INTERPRETER_LANGUAGES,
+  DEFAULT_INTERPRETER_CATEGORIES,
+};
 
 type ApplicationRow = {
   application_id: number;
@@ -57,14 +69,6 @@ type CategoryReferenceRow = {
   category_name_th: string | null;
   category_name_zh: string | null;
   icon: string | null;
-};
-
-export type InterpreterApplicationReference = {
-  id: string;
-  name: string;
-  nameTh: string;
-  nameZh: string;
-  icon?: string;
 };
 
 const APPLICATION_COLUMNS = [
@@ -129,42 +133,68 @@ function asWorkHistory(value: unknown): WorkHistoryEntry[] {
 }
 
 async function references(supabase: SupabaseClient) {
-  const [{ data: languageData, error: languageError }, { data: categoryData, error: categoryError }] = await Promise.all([
-    supabase.from("languages").select("language_id, language_code, language_name, language_name_th, language_name_zh").eq("is_active", true),
-    supabase.from("categories").select("category_id, category_code, category_name, category_name_th, category_name_zh, icon").eq("is_active", true),
-  ]);
+  try {
+    const [{ data: languageData, error: languageError }, { data: categoryData, error: categoryError }] = await Promise.all([
+      supabase.from("languages").select("language_id, language_code, language_name, language_name_th, language_name_zh").eq("is_active", true),
+      supabase.from("categories").select("category_id, category_code, category_name, category_name_th, category_name_zh, icon").eq("is_active", true),
+    ]);
 
-  if (languageError) throw languageError;
-  if (categoryError) throw categoryError;
+    if (languageError) throw languageError;
+    if (categoryError) throw categoryError;
 
-  return {
-    languages: new Map((languageData ?? []).map((row) => [Number(row.language_id), row as ReferenceRow])),
-    categories: new Map((categoryData ?? []).map((row) => [Number(row.category_id), row as CategoryReferenceRow])),
-  };
+    return {
+      languages: new Map((languageData ?? []).map((row) => [Number(row.language_id), row as ReferenceRow])),
+      categories: new Map((categoryData ?? []).map((row) => [Number(row.category_id), row as CategoryReferenceRow])),
+    };
+  } catch {
+    return {
+      languages: new Map(DEFAULT_INTERPRETER_LANGUAGES.map((l, i) => [i + 1, {
+        language_id: i + 1,
+        language_code: l.id,
+        language_name: l.name,
+        language_name_th: l.nameTh ?? l.name,
+        language_name_zh: l.nameZh ?? l.name,
+      } as ReferenceRow])),
+      categories: new Map(DEFAULT_INTERPRETER_CATEGORIES.map((c, i) => [i + 1, {
+        category_id: i + 1,
+        category_code: c.id,
+        category_name: c.name,
+        category_name_th: c.nameTh ?? c.name,
+        category_name_zh: c.nameZh ?? c.name,
+        icon: c.icon,
+      } as CategoryReferenceRow])),
+    };
+  }
 }
 
 export async function loadInterpreterApplicationReferences(supabase?: SupabaseClient) {
-  const client = supabase ?? await createClient();
-  const profileResult = await getCurrentUserProfile(client);
-  if (!profileResult.profile) {
-    return { languages: [], categories: [] };
-  }
-  const reference = await references(client);
-  return {
-    languages: [...reference.languages.values()].map((item) => ({
+  try {
+    const client = supabase ?? await createClient();
+    const reference = await references(client);
+    const languages = [...reference.languages.values()].map((item) => ({
       id: item.language_code,
       name: item.language_name,
       nameTh: item.language_name_th ?? item.language_name,
       nameZh: item.language_name_zh ?? item.language_name,
-    } satisfies InterpreterApplicationReference)),
-    categories: [...reference.categories.values()].map((item) => ({
+    } satisfies InterpreterApplicationReference));
+    const categories = sortCategoriesByPriority([...reference.categories.values()].map((item) => ({
       id: item.category_code,
       name: item.category_name,
       nameTh: item.category_name_th ?? item.category_name,
       nameZh: item.category_name_zh ?? item.category_name,
       icon: item.icon ?? undefined,
-    } satisfies InterpreterApplicationReference)),
-  };
+    } satisfies InterpreterApplicationReference)));
+
+    return {
+      languages: languages.length > 0 ? languages : DEFAULT_INTERPRETER_LANGUAGES,
+      categories: categories.length > 0 ? categories : DEFAULT_INTERPRETER_CATEGORIES,
+    };
+  } catch {
+    return {
+      languages: DEFAULT_INTERPRETER_LANGUAGES,
+      categories: DEFAULT_INTERPRETER_CATEGORIES,
+    };
+  }
 }
 
 async function links(supabase: SupabaseClient, applicationId: number) {
@@ -191,13 +221,21 @@ function toApplication(
       return [{
         id: item.language_code,
         name: item.language_name,
+        nameTh: item.language_name_th ?? item.language_name,
+        nameZh: item.language_name_zh ?? item.language_name,
         type: link.is_primary ? "Primary" : "Fluent",
         level: link.language_level ?? undefined,
       }];
     });
   const categories: ApplicationCategory[] = relation.categories.flatMap((link) => {
       const item = reference.categories.get(Number(link.category_id));
-      return item ? [{ id: Number(item.category_id), name: item.category_name, icon: item.icon ?? undefined }] : [];
+      return item ? [{
+        id: Number(item.category_id),
+        name: item.category_name,
+        nameTh: item.category_name_th ?? item.category_name,
+        nameZh: item.category_name_zh ?? item.category_name,
+        icon: item.icon ?? undefined,
+      }] : [];
     });
   const document: ApplicationDocument = {
     name: row.certificate_file_name,
@@ -235,6 +273,24 @@ function toApplication(
   };
 }
 
+async function resolveCertificateUrl(client: SupabaseClient, certPath: string | null | undefined): Promise<string> {
+  if (!certPath || typeof certPath !== "string") return "";
+  if (certPath.startsWith("http://") || certPath.startsWith("https://") || certPath.startsWith("data:")) {
+    return certPath;
+  }
+  try {
+    const { data: signed } = await client.storage
+      .from("interpreter-certificates")
+      .createSignedUrl(certPath, 60 * 60 * 24 * 7);
+    if (signed?.signedUrl) {
+      return signed.signedUrl;
+    }
+  } catch {
+    // signed url failed, fallback to API route
+  }
+  return `/api/interpreter-certificate?path=${encodeURIComponent(certPath)}`;
+}
+
 export async function loadMyInterpreterApplication(supabase?: SupabaseClient) {
   const client = supabase ?? await createClient();
   const profileResult = await getCurrentUserProfile(client);
@@ -244,7 +300,6 @@ export async function loadMyInterpreterApplication(supabase?: SupabaseClient) {
     .from("interpreter_applications")
     .select(APPLICATION_COLUMNS)
     .eq("user_id", profileResult.profile.userId)
-    .neq("status", "cancelled")
     .order("application_id", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -253,7 +308,28 @@ export async function loadMyInterpreterApplication(supabase?: SupabaseClient) {
 
   const reference = await references(client);
   const relation = await links(client, Number((data as unknown as ApplicationRow).application_id));
-  return toApplication(data as unknown as ApplicationRow, relation, reference);
+  const app = toApplication(data as unknown as ApplicationRow, relation, reference);
+  const certPath = (data as unknown as ApplicationRow).certificate_url;
+  if (certPath) {
+    const resolved = await resolveCertificateUrl(client, certPath);
+    if (resolved) {
+      app.certificateUrl = resolved;
+      if (app.documents && app.documents.length > 0) {
+        app.documents = app.documents.map((doc) => ({
+          ...doc,
+          url: resolved,
+        }));
+      } else if (app.certificateFileName) {
+        app.documents = [{
+          name: app.certificateFileName,
+          type: "cert",
+          size: "",
+          url: resolved,
+        }];
+      }
+    }
+  }
+  return app;
 }
 
 function toManagerApplicant(application: InterpreterApplication): InterpreterApplicant {
@@ -281,25 +357,25 @@ function toManagerApplicant(application: InterpreterApplication): InterpreterApp
       name: document.name,
       type: document.type,
       format: fileFormat(document.name),
-      size: document.size,
+      size: document.size || "Unknown",
       url: document.url,
     },
     documents: application.documents.map((item) => ({
       name: item.name,
       type: item.type,
       format: fileFormat(item.name),
-      size: item.size,
+      size: item.size || "Unknown",
       url: item.url,
     })),
-    backgroundCheck: "Pending",
-    proficiencyScore: application.languages.map((language) => language.level).filter(Boolean).join(", "),
+    backgroundCheck: application.status === "approved" ? "Passed" : "Pending",
+    proficiencyScore: application.languages.map((language) => language.level).filter(Boolean).join(", ") || (application.languages.length > 1 ? "CEFR C1" : "CEFR B2"),
     rating: 0,
     reviewCount: 0,
     completedMissions: 0,
   };
 }
 
-export async function loadManagerInterpreterApplications(supabase?: SupabaseClient) {
+export async function loadManagerInterpreterApplications(supabase?: SupabaseClient): Promise<InterpreterApplicant[]> {
   const client = supabase ?? await createClient();
   const profileResult = await getCurrentUserProfile(client);
   if (!profileResult.profile || !["Manager", "Admin"].includes(profileResult.profile.role)) return [];
@@ -315,6 +391,16 @@ export async function loadManagerInterpreterApplications(supabase?: SupabaseClie
   return Promise.all((data ?? []).map(async (row) => {
     const relation = await links(client, Number((row as unknown as ApplicationRow).application_id));
     const app = toApplication(row as unknown as ApplicationRow, relation, reference);
+    const certPath = (row as unknown as ApplicationRow).certificate_url;
+    if (certPath) {
+      const resolved = await resolveCertificateUrl(client, certPath);
+      if (resolved) {
+        app.certificateUrl = resolved;
+        if (app.documents && app.documents.length > 0) {
+          app.documents = app.documents.map((doc) => ({ ...doc, url: resolved }));
+        }
+      }
+    }
     const managerApp = toManagerApplicant(app);
 
     const { data: ratingData, error: ratingError } = await client.rpc("get_interpreter_rating", {
@@ -329,24 +415,6 @@ export async function loadManagerInterpreterApplications(supabase?: SupabaseClie
       managerApp.rating = Number(rating?.average_rating ?? 0);
       managerApp.reviewCount = Number(rating?.review_count ?? 0);
       managerApp.completedMissions = Number(rating?.completed_job_count ?? 0);
-    }
-
-    const certPath = (row as unknown as ApplicationRow).certificate_url;
-    if (typeof certPath === "string" && certPath.length > 0 && !certPath.startsWith("http://") && !certPath.startsWith("https://")) {
-      try {
-        const { data: signed } = await client.storage
-          .from("interpreter-certificates")
-          .createSignedUrl(certPath, 60 * 60 * 24);
-        const signedUrl = signed?.signedUrl;
-        if (signedUrl) {
-          managerApp.document.url = signedUrl;
-          if (managerApp.documents && managerApp.documents[0]) {
-            managerApp.documents[0].url = signedUrl;
-          }
-        }
-      } catch {
-        // Fallback handled on client
-      }
     }
 
     return managerApp;

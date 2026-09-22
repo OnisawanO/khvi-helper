@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 
 type ActionSuccess<T = undefined> = { ok: true; data: T };
-type ActionFailure = { ok: false; error: string };
+type ActionFailure = { ok: false; error: string; code?: string };
 export type BookingActionResult<T = undefined> = ActionSuccess<T> | ActionFailure;
 
 function friendlyError(error: { message?: string } | null): string {
@@ -13,10 +13,11 @@ function friendlyError(error: { message?: string } | null): string {
     not_authenticated: "Your session has expired. Please sign in again.",
     booking_not_found: "This request could not be found.",
     booking_not_available: "This request is no longer available.",
+    active_workspace_task_exists: "You already have an active request or assignment. Finish it before starting another.",
+    active_assignment_exists: "You already have an active request or assignment. Finish it before starting another.",
     cannot_claim_own_booking: "You cannot claim your own request.",
     interpreter_role_required: "Only an approved interpreter can claim a request.",
     interpreter_skill_mismatch: "This request does not match your approved skills.",
-    active_assignment_exists: "Finish or withdraw from your active assignment first.",
     booking_confirmation_not_allowed: "This request cannot be confirmed in its current state.",
     booking_start_not_allowed: "The requester must confirm you before work can start.",
     booking_completion_not_allowed: "Work must be in progress before it can be completed.",
@@ -39,10 +40,37 @@ function friendlyError(error: { message?: string } | null): string {
   return "Could not save this change. Please try again.";
 }
 
+function errorCode(error: { message?: string } | null): string | undefined {
+  const message = error?.message ?? "";
+  return Object.keys({
+    not_authenticated: true,
+    booking_not_found: true,
+    booking_not_available: true,
+    cannot_claim_own_booking: true,
+    interpreter_role_required: true,
+    interpreter_skill_mismatch: true,
+    active_workspace_task_exists: true,
+    active_assignment_exists: true,
+    booking_confirmation_not_allowed: true,
+    booking_start_not_allowed: true,
+    booking_completion_not_allowed: true,
+    booking_actor_not_allowed: true,
+    cancel_reason_required: true,
+    booking_cannot_be_cancelled: true,
+    booking_cannot_be_withdrawn: true,
+    booking_update_not_allowed: true,
+    scheduled_at_required: true,
+    scheduled_at_must_be_next_day_or_later: true,
+    unsupported_reference_value: true,
+    invalid_coordinates: true,
+    location_update_not_allowed: true,
+  }).find((code) => message.includes(code));
+}
+
 async function runVoidRpc(functionName: string, args: Record<string, unknown>): Promise<BookingActionResult> {
   const supabase = await createClient();
   const { error } = await supabase.rpc(functionName, args);
-  if (error) return { ok: false, error: friendlyError(error) };
+  if (error) return { ok: false, error: friendlyError(error), code: errorCode(error) };
 
   revalidatePath("/request-help");
   revalidatePath("/my-requests");
@@ -80,7 +108,7 @@ export async function createBookingAction(input: {
   });
 
   if (error || data === null || data === undefined) {
-    return { ok: false, error: friendlyError(error) };
+    return { ok: false, error: friendlyError(error), code: errorCode(error) };
   }
 
   revalidatePath("/my-requests");
@@ -93,7 +121,7 @@ export async function createBookingAction(input: {
 export async function claimBookingAction(bookingId: string): Promise<BookingActionResult> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("claim_booking", { p_booking_id: Number(bookingId) });
-  if (error) return { ok: false, error: friendlyError(error) };
+  if (error) return { ok: false, error: friendlyError(error), code: errorCode(error) };
   revalidatePath("/find-requests");
   revalidatePath("/my-assignments");
   revalidatePath("/my-requests");
