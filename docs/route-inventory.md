@@ -113,7 +113,7 @@ Authenticated flow ใช้ Supabase session แยกมุมมองตา�
 - `/welcome`, `/my-requests`, `/find-requests` และ `/my-assignments` ใช้ข้อมูล `bookings` จริงตาม Supabase session และ RLS
 - `/my-requests/[requestId]` เป็น shared mission room ของเจ้าของคำขอและล่ามที่รับงาน โดย action ทุกขั้นตรวจ authorization และ state transition ฝั่ง server
 - เวลาใช้ `TIMESTAMPTZ` จากฐานข้อมูล และ countdown คำนวณจาก `bookings.expires_at`
-- งานที่ยังไม่เปิดใน scope ปัจจุบันคือการส่ง Review หลังงาน `Completed`; หน้า Welcome แสดงสถานะนี้ว่า unavailable
+- หน้า Mission แสดงปุ่ม Review สำหรับ requester หลังงาน `Completed` และเปิดเป็น modal บน route เดิม; การบันทึก Review ลง Supabase และการคำนวณคะแนนจริงยังเป็นงานถัดไป
 - การตรวจล่าสุดครอบคลุม lint, TypeScript, production build, Supabase RLS query และ browser runtime ของ User mission link
 
 ## ข้อกำหนดเมื่อเพิ่ม route

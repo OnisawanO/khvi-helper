@@ -32,6 +32,7 @@ import { useCopyLocale } from "@/app/components/app-shell";
 import { ExpiryCountdown } from "@/app/components/expiry-countdown";
 import { MissionLocationMap, type MissionMapPoint } from "@/app/components/mission-location-map";
 import { StatusBadge, UrgencyBadge } from "@/app/components/request-badges";
+import { ReviewModal, type SubmittedReview } from "@/app/components/review/review-modal";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
 import {
   approximateCoordinates,
@@ -136,6 +137,11 @@ const copy = {
     waitingOtherSide: "Waiting for the other side to confirm",
     justNow: "Just now",
     completedTitle: "Job completed",
+    reviewTitle: "Tell us about this completed job",
+    reviewCta: "Review interpreter",
+    reviewHint: "A quick rating helps us recognise reliable language support.",
+    reviewSubmitted: "Review submitted",
+    reviewReadOnly: "Your feedback is shown here as a read-only preview.",
     closedTitle: "This request is closed",
     closedReason: "Reason",
     closedBy: {
@@ -233,6 +239,11 @@ const copy = {
     waitingOtherSide: "等待另一方确认",
     justNow: "刚刚",
     completedTitle: "任务已完成",
+    reviewTitle: "评价这次已完成的任务",
+    reviewCta: "评价口译员",
+    reviewHint: "简短的评分可以帮助社区认可可靠的语言支持。",
+    reviewSubmitted: "评价已提交",
+    reviewReadOnly: "你的反馈会以只读预览显示在这里。",
     closedTitle: "这条求助已关闭",
     closedReason: "原因",
     closedBy: {
@@ -294,6 +305,8 @@ export function RequestDetail({
   const [editMeetingPoint, setEditMeetingPoint] = useState(request.exactAddress);
   const [editError, setEditError] = useState<string | null>(null);
   const [editSuccess, setEditSuccess] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [submittedReview, setSubmittedReview] = useState<SubmittedReview | null>(null);
   const [locationState, setLocationState] = useState<"loading" | "saved" | "denied" | "unavailable" | "error">("loading");
   const [missionLocations, setMissionLocations] = useState<RealMissionLocations>(initialMissionLocations);
   const userConfirmedAt = request.userConfirmedDoneAtLabel;
@@ -1075,10 +1088,58 @@ export function RequestDetail({
                   {status === "Completed" ? t.completedTitle : t.noActions}
                 </p>
               )}
+
+              {!isInterpreter && status === "Completed" && request.interpreter && (
+                <div className="mt-5 border-t border-[#dbe7e8] pt-5">
+                  {submittedReview ? (
+                    <div className="border border-[#b6ddcd] bg-[#f3faf6] p-4">
+                      <p className="flex items-center gap-2 text-sm font-extrabold text-[#087557]">
+                        <CheckCircleIcon aria-hidden="true" className="h-5 w-5" />
+                        {t.reviewSubmitted}
+                      </p>
+                      <div className="mt-3 flex items-center gap-1" aria-label={`${submittedReview.rating}/5`}>
+                        {Array.from({ length: 5 }, (_, index) => (
+                          <StarIcon
+                            key={index}
+                            aria-hidden="true"
+                            className={`h-5 w-5 ${index < submittedReview.rating ? "fill-[#f0a35f] text-[#e0952f]" : "text-[#cbd7dc]"}`}
+                          />
+                        ))}
+                      </div>
+                      <p className="mt-2 text-xs leading-5 text-[#3f6357]">{t.reviewReadOnly}</p>
+                    </div>
+                  ) : (
+                    <div className="border border-[#b6ddcd] bg-[#f3faf6] p-4">
+                      <p className="text-sm font-extrabold text-[#0f3a2c]">{t.reviewTitle}</p>
+                      <p className="mt-1.5 text-xs leading-5 text-[#52676f]">{t.reviewHint}</p>
+                      <button
+                        type="button"
+                        className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-(--khvi-navy) px-4 text-sm font-extrabold text-white transition-colors hover:bg-[#0c4960] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
+                        onClick={() => setReviewOpen(true)}
+                      >
+                        <StarIcon aria-hidden="true" className="h-5 w-5" />
+                        {t.reviewCta}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </section>
           </aside>
         </div>
       </div>
+
+      {!isInterpreter && status === "Completed" && request.interpreter && (
+        <ReviewModal
+          key={reviewOpen ? "review-open" : "review-closed"}
+          open={reviewOpen}
+          interpreterName={request.interpreter.name}
+          interpreterLanguage={request.interpreter.primaryLanguage}
+          completedAt={request.endedAtLabel ?? null}
+          onClose={() => setReviewOpen(false)}
+          onSubmitted={(review) => setSubmittedReview(review)}
+        />
+      )}
     </main>
   );
 }
