@@ -4,7 +4,6 @@ import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { isLocale, persistPreferredUiLanguage, resolveCopyLocale, useStoredLocale, type CopyLocale } from "@/app/lib/locale";
 import { SiteFooter } from "./site-footer";
 import { SiteHeader } from "./site-header";
-import { RequestNavigation } from "./request-navigation";
 import type { Locale } from "./site-header";
 import { createClient } from "@/utils/supabase/client";
 
@@ -221,7 +220,6 @@ export function AppShell({ children, accountActions, welcomeRole }: {
         accountActions={accountActions}
         workspaceRole={welcomeRole}
       />
-      <RequestNavigation />
       {children}
       <SiteFooter copy={t.footer} brandSubtitle={t.header.brandSubtitle} workspace={Boolean(welcomeRole)} />
     </CopyLocaleContext.Provider></UiLocaleContext.Provider>
