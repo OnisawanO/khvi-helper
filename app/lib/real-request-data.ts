@@ -7,6 +7,7 @@ import {
   type HelpRequest,
   type InterpreterContact,
   type LanguageId,
+  type Review,
   type RequesterContact,
   type RequestStatus,
   type Urgency,
@@ -70,6 +71,22 @@ type LocationRow = {
   latitude: number;
   longitude: number;
   updated_at: string;
+};
+
+type ReviewRow = {
+  review_id: number;
+  booking_id: number;
+  reviewer_id: string;
+  reviewee_id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+};
+
+type RatingSummaryRow = {
+  average_rating: number | string;
+  review_count: number;
+  completed_job_count: number;
 };
 
 type QueryError = { code?: string; message?: string } | null;
@@ -154,7 +171,12 @@ async function loadReferences(supabase: SupabaseClient) {
   };
 }
 
-async function loadDetails(supabase: SupabaseClient, bookingId: number) {
+async function loadDetails(
+  supabase: SupabaseClient,
+  bookingId: number,
+  bookingStatus: string,
+  interpreterId: string | null,
+) {
   const [
     { data: privateData, error: privateError },
     { data: contactData, error: contactError },
@@ -169,16 +191,32 @@ async function loadDetails(supabase: SupabaseClient, bookingId: number) {
   if (contactError && !isPermissionDenied(contactError)) throw contactError;
   if (locationError && !isPermissionDenied(locationError)) throw locationError;
 
+  const [{ data: reviewData, error: reviewError }, { data: ratingData, error: ratingError }] = await Promise.all([
+    bookingStatus === "completed"
+      ? supabase.rpc("get_booking_review", { p_booking_id: bookingId })
+      : Promise.resolve({ data: [], error: null }),
+    interpreterId
+      ? supabase.rpc("get_interpreter_rating", { p_interpreter_id: interpreterId })
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  if (reviewError && !isPermissionDenied(reviewError)) throw reviewError;
+  if (ratingError && !isPermissionDenied(ratingError)) throw ratingError;
+
   const privateDetails = privateError
     ? undefined
     : (Array.isArray(privateData) ? privateData[0] : privateData) as PrivateDetails | undefined;
   const contacts = (contactError ? [] : contactData ?? []) as ContactRow[];
   const locations = (locationError ? [] : locationData ?? []) as LocationRow[];
+  const review = reviewError ? undefined : ((reviewData ?? [])[0] as ReviewRow | undefined);
+  const rating = ratingError ? undefined : ((ratingData ?? [])[0] as RatingSummaryRow | undefined);
 
   return {
     privateDetails,
     contacts,
     locations,
+    review,
+    rating,
   };
 }
 
@@ -237,8 +275,22 @@ function toRequest(
         primaryLanguage: LANGUAGES.find((language) => language.id === languageId)?.en ?? languageId,
         phone: interpreterContact.phone ?? "",
         extraContact: interpreterContact.extra_contact ?? "",
-        averageRating: 0,
-        completedJobCount: 0,
+        averageRating: Number(details.rating?.average_rating ?? 0),
+        reviewCount: Number(details.rating?.review_count ?? 0),
+        completedJobCount: Number(details.rating?.completed_job_count ?? 0),
+      }
+    : null;
+
+  const review: Review | null = details.review
+    ? {
+        reviewId: String(details.review.review_id),
+        bookingId: String(details.review.booking_id),
+        reviewerId: details.review.reviewer_id,
+        revieweeId: details.review.reviewee_id,
+        rating: Number(details.review.rating),
+        comment: details.review.comment,
+        createdAt: details.review.created_at,
+        createdAtLabel: formatTimestamp(details.review.created_at) ?? details.review.created_at,
       }
     : null;
 
@@ -269,6 +321,7 @@ function toRequest(
     cancelledBy: row.cancelled_by ? cancelledByMap[row.cancelled_by] ?? null : null,
     cancelReason: row.cancel_reason,
     interpreter,
+    review,
   };
 }
 
@@ -313,7 +366,7 @@ async function loadRows(supabase: SupabaseClient, mode: "requester" | "interpret
   const references = await loadReferences(supabase);
   const rows = (data ?? []) as unknown as BookingRow[];
   const requests = await Promise.all(rows.map(async (row) => {
-    const details = await loadDetails(supabase, Number(row.booking_id));
+    const details = await loadDetails(supabase, Number(row.booking_id), row.status, row.interpreter_id);
     return toRequest(row, references, details);
   }));
 
@@ -438,9 +491,9 @@ export async function loadOpenInterpreterRequests(supabaseClient?: SupabaseClien
   const references = await loadReferences(supabase);
 
   const requests = (
-    await Promise.all(
+      await Promise.all(
       rows.map(async (row) => {
-        const details = await loadDetails(supabase, Number(row.booking_id));
+        const details = await loadDetails(supabase, Number(row.booking_id), row.status, row.interpreter_id);
         return toRequest(row, references, details);
       }),
     )
@@ -487,10 +540,10 @@ export async function loadBookingById(
   if (error || !data) return null;
 
   const references = await loadReferences(client);
-  const details = await loadDetails(client, numericId);
+  const booking = data as unknown as BookingRow;
+  const details = await loadDetails(client, numericId, booking.status, booking.interpreter_id);
   const request = toRequest(data as unknown as BookingRow, references, details);
 
-  const booking = data as unknown as BookingRow;
   return request
     ? {
         request,

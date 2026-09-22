@@ -313,6 +313,10 @@ export function RequestDetail({
 
   const interpreterConfirmedAt = request.interpreterConfirmedDoneAtLabel;
   const viewerConfirmedAt = isInterpreter ? interpreterConfirmedAt : userConfirmedAt;
+  const existingReview = request.review
+    ? { rating: request.review.rating, comment: request.review.comment ?? "" }
+    : null;
+  const reviewPreview = submittedReview ?? existingReview;
   const contactUnlocked = isContactUnlocked(status) && Boolean(request.requesterConfirmedAtLabel);
   const canSeeSensitiveLocation = !isInterpreter || contactUnlocked;
   const isClosed = status === "Cancelled" || status === "Expired";
@@ -900,7 +904,9 @@ export function RequestDetail({
                 <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-bold text-[#3f6357]">
                   <span className="inline-flex items-center gap-1.5">
                     <StarIcon aria-hidden="true" className="h-4 w-4 text-[#e0952f]" />
-                    {request.interpreter.averageRating.toFixed(1)} {t.ratingLabel}
+                    {(request.interpreter.reviewCount ?? 0) > 0
+                      ? <>{request.interpreter.averageRating.toFixed(1)} {t.ratingLabel}</>
+                      : <>{copyLocale === "zh" ? "暂无评分" : "No rating yet"}</>}
                   </span>
                   <span>
                     {request.interpreter.completedJobCount} {t.jobsLabel}
@@ -1091,21 +1097,22 @@ export function RequestDetail({
 
               {!isInterpreter && status === "Completed" && request.interpreter && (
                 <div className="mt-5 border-t border-[#dbe7e8] pt-5">
-                  {submittedReview ? (
+                  {reviewPreview ? (
                     <div className="border border-[#b6ddcd] bg-[#f3faf6] p-4">
                       <p className="flex items-center gap-2 text-sm font-extrabold text-[#087557]">
                         <CheckCircleIcon aria-hidden="true" className="h-5 w-5" />
                         {t.reviewSubmitted}
                       </p>
-                      <div className="mt-3 flex items-center gap-1" aria-label={`${submittedReview.rating}/5`}>
+                      <div className="mt-3 flex items-center gap-1" aria-label={`${reviewPreview.rating}/5`}>
                         {Array.from({ length: 5 }, (_, index) => (
                           <StarIcon
                             key={index}
                             aria-hidden="true"
-                            className={`h-5 w-5 ${index < submittedReview.rating ? "fill-[#f0a35f] text-[#e0952f]" : "text-[#cbd7dc]"}`}
+                            className={`h-5 w-5 ${index < reviewPreview.rating ? "fill-[#f0a35f] text-[#e0952f]" : "text-[#cbd7dc]"}`}
                           />
                         ))}
                       </div>
+                      {reviewPreview.comment && <p className="mt-2 text-sm leading-6 text-[#52676f]">{reviewPreview.comment}</p>}
                       <p className="mt-2 text-xs leading-5 text-[#3f6357]">{t.reviewReadOnly}</p>
                     </div>
                   ) : (
@@ -1133,9 +1140,11 @@ export function RequestDetail({
         <ReviewModal
           key={reviewOpen ? "review-open" : "review-closed"}
           open={reviewOpen}
+          bookingId={request.requestId}
           interpreterName={request.interpreter.name}
           interpreterLanguage={request.interpreter.primaryLanguage}
           completedAt={request.endedAtLabel ?? null}
+          existingReview={request.review}
           onClose={() => setReviewOpen(false)}
           onSubmitted={(review) => setSubmittedReview(review)}
         />

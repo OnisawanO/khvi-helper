@@ -61,7 +61,19 @@ export type InterpreterContact = {
   phone: string;
   extraContact: string;
   averageRating: number;
+  reviewCount?: number;
   completedJobCount: number;
+};
+
+export type Review = {
+  reviewId: string;
+  bookingId: string;
+  reviewerId: string;
+  revieweeId: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+  createdAtLabel: string;
 };
 
 export type RequesterContact = {
@@ -102,6 +114,7 @@ export type HelpRequest = {
   cancelledBy: CancelledBy | null;
   cancelReason: string | null;
   interpreter: InterpreterContact | null;
+  review?: Review | null;
 };
 
 export const MOCK_REQUESTS: readonly HelpRequest[] = [

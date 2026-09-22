@@ -361,17 +361,18 @@ function toManagerApplicant(application: InterpreterApplication): InterpreterApp
       size: document.size || "Unknown",
       url: document.url,
     },
-    documents: [
-      {
-        name: document.name,
-        type: document.type,
-        format: fileFormat(document.name),
-        size: document.size || "Unknown",
-        url: document.url,
-      },
-    ],
+    documents: application.documents.map((item) => ({
+      name: item.name,
+      type: item.type,
+      format: fileFormat(item.name),
+      size: item.size || "Unknown",
+      url: item.url,
+    })),
     backgroundCheck: application.status === "approved" ? "Passed" : "Pending",
-    proficiencyScore: application.languages.length > 1 ? "CEFR C1" : "CEFR B2",
+    proficiencyScore: application.languages.map((language) => language.level).filter(Boolean).join(", ") || (application.languages.length > 1 ? "CEFR C1" : "CEFR B2"),
+    rating: 0,
+    reviewCount: 0,
+    completedMissions: 0,
   };
 }
 
@@ -401,6 +402,22 @@ export async function loadManagerInterpreterApplications(supabase?: SupabaseClie
         }
       }
     }
-    return toManagerApplicant(app);
+    const managerApp = toManagerApplicant(app);
+
+    const { data: ratingData, error: ratingError } = await client.rpc("get_interpreter_rating", {
+      p_interpreter_id: app.userId,
+    });
+    if (!ratingError) {
+      const rating = (Array.isArray(ratingData) ? ratingData[0] : ratingData) as {
+        average_rating?: number | string;
+        review_count?: number;
+        completed_job_count?: number;
+      } | undefined;
+      managerApp.rating = Number(rating?.average_rating ?? 0);
+      managerApp.reviewCount = Number(rating?.review_count ?? 0);
+      managerApp.completedMissions = Number(rating?.completed_job_count ?? 0);
+    }
+
+    return managerApp;
   }));
 }
