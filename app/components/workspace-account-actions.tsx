@@ -14,7 +14,7 @@ const accountCopy = {
   ar: { menu: "فتح قائمة الملف الشخصي", profileSettings: "الملฟ الشخصي والإعدادات", volunteerApply: "طلب التطوع كمترجم", signOut: "تسجيل الخروج" },
 } as const;
 
-export function WorkspaceAccountActions({ user, onSignOut }: { user: UserProfile; onSignOut: () => void }) {
+export function WorkspaceAccountActions({ user, onSignOut }: { user: UserProfile; onSignOut: () => void | Promise<void> }) {
   const locale = useUiLocale();
   const copy = accountCopy[locale];
   const displayName = getDisplayName(user.name);
@@ -103,7 +103,7 @@ export function WorkspaceAccountActions({ user, onSignOut }: { user: UserProfile
               role="menuitem"
               onClick={() => {
                 setProfileMenuOpen(false);
-                onSignOut();
+                void onSignOut();
               }}
               className="flex w-full items-center gap-2.5 rounded-(--khvi-radius-sm) px-3 py-2 text-left text-xs font-bold text-(--khvi-coral) transition-colors hover:bg-(--khvi-coral)/10 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--khvi-sun)"
             >
