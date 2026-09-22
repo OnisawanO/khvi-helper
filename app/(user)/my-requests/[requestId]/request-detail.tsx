@@ -57,7 +57,6 @@ const copy = {
     assignmentsLabel: "My assignments",
     requesterView: "Requester mission room",
     interpreterView: "Interpreter mission room",
-    requestPrefix: "Request",
     created: "Created",
     scheduled: "Appointment",
     timelineTitle: "Progress",
@@ -155,7 +154,6 @@ const copy = {
     assignmentsLabel: "我的任务",
     requesterView: "求助者任务室",
     interpreterView: "口译员任务室",
-    requestPrefix: "求助",
     created: "创建时间",
     scheduled: "预约时间",
     timelineTitle: "进度",
@@ -524,7 +522,7 @@ export function RequestDetail({
               label: isInterpreter ? t.assignmentsLabel : t.requestsLabel,
               href: isInterpreter ? "/my-assignments#main-content" : "/my-requests#main-content",
             },
-            { label: `${t.requestPrefix} #${request.requestId}` },
+            { label: t.detailsTitle },
           ]}
         />
 
@@ -548,9 +546,6 @@ export function RequestDetail({
           <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
             <StatusBadge status={status} copyLocale={copyLocale} />
             <UrgencyBadge urgency={request.urgency} copyLocale={copyLocale} />
-            <span className="text-xs font-extrabold text-[#8a9aa0]">
-              {t.requestPrefix} #{request.requestId}
-            </span>
           </div>
         </div>
 

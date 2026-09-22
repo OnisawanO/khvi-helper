@@ -1,11 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import {
   Bars3Icon,
+  ChartBarSquareIcon,
   Cog6ToothIcon,
   DocumentMagnifyingGlassIcon,
-  SparklesIcon,
+  ShieldExclamationIcon,
   UserGroupIcon,
+  ArrowTopRightOnSquareIcon,
 } from "@heroicons/react/24/outline";
 import { AdminActiveTab } from "../types";
 
@@ -14,7 +17,7 @@ interface AdminRailBarProps {
   activeTab: AdminActiveTab;
   setActiveTab: (tab: AdminActiveTab) => void;
   totalUsersCount: number;
-  totalInterpretersCount: number;
+  pendingReportsCount: number;
   auditLogsCount: number;
 }
 
@@ -23,7 +26,7 @@ export function AdminRailBar({
   activeTab,
   setActiveTab,
   totalUsersCount,
-  totalInterpretersCount,
+  pendingReportsCount,
   auditLogsCount,
 }: AdminRailBarProps) {
   return (
@@ -47,6 +50,22 @@ export function AdminRailBar({
 
         {/* Navigation Tabs Group */}
         <div className="flex flex-col items-center gap-2.5 w-full">
+          {/* 0. Overview & Analytics */}
+          <button
+            type="button"
+            onClick={() => setActiveTab("overview")}
+            className={`relative flex h-10 w-10 items-center justify-center rounded-2xl transition-all cursor-pointer ${
+              activeTab === "overview"
+                ? "bg-[#087f80] text-white shadow-md"
+                : "text-slate-300 hover:bg-white/10 hover:text-white"
+            }`}
+            title="System Overview & Analytics (ภาพรวมและสถิติระบบ)"
+            aria-label="System Overview"
+            aria-pressed={activeTab === "overview"}
+          >
+            <ChartBarSquareIcon className="h-5 w-5" />
+          </button>
+
           {/* 1. All Users Management */}
           <button
             type="button"
@@ -58,8 +77,9 @@ export function AdminRailBar({
                 ? "bg-[#087f80] text-white shadow-md"
                 : "text-slate-300 hover:bg-white/10 hover:text-white"
             }`}
-            title="User Management"
+            title="User Management (จัดการผู้ใช้ทั้งหมด)"
             aria-label="User Management"
+            aria-pressed={activeTab === "users"}
           >
             <UserGroupIcon className="h-5 w-5" />
             {totalUsersCount > 0 && (
@@ -69,22 +89,23 @@ export function AdminRailBar({
             )}
           </button>
 
-          {/* 2. Interpreter Quality & Index */}
+          {/* 2. Escalated Incident Reports (from Manager) */}
           <button
             type="button"
-            onClick={() => setActiveTab("interpreters")}
+            onClick={() => setActiveTab("reports")}
             className={`relative flex h-10 w-10 items-center justify-center rounded-2xl transition-all cursor-pointer ${
-              activeTab === "interpreters"
-                ? "bg-[#087f80] text-white shadow-md"
+              activeTab === "reports"
+                ? "bg-red-600 text-white shadow-md shadow-red-900/40"
                 : "text-slate-300 hover:bg-white/10 hover:text-white"
             }`}
-            title="Interpreter Index & Quality"
-            aria-label="Interpreter Index & Quality"
+            title="Escalated Incident Reports (รายงานพฤติกรรมไม่เหมาะสมจาก Manager)"
+            aria-label="Escalated Incident Reports"
+            aria-pressed={activeTab === "reports"}
           >
-            <SparklesIcon className="h-5 w-5" />
-            {totalInterpretersCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-teal-900/80 px-1 text-[9px] font-extrabold text-teal-300 ring-1 ring-[#092f45] border border-teal-700/50">
-                {totalInterpretersCount}
+            <ShieldExclamationIcon className="h-5 w-5" />
+            {pendingReportsCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-black text-white ring-1 ring-[#092f45]">
+                {pendingReportsCount}
               </span>
             )}
           </button>
@@ -98,8 +119,9 @@ export function AdminRailBar({
                 ? "bg-[#087f80] text-white shadow-md"
                 : "text-slate-300 hover:bg-white/10 hover:text-white"
             }`}
-            title="System Audit Trail"
+            title="System Audit Trail (บันทึกความปลอดภัยและประวัติ)"
             aria-label="System Audit Trail"
+            aria-pressed={activeTab === "audit"}
           >
             <DocumentMagnifyingGlassIcon className="h-5 w-5" />
             {auditLogsCount > 0 && (
@@ -108,21 +130,36 @@ export function AdminRailBar({
               </span>
             )}
           </button>
+
+          {/* 4. Platform Policies & Governance Settings */}
+          <button
+            type="button"
+            onClick={() => setActiveTab("policies")}
+            className={`relative flex h-10 w-10 items-center justify-center rounded-2xl transition-all cursor-pointer ${
+              activeTab === "policies"
+                ? "bg-[#087f80] text-white shadow-md"
+                : "text-slate-300 hover:bg-white/10 hover:text-white"
+            }`}
+            title="Platform Governance Policies (นโยบายและข้อกำหนดแพลตฟอร์ม)"
+            aria-label="Platform Governance Policies"
+            aria-pressed={activeTab === "policies"}
+          >
+            <Cog6ToothIcon className="h-5 w-5" />
+          </button>
         </div>
       </div>
 
       {/* Bottom Rail Actions */}
-      <div className="flex flex-col items-center w-full px-2">
-        {/* Settings button */}
-        <button
-          type="button"
-          onClick={() => alert("Admin System Settings & Security Configurations")}
-          className="flex h-10 w-10 items-center justify-center rounded-2xl text-slate-300 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
-          title="Profile & Settings"
-          aria-label="Profile & Settings"
+      <div className="flex flex-col items-center gap-2 w-full px-2">
+        {/* Switch to Operations Hub (Manager Mode) */}
+        <Link
+          href="/manager"
+          className="flex h-10 w-10 items-center justify-center rounded-2xl text-amber-300 hover:bg-amber-400/20 hover:text-amber-200 transition-colors cursor-pointer border border-amber-500/30"
+          title="Switch to Operations Hub (Manager Mode) • ตรวจสอบงานหน้างาน"
+          aria-label="Switch to Operations Hub"
         >
-          <Cog6ToothIcon className="h-5 w-5" />
-        </button>
+          <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+        </Link>
       </div>
     </aside>
   );

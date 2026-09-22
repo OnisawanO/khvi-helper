@@ -9,6 +9,8 @@ import {
   loadOpenInterpreterRequests,
   type OpenRequestsDiagnostic,
 } from "@/app/lib/real-request-data";
+import { loadReferenceCatalog } from "@/app/lib/real-reference-data";
+import type { ReferenceCatalog } from "@/app/lib/reference-catalog";
 import type { HelpRequest } from "@/app/lib/mock-requests";
 import { Welcome } from "./welcome";
 
@@ -31,19 +33,25 @@ export default async function WelcomePage() {
   let assignments: HelpRequest[] = [];
   let requesterRequests: HelpRequest[] = [];
   let diagnostic: OpenRequestsDiagnostic = { status: "success", message: "OK" };
+  let referenceCatalog: ReferenceCatalog = { languages: [], categories: [] };
 
   if (profile.role === "Interpreter") {
-    const [openRes, assignRes, reqRes] = await Promise.all([
+    const [openRes, assignRes, reqRes, catalog] = await Promise.all([
       loadOpenInterpreterRequests(supabase),
       loadInterpreterAssignments(supabase),
       loadRequesterRequests(supabase),
+      loadReferenceCatalog(supabase),
     ]);
     openRequests = openRes.requests;
     diagnostic = openRes.diagnostic;
     assignments = assignRes;
     requesterRequests = reqRes;
+    referenceCatalog = catalog;
   } else {
-    requesterRequests = await loadRequesterRequests(supabase);
+    [requesterRequests, referenceCatalog] = await Promise.all([
+      loadRequesterRequests(supabase),
+      loadReferenceCatalog(supabase),
+    ]);
   }
 
   return (
@@ -53,6 +61,7 @@ export default async function WelcomePage() {
       initialAssignments={assignments}
       initialRequesterRequests={requesterRequests}
       initialDiagnostic={diagnostic}
+      initialReferenceCatalog={referenceCatalog}
     />
   );
 }

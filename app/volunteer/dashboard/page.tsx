@@ -4,4 +4,3 @@ export default function VolunteerDashboardPage() {
   redirect("/find-requests");
 }
 
-

@@ -72,6 +72,12 @@ type LocationRow = {
   updated_at: string;
 };
 
+type QueryError = { code?: string; message?: string } | null;
+
+function isPermissionDenied(error: QueryError): boolean {
+  return error?.code === "42501" || Boolean(error?.message?.includes("not_authorized"));
+}
+
 const BOOKING_COLUMNS = [
   "booking_id",
   "user_id",
@@ -159,21 +165,15 @@ async function loadDetails(supabase: SupabaseClient, bookingId: number) {
     supabase.rpc("get_mission_locations", { p_booking_id: bookingId }),
   ]);
 
-  if (privateError && !privateError.message?.includes("not_authorized")) {
-    console.debug("[real-request-data] get_booking_private_details debug:", privateError.message);
-  }
-  if (contactError) {
-    console.debug("[real-request-data] get_booking_contacts debug:", contactError.message);
-  }
-  if (locationError) {
-    console.debug("[real-request-data] get_mission_locations debug:", locationError.message);
-  }
+  if (privateError && !isPermissionDenied(privateError)) throw privateError;
+  if (contactError && !isPermissionDenied(contactError)) throw contactError;
+  if (locationError && !isPermissionDenied(locationError)) throw locationError;
 
-  const privateDetails = !privateError && privateData
-    ? ((Array.isArray(privateData) ? privateData[0] : privateData) as PrivateDetails | undefined)
-    : undefined;
-  const contacts = !contactError && contactData ? ((contactData ?? []) as ContactRow[]) : [];
-  const locations = !locationError && locationData ? ((locationData ?? []) as LocationRow[]) : [];
+  const privateDetails = privateError
+    ? undefined
+    : (Array.isArray(privateData) ? privateData[0] : privateData) as PrivateDetails | undefined;
+  const contacts = (contactError ? [] : contactData ?? []) as ContactRow[];
+  const locations = (locationError ? [] : locationData ?? []) as LocationRow[];
 
   return {
     privateDetails,
@@ -208,14 +208,17 @@ function toRequest(
 ): HelpRequest | null {
   const languageId = references.languages.get(Number(row.language_id));
   const categoryId = references.categories.get(Number(row.category_id));
-  const status = statusMap[row.status];
+  const rawStatus = statusMap[row.status];
   const urgency = urgencyMap[row.urgency];
 
-  if (!languageId || !categoryId || !status || !urgency) return null;
+  if (!languageId || !categoryId || !rawStatus || !urgency) return null;
 
   const requesterContact = contactFor(details.contacts, "requester");
   const interpreterContact = contactFor(details.contacts, "interpreter");
   const expiry = new Date(row.expires_at).getTime();
+  const status = rawStatus === "Open" && Number.isFinite(expiry) && expiry <= Date.now()
+    ? "Expired"
+    : rawStatus;
   const expiresInSeconds = status === "Open" && Number.isFinite(expiry)
     ? Math.max(0, Math.floor((expiry - Date.now()) / 1000))
     : null;
@@ -416,6 +419,7 @@ export async function loadOpenInterpreterRequests(supabaseClient?: SupabaseClien
     .from("bookings")
     .select(BOOKING_COLUMNS)
     .eq("status", "open")
+    .neq("user_id", userId)
     .order("created_at", { ascending: false });
 
   if (bookingError) {
