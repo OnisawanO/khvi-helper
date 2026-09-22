@@ -48,6 +48,7 @@ export async function submitReviewAction(input: {
 
   revalidatePath(`/my-requests/${bookingId}`);
   revalidatePath("/my-requests");
+  revalidatePath("/my-assignments");
   revalidatePath("/welcome");
   revalidatePath("/admin");
   revalidatePath("/manager");

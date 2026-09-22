@@ -20,8 +20,6 @@ import { ActiveTaskDialog } from "@/app/components/active-task-dialog";
 import { ExpiryCountdown } from "@/app/components/expiry-countdown";
 import { StatusBadge, UrgencyBadge } from "@/app/components/request-badges";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
-import type { UserProfile } from "@/app/lib/mock-auth";
-import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { claimBookingAction } from "@/app/actions/booking-actions";
 import type { OpenRequestsDiagnostic } from "@/app/lib/real-request-data";
 import {
@@ -247,24 +245,9 @@ export function FindRequestsList({
   const [activeTaskDialogOpen, setActiveTaskDialogOpen] = useState(false);
   const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
   const [geoStatus, setGeoStatus] = useState<GeoStatus>("idle");
-  const [actor, setActor] = useState<UserProfile | null>(null);
   const ready = true;
   const copyLocale = useCopyLocale();
   const t = copy[copyLocale];
-
-  useEffect(() => {
-    let disposed = false;
-
-    const loadActor = async () => {
-      const result = await getCurrentUserProfile();
-      if (!disposed) setActor(result.profile);
-    };
-
-    void loadActor();
-    return () => {
-      disposed = true;
-    };
-  }, []);
 
   useEffect(() => {
     if (!claimRequest) return;
@@ -364,26 +347,33 @@ export function FindRequestsList({
 
   const confirmClaim = async () => {
     if (!claimRequest) return;
-    if (!actor) return;
+
     if (workspaceBlocked) {
       setClaimRequest(null);
       setActiveTaskDialogOpen(true);
       return;
     }
+
     const requestId = claimRequest.requestId;
     setClaimingId(requestId);
     setClaimError(null);
+
     const result = await claimBookingAction(requestId);
+
     if (result.ok) {
       setClaimedRequestId(requestId);
       setClaimRequest(null);
       setSelectedRequest(null);
       router.push(`/my-requests/${requestId}`);
     } else {
-      if (result.code === "active_workspace_task_exists" || result.code === "active_assignment_exists") {
+      if (
+        result.code === "active_workspace_task_exists" ||
+        result.code === "active_assignment_exists"
+      ) {
         setClaimRequest(null);
         setActiveTaskDialogOpen(true);
       }
+
       setClaimError(result.error || t.claimError);
       setClaimingId(null);
     }
