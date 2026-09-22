@@ -89,7 +89,7 @@ export function Welcome({
   }
 
   return <div id={activeRole === "Interpreter" ? "welcome-Interpreter" : "welcome-user"} className="min-h-screen bg-(--khvi-paper) text-(--khvi-ink)">
-    <AppShell welcomeRole={activeRole} accountActions={<WorkspaceAccountActions user={user} onSignOut={() => {
+    <AppShell welcomeRole={activeRole} accountRole={user.role} accountActions={<WorkspaceAccountActions user={user} onSignOut={() => {
       void createClient().auth.signOut();
       setUser(null);
       router.replace("/#top");

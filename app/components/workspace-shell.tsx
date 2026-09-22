@@ -95,6 +95,7 @@ export function WorkspaceShell({ children, requiredRole, alternatePath }: {
     <div className="min-h-screen bg-(--khvi-paper) text-(--khvi-ink)">
       <AppShell
         welcomeRole={role}
+        accountRole={user.role}
         accountActions={
           <WorkspaceAccountActions
             user={user}

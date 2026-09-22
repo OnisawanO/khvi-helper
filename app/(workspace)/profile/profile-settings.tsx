@@ -220,6 +220,7 @@ export function ProfileSettings() {
     <div className="min-h-screen bg-(--khvi-paper) text-(--khvi-ink)">
       <AppShell
         welcomeRole={user.role}
+        accountRole={user.role}
         accountActions={
           <WorkspaceAccountActions
             user={user}
