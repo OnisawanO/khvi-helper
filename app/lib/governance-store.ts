@@ -156,7 +156,12 @@ export const governanceStore = {
       actor,
       action: "REPORT_ESCALATED",
       targetUser: `${report.reportedUserName} (${report.reportedUserId || report.bookingId})`,
-      severity: "warning",
+      severity:
+        report.severity === "critical"
+          ? "danger"
+          : report.severity === "high"
+          ? "warning"
+          : "info",
       details: `Escalated incident regarding "${report.reason}" from ${report.reporterName}.`,
     });
   },
