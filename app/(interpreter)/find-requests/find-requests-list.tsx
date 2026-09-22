@@ -345,53 +345,35 @@ export function FindRequestsList({
     setClaimRequest(request);
   };
 
-const confirmClaim = async () => {
-  if (!claimRequest) return;
+  const confirmClaim = async () => {
+    if (!claimRequest) return;
 
-  if (workspaceBlocked) {
-    setClaimRequest(null);
-    setActiveTaskDialogOpen(true);
-    return;
-  }
-
-  const requestId = claimRequest.requestId;
-  setClaimingId(requestId);
-  setClaimError(null);
-
-  const result = await claimBookingAction(requestId);
-
-  if (result.ok) {
-    setClaimedRequestId(requestId);
-    setClaimRequest(null);
-    setSelectedRequest(null);
-    router.push(`/my-requests/${requestId}`);
-  } else {
-    if (
-      result.code === "active_workspace_task_exists" ||
-      result.code === "active_assignment_exists"
-    ) {
+    if (workspaceBlocked) {
       setClaimRequest(null);
       setActiveTaskDialogOpen(true);
+      return;
     }
 
-    setClaimError(result.error || t.claimError);
-    setClaimingId(null);
-  }
-};
     const requestId = claimRequest.requestId;
     setClaimingId(requestId);
     setClaimError(null);
+
     const result = await claimBookingAction(requestId);
+
     if (result.ok) {
       setClaimedRequestId(requestId);
       setClaimRequest(null);
       setSelectedRequest(null);
       router.push(`/my-requests/${requestId}`);
     } else {
-      if (result.code === "active_workspace_task_exists" || result.code === "active_assignment_exists") {
+      if (
+        result.code === "active_workspace_task_exists" ||
+        result.code === "active_assignment_exists"
+      ) {
         setClaimRequest(null);
         setActiveTaskDialogOpen(true);
       }
+
       setClaimError(result.error || t.claimError);
       setClaimingId(null);
     }
