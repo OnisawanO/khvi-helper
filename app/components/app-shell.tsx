@@ -165,20 +165,37 @@ export function AppShell({ children, accountActions, welcomeRole, accountRole, h
   hidePrimaryAction?: boolean;
 }) {
   const [locale, setLocale] = useStoredLocale();
-  const [applicationAccess, setApplicationAccess] = useState<InterpreterAccess>({ loading: accountRole === "User", revoked: false, verified: accountRole !== "User", applicationStatus: null });
+  const [applicationAccessState, setApplicationAccessState] = useState<{ role: typeof accountRole; value: InterpreterAccess }>({
+    role: accountRole,
+    value: { loading: accountRole === "User", revoked: false, verified: accountRole !== "User", applicationStatus: null },
+  });
+  const applicationAccess = applicationAccessState.role === accountRole
+    ? applicationAccessState.value
+    : { loading: accountRole === "User", revoked: false, verified: accountRole !== "User", applicationStatus: null };
 
   useEffect(() => {
     if (accountRole !== "User") return;
     let disposed = false;
-    void loadMyInterpreterApplicationAction().then((result) => {
-      if (!disposed) setApplicationAccess({
-        loading: false,
-        revoked: result.ok && result.data?.status === "approved",
-        verified: result.ok,
-        applicationStatus: result.ok ? result.data?.status ?? null : null,
+    let requestId = 0;
+    const refreshApplicationAccess = async () => {
+      const currentRequest = ++requestId;
+      const result = await loadMyInterpreterApplicationAction();
+      if (!disposed && currentRequest === requestId) setApplicationAccessState({
+        role: accountRole,
+        value: {
+          loading: false,
+          revoked: result.ok && result.data?.status === "approved",
+          verified: result.ok,
+          applicationStatus: result.ok ? result.data?.status ?? null : null,
+        },
       });
-    });
-    return () => { disposed = true; };
+    };
+    void refreshApplicationAccess();
+    window.addEventListener("focus", refreshApplicationAccess);
+    return () => {
+      disposed = true;
+      window.removeEventListener("focus", refreshApplicationAccess);
+    };
   }, [accountRole]);
 
   useEffect(() => {

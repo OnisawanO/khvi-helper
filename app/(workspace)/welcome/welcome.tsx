@@ -72,7 +72,10 @@ export function Welcome({
     const { data: authListener } = supabase.auth.onAuthStateChange(() => {
       window.setTimeout(() => void refreshSession(), 0);
     });
-    const onWindowFocus = () => void refreshSession();
+    const onWindowFocus = () => {
+      void refreshSession();
+      router.refresh();
+    };
     window.addEventListener("focus", onWindowFocus);
     return () => {
       disposed = true;
