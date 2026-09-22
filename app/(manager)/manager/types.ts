@@ -28,6 +28,7 @@ export type InterpreterApplicant = {
   rating?: number;
   reviewCount?: number;
   completedMissions?: number;
+  isProfileUpdate?: boolean;
 };
 
 export type HelpTicket = {

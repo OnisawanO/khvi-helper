@@ -41,8 +41,10 @@ import {
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import type { Locale } from "@/app/components/site-header";
 import { persistPreferredUiLanguage, useStoredLocale } from "@/app/lib/locale";
-import { CATEGORIES, LANGUAGES } from "@/app/lib/mock-requests";
 import { getProfileCopy, type ProfileCopy } from "@/app/lib/profile-copy";
+import { loadMyInterpreterApplicationAction } from "@/app/actions/interpreter-application-actions";
+import type { InterpreterApplication } from "@/app/lib/interpreter-application";
+import { EditInterpreterProfileModal } from "@/components/volunteer/EditInterpreterProfileModal";
 import { createClient } from "@/utils/supabase/client";
 
 type FormState = {
@@ -901,7 +903,6 @@ function UserRoleSettings({ copy }: { copy: ProfileCopy }) {
 
 function InterpreterRoleSettings({
   user,
-  onUserChange,
   copy,
   locale,
 }: {
@@ -910,102 +911,333 @@ function InterpreterRoleSettings({
   copy: ProfileCopy;
   locale: Locale;
 }) {
-  const defaultLanguageIds = ["burmese", "english", "sign"];
-  const defaultCategoryIds = ["medical", "government", "accident"];
-  const languageOptions = LANGUAGES.map((language) => {
-    const label = locale === "th" ? language.th : locale === "zh" ? language.zh : language.en;
-    return { id: language.id, label };
-  });
-  const categoryOptions = CATEGORIES.map((category) => {
-    const label = locale === "th" ? category.th : locale === "zh" ? category.zh : category.en;
-    return { id: category.id, label };
-  });
-  const [serviceLanguageIds, setServiceLanguageIds] = useState(() => user.serviceLanguageIds?.length ? user.serviceLanguageIds : defaultLanguageIds);
-  const [matchingCategoryIds, setMatchingCategoryIds] = useState(() => user.matchingCategoryIds?.length ? user.matchingCategoryIds : defaultCategoryIds);
-  const [languageToAdd, setLanguageToAdd] = useState("");
-  const [categoryToAdd, setCategoryToAdd] = useState("");
-  const [skillMessage, setSkillMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [application, setApplication] = useState<InterpreterApplication | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [showSteppedStatus, setShowSteppedStatus] = useState(false);
 
-  const updateSkills = (nextLanguages: string[], nextCategories: string[], message: string) => {
-    const nextUser = { ...user, serviceLanguageIds: nextLanguages, matchingCategoryIds: nextCategories };
-    saveMockUserSession(nextUser);
-    onUserChange(nextUser);
-    setSkillMessage({ type: "success", text: message });
-  };
-
-  const addLanguage = () => {
-    const nextLanguage = normalizeSkillValue(languageToAdd, languageOptions);
-    if (!nextLanguage || hasSkill(serviceLanguageIds, nextLanguage)) return;
-    const nextLanguages = [...serviceLanguageIds, nextLanguage];
-    setServiceLanguageIds(nextLanguages);
-    setLanguageToAdd("");
-    updateSkills(nextLanguages, matchingCategoryIds, copy.roleSettings.interpreter.langAdded);
-  };
-
-  const removeLanguage = (languageId: string) => {
-    if (serviceLanguageIds.length <= 1) {
-      setSkillMessage({ type: "error", text: copy.roleSettings.interpreter.keepOneLang });
-      return;
+  const reloadApplication = async () => {
+    try {
+      const res = await loadMyInterpreterApplicationAction();
+      if (res.ok && res.data) {
+        setApplication(res.data);
+      }
+    } catch {
+      // Continue gracefully
     }
-    const nextLanguages = serviceLanguageIds.filter((id) => id !== languageId);
-    setServiceLanguageIds(nextLanguages);
-    updateSkills(nextLanguages, matchingCategoryIds, copy.roleSettings.interpreter.langRemoved);
   };
 
-  const addCategory = () => {
-    const nextCategory = normalizeSkillValue(categoryToAdd, categoryOptions);
-    if (!nextCategory || hasSkill(matchingCategoryIds, nextCategory)) return;
-    const nextCategories = [...matchingCategoryIds, nextCategory];
-    setMatchingCategoryIds(nextCategories);
-    setCategoryToAdd("");
-    updateSkills(serviceLanguageIds, nextCategories, copy.roleSettings.interpreter.catAdded);
-  };
+  useEffect(() => {
+    let disposed = false;
+    const fetchApplication = async () => {
+      try {
+        const res = await loadMyInterpreterApplicationAction();
+        if (!disposed && res.ok && res.data) {
+          setApplication(res.data);
+        }
+      } catch {
+        // Continue gracefully
+      }
+    };
+    void fetchApplication();
+    return () => {
+      disposed = true;
+    };
+  }, []);
 
-  const removeCategory = (categoryId: string) => {
-    if (matchingCategoryIds.length <= 2) {
-      setSkillMessage({ type: "error", text: copy.roleSettings.interpreter.keepTwoCats });
-      return;
+  const handleEditSuccess = async () => {
+    setShowSteppedStatus(true);
+    setApplication((prev) => (prev ? { ...prev, status: "pending" } : prev));
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
-    const nextCategories = matchingCategoryIds.filter((id) => id !== categoryId);
-    setMatchingCategoryIds(nextCategories);
-    updateSkills(serviceLanguageIds, nextCategories, copy.roleSettings.interpreter.catRemoved);
+    try {
+      await reloadApplication();
+    } catch {
+      // Keep optimistic state if network fails
+    }
   };
+
+  // Resolve active languages and categories
+  const activeLanguages =
+    application?.languages && application.languages.length > 0
+      ? application.languages
+      : [
+          { id: "th", name: "Thai", nameTh: "ภาษาไทย", nameZh: "泰语", type: "Primary", level: "Native" },
+          { id: "en", name: "English", nameTh: "ภาษาอังกฤษ", nameZh: "英语", type: "Fluent", level: "Fluent" },
+        ];
+
+  const activeCategories =
+    application?.categories && application.categories.length > 0
+      ? application.categories
+      : [
+          { id: 1, name: "General & Daily Life", nameTh: "การสื่อสารทั่วไป", nameZh: "日常生活", icon: "💬" },
+          { id: 2, name: "Medical & Health", nameTh: "การแพทย์และสาธารณสุข", nameZh: "医疗健康", icon: "🏥" },
+        ];
+
+  const isPendingReview = application?.status === "pending" || application?.status === "under_review";
+  const needsRevision = application?.status === "needs_revision";
 
   return (
     <div className="space-y-5">
+      {/* Stepped Verification Status for Profile Update */}
+      {(showSteppedStatus || isPendingReview) && (
+        <div className="rounded-(--khvi-radius-md) border border-[#b9d9d6] bg-white p-5 sm:p-6 shadow-sm space-y-4 animate-in fade-in duration-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#edf2f4] pb-3.5 gap-2">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#edf7f5] text-[#087f80]">
+                <span className="text-base">📋</span>
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-[#10283a]">
+                  {locale === "th"
+                    ? "สถานะการตรวจสอบคำขอแก้ไขข้อมูลล่าม"
+                    : locale === "zh"
+                      ? "译员资料修改审核进度"
+                      : "Profile Update Verification Status"}
+                </h4>
+                <p className="text-xs text-[#64777e]">
+                  {locale === "th"
+                    ? "ส่งคำขอไปยัง Manager เรียบร้อยแล้ว ข้อมูลใหม่อยู่ระหว่างรอการตรวจสอบ"
+                    : locale === "zh"
+                      ? "修改申请已提交至主管，新资料正在等待审核"
+                      : "Submitted to Manager for review. Your updated profile is pending approval."}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between sm:justify-end gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#d97706]/30 bg-[#fffbeb] px-3 py-1 text-xs font-extrabold text-[#92400e]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#d97706] animate-ping" />
+                {locale === "th" ? "รอ Manager ตรวจสอบ" : locale === "zh" ? "等待审核" : "Pending Review"}
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowSteppedStatus(false)}
+                className="rounded-full p-1 text-[#73848a] hover:bg-[#edf2f4] hover:text-[#10283a] text-sm cursor-pointer transition-colors"
+                title="ปิดกล่องสถานะ"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+
+          {/* Stepped Progress Bar */}
+          <div className="relative pt-3 pb-2">
+            {/* Desktop Connector Line */}
+            <div className="hidden sm:block absolute top-[30px] left-[16.66%] right-[16.66%] h-1 -translate-y-1/2 bg-[#e4edf0] z-0" aria-hidden="true">
+              <div className="h-full bg-[#087f80] w-1/2 transition-all duration-500" />
+            </div>
+
+            <ol className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-2 relative z-10">
+              {/* Step 1: ส่งคำขอแก้ไข */}
+              <li className="flex sm:flex-col items-center sm:items-center text-left sm:text-center gap-3 sm:gap-2">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-[#087557] bg-[#087557] text-white font-extrabold text-sm shadow-xs">
+                  ✓
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-black text-[#10283a]">
+                    {locale === "th" ? "1. ส่งคำขอแก้ไข" : locale === "zh" ? "1. 提交修改申请" : "1. Request Submitted"}
+                  </p>
+                  <p className="text-[11px] text-[#53656c] mt-0.5">
+                    {locale === "th" ? "ส่งข้อมูลและเอกสารแล้ว" : locale === "zh" ? "已提交资料与文件" : "Details & documents sent"}
+                  </p>
+                </div>
+              </li>
+
+              {/* Step 2: รอ Manager ตรวจสอบ */}
+              <li className="flex sm:flex-col items-center sm:items-center text-left sm:text-center gap-3 sm:gap-2">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-[#087f80] bg-[#087f80] text-white font-extrabold text-sm shadow-xs ring-4 ring-[#087f80]/20">
+                  2
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-black text-[#087f80]">
+                    {locale === "th" ? "2. รอ Manager ตรวจสอบ" : locale === "zh" ? "2. 主管审核中" : "2. Manager Review"}
+                  </p>
+                  <p className="text-[11px] text-[#53656c] mt-0.5">
+                    {locale === "th" ? "อยู่ในคิวรอการตรวจสอบ" : locale === "zh" ? "已进入审核队列" : "In review queue"}
+                  </p>
+                </div>
+              </li>
+
+              {/* Step 3: ผลการอนุมัติ */}
+              <li className="flex sm:flex-col items-center sm:items-center text-left sm:text-center gap-3 sm:gap-2">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-[#cbd7dc] bg-[#f4f7f8] text-[#73848a] font-extrabold text-sm shadow-xs">
+                  3
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-[#73848a]">
+                    {locale === "th" ? "3. ผลการอนุมัติ" : locale === "zh" ? "3. 审核结果" : "3. Approval"}
+                  </p>
+                  <p className="text-[11px] text-[#73848a] mt-0.5">
+                    {locale === "th" ? "มีผลหลังได้รับการอนุมัติ" : locale === "zh" ? "批准后即刻生效" : "Effective once approved"}
+                  </p>
+                </div>
+              </li>
+            </ol>
+          </div>
+        </div>
+      )}
+
+      {/* Revision Requested Banner */}
+      {needsRevision && (
+        <div className="rounded-(--khvi-radius-md) border border-[#fcccd0] bg-[#fff5f5] p-4 flex items-start justify-between gap-3 shadow-2xs">
+          <div className="flex items-start gap-3">
+            <span className="text-lg shrink-0">⚠️</span>
+            <div>
+              <h4 className="text-xs font-black text-[#f04f3e]">
+                {locale === "th" ? "Manager แจ้งให้แก้ไขข้อมูลเพิ่มเติม" : "Revision Requested by Manager"}
+              </h4>
+              <p className="text-xs text-[#b82d20] mt-0.5">
+                {application.revisionNote ||
+                  (locale === "th"
+                    ? "กรุณาตรวจสอบและอัปเดตข้อมูลหรือเอกสารรับรองให้ถูกต้อง"
+                    : "Please review and update your credentials or documents.")}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsEditModalOpen(true)}
+            className="shrink-0 rounded-(--khvi-radius-sm) bg-[#f04f3e] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#d63b2a] transition-colors cursor-pointer"
+          >
+            {locale === "th" ? "แก้ไขข้อมูล" : "Edit Now"}
+          </button>
+        </div>
+      )}
+
+      {/* Metrics */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Metric label={copy.roleSettings.interpreter.metricApproval} value={copy.roleSettings.statusApproved} tone="sage" />
+        <Metric
+          label={copy.roleSettings.interpreter.metricApproval}
+          value={
+            isPendingReview
+              ? locale === "th" ? "รออนุมัติ" : "Pending"
+              : copy.roleSettings.statusApproved
+          }
+          tone={isPendingReview ? undefined : "sage"}
+        />
         <Metric label={copy.roleSettings.interpreter.metricRadius} value="25 km" />
         <Metric label={copy.roleSettings.interpreter.metricMissions} value="18" />
         <Metric label={copy.roleSettings.interpreter.metricScore} value="4.9 / 5" />
       </div>
+
+      {/* Edit Profile Action Bar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-(--khvi-radius-md) border border-[#c3d1d6] bg-white p-4 shadow-sm">
+        <div>
+          <h3 className="text-sm font-black text-[#10283a] flex items-center gap-2">
+            <span>{locale === "th" ? "ข้อมูลคุณสมบัติล่ามอาสา" : "Volunteer Interpreter Qualifications"}</span>
+            <span className="rounded-(--khvi-radius-sm) border border-[#b9d9d6] bg-[#edf7f5] px-2 py-0.5 text-[11px] font-extrabold text-[#087f80]">
+              {locale === "th" ? "อนุมัติแล้ว" : "Approved"}
+            </span>
+          </h3>
+          <p className="text-xs text-[#64777e] mt-0.5">
+            {locale === "th"
+              ? "ต้องการเพิ่มภาษาที่ให้บริการ ปรับระดับความเชี่ยวชาญ หรือแนบเอกสารรับรองเพิ่มเติม?"
+              : "Need to update service languages, proficiency levels, or attach additional certifications?"}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsEditModalOpen(true)}
+          className="inline-flex items-center gap-2 rounded-(--khvi-radius-sm) bg-[#092f45] hover:bg-[#0c4960] px-4 py-2 text-xs font-bold text-white shadow-xs transition-colors shrink-0 cursor-pointer"
+        >
+          <PencilSquareIcon className="h-4 w-4" />
+          <span>
+            {locale === "zh"
+              ? "修改译员资料"
+              : locale === "en"
+                ? "Edit Interpreter Information"
+                : "แก้ไขข้อมูลล่าม"}
+          </span>
+        </button>
+      </div>
+
+      {/* Two Skill Summary Cards: Languages & Categories */}
       <div className="grid gap-5 xl:grid-cols-2">
-        <EditableSkillCard
-          icon={<GlobeAltIcon className="h-5 w-5" aria-hidden="true" />}
-          title={copy.roleSettings.interpreter.serviceLanguagesTitle}
-          description={copy.roleSettings.interpreter.serviceLanguagesDesc}
-          selectedIds={serviceLanguageIds}
-          options={languageOptions}
-          value={languageToAdd}
-          onValueChange={setLanguageToAdd}
-          onAdd={addLanguage}
-          onRemove={removeLanguage}
-          minimumLabel={copy.roleSettings.interpreter.minOneLanguage}
-          copy={copy}
-        />
-        <EditableSkillCard
-          icon={<WrenchScrewdriverIcon className="h-5 w-5" aria-hidden="true" />}
-          title={copy.roleSettings.interpreter.matchingCategoriesTitle}
-          description={copy.roleSettings.interpreter.matchingCategoriesDesc}
-          selectedIds={matchingCategoryIds}
-          options={categoryOptions}
-          value={categoryToAdd}
-          onValueChange={setCategoryToAdd}
-          onAdd={addCategory}
-          onRemove={removeCategory}
-          minimumLabel={copy.roleSettings.interpreter.minTwoCategories}
-          copy={copy}
-        />
+        {/* Service Languages Card */}
+        <div className="rounded-(--khvi-radius-md) border border-[#d6e0e4] bg-white p-5 shadow-sm space-y-3">
+          <div className="flex items-center justify-between border-b border-[#f0f4f6] pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-(--khvi-radius-sm) bg-[#edf7f5] text-[#087f80]">
+                <GlobeAltIcon className="h-4 w-4" aria-hidden="true" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-[#10283a]">
+                  {copy.roleSettings.interpreter.serviceLanguagesTitle}
+                </h4>
+                <p className="text-[11px] text-[#64777e]">
+                  {copy.roleSettings.interpreter.serviceLanguagesDesc}
+                </p>
+              </div>
+            </div>
+            <span className="rounded-(--khvi-radius-sm) border border-[#b9d9d6] bg-[#edf7f5] px-2 py-0.5 text-[11px] font-extrabold text-[#087f80]">
+              {activeLanguages.length} {locale === "zh" ? "种语言" : locale === "en" ? "languages" : "ภาษา"}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap gap-2 pt-1">
+            {activeLanguages.map((lang) => {
+              const label =
+                locale === "zh"
+                  ? (lang.nameZh ?? lang.nameTh ?? lang.name)
+                  : locale === "en"
+                    ? lang.name
+                    : (lang.nameTh ?? lang.name);
+              return (
+                <div
+                  key={lang.id}
+                  className="inline-flex items-center gap-1.5 rounded-(--khvi-radius-sm) border border-[#d6e0e4] bg-[#f8fafb] px-2.5 py-1 text-xs font-semibold text-[#10283a]"
+                >
+                  <span>{label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Matching Categories Card */}
+        <div className="rounded-(--khvi-radius-md) border border-[#d6e0e4] bg-white p-5 shadow-sm space-y-3">
+          <div className="flex items-center justify-between border-b border-[#f0f4f6] pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-(--khvi-radius-sm) bg-[#edf7f5] text-[#087f80]">
+                <WrenchScrewdriverIcon className="h-4 w-4" aria-hidden="true" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-[#10283a]">
+                  {copy.roleSettings.interpreter.matchingCategoriesTitle}
+                </h4>
+                <p className="text-[11px] text-[#64777e]">
+                  {copy.roleSettings.interpreter.matchingCategoriesDesc}
+                </p>
+              </div>
+            </div>
+            <span className="rounded-(--khvi-radius-sm) border border-[#b9d9d6] bg-[#edf7f5] px-2 py-0.5 text-[11px] font-extrabold text-[#087f80]">
+              {activeCategories.length} {locale === "zh" ? "个类别" : locale === "en" ? "categories" : "หมวด"}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap gap-2 pt-1">
+            {activeCategories.map((cat) => {
+              const label =
+                locale === "zh"
+                  ? (cat.nameZh ?? cat.nameTh ?? cat.name)
+                  : locale === "en"
+                    ? cat.name
+                    : (cat.nameTh ?? cat.name);
+              return (
+                <div
+                  key={cat.id}
+                  className="inline-flex items-center gap-1.5 rounded-(--khvi-radius-sm) border border-[#d6e0e4] bg-[#f8fafb] px-2.5 py-1 text-xs font-semibold text-[#10283a]"
+                >
+                  <span className="text-sm">{cat.icon || "📋"}</span>
+                  <span>{label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Standard Role Navigation Cards */}
         <RoleCard
           icon={<MapPinIcon className="h-5 w-5" aria-hidden="true" />}
           title={copy.roleSettings.interpreter.searchPrefsTitle}
@@ -1021,98 +1253,16 @@ function InterpreterRoleSettings({
           linkLabel={copy.roleSettings.interpreter.assignmentHistoryLink}
         />
       </div>
-      {skillMessage && <p role={skillMessage.type === "error" ? "alert" : "status"} className={`text-xs font-extrabold ${skillMessage.type === "error" ? "text-(--khvi-coral)" : "text-(--khvi-sage)"}`}>{skillMessage.text}</p>}
-    </div>
-  );
-}
 
-function normalizeSkillValue(value: string, options: { id: string; label: string }[]) {
-  const trimmedValue = value.trim();
-  const standardOption = options.find((option) => option.id.toLowerCase() === trimmedValue.toLowerCase() || option.label.toLowerCase() === trimmedValue.toLowerCase());
-  return standardOption?.id ?? trimmedValue;
-}
-
-function hasSkill(selectedIds: string[], value: string) {
-  return selectedIds.some((selectedId) => selectedId.trim().toLowerCase() === value.trim().toLowerCase());
-}
-
-function EditableSkillCard({
-  icon,
-  title,
-  description,
-  selectedIds,
-  options,
-  value,
-  onValueChange,
-  onAdd,
-  onRemove,
-  minimumLabel,
-  copy,
-}: {
-  icon: ReactNode;
-  title: string;
-  description: string;
-  selectedIds: string[];
-  options: { id: string; label: string }[];
-  value: string;
-  onValueChange: (value: string) => void;
-  onAdd: () => void;
-  onRemove: (id: string) => void;
-  minimumLabel: string;
-  copy: ProfileCopy;
-}) {
-  const selectedSet = new Set(selectedIds.map((selectedId) => selectedId.trim().toLowerCase()));
-  const availableOptions = options.filter((option) => !selectedSet.has(option.id.toLowerCase()) && !selectedSet.has(option.label.toLowerCase()));
-  const inputId = `${title.replace(/\s+/g, "-").toLowerCase()}-add`;
-  const datalistId = `${inputId}-suggestions`;
-
-  return (
-    <div className="rounded-xl border border-(--khvi-teal)/15 bg-white p-4 sm:p-5">
-      <div className="flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#edf5f4] text-(--khvi-teal)">{icon}</span>
-        <div className="min-w-0">
-          <h3 className="text-sm font-black text-(--khvi-navy)">{title}</h3>
-          <p className="mt-1 text-xs leading-5 text-(--khvi-ink)/60">{description}</p>
-        </div>
-      </div>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {selectedIds.map((id) => {
-          const label = options.find((option) => option.id === id)?.label ?? id;
-          return (
-            <span key={id} className="inline-flex items-center gap-1 rounded-full bg-(--khvi-paper) py-1 pl-2.5 pr-1 text-[11px] font-bold text-(--khvi-ink)/75">
-              <span>{label}</span>
-              <button
-                type="button"
-                onClick={() => onRemove(id)}
-                className="flex h-5 w-5 items-center justify-center rounded-full text-(--khvi-ink)/50 transition-colors hover:bg-(--khvi-coral)/10 hover:text-(--khvi-coral) focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--khvi-sun)"
-                aria-label={copy.roleSettings.interpreter.removeAria(label)}
-              >
-                <XMarkIcon className="h-3.5 w-3.5" aria-hidden="true" />
-              </button>
-            </span>
-          );
-        })}
-      </div>
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-        <label className="sr-only" htmlFor={inputId}>Add to {title}</label>
-        <input
-          id={inputId}
-          list={datalistId}
-          value={value}
-          onChange={(event) => onValueChange(event.target.value)}
-          onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); onAdd(); } }}
-          placeholder={copy.roleSettings.interpreter.placeholder}
-          autoComplete="off"
-          className="h-10 min-w-0 flex-1 rounded-lg border border-[#cbd7dc] bg-white px-3 text-xs font-bold text-(--khvi-ink) placeholder:text-(--khvi-ink)/40 focus:border-(--khvi-teal)"
-        />
-        <datalist id={datalistId}>
-          {availableOptions.map((option) => <option key={option.id} value={option.label} />)}
-        </datalist>
-        <button type="button" onClick={onAdd} disabled={!value.trim()} className="h-10 rounded-lg border border-(--khvi-teal) px-3.5 text-xs font-extrabold text-(--khvi-teal) transition-colors hover:bg-[#edf5f4] disabled:cursor-not-allowed disabled:opacity-45">
-          {copy.roleSettings.interpreter.add}
-        </button>
-      </div>
-      <p className="mt-3 text-[11px] font-semibold text-(--khvi-ink)/45">{copy.roleSettings.interpreter.skillCardHint(minimumLabel)}</p>
+      {/* Edit Interpreter Profile Modal Popup */}
+      <EditInterpreterProfileModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSuccess={handleEditSuccess}
+        locale={locale}
+        initialApplication={application}
+        profile={user}
+      />
     </div>
   );
 }
