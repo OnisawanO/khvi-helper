@@ -27,6 +27,7 @@ export type AdminUserRecord = {
     verificationStatus: "Approved" | "Pending" | "Under Review" | "Suspended";
     completedMissions: number;
     rating: number; // e.g. 4.9
+    reviewCount?: number;
     specialties: string[];
     responseTimeAvg: string; // e.g. '2.4 mins'
     feedbackHighlights: string[];

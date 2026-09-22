@@ -25,6 +25,9 @@ export type InterpreterApplicant = {
   documents?: ApplicantDocument[]; // Optional backwards compatibility
   backgroundCheck: "Passed" | "Pending" | "Requires Review";
   proficiencyScore?: string;
+  rating?: number;
+  reviewCount?: number;
+  completedMissions?: number;
 };
 
 export type HelpTicket = {

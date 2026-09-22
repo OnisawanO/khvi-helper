@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useState, type FormEvent } from "react";
 import {
-  CalendarDaysIcon,
   CheckCircleIcon,
   EnvelopeIcon,
   EyeIcon,
@@ -22,16 +21,15 @@ import {
   type RegisterInput,
   type ValidationErrors,
 } from "@/app/lib/mock-auth";
-import {
-  getAuthErrorMessage,
-  getCurrentUserProfile,
-} from "@/app/lib/supabase-auth";
-import { createClient } from "@/utils/supabase/client";
+import { authApi } from "@/app/lib/auth-client";
+import { DatePicker, toDateInputValue } from "./date-picker";
 
 export interface RegisterFormProps {
   onSuccess?: () => void;
   onCancel?: () => void;
   isModal?: boolean;
+  isEmbedded?: boolean;
+  onDirtyChange?: (isDirty: boolean) => void;
   onSwitchToSignIn?: () => void;
 }
 
@@ -39,10 +37,11 @@ export function RegisterForm({
   onSuccess,
   onCancel,
   isModal = false,
+  isEmbedded = false,
+  onDirtyChange,
   onSwitchToSignIn,
 }: RegisterFormProps) {
   const router = useRouter();
-  const supabase = createClient();
   const [currentLocale] = useStoredLocale();
   const copy = getAuthCopy(currentLocale);
 
@@ -72,6 +71,10 @@ export function RegisterForm({
   const [isSuccess, setIsSuccess] = useState(false);
 
   useEffect(() => {
+    onDirtyChange?.(Object.values(formData).some(Boolean));
+  }, [formData, onDirtyChange]);
+
+  useEffect(() => {
     let disposed = false;
     queueMicrotask(() => {
       if (disposed) return;
@@ -84,7 +87,7 @@ export function RegisterForm({
   }, [currentLocale]);
 
   const calculatedAge = calculateAge(formData.dateOfBirth);
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = toDateInputValue(new Date());
 
   function handleChange(field: keyof RegisterInput, value: string) {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -107,42 +110,26 @@ export function RegisterForm({
       if (Object.keys(validationErrors).length > 0) {
         setErrors(validationErrors);
         setIsSubmitting(false);
+        window.setTimeout(() => {
+          document.querySelector<HTMLElement>("form [aria-invalid=\"true\"]")?.focus();
+        }, 0);
         return;
       }
 
-      const { data, error: signUpError } = await supabase.auth.signUp({
+      const result = await authApi.register({
+        ...formData,
         email: formData.email.trim().toLowerCase(),
-        password: formData.password,
-        options: {
-          data: {
-            full_name: [formData.firstName, formData.lastName].filter(Boolean).join(" ").trim(),
-            first_name: formData.firstName.trim(),
-            last_name: formData.lastName.trim(),
-            phone: formData.phone.trim(),
-            date_of_birth: formData.dateOfBirth,
-            preferred_ui_language: formData.preferredUiLanguage,
-          },
-        },
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        phone: formData.phone.trim(),
       });
 
-      if (signUpError || !data.user) {
-        setErrors({ general: getAuthErrorMessage(signUpError, "register", currentLocale) });
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (!data.session) {
-        setErrors({
-          general: copy.register.noSessionError,
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
-      const profileResult = await getCurrentUserProfile(supabase);
-      if (!profileResult.profile) {
-        await supabase.auth.signOut();
-        setErrors({ general: profileResult.error || copy.register.profileError });
+      if (!result.ok) {
+        const details = result.error.details;
+        const fieldErrors = details && typeof details === "object"
+          ? details as ValidationErrors
+          : {};
+        setErrors({ ...fieldErrors, general: result.error.message });
         setIsSubmitting(false);
         return;
       }
@@ -161,9 +148,10 @@ export function RegisterForm({
     }
   }
 
-  const containerClasses = isModal
+  const containerClasses = isModal || isEmbedded
     ? "w-full"
     : "rounded-2xl border border-[#d6e0e4] bg-white p-6 shadow-[var(--khvi-shadow-soft)] sm:p-10";
+  const errorSummary = errors.general || Object.values(errors).find(Boolean);
 
   return (
     <div className={containerClasses}>
@@ -198,12 +186,12 @@ export function RegisterForm({
         </div>
       ) : (
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
-          {errors.general && (
+          {errorSummary && (
             <div
               role="alert"
               className="rounded-lg border border-[#f3b5ad] bg-[#fdf2f0] p-3 text-xs font-bold text-[#b92b1b]"
             >
-              {errors.general}
+              {errorSummary}
             </div>
           )}
 
@@ -320,7 +308,7 @@ export function RegisterForm({
                   value={formData.password}
                   onChange={(e) => handleChange("password", e.target.value)}
                   aria-invalid={Boolean(errors.password)}
-                  aria-describedby={errors.password ? `${passwordId}-error` : undefined}
+                  aria-describedby={`${passwordId}-hint${errors.password ? ` ${passwordId}-error` : ""}`}
                   className={`w-full rounded-lg border bg-white py-2 pl-9 pr-9 text-xs sm:text-sm font-semibold text-[var(--khvi-ink)] transition-colors focus:border-[#0d8587] focus:outline-none focus:ring-2 focus:ring-[#0d8587]/20 ${
                     errors.password ? "border-[#e24432] bg-[#fdf8f7]" : "border-[#cbd7dc] hover:border-[#8fbfc1]"
                   }`}
@@ -338,6 +326,9 @@ export function RegisterForm({
                   )}
                 </button>
               </div>
+              <p id={`${passwordId}-hint`} className={`mt-1 text-[11px] font-semibold ${formData.password.length >= 8 ? "text-[#0a8264]" : "text-[#73848a]"}`}>
+                {formData.password.length >= 8 ? "✓" : "•"} {copy.validation.passwordMin}
+              </p>
               {errors.password && (
                 <p id={`${passwordId}-error`} className="mt-1 text-xs font-bold text-[#e24432]">
                   {errors.password}
@@ -392,8 +383,8 @@ export function RegisterForm({
 
           {/* Phone */}
           <div>
-            <label htmlFor={phoneId} className="block text-xs font-extrabold text-[#294554] sm:text-sm">
-              {copy.register.phone} <span className="text-[#e24432]">*</span>
+              <label htmlFor={phoneId} className="block text-xs font-extrabold text-[#294554] sm:text-sm">
+              {copy.register.phone} <span className="text-[11px] font-semibold text-[#73848a]">({copy.register.optional})</span>
             </label>
             <div className="relative mt-1">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#73848a]">
@@ -402,7 +393,6 @@ export function RegisterForm({
               <input
                 id={phoneId}
                 type="tel"
-                required
                 autoComplete="tel"
                 placeholder="0812345678"
                 value={formData.phone}
@@ -424,7 +414,6 @@ export function RegisterForm({
               </p>
             )}
           </div>
-
           {/* Date of Birth & Live Age Calculation */}
           <div>
             <div className="flex items-center justify-between">
@@ -437,22 +426,15 @@ export function RegisterForm({
                 </span>
               )}
             </div>
-            <div className="relative mt-1">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#73848a]">
-                <CalendarDaysIcon className="h-4 w-4" aria-hidden="true" />
-              </div>
-              <input
+            <div className="mt-1">
+              <DatePicker
                 id={dobId}
-                type="date"
-                required
-                max={todayStr}
+                label={copy.register.dateOfBirth}
+                locale={currentLocale}
+                maxDate={todayStr}
                 value={formData.dateOfBirth}
-                onChange={(e) => handleChange("dateOfBirth", e.target.value)}
-                aria-invalid={Boolean(errors.dateOfBirth)}
-                aria-describedby={errors.dateOfBirth ? `${dobId}-error` : undefined}
-                className={`w-full rounded-lg border bg-white py-2 pl-9 pr-3 text-xs sm:text-sm font-semibold text-[var(--khvi-ink)] transition-colors focus:border-[#0d8587] focus:outline-none focus:ring-2 focus:ring-[#0d8587]/20 ${
-                  errors.dateOfBirth ? "border-[#e24432] bg-[#fdf8f7]" : "border-[#cbd7dc] hover:border-[#8fbfc1]"
-                }`}
+                onChange={(dateValue) => handleChange("dateOfBirth", dateValue)}
+                invalid={Boolean(errors.dateOfBirth)}
               />
             </div>
             {errors.dateOfBirth && (

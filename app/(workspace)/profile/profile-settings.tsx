@@ -27,6 +27,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type PointerEvent, type ReactNode } from "react";
 import { AppShell, type WorkspaceRole } from "@/app/components/app-shell";
 import { deleteOwnAccountAction } from "@/app/actions/account-actions";
+import { authApi } from "@/app/lib/auth-client";
 import { WorkspaceAccountActions } from "@/app/components/workspace-account-actions";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
 import { UserAvatar } from "@/app/components/user-avatar";
@@ -220,12 +221,13 @@ export function ProfileSettings() {
     <div className="min-h-screen bg-(--khvi-paper) text-(--khvi-ink)">
       <AppShell
         welcomeRole={user.role}
+        accountRole={user.role}
         accountActions={
           <WorkspaceAccountActions
             user={user}
-            onSignOut={() => {
+            onSignOut={async () => {
               clearMockUserSession();
-              void createClient().auth.signOut();
+              await authApi.logout();
               setUser(null);
               router.replace("/#top");
             }}
@@ -238,7 +240,7 @@ export function ProfileSettings() {
           canDeleteAccount={canDeleteAccount}
           onAccountDeleted={async () => {
             clearMockUserSession();
-            await createClient().auth.signOut();
+            await authApi.logout();
             setUser(null);
             setCanDeleteAccount(false);
             router.replace("/#top");
