@@ -8,6 +8,12 @@ export type AuthCopy = {
     description: string;
     forgotPassword: string;
     forgotPasswordSoon: string;
+    resetPasswordTitle: string;
+    resetPasswordDescription: string;
+    resetPasswordSubmit: string;
+    resetPasswordSubmitting: string;
+    resetPasswordSuccess: string;
+    resetPasswordBack: string;
     passwordPlaceholder: string;
     rememberMe: string;
     submit: string;
@@ -39,6 +45,7 @@ export type AuthCopy = {
     confirmPassword: string;
     phone: string;
     phoneHint: string;
+    optional: string;
     dateOfBirth: string;
     age: (age: number) => string;
     firstNamePlaceholder: string;
@@ -115,6 +122,12 @@ const englishCopy: AuthCopy = {
     description: "Sign in to track requests, create a help request, or support someone as an interpreter.",
     forgotPassword: "Forgot password?",
     forgotPasswordSoon: "This feature will be available in a later step.",
+    resetPasswordTitle: "Reset your password",
+    resetPasswordDescription: "Enter your email and we’ll send you a link to choose a new password.",
+    resetPasswordSubmit: "Send reset link",
+    resetPasswordSubmitting: "Sending reset link…",
+    resetPasswordSuccess: "Check your email for a password reset link.",
+    resetPasswordBack: "Back to sign in",
     passwordPlaceholder: "Enter your password",
     rememberMe: "Keep me signed in",
     submit: "Sign in",
@@ -146,6 +159,7 @@ const englishCopy: AuthCopy = {
     confirmPassword: "Confirm password",
     phone: "Phone number",
     phoneHint: "Used to contact you after an interpreter accepts your request.",
+    optional: "optional",
     dateOfBirth: "Date of birth",
     age: (age) => `${age} years old`,
     firstNamePlaceholder: "e.g. Somchai or John",
@@ -222,6 +236,12 @@ const thaiCopy: AuthCopy = {
     description: "เข้าสู่ระบบเพื่อติดตามงาน ปักหมุดขอความช่วยเหลือ หรือปฏิบัติหน้าที่ล่าม",
     forgotPassword: "ลืมรหัสผ่าน?",
     forgotPasswordSoon: "ฟังก์ชันนี้จะเปิดใช้งานในขั้นตอนถัดไป",
+    resetPasswordTitle: "ตั้งรหัสผ่านใหม่",
+    resetPasswordDescription: "กรอกอีเมล แล้วเราจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ให้คุณ",
+    resetPasswordSubmit: "ส่งลิงก์ตั้งรหัสผ่าน",
+    resetPasswordSubmitting: "กำลังส่งลิงก์…",
+    resetPasswordSuccess: "ตรวจสอบอีเมลของคุณเพื่อใช้ลิงก์ตั้งรหัสผ่านใหม่",
+    resetPasswordBack: "กลับไปเข้าสู่ระบบ",
     passwordPlaceholder: "กรอกรหัสผ่านของคุณ",
     rememberMe: "จดจำการเข้าสู่ระบบไว้",
     submit: "เข้าสู่ระบบ",
@@ -253,6 +273,7 @@ const thaiCopy: AuthCopy = {
     confirmPassword: "ยืนยันรหัสผ่าน",
     phone: "เบอร์โทรศัพท์",
     phoneHint: "สำหรับติดต่อเมื่อมีล่ามกดรับงานแล้ว",
+    optional: "ไม่บังคับ",
     dateOfBirth: "วันเดือนปีเกิด",
     age: (age) => `อายุ ${age} ปี`,
     firstNamePlaceholder: "เช่น สมชาย หรือ John",
