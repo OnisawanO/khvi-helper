@@ -8,7 +8,7 @@ import { useCopyLocale, useUiLocale } from "./app-shell";
 import { ExpiryCountdown } from "./expiry-countdown";
 import { ResponsiveHeroImage } from "./responsive-hero-image";
 import { StatusBadge, UrgencyBadge } from "./request-badges";
-import type { HelpRequest } from "@/app/lib/mock-requests";
+import type { HelpRequest, RequestStatus } from "@/app/lib/mock-requests";
 import type { UserProfile } from "@/app/lib/mock-auth";
 import { useMyInterpreterApplication, type InterpreterApplication } from "@/app/lib/interpreter-application";
 import { loadMyInterpreterApplicationAction } from "@/app/actions/interpreter-application-actions";
@@ -32,6 +32,45 @@ function distance(request: HelpRequest, location: GeolocationCoordinates | null)
   const dLon = (request.longitude - location.longitude) * rad;
   const a = Math.sin(dLat / 2) ** 2 + Math.cos(location.latitude * rad) * Math.cos(request.latitude * rad) * Math.sin(dLon / 2) ** 2;
   return 6371 * 2 * Math.asin(Math.sqrt(Math.min(1, a)));
+}
+
+function RequestProgress({ status, tr }: { status: RequestStatus; tr: (th: string, en: string, zh: string) => string }) {
+  const steps = [
+    { status: "Open" as const, label: tr("รอรับงาน", "Open", "开放中") },
+    { status: "Claimed" as const, label: tr("รับงานแล้ว", "Claimed", "已接取") },
+    { status: "InProgress" as const, label: tr("กำลังดำเนินการ", "In progress", "进行中") },
+    { status: "Completed" as const, label: tr("เสร็จสิ้น", "Completed", "已完成") },
+  ];
+  const activeIndex = Math.max(0, steps.findIndex((step) => step.status === status));
+  const currentStep = steps[activeIndex];
+
+  return (
+    <section className="mt-4 rounded-lg border border-(--khvi-teal)/20 bg-(--khvi-paper) p-3" aria-label={tr("ความคืบหน้าคำขอ", "Request progress", "求助进度")}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-bold text-(--khvi-ink)">{tr("ความคืบหน้าคำขอ", "Request progress", "求助进度")}</h3>
+        <span className="text-xs font-bold text-(--khvi-teal)">{currentStep.label}</span>
+      </div>
+      <ol className="mt-3 grid grid-cols-4 gap-1">
+        {steps.map((step, index) => {
+          const reached = index <= activeIndex;
+          return (
+            <li key={step.status} className="min-w-0">
+              <div className="flex items-center">
+                <span
+                  aria-current={index === activeIndex ? "step" : undefined}
+                  className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-[0.65rem] font-extrabold ${reached ? "bg-(--khvi-teal) text-white" : "bg-white text-(--khvi-ink)/45"}`}
+                >
+                  {index + 1}
+                </span>
+                {index < steps.length - 1 && <span aria-hidden="true" className={`mx-1 h-0.5 min-w-0 flex-1 ${index < activeIndex ? "bg-(--khvi-teal)" : "bg-(--khvi-teal)/20"}`} />}
+              </div>
+              <span className={`mt-1 block break-words text-[0.6rem] font-bold leading-3.5 ${index === activeIndex ? "text-(--khvi-teal)" : "text-(--khvi-ink)/60"}`}>{step.label}</span>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
 }
 
 export function WelcomeDashboard({
@@ -141,9 +180,9 @@ export function WelcomeDashboard({
     locationWatchRef.current = navigator.geolocation.watchPosition(p => { setLocation(p.coords); setGeo("ready"); }, () => setGeo("error"), { timeout: 10000, maximumAge: 10000, enableHighAccuracy: false });
   }
   function requestRow(r: HelpRequest, discovery = false) {
-    return <li key={r.requestId} className="flex flex-wrap items-center justify-between gap-4 py-5">
-      <div className="min-w-0"><h3 className="font-bold">{lang(r)} · {cat(r)}</h3><p className={muted}>{discovery ? r.areaName : r.scheduledAtLabel ?? r.createdAtLabel}</p></div>
-      <div className="flex flex-wrap items-center gap-3"><UrgencyBadge urgency={r.urgency} copyLocale={locale === "th" ? "th" : copyLocale} /><StatusBadge status={r.status} copyLocale={locale === "th" ? "th" : copyLocale} /><Link className="inline-flex min-h-11 items-center gap-2 text-sm font-bold underline underline-offset-4" href={discovery ? "/find-requests#main-content" : `/my-requests/${r.requestId}#main-content`}>{tr("ดูรายละเอียด", "View details", "查看详情")}<ArrowRightIcon aria-hidden="true" className="h-4 w-4" /></Link></div>
+    return <li key={r.requestId} className="flex min-w-0 flex-wrap items-center justify-between gap-4 py-5">
+      <div className="min-w-0 flex-1"><h3 className="break-words font-bold">{lang(r)} · {cat(r)}</h3><p className={muted}>{discovery ? r.areaName : r.scheduledAtLabel ?? r.createdAtLabel}</p></div>
+      <div className="flex w-full min-w-0 flex-wrap items-center gap-3 sm:w-auto sm:justify-end"><UrgencyBadge urgency={r.urgency} copyLocale={locale === "th" ? "th" : copyLocale} /><StatusBadge status={r.status} copyLocale={locale === "th" ? "th" : copyLocale} /><Link className={`${button} min-h-10 max-w-full shrink-0 px-4 py-2 text-xs whitespace-nowrap`} href={discovery ? "/find-requests#main-content" : `/my-requests/${r.requestId}#main-content`}>{tr("ดูรายละเอียด", "View details", "查看详情")}<ArrowRightIcon aria-hidden="true" className="h-4 w-4 shrink-0" /></Link></div>
     </li>;
   }
   return <main id="main-content" className="mx-auto max-w-[1480px] px-5 py-8 sm:px-8 lg:px-8 lg:py-10">
@@ -181,8 +220,8 @@ export function WelcomeDashboard({
         </div>
       )}
     </div>
-    <div className={interpreter ? "grid items-start gap-5 md:grid-cols-[minmax(0,1fr)_minmax(260px,360px)]" : "grid items-start gap-5 lg:grid-cols-[1.5fr_1fr]"}>
-      <section className="order-2 relative min-h-[500px] overflow-hidden rounded-(--khvi-radius-lg) bg-(--khvi-navy) text-white sm:min-h-[460px] md:order-1">
+    <div className={interpreter ? "grid items-start gap-5 md:items-stretch md:grid-cols-[minmax(0,1fr)_minmax(260px,360px)]" : "grid items-start gap-5 md:items-stretch md:grid-cols-[1.5fr_1fr]"}>
+      <section className="order-2 relative min-h-[420px] overflow-hidden rounded-(--khvi-radius-lg) bg-(--khvi-navy) text-white sm:min-h-[380px] md:order-1">
         <ResponsiveHeroImage
           desktopSrc={interpreter ? "/khvi-interpreter-hero.png" : "/khvi-requester-hero.png"}
           mobileSrc={interpreter ? "/khvi-interpreter-hero-mobile.png" : "/khvi-requester-hero-mobile.png"}
@@ -193,7 +232,7 @@ export function WelcomeDashboard({
           className="object-center md:object-[58%_center]"
         />
         <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(180deg,rgba(9,47,69,0.30)_0%,rgba(9,47,69,0.82)_58%,rgba(9,47,69,0.97)_100%)] md:bg-[linear-gradient(90deg,rgba(9,47,69,0.97)_0%,rgba(9,47,69,0.82)_50%,rgba(9,47,69,0.18)_100%)]" />
-        <div className="relative z-10 flex min-h-[500px] flex-col items-start justify-end p-6 sm:min-h-[460px] sm:p-9">
+        <div className="relative z-10 flex min-h-[420px] flex-col items-start justify-end p-6 sm:min-h-[380px] sm:p-9">
           <span className="flex items-center gap-2 text-sm text-white/80"><LanguageIcon className="h-5 w-5" aria-hidden="true" /> KHVI · {tr("สื่อสารเข้าใจ ช่วยเหลือใกล้ตัว", "Community language help", "社区语言帮助")}</span>
           <h2 className="mt-6 max-w-lg text-3xl font-bold leading-tight sm:text-4xl">{interpreter ? tr("ใช้ภาษาที่คุณถนัด ช่วยให้ใครสักคนเข้าใจ", "Help someone be understood.", "用你的语言能力，帮助身边的人。") : tr("ต้องการความช่วยเหลือด้านภาษา เริ่มได้ที่นี่", "A little language help starts here.", "沟通有困难？从这里开始。")}</h2>
           <div className="mt-5 max-w-lg border-l-2 border-white/45 pl-4">
@@ -203,28 +242,26 @@ export function WelcomeDashboard({
         </div>
       </section>
       {!interpreter && (
-        <aside className={`${panel} ${current ? "order-1" : "order-3"} h-fit self-start border-l-4 border-l-(--khvi-teal) lg:order-2 lg:h-auto lg:self-stretch ${!current ? "flex flex-col" : ""}`} aria-labelledby="current-title">
-          <div className="flex flex-wrap justify-between gap-3">
-            <h2 id="current-title" className="text-xl font-bold">{tr("คำขอความช่วยเหลือที่กำลังดำเนินการ", "Current help request", "当前进行中的求助")}</h2>
-            {current && <div className="flex flex-wrap gap-2"><UrgencyBadge urgency={current.urgency} copyLocale={locale === "th" ? "th" : copyLocale} /><StatusBadge status={current.status} copyLocale={locale === "th" ? "th" : copyLocale} /></div>}
+        <aside className={`${panel} ${current ? "order-1" : "order-3"} flex h-fit self-start flex-col border-l-4 border-l-(--khvi-teal) md:order-2 md:h-auto md:self-stretch`} aria-labelledby="current-title">
+          <div className="flex min-w-0 flex-wrap justify-between gap-3">
+            <h2 id="current-title" className="min-w-0 flex-1 break-words text-lg font-bold leading-7 sm:text-xl">{tr("คำขอความช่วยเหลือที่กำลังดำเนินการ", "Current help request", "当前进行中的求助")}</h2>
           </div>
-          {current ? <>
-            <dl className="mt-5 divide-y divide-(--khvi-teal)/15 border-y border-(--khvi-teal)/15 text-sm">
-              <div className="grid gap-1 py-3 sm:grid-cols-[8rem_1fr] lg:grid-cols-1 xl:grid-cols-[8rem_1fr]">
-                <dt className="font-bold text-(--khvi-ink)/60">{tr("ภาษาและหมวดหมู่", "Language and category", "语言和类别")}</dt>
-                <dd className="font-semibold text-(--khvi-ink)">{lang(current)} · {cat(current)}</dd>
-              </div>
-              <div className="grid gap-1 py-3 sm:grid-cols-[8rem_1fr] lg:grid-cols-1 xl:grid-cols-[8rem_1fr]">
-                <dt className="font-bold text-(--khvi-ink)/60">{tr("พื้นที่นัดพบ", "Meeting area", "见面区域")}</dt>
-                <dd className="text-(--khvi-ink)">{current.areaName}</dd>
+          {current ? <div className="flex min-h-0 flex-1 flex-col">
+            <dl className="mt-6 divide-y divide-(--khvi-teal)/15 border-y border-(--khvi-teal)/15 text-sm">
+              <div className="grid min-w-0 gap-1 py-4 sm:grid-cols-[8rem_minmax(0,1fr)] lg:grid-cols-1 xl:grid-cols-[8rem_minmax(0,1fr)]">
+                <dt className="break-words text-xs font-bold leading-5 text-(--khvi-ink)/60 sm:text-sm">{tr("ภาษาและหมวดหมู่", "Language and category", "语言和类别")}</dt>
+                <dd className="min-w-0 break-words text-sm font-semibold leading-6 text-(--khvi-ink)">{lang(current)} · {cat(current)}</dd>
               </div>
             </dl>
-            {current.status === "Open" && current.expiresAt && <div className="mt-3"><ExpiryCountdown key={current.requestId} seconds={0} expiresAt={current.expiresAt} copyLocale={locale === "th" ? "th" : copyLocale} /></div>}
-            <p className="my-4 rounded-lg bg-(--khvi-teal)/10 px-4 py-3 text-sm leading-6" role="status">{nextAction}</p>
+            <RequestProgress status={current.status} tr={tr} />
+            {current.status === "Open" && current.expiresAt && <div className="mt-4"><ExpiryCountdown key={current.requestId} seconds={0} expiresAt={current.expiresAt} copyLocale={locale === "th" ? "th" : copyLocale} /></div>}
+            {current.status !== "Open" && <p className="my-4 break-words rounded-lg bg-(--khvi-teal)/10 px-4 py-3 text-sm leading-6" role="status">{nextAction}</p>}
             {current.interpreter && <div className="mb-4 flex items-center gap-3"><LanguageIcon className="h-6 w-6 shrink-0 text-(--khvi-teal)" aria-hidden="true" /><div><p className="text-xs font-bold text-(--khvi-ink)/60">{tr("ล่ามที่รับงาน", "Assigned interpreter", "接单口译员")}</p><p className="font-bold">{current.interpreter.name}</p><p className="text-sm text-(--khvi-ink)/70">{current.interpreter.primaryLanguage}</p></div></div>}
-            <Link className={`${button} w-full`} href={`/my-requests/${current.requestId}#main-content`}>{tr("ดูรายละเอียดทั้งหมด", "View all details", "查看全部详情")}<ArrowRightIcon className="h-4 w-4" aria-hidden="true" /></Link>
-            {active.length > 1 && <p className={muted}>{tr("คุณมีหลายรายการที่กำลังดำเนินการ สามารถเปิดดูรายการทั้งหมดได้", "You have multiple active records. Open the full list to view them all.", "您有多个进行中的记录，请在完整列表中查看。")}</p>}
-          </> : <div className="mt-5 flex flex-1 flex-col items-center justify-center border-t border-(--khvi-teal)/15 py-6 text-center sm:py-8">
+            <div className="mt-auto pt-7">
+              <Link className={`${button} w-full text-center leading-6`} href={`/my-requests/${current.requestId}#main-content`}>{tr("ดูรายละเอียดทั้งหมด", "View all details", "查看全部详情")}<ArrowRightIcon className="h-4 w-4 shrink-0" aria-hidden="true" /></Link>
+              {active.length > 1 && <p className={muted}>{tr("คุณมีหลายรายการที่กำลังดำเนินการ สามารถเปิดดูรายการทั้งหมดได้", "You have multiple active records. Open the full list to view them all.", "您有多个进行中的记录，请在完整列表中查看。")}</p>}
+            </div>
+          </div> : <div className="mt-5 flex flex-1 flex-col items-center justify-center border-t border-(--khvi-teal)/15 py-6 text-center sm:py-8">
             <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-(--khvi-teal)/10 sm:h-24 sm:w-24">
               <ClipboardDocumentListIcon className="h-10 w-10 text-(--khvi-teal) sm:h-12 sm:w-12" aria-hidden="true" />
             </div>
@@ -250,18 +287,18 @@ export function WelcomeDashboard({
         </dl>
         <p className="my-4 rounded-lg bg-(--khvi-teal)/10 px-4 py-3 text-sm leading-6" role="status">{nextAction}</p>
         {current.requester && <div className="mb-4 flex items-center gap-3"><LanguageIcon className="h-6 w-6 shrink-0 text-(--khvi-teal)" aria-hidden="true" /><div><p className="text-xs font-bold text-(--khvi-ink)/60">{tr("ผู้ขอความช่วยเหลือ", "Requester", "求助者")}</p><p className="font-bold">{current.requester.name}</p></div></div>}
-        <Link className={`${button} w-full`} href={`/my-requests/${current.requestId}#main-content`}>{tr("ดูรายละเอียดทั้งหมด", "View all details", "查看全部详情")}<ArrowRightIcon className="h-4 w-4" aria-hidden="true" /></Link>
+        <Link className={`${button} mt-6 w-full shrink-0`} href={`/my-requests/${current.requestId}#main-content`}>{tr("ดูรายละเอียดทั้งหมด", "View all details", "查看全部详情")}<ArrowRightIcon className="h-4 w-4 shrink-0" aria-hidden="true" /></Link>
         {active.length > 1 && <p className={muted}>{tr("คุณมีหลายงานที่กำลังดำเนินการ สามารถเปิดดูงานทั้งหมดได้", "You have multiple active assignments. Open your assignments to view them all.", "您有多个进行中的任务，请打开任务列表查看全部内容。")}</p>}
-      </aside> : <aside className={`${panel} order-1 flex h-fit flex-col self-start md:order-2 md:h-full md:self-stretch`} aria-labelledby="nearby-title">
+      </aside> : <aside className={`${panel} order-1 flex min-h-0 h-fit flex-col self-start md:order-2 md:h-full md:self-stretch`} aria-labelledby="nearby-title">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 id="nearby-title" className="flex items-center gap-2 text-xl font-bold"><MapPinIcon className="h-6 w-6 shrink-0 text-(--khvi-teal)" aria-hidden="true" />{tr("คำขอใกล้เคียง", "Nearby requests", "附近求助")}</h2>
+            <h2 id="nearby-title" className="flex items-center gap-2 text-lg font-bold leading-7 sm:text-xl"><MapPinIcon className="h-5 w-5 shrink-0 text-(--khvi-teal)" aria-hidden="true" />{tr("คำขอใกล้เคียง", "Nearby requests", "附近求助")}</h2>
           </div>
           <span className="rounded-full bg-(--khvi-teal)/10 px-3 py-1 text-xs font-bold text-(--khvi-teal)">5 km</span>
         </div>
-        <button className={`${button} mt-4 w-full disabled:opacity-50`} onClick={locate} disabled={geo === "loading"}>{geo === "loading" ? tr("กำลังค้นหาตำแหน่ง…", "Locating…", "正在定位…") : geo === "error" ? tr("ลองใช้ตำแหน่งอีกครั้ง", "Try location again", "再次尝试定位") : tr("ใช้ตำแหน่งปัจจุบัน", "Use my current location", "使用当前位置")}</button>
+        <button className={`${button} mt-3 min-h-10 w-full shrink-0 px-4 py-2 text-xs disabled:opacity-50`} onClick={locate} disabled={geo === "loading"}>{geo === "loading" ? tr("กำลังค้นหาตำแหน่ง…", "Locating…", "正在定位…") : geo === "error" ? tr("ลองใช้ตำแหน่งอีกครั้ง", "Try location again", "再次尝试定位") : tr("ใช้ตำแหน่งปัจจุบัน", "Use my current location", "使用当前位置")}</button>
         {geo === "error" && <p role="status" className="mt-2 text-xs leading-5 text-(--khvi-coral)">{tr("เข้าถึงตำแหน่งไม่ได้ ลองอีกครั้ง", "Location unavailable. Try again.", "无法获取位置，请重试。")}</p>}
-        <div className="mx-auto mt-4 aspect-square w-[280px] max-w-full overflow-hidden rounded-full">
+        <div className="mx-auto mt-3 aspect-square w-[220px] max-w-full shrink-0 overflow-hidden rounded-full sm:w-[240px]">
           <RequestMap
             requests={location ? nearbyOpen : []}
             userLocation={location ? { latitude: location.latitude, longitude: location.longitude } : null}
@@ -274,11 +311,11 @@ export function WelcomeDashboard({
             radiusKm={5}
           />
         </div>
-        <Link className={`${button} mt-4 w-full`} href="/find-requests#main-content">{tr("เปิดแผนที่เต็ม", "Open full map", "打开完整地图")}<ArrowRightIcon className="h-4 w-4" aria-hidden="true" /></Link>
+        <Link className={`${button} mt-auto min-h-10 w-full shrink-0 px-4 py-2 text-xs`} href="/find-requests#main-content">{tr("เปิดแผนที่เต็ม", "Open full map", "打开完整地图")}</Link>
       </aside>)}
     </div>
-    {interpreter && <section className={`${panel} mt-7`} aria-labelledby="discover-title"><h2 id="discover-title" className="flex items-center gap-2 text-xl font-bold"><MagnifyingGlassIcon className="h-6 w-6 shrink-0 text-(--khvi-teal)" aria-hidden="true" />{tr("ค้นหาคำขอที่เหมาะกับคุณ", "Explore suitable requests", "查找合适的请求")}</h2><p className={muted}>{tr("ค้นหาและกรองคำขอที่ตรงกับความสามารถของคุณ", "Filter open requests that match your skills.", "按技能筛选符合您能力的求助任务。")}</p><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold">{tr("ภาษา", "Language", "语言")}<select className="mt-2 min-h-12 w-full rounded-lg border border-(--khvi-teal)/30 bg-white px-3" value={language} onChange={e => setLanguage(e.target.value)}><option value="all">{tr("ทุกภาษา", "All languages", "全部语言")}</option>{referenceCatalog.languages.map(option => <option key={option.id} value={option.id}>{referenceLabel([option], option.id, locale)}</option>)}</select></label><label className="text-sm font-bold">{tr("หมวดหมู่", "Category", "类别")}<select className="mt-2 min-h-12 w-full rounded-lg border border-(--khvi-teal)/30 bg-white px-3" value={category} onChange={e => setCategory(e.target.value)}><option value="all">{tr("ทุกหมวดหมู่", "All categories", "全部类别")}</option>{referenceCatalog.categories.map(option => <option key={option.id} value={option.id}>{referenceLabel([option], option.id, locale)}</option>)}</select></label></div>{open.length ? <ul className="mt-3 divide-y divide-(--khvi-teal)/20">{open.map(r => requestRow(r, true))}</ul> : <p role="status" className="my-6 rounded-lg bg-(--khvi-paper) p-5 text-sm leading-7">{diagnostic?.status === "application_not_approved" ? tr("ใบสมัครล่ามของคุณยังไม่ได้รับการอนุมัติ จึงยังไม่สามารถดูคำขอเปิดได้", "Your interpreter application is pending approval.", "您的口译员申请正在审核中，暂无法查看开放任务。") : diagnostic?.status === "no_matching_skills" ? tr("ยังไม่มีคำขอเปิดที่ตรงกับภาษาหรือหมวดหมู่ที่คุณได้รับอนุมัติ", "No open requests currently match your approved skills.", "当前暂无符合您获批技能的求助任务。") : tr("ยังไม่มีคำขอเปิดที่ตรงกับเงื่อนไขการค้นหา ลองเปลี่ยนภาษา หมวดหมู่ หรือระยะค้นหา", "No open requests match these filters. Try another language, category or distance.", "没有符合筛选条件的开放求助，请调整语言、类别或距离。")}</p>}<Link className="inline-flex min-h-11 items-center gap-2 font-bold underline underline-offset-4" href="/find-requests#main-content">{tr("เปิดแผนที่ทั้งหมด", "Open the full map", "打开完整地图")}<ArrowRightIcon className="h-4 w-4" aria-hidden="true" /></Link></section>}
-    <section className={`${panel} mt-7`}><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="flex items-center gap-2 text-xl font-bold">{interpreter && <ClockIcon className="h-6 w-6 shrink-0 text-(--khvi-teal)" aria-hidden="true" />}{interpreter ? tr("งานที่ผ่านมาของคุณ", "Your past work", "您的历史工作") : tr("คำขอล่าสุด", "Recent requests", "最近的请求")}</h2><Link className="inline-flex min-h-11 items-center font-bold underline underline-offset-4" href={listPath}>{tr("ดูทั้งหมด", "View all", "查看全部")}</Link></div>{recent.length ? <ul className="divide-y divide-(--khvi-teal)/20">{recent.map(r => requestRow(r, false))}</ul> : <div className="flex items-start gap-4 py-6"><ClipboardDocumentListIcon className="h-8 w-8 shrink-0 text-(--khvi-teal)" aria-hidden="true" /><div><p className="text-sm leading-7">{interpreter ? tr("ยังไม่มีงานที่ผ่านมา เมื่อล่ามรับงาน รายการจะแสดงที่นี่", "You have no past assignments yet. Claimed assignments will appear here.", "您还没有历史任务，接取任务后会显示在这里。") : tr("ยังไม่มีคำขอล่าสุด เมื่อคุณส่งคำขอความช่วยเหลือ รายการจะแสดงที่นี่", "You have no recent requests yet. Requests you submit will appear here.", "您还没有最近的求助，提交求助后会显示在这里。")}</p><Link className="mt-2 inline-flex min-h-10 items-center gap-2 text-sm font-bold underline underline-offset-4" href={interpreter ? "/find-requests#main-content" : "/request-help#main-content"}>{interpreter ? tr("ค้นหาคำขอ", "Find requests", "查找求助") : tr("ขอความช่วยเหลือ", "Request help", "请求帮助")}<ArrowRightIcon className="h-4 w-4" aria-hidden="true" /></Link></div></div>}</section>
+    {interpreter && <section className={`${panel} mt-7 flex flex-col`} aria-labelledby="discover-title"><h2 id="discover-title" className="flex items-center gap-2 text-xl font-bold"><MagnifyingGlassIcon className="h-6 w-6 shrink-0 text-(--khvi-teal)" aria-hidden="true" />{tr("ค้นหาคำขอที่เหมาะกับคุณ", "Explore suitable requests", "查找合适的请求")}</h2><p className={muted}>{tr("ค้นหาและกรองคำขอที่ตรงกับความสามารถของคุณ", "Filter open requests that match your skills.", "按技能筛选符合您能力的求助任务。")}</p><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold">{tr("ภาษา", "Language", "语言")}<select className="mt-2 min-h-12 w-full rounded-lg border border-(--khvi-teal)/30 bg-white px-3" value={language} onChange={e => setLanguage(e.target.value)}><option value="all">{tr("ทุกภาษา", "All languages", "全部语言")}</option>{referenceCatalog.languages.map(option => <option key={option.id} value={option.id}>{referenceLabel([option], option.id, locale)}</option>)}</select></label><label className="text-sm font-bold">{tr("หมวดหมู่", "Category", "类别")}<select className="mt-2 min-h-12 w-full rounded-lg border border-(--khvi-teal)/30 bg-white px-3" value={category} onChange={e => setCategory(e.target.value)}><option value="all">{tr("ทุกหมวดหมู่", "All categories", "全部类别")}</option>{referenceCatalog.categories.map(option => <option key={option.id} value={option.id}>{referenceLabel([option], option.id, locale)}</option>)}</select></label></div>{open.length ? <ul className="mt-3 divide-y divide-(--khvi-teal)/20">{open.map(r => requestRow(r, true))}</ul> : <p role="status" className="my-6 rounded-lg bg-(--khvi-paper) p-5 text-sm leading-7">{diagnostic?.status === "application_not_approved" ? tr("ใบสมัครล่ามของคุณยังไม่ได้รับการอนุมัติ จึงยังไม่สามารถดูคำขอเปิดได้", "Your interpreter application is pending approval.", "您的口译员申请正在审核中，暂无法查看开放任务。") : diagnostic?.status === "no_matching_skills" ? tr("ยังไม่มีคำขอเปิดที่ตรงกับภาษาหรือหมวดหมู่ที่คุณได้รับอนุมัติ", "No open requests currently match your approved skills.", "当前暂无符合您获批技能的求助任务。") : tr("ยังไม่มีคำขอเปิดที่ตรงกับเงื่อนไขการค้นหา ลองเปลี่ยนภาษา หมวดหมู่ หรือระยะค้นหา", "No open requests match these filters. Try another language, category or distance.", "没有符合筛选条件的开放求助，请调整语言、类别或距离。")}</p>}<Link className={`${button} mt-4 min-h-10 shrink-0 self-start px-4 py-2 text-xs`} href="/find-requests#main-content">{tr("เปิดแผนที่", "Open the map", "打开地图")}</Link></section>}
+    <section className={`${panel} mt-7 flex flex-col`}><div className="flex min-w-0 flex-wrap items-center justify-between gap-3"><h2 className="flex min-w-0 items-center gap-2 text-xl font-bold">{interpreter && <ClockIcon className="h-6 w-6 shrink-0 text-(--khvi-teal)" aria-hidden="true" />}{interpreter ? tr("งานที่ผ่านมาของคุณ", "Your past work", "您的历史工作") : tr("คำขอล่าสุด", "Recent requests", "最近的请求")}</h2><Link className={`${button} min-h-10 shrink-0 px-4 py-2 text-xs`} href={listPath}>{tr("ดูทั้งหมด", "View all", "查看全部")}</Link></div>{recent.length ? <ul className="min-w-0 divide-y divide-(--khvi-teal)/20">{recent.map(r => requestRow(r, false))}</ul> : <div className="flex items-start gap-4 py-6"><ClipboardDocumentListIcon className="h-8 w-8 shrink-0 text-(--khvi-teal)" aria-hidden="true" /><div><p className="text-sm leading-7">{interpreter ? tr("ยังไม่มีงานที่ผ่านมา เมื่อล่ามรับงาน รายการจะแสดงที่นี่", "You have no past assignments yet. Claimed assignments will appear here.", "您还没有历史任务，接取任务后会显示在这里。") : tr("ยังไม่มีคำขอล่าสุด เมื่อคุณส่งคำขอความช่วยเหลือ รายการจะแสดงที่นี่", "You have no recent requests yet. Requests you submit will appear here.", "您还没有最近的求助，提交求助后会显示在这里。")}</p><Link className="mt-2 inline-flex min-h-10 items-center gap-2 text-sm font-bold underline underline-offset-4" href={interpreter ? "/find-requests#main-content" : "/request-help#main-content"}>{interpreter ? tr("ค้นหาคำขอ", "Find requests", "查找求助") : tr("ขอความช่วยเหลือ", "Request help", "请求帮助")}<ArrowRightIcon className="h-4 w-4" aria-hidden="true" /></Link></div></div>}</section>
     <div className="mt-7 grid items-stretch gap-5 md:grid-cols-2">
       <section id="volunteer-application" className="h-full scroll-mt-28 [&>section]:h-full"><ApplicationStatusCard application={activeApplication} /></section>
       <section className={`${panel} h-full`}>{interpreter ? <>
