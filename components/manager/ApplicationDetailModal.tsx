@@ -293,31 +293,49 @@ function ApplicationDetailModalContent({
                 {showCertPreview ? "ซ่อนตัวอย่าง" : "ดูตัวอย่างเอกสาร"}
               </button>
               <a
-                href={`#preview-${application.id}`}
+                href={application.certificateUrl || `#preview-${application.id}`}
+                target={application.certificateUrl ? "_blank" : undefined}
+                rel="noreferrer"
                 onClick={(e) => {
-                  e.preventDefault();
-                  setShowCertPreview(true);
+                  if (!application.certificateUrl) {
+                    e.preventDefault();
+                    setShowCertPreview(true);
+                  }
                 }}
                 className="border border-[#092f45] bg-[#092f45] px-3 py-1.5 text-xs font-extrabold text-white hover:bg-[#0c4960] transition-colors"
               >
-                เปิดไฟล์เต็ม
+                เปิดไฟล์เต็ม ↗
               </a>
             </div>
           </div>
 
           {/* Document Preview Box */}
           {showCertPreview && (
-            <div className="border border-[#8ed5c4] bg-[#f8fafb] p-4 text-center space-y-2 animate-in fade-in duration-150">
-              <div className="text-3xl">📑</div>
+            <div className="border border-[#8ed5c4] bg-[#f8fafb] p-4 text-center space-y-3 animate-in fade-in duration-150">
               <div className="font-mono text-xs font-bold text-[#087557]">
-                {application.certificateFileName}
+                📄 {application.certificateFileName}
               </div>
-              <div className="mx-auto max-w-md border border-dashed border-[#b9d9d6] bg-white p-4 text-xs text-[#526a74] space-y-1">
-                <p className="font-bold text-[#10283a]">ตัวอย่างการจำลองการตรวจสอบเอกสารรับรอง:</p>
-                <p>• ตรวจสอบชื่อผู้สอบ: {application.applicantName}</p>
-                <p>• ระดับผลการทดสอบ: HSK ระดับ 5 (242 คะแนน) / IELTS 7.5</p>
-                <p>• ออกโดย: สถาบันขงจื่อ และ British Council</p>
-              </div>
+              {application.certificateUrl && /\.(jpg|jpeg|png|webp|gif)$/i.test(application.certificateFileName) ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={application.certificateUrl}
+                  alt={application.certificateFileName}
+                  className="max-h-[60vh] w-auto max-w-full rounded object-contain mx-auto shadow-sm border border-[#d6e0e4]"
+                />
+              ) : application.certificateUrl && /\.pdf$/i.test(application.certificateFileName) ? (
+                <iframe
+                  src={application.certificateUrl}
+                  title={application.certificateFileName}
+                  className="w-full h-[60vh] rounded border border-[#cbd7dc]"
+                />
+              ) : (
+                <div className="mx-auto max-w-md border border-dashed border-[#b9d9d6] bg-white p-4 text-xs text-[#526a74] space-y-1">
+                  <p className="font-bold text-[#10283a]">ตัวอย่างการจำลองการตรวจสอบเอกสารรับรอง:</p>
+                  <p>• ตรวจสอบชื่อผู้สอบ: {application.applicantName}</p>
+                  <p>• ระดับผลการทดสอบ: HSK ระดับ 5 (242 คะแนน) / IELTS 7.5</p>
+                  <p>• ออกโดย: สถาบันขงจื่อ และ British Council</p>
+                </div>
+              )}
             </div>
           )}
         </div>
