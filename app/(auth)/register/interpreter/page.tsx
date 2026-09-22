@@ -12,9 +12,8 @@ export const metadata: Metadata = {
 
 export default async function CombinedInterpreterRegisterPage() {
   const { languages, categories } = await loadInterpreterApplicationReferences();
-
   return (
-    <AppShell hidePrimaryAction hideRequestNavigation>
+    <AppShell hidePrimaryAction>
       <main id="main-content" className="mx-auto w-full max-w-[1200px] px-5 py-8 sm:px-8 lg:px-10">
         {/* Navigation Breadcrumb */}
         <WorkspaceBreadcrumbs
