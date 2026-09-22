@@ -143,6 +143,7 @@ export function WelcomeDashboard({
   const completed = interpreter
     ? assignments.filter((r) => r.status === "Completed")
     : requesterRequests.filter((r) => r.status === "Completed");
+  const pendingReviews = completed.filter((r) => Boolean(r.interpreter) && !r.review);
   const recent = interpreter
     ? assignments
       .filter((r) => ["Completed", "Cancelled"].includes(r.status))
@@ -325,8 +326,12 @@ export function WelcomeDashboard({
       </> : <>
         <ShieldCheckIcon className="h-7 w-7 text-(--khvi-teal)" aria-hidden="true" />
         <h2 className="mt-3 text-xl font-bold">{tr("รีวิวหลังจบภารกิจ", "Review after completion", "完成后评价")}</h2>
-        <p className={muted}>{completed.length ? tr(`มีงานที่เสร็จแล้ว ${completed.length} รายการจาก Supabase ระบบยังตรวจไม่ได้ว่างานใดรีวิวแล้ว`, `${completed.length} completed records from Supabase. Review status is not available yet.`, `Supabase 中有${completed.length}条已完成记录，评价状态尚不可用。`) : tr("เมื่อทั้งสองฝ่ายยืนยันจบงาน คุณจึงให้คะแนนล่ามได้ ยังไม่มีงานที่เสร็จใน Supabase", "Reviews follow confirmation from both people. There are no completed Supabase records yet.", "双方确认完成后才能评价，Supabase 中暂无已完成记录。")}</p>
-        <p className="mt-4 rounded-lg bg-(--khvi-paper) p-3 text-sm leading-6">{tr("ระบบส่งรีวิวยังไม่เปิดใช้งาน", "Review submission is not available yet.", "评价提交尚未开放。")}</p>
+        <p className={muted}>{completed.length
+          ? pendingReviews.length
+            ? tr(`มีงานที่เสร็จแล้ว ${completed.length} รายการ และมี ${pendingReviews.length} รายการรอรีวิว`, `${pendingReviews.length} of ${completed.length} completed assignments are waiting for your review.`, `${pendingReviews.length} / ${completed.length} 个已完成任务等待评价。`)
+            : tr("คุณรีวิวงานที่เสร็จแล้วครบถ้วนแล้ว", "All completed assignments have been reviewed.", "所有已完成任务都已评价。")
+          : tr("เมื่อทั้งสองฝ่ายยืนยันจบงาน คุณจึงให้คะแนนล่ามได้ ยังไม่มีงานที่เสร็จใน Supabase", "Reviews follow confirmation from both people. There are no completed Supabase records yet.", "双方确认完成后才能评价，Supabase 中暂无已完成记录。")}</p>
+        {pendingReviews[0] ? <Link className={`${button} mt-4 min-h-10 self-start px-4 py-2 text-xs`} href={`/my-requests/${pendingReviews[0].requestId}#main-content`}>{tr("ไปรีวิวงานที่เสร็จแล้ว", "Review a completed assignment", "评价已完成任务")}<ArrowRightIcon className="h-4 w-4" aria-hidden="true" /></Link> : <p className="mt-4 rounded-lg bg-(--khvi-paper) p-3 text-sm leading-6">{tr("เมื่อมีงานที่เสร็จแล้ว ระบบจะแสดงปุ่มรีวิวในรายละเอียดคำขอ", "The review form appears on a completed request when a review is available.", "完成任务后，求助详情中会显示评价表单。")}</p>}
       </>}</section>
     </div>
   </main>;

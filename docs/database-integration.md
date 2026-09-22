@@ -63,7 +63,8 @@ auth.users
              │       └──< public.interpreter_application_categories >── public.categories
              └──< public.bookings
                      ├── 1 public.booking_private_details
-                     └──< public.mission_locations >── public.profiles
+                     ├──< public.mission_locations >── public.profiles
+                     └──< public.reviews >── public.profiles (reviewer/reviewee)
 ```
 
 ตารางหลัก:
@@ -79,6 +80,7 @@ auth.users
 | `public.bookings` | คำขอและสถานะภารกิจ | เก็บพิกัดพื้นที่แบบหยาบเท่านั้น |
 | `public.booking_private_details` | ที่อยู่และพิกัดจริง | เปิดผ่าน guarded RPC ตามสิทธิ์ |
 | `public.mission_locations` | ตำแหน่งล่าสุดของแต่ละ actor | ห้ามอ่านหรือเขียน table โดยตรงจาก client |
+| `public.reviews` | คะแนนและความคิดเห็นของ User ต่อ Interpreter หลังงานเสร็จ | หนึ่ง review ต่อ booking ต่อ reviewer; เขียนผ่าน `create_review` เท่านั้น |
 
 `public.bookings.area_latitude` และ `area_longitude` ถูกปัดเหลือ 2 ตำแหน่งตอนสร้างงาน ส่วนพิกัดจริงอยู่ใน `booking_private_details` และเปิดให้ interpreter หลัง requester ยืนยัน interpreter แล้ว
 
@@ -140,6 +142,17 @@ Entry point อยู่ที่ `app/actions/booking-actions.ts`
 | `review_interpreter_application` | Manager/Admin อนุมัติ ขอแก้ไข หรือปฏิเสธ | void |
 
 Entry point อยู่ที่ `app/actions/interpreter-application-actions.ts`
+
+### Review RPC
+
+| RPC | หน้าที่ | Result |
+|---|---|---|
+| `create_review` | สร้าง review ของ requester สำหรับ booking ที่ `completed` โดย derive reviewer/reviewee จาก booking | `review_id` |
+| `get_booking_review` | อ่าน review ของ booking ที่ผู้ขอ ล่าม หรือ Manager/Admin เกี่ยวข้อง | review row |
+| `get_interpreter_rating` | อ่านค่าเฉลี่ย จำนวน review และจำนวนงานที่ completed ของล่าม | rating summary |
+| `get_interpreter_reviews` | อ่านรายการ review ของล่ามสำหรับเจ้าตัวหรือ Manager/Admin | review rows |
+
+Entry point อยู่ที่ `app/actions/review-actions.ts` และ form อยู่ที่ `app/components/review-form.tsx`
 
 ตัวอย่าง mutation:
 
@@ -215,7 +228,10 @@ Project นี้ใช้ imperative migration ใน `supabase/migrations/` �
 5. `20260917094342_real_interpreter_application_flow.sql`
 6. `20260917095513_real_interpreter_certificate_storage.sql`
 7. `20260917100148_complete_interpreter_reference_catalog.sql`
-8. `20260921085918_create_super_interpreter_test_access.sql`
+8. `20260921000100_add_self_account_deletion.sql`
+9. `20260921000200_admin_profiles_policy.sql`
+10. `20260921085918_create_super_interpreter_test_access.sql`
+11. `20260922091315_add_reviews_and_rating_summary.sql`
 
 เมื่อต้องเปลี่ยน schema, policy, RPC หรือ Storage ให้เพิ่ม migration ใหม่ตามลำดับ ห้ามแก้ migration ที่เคย apply ไปแล้วใน shared project
 
@@ -261,12 +277,15 @@ where u.id = p.user_id
 - `/volunteer/apply` อ่าน reference จริงและส่ง application จริง
 - `/volunteer/status` อ่านและจัดการ application จริง
 - Manager application queue อ่านข้อมูลจริงและ review ผ่าน RPC
+- `/my-requests/[requestId]` ส่ง review หลัง booking เป็น `completed` และแสดง review แบบ read-only หลังส่งสำเร็จ
+- `/my-requests` และ `/welcome` แสดงสถานะงานที่รอ review หรือ review แล้ว
+- Admin และ Manager อ่าน rating, จำนวน review และจำนวนงาน completed ของล่ามจาก `get_interpreter_rating`
 
 ยังเป็น mock หรือยังไม่เชื่อมใน domain อื่น:
 
-- `/admin` ยังใช้ mock dashboard data
+- `/admin` ยังใช้ mock dashboard data ในส่วน reports, audit และ response-time; rating/completed missions ของล่ามอ่านจากฐานข้อมูลแล้ว
 - Manager tickets, reports และ activity บางส่วนยังใช้ mock data
-- Review, notification, audit log และ report ยังไม่อยู่ใน migration ชุดนี้
+- Notification, audit log และ report ยังไม่อยู่ใน migration ชุดนี้
 - Realtime config เปิดอยู่ แต่ application ยังใช้ request/response และ cache revalidation แทน realtime subscription
 
 `docs/route-inventory.md`, `detail.md` และ role documents บางส่วนยังมีข้อความที่อธิบาย route หรือ status เป็น mock/planned จากช่วงก่อนเชื่อม database เอกสารนี้บันทึก implementation ปัจจุบันจาก source code และ migration หากจะขยาย feature ให้ผ่าน Requirement Consistency Gate และอัปเดตเอกสารที่เกี่ยวข้องใน PR เดียวกัน

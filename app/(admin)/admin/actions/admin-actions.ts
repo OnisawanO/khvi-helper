@@ -74,7 +74,30 @@ export async function getAdminUsersAction(): Promise<AdminActionResult<AdminUser
       return { success: false, error: `Failed to fetch users: ${error.message}` };
     }
 
-    const records: AdminUserRecord[] = (profiles as ProfileRow[]).map((p) => {
+    const profileRows = profiles as ProfileRow[];
+    const ratingSummaries = await Promise.all(
+      profileRows.map(async (profile) => {
+        if (profile.role !== "Interpreter") return [profile.user_id, null] as const;
+
+        const { data, error: ratingError } = await authCheck.supabase.rpc("get_interpreter_rating", {
+          p_interpreter_id: profile.user_id,
+        });
+        if (ratingError) {
+          console.warn("[admin] failed to load interpreter rating", profile.user_id, ratingError.message);
+          return [profile.user_id, null] as const;
+        }
+
+        const row = (Array.isArray(data) ? data[0] : data) as {
+          average_rating?: number | string;
+          review_count?: number;
+          completed_job_count?: number;
+        } | undefined;
+        return [profile.user_id, row ?? null] as const;
+      }),
+    );
+    const ratingByUserId = new Map(ratingSummaries);
+
+    const records: AdminUserRecord[] = profileRows.map((p) => {
       const fullName = [p.first_name, p.last_name].filter(Boolean).join(" ").trim() || "KHVI User";
       const regDate = p.created_at ? p.created_at.slice(0, 16).replace("T", " ") : "Recently";
       
@@ -86,6 +109,8 @@ export async function getAdminUsersAction(): Promise<AdminActionResult<AdminUser
         vi: "Vietnamese",
       };
       const primLang = langMap[p.preferred_ui_language] || "Thai";
+
+      const rating = ratingByUserId.get(p.user_id);
 
       return {
         id: p.user_id,
@@ -107,8 +132,9 @@ export async function getAdminUsersAction(): Promise<AdminActionResult<AdminUser
         ...(p.role === "Interpreter" && {
           interpreterStats: {
             verificationStatus: "Approved",
-            completedMissions: 0,
-            rating: 5.0,
+            completedMissions: Number(rating?.completed_job_count ?? 0),
+            rating: Number(rating?.average_rating ?? 0),
+            reviewCount: Number(rating?.review_count ?? 0),
             specialties: ["General", "Emergency"],
             responseTimeAvg: "2.5 mins",
             feedbackHighlights: ["Account ready for volunteer assignments."],

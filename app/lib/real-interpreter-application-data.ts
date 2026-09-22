@@ -293,6 +293,9 @@ function toManagerApplicant(application: InterpreterApplication): InterpreterApp
     })),
     backgroundCheck: "Pending",
     proficiencyScore: application.languages.map((language) => language.level).filter(Boolean).join(", "),
+    rating: 0,
+    reviewCount: 0,
+    completedMissions: 0,
   };
 }
 
@@ -313,6 +316,20 @@ export async function loadManagerInterpreterApplications(supabase?: SupabaseClie
     const relation = await links(client, Number((row as unknown as ApplicationRow).application_id));
     const app = toApplication(row as unknown as ApplicationRow, relation, reference);
     const managerApp = toManagerApplicant(app);
+
+    const { data: ratingData, error: ratingError } = await client.rpc("get_interpreter_rating", {
+      p_interpreter_id: app.userId,
+    });
+    if (!ratingError) {
+      const rating = (Array.isArray(ratingData) ? ratingData[0] : ratingData) as {
+        average_rating?: number | string;
+        review_count?: number;
+        completed_job_count?: number;
+      } | undefined;
+      managerApp.rating = Number(rating?.average_rating ?? 0);
+      managerApp.reviewCount = Number(rating?.review_count ?? 0);
+      managerApp.completedMissions = Number(rating?.completed_job_count ?? 0);
+    }
 
     const certPath = (row as unknown as ApplicationRow).certificate_url;
     if (typeof certPath === "string" && certPath.length > 0 && !certPath.startsWith("http://") && !certPath.startsWith("https://")) {

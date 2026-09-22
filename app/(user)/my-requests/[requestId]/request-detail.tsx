@@ -31,6 +31,7 @@ import {
 import { useCopyLocale } from "@/app/components/app-shell";
 import { ExpiryCountdown } from "@/app/components/expiry-countdown";
 import { MissionLocationMap, type MissionMapPoint } from "@/app/components/mission-location-map";
+import { ReviewForm } from "@/app/components/review-form";
 import { StatusBadge, UrgencyBadge } from "@/app/components/request-badges";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
 import {
@@ -633,6 +634,14 @@ export function RequestDetail({
               )}
             </section>
 
+            {!isInterpreter && status === "Completed" && request.interpreter && (
+              <ReviewForm
+                bookingId={request.requestId}
+                interpreterName={request.interpreter.name}
+                existingReview={request.review}
+              />
+            )}
+
             <section className={sectionClass}>
               <h2 className={sectionTitleClass}>{t.detailsTitle}</h2>
 
@@ -887,7 +896,9 @@ export function RequestDetail({
                 <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-bold text-[#3f6357]">
                   <span className="inline-flex items-center gap-1.5">
                     <StarIcon aria-hidden="true" className="h-4 w-4 text-[#e0952f]" />
-                    {request.interpreter.averageRating.toFixed(1)} {t.ratingLabel}
+                    {(request.interpreter.reviewCount ?? 0) > 0
+                      ? <>{request.interpreter.averageRating.toFixed(1)} {t.ratingLabel}</>
+                      : <>{copyLocale === "zh" ? "暂无评分" : "No rating yet"}</>}
                   </span>
                   <span>
                     {request.interpreter.completedJobCount} {t.jobsLabel}
