@@ -64,6 +64,11 @@ This update supersedes the older mock-source and state-only behavior notes below
 | `/register` | Static auth route | Public | Supabase Auth + `public.profiles` trigger; UI locale is inherited from the Guest Welcome page | Not applicable | Implemented at `app/(auth)/register/page.tsx` |
 | `/login` | Static auth route | Public | Supabase Auth + `public.profiles`; development-only Fast Login uses server credentials | Not applicable | Implemented at `app/(auth)/login/page.tsx` |
 | `/api/auth/fast-login` | Auth action route | Development only; disabled in production | Supabase Auth accounts configured by `FAST_LOGIN_*` server environment variables | `400` invalid role; `503` missing dev account; `401` Auth failure | Implemented at `app/api/auth/fast-login/route.ts` |
+| `/api/auth/login` | Auth action route | Public | Supabase Auth password login and `public.profiles` | 400 validation; 401 invalid credentials; 403 missing or locked profile | Implemented at `app/api/auth/login/route.ts` |
+| `/api/auth/register` | Auth action route | Public | Supabase Auth sign-up and `public.profiles` trigger | 400 validation or unsupported locale | Implemented at `app/api/auth/register/route.ts` |
+| `/api/auth/logout` | Auth action route | Authenticated | Supabase Auth session cookies | 401 when no active session | Implemented at `app/api/auth/logout/route.ts` |
+| `/api/auth/forgot-password` | Auth action route | Public | Supabase Auth password-reset email | 400 invalid email | Implemented at `app/api/auth/forgot-password/route.ts` |
+| `/api/auth/reset-password` | Auth action route | Authenticated recovery session | Supabase Auth recovery session | 400 invalid password; 401 missing session | Implemented at `app/api/auth/reset-password/route.ts` |
 | `/sign-in` | Static auth redirect | Public | None | Redirects to `/?signin=true` | Implemented at `app/(auth)/sign-in/page.tsx` |
 
 `/my-requests` รับ query parameter `status` ค่าเดียวเท่านั้น: `open`, `claimed`, `in-progress`, `completed`, `cancelled`

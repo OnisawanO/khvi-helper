@@ -9,6 +9,7 @@ import {
   type UserProfile,
 } from "@/app/lib/mock-auth";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
+import { authApi } from "@/app/lib/auth-client";
 import {
   getInterpreterWorkspaceMode,
   getWorkspaceRoleForMode,
@@ -98,8 +99,8 @@ export function WorkspaceShell({ children, requiredRole, alternatePath }: {
         accountActions={
           <WorkspaceAccountActions
             user={user}
-            onSignOut={() => {
-              void createClient().auth.signOut();
+            onSignOut={async () => {
+              await authApi.logout();
               setUser(null);
               router.replace("/#top");
             }}
