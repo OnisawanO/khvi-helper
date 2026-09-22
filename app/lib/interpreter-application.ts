@@ -21,6 +21,8 @@ export type ApplicationDocument = {
 export type ApplicationLanguage = {
   id: string;
   name: string;
+  nameTh?: string;
+  nameZh?: string;
   type?: string;
   level?: string;
 };
@@ -28,6 +30,8 @@ export type ApplicationLanguage = {
 export type ApplicationCategory = {
   id: number;
   name: string;
+  nameTh?: string;
+  nameZh?: string;
   icon?: string;
 };
 

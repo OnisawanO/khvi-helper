@@ -11,7 +11,11 @@ export function RequestNavigation() {
     path.startsWith("/my-requests") ||
     path === "/find-requests" ||
     path.startsWith("/my-assignments") ||
-    path.startsWith("/volunteer");
+    path.startsWith("/volunteer") ||
+    path.startsWith("/register") ||
+    path === "/login" ||
+    path === "/sign-in" ||
+    path === "/profile";
   const scrollToMainContent = () => requestAnimationFrame(() => document.getElementById("main-content")?.scrollIntoView({ block: "start" }));
   const navItems = [
     [zh ? "创建请求" : "New request", "/request-help#main-content", "/request-help"],

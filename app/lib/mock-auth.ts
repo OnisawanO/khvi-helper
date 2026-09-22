@@ -48,6 +48,12 @@ export function getDisplayName(name: string): string {
   return displayName || name;
 }
 
+export function splitDisplayName(name: string): { firstName: string; lastName: string } {
+  const cleanName = getDisplayName(name).replace(/\s+\([^)]*\)$/, "").trim();
+  const [firstName = "", ...lastNameParts] = cleanName.split(/\s+/);
+  return { firstName, lastName: lastNameParts.join(" ") };
+}
+
 export function calculateAge(dateOfBirthString: string): number | null {
   if (!dateOfBirthString) return null;
 

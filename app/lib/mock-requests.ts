@@ -41,15 +41,15 @@ export const LANGUAGES = [
 ] as const;
 
 export const CATEGORIES = [
+  { id: "general", en: "General & Daily Life", zh: "日常生活与一般沟通", th: "การสื่อสารทั่วไปและชีวิตประจำวัน" },
+  { id: "accident", en: "Accident scene", zh: "事故现场", th: "อุบัติเหตุและเหตุฉุกเฉิน" },
   { id: "medical", en: "Medical", zh: "医疗", th: "การแพทย์และโรงพยาบาล" },
+  { id: "disaster", en: "Disaster Relief & Aid", zh: "灾害救援与援助", th: "ภัยพิบัติและการช่วยเหลือผู้ประสบภัย" },
   { id: "police", en: "Police station", zh: "警察局", th: "สถานีตำรวจและคดีความ" },
   { id: "government", en: "Government office", zh: "政府机构", th: "หน่วยงานราชการ" },
-  { id: "accident", en: "Accident scene", zh: "事故现场", th: "อุบัติเหตุและเหตุฉุกเฉิน" },
-  { id: "school", en: "School", zh: "学校", th: "โรงเรียนและการศึกษา" },
-  { id: "general", en: "General & Daily Life", zh: "日常生活与一般沟通", th: "การสื่อสารทั่วไปและชีวิตประจำวัน" },
   { id: "tourism", en: "Tourism & Transit", zh: "旅游与交通", th: "การท่องเที่ยวและการเดินทาง" },
   { id: "labour", en: "Labour & Workplace Rights", zh: "就业与劳动权益", th: "การจ้างงานและสิทธิแรงงาน" },
-  { id: "disaster", en: "Disaster Relief & Aid", zh: "灾害救援与援助", th: "ภัยพิบัติและการช่วยเหลือผู้ประสบภัย" },
+  { id: "school", en: "School", zh: "学校", th: "โรงเรียนและการศึกษา" },
 ] as const;
 
 export type LanguageId = (typeof LANGUAGES)[number]["id"] | string;

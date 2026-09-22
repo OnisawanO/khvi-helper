@@ -1,7 +1,15 @@
 "use client";
 
 import { createContext, useContext, useEffect, type ReactNode } from "react";
-import { isLocale, persistPreferredUiLanguage, resolveCopyLocale, useStoredLocale, type CopyLocale } from "@/app/lib/locale";
+import {
+  isLocale,
+  persistPreferredUiLanguage,
+  resolveCopyLocale,
+  useStoredLocale,
+  LOCALE_STORAGE_KEY,
+  LOCALE_USER_SELECTED_KEY,
+  type CopyLocale,
+} from "@/app/lib/locale";
 import { SiteFooter } from "./site-footer";
 import { SiteHeader } from "./site-header";
 import { RequestNavigation } from "./request-navigation";
@@ -145,10 +153,12 @@ export function useCopyLocale(): CopyLocale {
  * language switcher, and the site footer. Pages render their own `<main>` so the
  * skip link keeps working.
  */
-export function AppShell({ children, accountActions, welcomeRole }: {
+export function AppShell({ children, accountActions, welcomeRole, hidePrimaryAction, hideRequestNavigation }: {
   children: ReactNode;
   accountActions?: ReactNode;
   welcomeRole?: WorkspaceRole;
+  hidePrimaryAction?: boolean;
+  hideRequestNavigation?: boolean;
 }) {
   const [locale, setLocale] = useStoredLocale();
 
@@ -159,6 +169,14 @@ export function AppShell({ children, accountActions, welcomeRole }: {
     const syncProfileLocale = async () => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return;
+
+      const userSelected = typeof window !== "undefined" && window.localStorage.getItem(LOCALE_USER_SELECTED_KEY) === "true";
+      const activeLocale = typeof window !== "undefined" ? window.localStorage.getItem(LOCALE_STORAGE_KEY) : null;
+
+      if (userSelected && isLocale(activeLocale)) {
+        void persistPreferredUiLanguage(activeLocale).catch(() => {});
+        return;
+      }
 
       const { data } = await supabase
         .from("profiles")
@@ -220,8 +238,9 @@ export function AppShell({ children, accountActions, welcomeRole }: {
         onLocaleChange={handleLocaleChange}
         accountActions={accountActions}
         workspaceRole={welcomeRole}
+        hidePrimaryAction={hidePrimaryAction}
       />
-      <RequestNavigation />
+      {!hideRequestNavigation && <RequestNavigation />}
       {children}
       <SiteFooter copy={t.footer} brandSubtitle={t.header.brandSubtitle} workspace={Boolean(welcomeRole)} />
     </CopyLocaleContext.Provider></UiLocaleContext.Provider>

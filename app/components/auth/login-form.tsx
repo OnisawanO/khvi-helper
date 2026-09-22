@@ -12,7 +12,7 @@ import {
   SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { getAuthCopy } from "@/app/lib/auth-copy";
-import { useStoredLocale } from "@/app/lib/locale";
+import { persistPreferredUiLanguage, useStoredLocale } from "@/app/lib/locale";
 import { createClient } from "@/utils/supabase/client";
 import {
   getAuthErrorMessage,
@@ -32,7 +32,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
   const router = useRouter();
   const supabase = createClient();
   const fastLoginEnabled = process.env.NODE_ENV !== "production";
-  const [currentLocale, setStoredLocale] = useStoredLocale();
+  const [currentLocale] = useStoredLocale();
   const copy = getAuthCopy(currentLocale);
 
   const emailId = useId();
@@ -101,7 +101,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
         return;
       }
 
-      setStoredLocale(profileResult.profile.preferredUiLanguage);
+      void persistPreferredUiLanguage(currentLocale).catch(() => {});
       handleLoginSuccess(profileResult.profile);
     } catch {
       setError(copy.login.genericError);
@@ -141,7 +141,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
         return;
       }
 
-      setStoredLocale(profileResult.profile.preferredUiLanguage);
+      void persistPreferredUiLanguage(currentLocale).catch(() => {});
       handleLoginSuccess(profileResult.profile);
     } catch {
       setError(copy.login.fastLoginError);
