@@ -29,8 +29,7 @@ import {
   formatContactChannelValue,
 } from "@/components/volunteer/ApplicationForm";
 import { calculateAge } from "@/app/lib/mock-auth";
-import { getAuthErrorMessage } from "@/app/lib/supabase-auth";
-import { createClient } from "@/utils/supabase/client";
+import { authApi } from "@/app/lib/auth-client";
 
 export function CombinedInterpreterRegisterForm({
   availableLanguages: initialLanguages = [],
@@ -232,42 +231,27 @@ export function CombinedInterpreterRegisterForm({
     setIsSubmitting(true);
 
     try {
-      const supabase = createClient();
-
-      // Step 1: Sign up user account in Supabase
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+      // Step 1: Sign up user account via Route Handler to ensure server cookies are properly established
+      const registerResult = await authApi.register({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
         email: email.trim().toLowerCase(),
         password,
-        options: {
-          data: {
-            full_name: `${firstName.trim()} ${lastName.trim()}`,
-            first_name: firstName.trim(),
-            last_name: lastName.trim(),
-            phone: phone.trim(),
-            date_of_birth: dateOfBirth,
-            preferred_ui_language: locale,
-          },
-        },
+        confirmPassword,
+        phone: phone.trim(),
+        dateOfBirth,
+        preferredUiLanguage: locale,
       });
 
-      if (signUpError || !authData.user) {
-        setSubmitError(getAuthErrorMessage(signUpError, "register", locale));
-        setShowConfirmModal(false);
-        return;
-      }
-
-      // If session was not immediately returned, sign in directly to get session
-      if (!authData.session) {
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      if (!registerResult.ok) {
+        // If the account might already exist with this password, try signing in
+        const loginResult = await authApi.login({
           email: email.trim().toLowerCase(),
           password,
+          locale,
         });
-        if (signInError || !signInData.session) {
-          setSubmitError(
-            locale === "th"
-              ? "สร้างบัญชีสำเร็จ แต่ไม่สามารถเข้าสู่ระบบเพื่อแนบเอกสารล่ามได้ กรุณาเข้าสู่ระบบอีกครั้ง"
-              : "Account created, but could not establish session to attach documents. Please sign in."
-          );
+        if (!loginResult.ok) {
+          setSubmitError(registerResult.error.message);
           setShowConfirmModal(false);
           return;
         }
