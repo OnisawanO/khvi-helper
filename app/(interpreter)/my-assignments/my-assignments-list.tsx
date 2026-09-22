@@ -10,6 +10,7 @@ import {
   ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
 import { useCopyLocale } from "@/app/components/app-shell";
+import { ActiveTaskDialog } from "@/app/components/active-task-dialog";
 import { ExpiryCountdown } from "@/app/components/expiry-countdown";
 import { StatusBadge, UrgencyBadge } from "@/app/components/request-badges";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
@@ -35,6 +36,8 @@ const copy = {
     findRequests: "Find requests",
     availableTitle: "Available requests",
     availableBody: "These open requests match the languages and service categories approved for your interpreter profile.",
+    workspaceBlockedTitle: "Finish your current task first",
+    workspaceBlockedBody: "You cannot claim another request while you have an active help request or assignment.",
     availableCount: (count: number) => `${count} available ${count === 1 ? "request" : "requests"}`,
     claimRequest: "Claim request",
     claiming: "Claiming…",
@@ -80,6 +83,8 @@ const copy = {
     findRequests: "查找求助",
     availableTitle: "可接取的求助",
     availableBody: "这些开放求助符合你已批准的语言和服务类别。",
+    workspaceBlockedTitle: "请先完成当前任务",
+    workspaceBlockedBody: "当你有进行中的求助或口译任务时，暂时不能接取新的任务。",
     availableCount: (count: number) => `${count} 个可接任务`,
     claimRequest: "接取任务",
     claiming: "正在接取…",
@@ -134,11 +139,13 @@ export function MyAssignmentsList({
   applicationStatus,
   initialAssignments,
   initialAvailableRequests,
+  workspaceBlocked = false,
 }: {
   activeFilter: StatusFilterId;
   applicationStatus: ApplicationStatus | null;
   initialAssignments: HelpRequest[];
   initialAvailableRequests: HelpRequest[];
+  workspaceBlocked?: boolean;
 }) {
   const router = useRouter();
   const allRequests = initialAssignments;
@@ -148,6 +155,7 @@ export function MyAssignmentsList({
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [claimedRequestId, setClaimedRequestId] = useState<string | null>(null);
   const [claimError, setClaimError] = useState<{ requestId: string; message: string } | null>(null);
+  const [activeTaskDialogOpen, setActiveTaskDialogOpen] = useState(false);
   const [claimSuccessId, setClaimSuccessId] = useState<string | null>(null);
   const [cancelRequestId, setCancelRequestId] = useState<string | null>(null);
   const [cancelDraft, setCancelDraft] = useState("");
@@ -172,6 +180,10 @@ export function MyAssignmentsList({
         : t.approvalPendingBody;
 
   async function handleClaimRequest(requestId: string) {
+    if (workspaceBlocked) {
+      setActiveTaskDialogOpen(true);
+      return;
+    }
     setClaimingId(requestId);
     setClaimError(null);
     setClaimSuccessId(null);
@@ -185,7 +197,11 @@ export function MyAssignmentsList({
       return;
     }
 
-    setClaimError({ requestId, message: result.error || t.claimFallback });
+    if (result.code === "active_workspace_task_exists" || result.code === "active_assignment_exists") {
+      setActiveTaskDialogOpen(true);
+    } else {
+      setClaimError({ requestId, message: result.error || t.claimFallback });
+    }
     setClaimingId(null);
     router.refresh();
   }
@@ -253,6 +269,16 @@ export function MyAssignmentsList({
               </span>
             )}
           </div>
+
+          {workspaceBlocked && (
+            <aside className="mt-4 flex items-start gap-3 border border-amber-300 bg-amber-50 p-4 text-amber-900" role="status">
+              <ShieldCheckIcon aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+              <div>
+                <h3 className="text-sm font-extrabold text-amber-950">{t.workspaceBlockedTitle}</h3>
+                <p className="mt-1 text-xs leading-5 text-amber-800">{t.workspaceBlockedBody}</p>
+              </div>
+            </aside>
+          )}
 
           {!applicationApproved ? (
             <div className="mt-4 flex flex-col gap-4 border-l-4 border-[#f0a35f] bg-white p-5 shadow-[0_8px_24px_rgba(16,40,58,0.06)] sm:flex-row sm:items-center sm:justify-between">
@@ -327,6 +353,8 @@ export function MyAssignmentsList({
             </ul>
           )}
         </section>
+
+        <ActiveTaskDialog open={activeTaskDialogOpen} onClose={() => setActiveTaskDialogOpen(false)} />
 
         {claimSuccessId && (
           <section className="mt-5 flex flex-col gap-3 border border-[#b7d9d2] bg-[#eef8f5] p-4 sm:flex-row sm:items-center sm:justify-between" role="status" aria-live="polite">

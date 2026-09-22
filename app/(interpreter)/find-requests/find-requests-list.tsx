@@ -16,6 +16,7 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { useCopyLocale } from "@/app/components/app-shell";
+import { ActiveTaskDialog } from "@/app/components/active-task-dialog";
 import { ExpiryCountdown } from "@/app/components/expiry-countdown";
 import { StatusBadge, UrgencyBadge } from "@/app/components/request-badges";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
@@ -122,6 +123,8 @@ const copy = {
     distanceUnavailable: "Connect GPS for distance",
     distanceAway: "away",
     broadAreaOnly: "Broad area shown before claim",
+    workspaceBlockedTitle: "Finish your current task first",
+    workspaceBlockedBody: "You cannot claim another request while you have an active help request or assignment.",
   },
   zh: {
     breadcrumb: "面包屑导航",
@@ -149,6 +152,8 @@ const copy = {
     filters: { all: "全部", urgent: "紧急", scheduled: "预约" },
     mapLabel: "开放求助地图",
     mapHint: "地图只显示大致区域。选择一个标记查看求助详情。",
+    workspaceBlockedTitle: "请先完成当前任务",
+    workspaceBlockedBody: "当你有进行中的求助或口译任务时，暂时不能接取新的任务。",
     mapLegend: "求助地图",
     urgentLegend: "紧急",
     scheduledLegend: "预约",
@@ -221,9 +226,11 @@ function compareRequestIds(first: HelpRequest, second: HelpRequest): number {
 export function FindRequestsList({
   initialRequests,
   diagnostic,
+  workspaceBlocked = false,
 }: {
   initialRequests: HelpRequest[];
   diagnostic?: OpenRequestsDiagnostic;
+  workspaceBlocked?: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -237,6 +244,7 @@ export function FindRequestsList({
   const [claimedRequestId, setClaimedRequestId] = useState<string | null>(null);
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [claimError, setClaimError] = useState<string | null>(null);
+  const [activeTaskDialogOpen, setActiveTaskDialogOpen] = useState(false);
   const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
   const [geoStatus, setGeoStatus] = useState<GeoStatus>("idle");
   const [actor, setActor] = useState<UserProfile | null>(null);
@@ -345,6 +353,10 @@ export function FindRequestsList({
   };
 
   const openClaimDialog = (request: HelpRequest) => {
+    if (workspaceBlocked) {
+      setActiveTaskDialogOpen(true);
+      return;
+    }
     setSelectedRequest(request);
     setClaimError(null);
     setClaimRequest(request);
@@ -353,6 +365,11 @@ export function FindRequestsList({
   const confirmClaim = async () => {
     if (!claimRequest) return;
     if (!actor) return;
+    if (workspaceBlocked) {
+      setClaimRequest(null);
+      setActiveTaskDialogOpen(true);
+      return;
+    }
     const requestId = claimRequest.requestId;
     setClaimingId(requestId);
     setClaimError(null);
@@ -363,6 +380,10 @@ export function FindRequestsList({
       setSelectedRequest(null);
       router.push(`/my-requests/${requestId}`);
     } else {
+      if (result.code === "active_workspace_task_exists" || result.code === "active_assignment_exists") {
+        setClaimRequest(null);
+        setActiveTaskDialogOpen(true);
+      }
       setClaimError(result.error || t.claimError);
       setClaimingId(null);
     }
@@ -409,6 +430,16 @@ export function FindRequestsList({
             </Link>
           </div>
         </div>
+
+        {workspaceBlocked && (
+          <aside className="mt-6 flex items-start gap-3.5 rounded-(--khvi-radius-md) border border-amber-300 bg-amber-50 p-4 text-amber-900" role="status">
+            <InformationCircleIcon aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+            <div>
+              <h2 className="text-sm font-extrabold text-amber-950">{t.workspaceBlockedTitle}</h2>
+              <p className="mt-1 text-xs leading-5 text-amber-800">{t.workspaceBlockedBody}</p>
+            </div>
+          </aside>
+        )}
 
         {diagnostic && diagnostic.status === "application_not_approved" && (
           <aside aria-label="application-status-notice" className="mt-6 flex items-start gap-3.5 rounded-(--khvi-radius-md) border border-amber-300 bg-amber-50 p-4 text-amber-900 shadow-sm">
@@ -658,7 +689,7 @@ export function FindRequestsList({
                   </button>
                   <div className="mt-4 flex items-center justify-between gap-3 border-t border-[#edf2f3] pt-3">
                     {request.expiresAt ? <ExpiryCountdown seconds={0} expiresAt={request.expiresAt} copyLocale={copyLocale} compact /> : <span className="text-xs font-bold text-[#87969a]">{t.locationUnavailable}</span>}
-                    <button type="button" className="inline-flex h-9 items-center justify-center rounded-lg bg-(--khvi-navy) px-3 text-xs font-extrabold text-white hover:bg-[#0c4960]" onClick={() => openClaimDialog(request)}>{t.claim}</button>
+                    <button type="button" className="inline-flex h-9 items-center justify-center rounded-lg bg-(--khvi-navy) px-3 text-xs font-extrabold text-white hover:bg-[#0c4960] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)" onClick={() => openClaimDialog(request)}>{t.claim}</button>
                   </div>
                 </article>
               ))}
@@ -679,6 +710,8 @@ export function FindRequestsList({
           </section>
         )}
       </div>
+
+      <ActiveTaskDialog open={activeTaskDialogOpen} onClose={() => setActiveTaskDialogOpen(false)} />
 
       {claimRequest && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-[#10283a]/55 p-4 backdrop-blur-sm" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setClaimRequest(null); }}>

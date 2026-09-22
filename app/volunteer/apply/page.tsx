@@ -3,9 +3,19 @@ import { VolunteerApplyHeader } from "@/components/volunteer/VolunteerApplyHeade
 import { WorkspaceShell } from "@/app/components/workspace-shell";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
 import { loadInterpreterApplicationReferences } from "@/app/lib/real-interpreter-application-data";
+import { loadMyInterpreterApplication } from "@/app/lib/real-interpreter-application-data";
+import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { createClient } from "@/utils/supabase/server";
 
 export default async function VolunteerApplyPage() {
+  const supabase = await createClient();
+  const [profileResult, application] = await Promise.all([
+    getCurrentUserProfile(supabase),
+    loadMyInterpreterApplication(supabase),
+  ]);
+  if (profileResult.profile?.role === "User" && application?.status === "approved") {
+    return <WorkspaceShell><main id="main-content" className="mx-auto max-w-3xl px-5 py-12 sm:px-8"><section className="rounded-(--khvi-radius-md) border border-(--khvi-coral)/30 bg-white p-6"><h1 className="text-xl font-bold">สถานะล่ามอาสาถูกยกเลิกแล้ว</h1><p className="mt-3 text-sm leading-7">คุณไม่สามารถยื่นใบสมัครล่ามอาสาใหม่ได้</p><a className="mt-5 inline-flex min-h-11 items-center rounded-(--khvi-radius-sm) border border-(--khvi-teal) px-4 text-sm font-bold text-(--khvi-teal)" href="/volunteer/status#main-content">ดูสถานะใบสมัคร</a></section></main></WorkspaceShell>;
+  }
   const { languages, categories } = await loadInterpreterApplicationReferences();
 
   let initialProfile: InitialProfile | null = null;
