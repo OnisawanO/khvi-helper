@@ -199,7 +199,7 @@ export function WelcomeDashboard({
           <div className="mt-5 max-w-lg border-l-2 border-white/45 pl-4">
             <p className="leading-8 text-white/85">{interpreter ? tr("ค้นหาคำขอตามภาษา หมวดหมู่ และระยะทาง ตรวจสอบก่อนรับงาน และรับผิดชอบครั้งละหนึ่งภารกิจ", "Explore requests by language, category and distance. Review each request and take one assignment at a time.", "按语言、类别和距离查找请求。确认详情后接单，一次只接受一个任务。") : tr("เลือกภาษา หมวดหมู่ และจุดนัดพบ ล่ามที่ตรงเงื่อนไขจะเป็นผู้เลือกกดรับคำขอของคุณ", "Choose a language, category and meeting point. A suitable interpreter chooses to claim your request.", "选择语言、类别和见面地点，符合条件的口译员会自行接单。")}</p>
           </div>
-          {!interpreter && <Link className={`${heroButton} mt-7`} href="/request-help#main-content">{tr("สร้างคำขอความช่วยเหลือ", "Create a help request", "创建求助请求")}<ArrowRightIcon className="h-4 w-4" aria-hidden="true" /></Link>}
+          {!interpreter && <Link className={`${heroButton} mt-7`} href="/request-help#main-content">{tr("ต้องการขอความช่วยเหลือ", "Create a help request", "创建求助请求")}<ArrowRightIcon className="h-4 w-4" aria-hidden="true" /></Link>}
         </div>
       </section>
       {!interpreter && (
