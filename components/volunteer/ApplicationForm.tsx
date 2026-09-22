@@ -413,10 +413,10 @@ export function ApplicationForm({
             <div className="flex items-center justify-between gap-2 mb-1">
               <label className="block text-sm font-extrabold text-[#10283a]">
                 {locale === "th"
-                  ? "1. ภาษาที่สามารถให้บริการแปลได้ (interpreter_languages)"
+                  ? "1. ภาษาที่สามารถให้บริการแปลได้"
                   : locale === "zh"
-                    ? "1. 可提供翻译的语言 (interpreter_languages)"
-                    : "1. Languages for Interpretation (interpreter_languages)"}
+                    ? "1. 可提供翻译的语言"
+                    : "1. Languages for Interpretation"}
               </label>
               <span className="rounded-(--khvi-radius-sm) border border-[#b9d9d6] bg-[#edf7f5] px-2.5 py-0.5 text-[11px] font-extrabold text-[#087f80]">
                 {locale === "th"
@@ -631,10 +631,10 @@ export function ApplicationForm({
             <div className="flex items-center justify-between gap-2 mb-1">
               <label className="block text-sm font-extrabold text-[#10283a]">
                 {locale === "th"
-                  ? "2. หมวดหมู่ภารกิจที่พร้อมช่วยเหลือ (interpreter_categories)"
+                  ? "2. หมวดหมู่ภารกิจที่พร้อมช่วยเหลือ"
                   : locale === "zh"
-                    ? "2. 志愿服务任务类别 (interpreter_categories)"
-                    : "2. Mission Categories (interpreter_categories)"}
+                    ? "2. 志愿服务任务类别"
+                    : "2. Mission Categories"}
               </label>
               <span className="rounded-(--khvi-radius-sm) border border-[#b9d9d6] bg-[#edf7f5] px-2.5 py-0.5 text-[11px] font-extrabold text-[#087f80]">
                 {locale === "th"
@@ -729,10 +729,10 @@ export function ApplicationForm({
             <div>
               <label className="block text-xs font-bold text-[#10283a] mb-1.5">
                 {locale === "th"
-                  ? "ช่องทางติดต่อเพิ่มเติม (เลือกช่องทางและระบุข้อมูล):"
+                  ? "ช่องทางติดต่อเพิ่มเติม"
                   : locale === "zh"
-                    ? "其他联系渠道 (选择渠道并填写):"
-                    : "Additional Contact Channel (Select channel and enter handle):"}
+                    ? "其他联系渠道"
+                    : "Additional Contact Channel"}
               </label>
 
               <div className="space-y-2">

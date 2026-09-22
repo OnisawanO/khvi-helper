@@ -548,10 +548,10 @@ export function CombinedInterpreterRegisterForm({
             <div>
               <label className="block text-xs font-bold text-[#10283a] mb-1.5">
                 {locale === "th"
-                  ? "ช่องทางติดต่อเพิ่มเติม (เลือกช่องทางและระบุข้อมูล):"
+                  ? "ช่องทางติดต่อเพิ่มเติม"
                   : locale === "zh"
-                    ? "其他联系渠道 (选择渠道并填写):"
-                    : "Additional Contact Channel (Select channel and enter handle):"}
+                    ? "其他联系渠道"
+                    : "Additional Contact Channel"}
               </label>
 
               <div className="space-y-2">
@@ -628,10 +628,10 @@ export function CombinedInterpreterRegisterForm({
                 <div>
                   <h2 className="text-lg font-black text-[#10283a]">
                     {locale === "th"
-                      ? "ภาษาที่สามารถให้บริการแปลได้ (interpreter_languages)"
+                      ? "ภาษาที่สามารถให้บริการแปลได้"
                       : locale === "zh"
-                        ? "可提供翻译的语言 (interpreter_languages)"
-                        : "Languages for Interpretation (interpreter_languages)"}
+                        ? "可提供翻译的语言"
+                        : "Languages for Interpretation"}
                   </h2>
                   <p className="text-xs text-[#64777e]">
                     {locale === "th"
@@ -853,10 +853,10 @@ export function CombinedInterpreterRegisterForm({
                 <div>
                   <h2 className="text-lg font-black text-[#10283a]">
                     {locale === "th"
-                      ? "หมวดหมู่ภารกิจที่พร้อมช่วยเหลือ (interpreter_categories)"
+                      ? "หมวดหมู่ภารกิจที่พร้อมช่วยเหลือ"
                       : locale === "zh"
-                        ? "志愿服务任务类别 (interpreter_categories)"
-                        : "Mission Categories (interpreter_categories)"}
+                        ? "志愿服务任务类别"
+                        : "Mission Categories"}
                   </h2>
                   <p className="text-xs text-[#64777e]">
                     {locale === "th"
