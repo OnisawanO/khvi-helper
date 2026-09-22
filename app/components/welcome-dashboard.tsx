@@ -180,7 +180,6 @@ export function WelcomeDashboard({
         </div>
       )}
     </div>
-    <p className="mb-6 rounded-lg bg-(--khvi-teal)/10 px-4 py-3 text-xs leading-6">{tr("ข้อมูลบัญชี · คำขอและภารกิจด้านล่างเชื่อมกับบัญชีที่เข้าสู่ระบบ", "Account data · Requests and assignments below come from your signed-in account.", "账户数据 · 下方请求和任务来自当前登录账户。")}</p>
     <div className={interpreter ? "grid items-start gap-5 md:grid-cols-[minmax(0,1fr)_minmax(260px,360px)]" : "grid items-start gap-5 lg:grid-cols-[1.5fr_1fr]"}>
       <section className="order-2 relative min-h-[500px] overflow-hidden rounded-(--khvi-radius-lg) bg-(--khvi-navy) text-white sm:min-h-[460px] md:order-1">
         <ResponsiveHeroImage
