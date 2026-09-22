@@ -40,6 +40,10 @@ import {
   reviewInterpreterApplication,
   type InterpreterApplication as StoreApplication,
 } from "@/app/lib/interpreter-application";
+import {
+  loadManagerInterpreterApplicationsAction,
+  reviewInterpreterApplicationAction,
+} from "@/app/actions/interpreter-application-actions";
 import { governanceStore } from "@/app/lib/governance-store";
 
 function toInterpreterApplicant(app: StoreApplication): InterpreterApplicant {
@@ -87,8 +91,26 @@ export default function ManagerDashboard() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [realApplicants, setRealApplicants] = useState<InterpreterApplicant[] | null>(null);
 
   const { applications } = useInterpreterApplications();
+
+  useEffect(() => {
+    if (!authChecked) return;
+
+    let disposed = false;
+    const loadApplicants = async () => {
+      const result = await loadManagerInterpreterApplicationsAction();
+      if (disposed) return;
+      setRealApplicants(result.ok ? result.data : []);
+      if (!result.ok) console.error("Failed to load real interpreter applications:", result.error);
+    };
+
+    void loadApplicants();
+    return () => {
+      disposed = true;
+    };
+  }, [authChecked]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -137,12 +159,13 @@ export default function ManagerDashboard() {
     }
   };
 
-  const applicants = useMemo<InterpreterApplicant[]>(() => {
+  const localApplicants = useMemo<InterpreterApplicant[]>(() => {
     if (applications && applications.length > 0) {
       return applications.map(toInterpreterApplicant);
     }
     return initialApplicants;
   }, [applications]);
+  const applicants = realApplicants ?? localApplicants;
 
   const [tickets, setTickets] = useState<HelpTicket[]>(initialTickets);
   const [reports, setReports] = useState<IncidentReport[]>(initialReports);
@@ -236,9 +259,17 @@ export default function ManagerDashboard() {
   };
 
   // Handle Approve (FR-43)
-  const handleApprove = (id: string) => {
+  const handleApprove = async (id: string) => {
     const target = applicants.find((a) => a.id === id);
-    if (currentUser) {
+    if (realApplicants !== null) {
+      const result = await reviewInterpreterApplicationAction({ applicationId: id, decision: "approved" });
+      if (!result.ok) {
+        console.error("Failed to persist approval:", result.error);
+        return;
+      }
+      const refreshed = await loadManagerInterpreterApplicationsAction();
+      if (refreshed.ok) setRealApplicants(refreshed.data);
+    } else if (currentUser) {
       try {
         reviewInterpreterApplication(id, currentUser, { status: "approved" });
       } catch (err) {
@@ -260,9 +291,17 @@ export default function ManagerDashboard() {
   };
 
   // Handle Reject (FR-44, FR-45)
-  const handleReject = (id: string, reason: string) => {
+  const handleReject = async (id: string, reason: string) => {
     const target = applicants.find((a) => a.id === id);
-    if (currentUser) {
+    if (realApplicants !== null) {
+      const result = await reviewInterpreterApplicationAction({ applicationId: id, decision: "rejected", note: reason });
+      if (!result.ok) {
+        console.error("Failed to persist rejection:", result.error);
+        return;
+      }
+      const refreshed = await loadManagerInterpreterApplicationsAction();
+      if (refreshed.ok) setRealApplicants(refreshed.data);
+    } else if (currentUser) {
       try {
         reviewInterpreterApplication(id, currentUser, { status: "rejected", reason });
       } catch (err) {

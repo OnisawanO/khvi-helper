@@ -3,7 +3,7 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRightIcon, LanguageIcon, ClipboardDocumentListIcon, HeartIcon, MapPinIcon, MagnifyingGlassIcon, ClockIcon, PhoneIcon, EnvelopeIcon, ChatBubbleLeftRightIcon } from "@heroicons/react/24/outline";
+import { ArrowRightIcon, LanguageIcon, ClipboardDocumentListIcon, HeartIcon, MapPinIcon, MagnifyingGlassIcon, ClockIcon, PhoneIcon, EnvelopeIcon, ChatBubbleLeftRightIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
 import { StarIcon } from "@heroicons/react/24/solid";
 import { useCopyLocale, useInterpreterAccess, useUiLocale } from "./app-shell";
 import { ExpiryCountdown } from "./expiry-countdown";
@@ -145,6 +145,10 @@ export function WelcomeDashboard({
       .filter((r) => ["Open", "Claimed", "InProgress"].includes(r.status))
       .filter(isLiveOpenRequest);
   const current = active[0];
+  const completed = interpreter
+    ? assignments.filter((r) => r.status === "Completed")
+    : requesterRequests.filter((r) => r.status === "Completed");
+  const pendingReviews = completed.filter((r) => Boolean(r.interpreter) && !r.review);
   const recent = interpreter
     ? assignments
       .filter((r) => ["Completed", "Cancelled"].includes(r.status))
@@ -341,6 +345,14 @@ export function WelcomeDashboard({
           <a className="flex items-center gap-3 font-bold text-(--khvi-ink) underline-offset-4 hover:text-(--khvi-teal) hover:underline" href="tel:0653735884"><PhoneIcon className="h-5 w-5 shrink-0 text-(--khvi-teal)" aria-hidden="true" /><span>0653735884</span></a>
           <a className="flex min-w-0 items-center gap-3 font-bold text-(--khvi-ink) underline-offset-4 hover:text-(--khvi-teal) hover:underline" href="mailto:wasutorn5884@gmail.com"><EnvelopeIcon className="h-5 w-5 shrink-0 text-(--khvi-teal)" aria-hidden="true" /><span className="break-all">wasutorn5884@gmail.com</span></a>
         </div>
+        {completed.length > 0 && <div className="mt-6 border-t border-(--khvi-teal)/20 pt-5">
+          <ShieldCheckIcon className="h-7 w-7 text-(--khvi-teal)" aria-hidden="true" />
+          <h3 className="mt-3 text-lg font-bold">{tr("รีวิวหลังจบภารกิจ", "Review after completion", "完成后评价")}</h3>
+          <p className={muted}>{pendingReviews.length
+            ? tr(`มีงานที่เสร็จแล้ว ${completed.length} รายการ และมี ${pendingReviews.length} รายการรอรีวิว`, `${pendingReviews.length} of ${completed.length} completed assignments are waiting for your review.`, `${pendingReviews.length} / ${completed.length} 个已完成任务等待评价。`)
+            : tr("คุณรีวิวงานที่เสร็จแล้วครบถ้วนแล้ว", "All completed assignments have been reviewed.", "所有已完成任务都已评价。")}</p>
+          {pendingReviews[0] && <Link className={`${button} mt-4 min-h-10 self-start px-4 py-2 text-xs`} href={`/my-requests/${pendingReviews[0].requestId}#main-content`}>{tr("ไปรีวิวงานที่เสร็จแล้ว", "Review a completed assignment", "评价已完成任务")}<ArrowRightIcon className="h-4 w-4" aria-hidden="true" /></Link>}
+        </div>}
       </>}</section>
     </div>
   </main>;

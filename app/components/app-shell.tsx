@@ -1,7 +1,15 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { isLocale, persistPreferredUiLanguage, resolveCopyLocale, useStoredLocale, type CopyLocale } from "@/app/lib/locale";
+import {
+  isLocale,
+  persistPreferredUiLanguage,
+  resolveCopyLocale,
+  useStoredLocale,
+  LOCALE_STORAGE_KEY,
+  LOCALE_USER_SELECTED_KEY,
+  type CopyLocale,
+} from "@/app/lib/locale";
 import { SiteFooter } from "./site-footer";
 import { SiteHeader } from "./site-header";
 import type { Locale } from "./site-header";
@@ -149,11 +157,12 @@ export function useCopyLocale(): CopyLocale {
  * language switcher, and the site footer. Pages render their own `<main>` so the
  * skip link keeps working.
  */
-export function AppShell({ children, accountActions, welcomeRole, accountRole }: {
+export function AppShell({ children, accountActions, welcomeRole, accountRole, hidePrimaryAction }: {
   children: ReactNode;
   accountActions?: ReactNode;
   welcomeRole?: WorkspaceRole;
   accountRole?: WorkspaceRole;
+  hidePrimaryAction?: boolean;
 }) {
   const [locale, setLocale] = useStoredLocale();
   const [applicationAccess, setApplicationAccess] = useState<InterpreterAccess>({ loading: accountRole === "User", revoked: false, verified: accountRole !== "User", applicationStatus: null });
@@ -179,6 +188,14 @@ export function AppShell({ children, accountActions, welcomeRole, accountRole }:
     const syncProfileLocale = async () => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return;
+
+      const userSelected = typeof window !== "undefined" && window.localStorage.getItem(LOCALE_USER_SELECTED_KEY) === "true";
+      const activeLocale = typeof window !== "undefined" ? window.localStorage.getItem(LOCALE_STORAGE_KEY) : null;
+
+      if (userSelected && isLocale(activeLocale)) {
+        void persistPreferredUiLanguage(activeLocale).catch(() => {});
+        return;
+      }
 
       const { data } = await supabase
         .from("profiles")
@@ -243,6 +260,7 @@ export function AppShell({ children, accountActions, welcomeRole, accountRole }:
         onLocaleChange={handleLocaleChange}
         accountActions={accountActions}
         workspaceRole={welcomeRole}
+        hidePrimaryAction={hidePrimaryAction}
       />
       {children}
       <SiteFooter copy={t.footer} brandSubtitle={t.header.brandSubtitle} workspace={Boolean(welcomeRole)} />

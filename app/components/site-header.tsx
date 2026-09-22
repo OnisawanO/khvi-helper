@@ -23,6 +23,7 @@ type SiteHeaderProps = {
   onOpenSignIn?: () => void;
   accountActions?: ReactNode;
   workspaceRole?: "User" | "Interpreter" | "Manager" | "Admin";
+  hidePrimaryAction?: boolean;
 };
 
 const languageOptions = [
@@ -157,7 +158,7 @@ function getRegisterLabel(locale: Locale) {
   }
 }
 
-export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpenSignIn, accountActions, workspaceRole }: SiteHeaderProps) {
+export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpenSignIn, accountActions, workspaceRole, hidePrimaryAction }: SiteHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -169,6 +170,17 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
     pathname.startsWith("/my-requests") ||
     pathname === "/find-requests" ||
     pathname.startsWith("/my-assignments");
+  const isAuthOrOnboardingPage =
+    pathname.startsWith("/register") ||
+    pathname.startsWith("/volunteer") ||
+    pathname === "/login" ||
+    pathname === "/sign-in" ||
+    pathname === "/profile";
+  const shouldHidePrimaryAction =
+    Boolean(hidePrimaryAction) ||
+    isLandingPage ||
+    isRequestWorkspacePage ||
+    isAuthOrOnboardingPage;
   const navItems = isRequestWorkspacePage ? copy.nav.slice(0, 2) : copy.nav;
 
   useEffect(() => {
@@ -336,7 +348,7 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
               {copy.signIn}
             </a>
           )}
-          {!isLandingPage && !isRequestWorkspacePage && (
+          {!shouldHidePrimaryAction && (
             <a className="flex h-10 items-center rounded-lg bg-[#092f45] px-4 text-xs font-extrabold text-white shadow-[0_6px_14px_rgba(9,47,69,0.16)] transition-colors hover:bg-[#0c4960] sm:px-5" href="/request-help#main-content">
               {primaryActionLabel}
             </a>
