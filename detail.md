@@ -246,7 +246,7 @@ erDiagram
         user_role role "ENUM: User, Interpreter, Manager, Admin"
         BOOLEAN is_locked "สถานะล็อกบัญชี"
         VARCHAR preferred_ui_language "ภาษาหน้าจอ (th, en, zh, es, ar)"
-        TIMESTAMPTZ deleted_at "เวลาปิดบัญชีแบบ soft delete"
+        TIMESTAMPTZ deleted_at "ฟิลด์ legacy จากระบบ soft delete เดิม"
         TIMESTAMPTZ created_at "วันเวลาที่สมัคร"
     }
 
@@ -318,7 +318,7 @@ erDiagram
 
 | Entity / Table | Attributes | Data Type | Key / Constraint | คำอธิบาย |
 | :--- | :--- | :--- | :---: | :--- |
-| **`PROFILES`** | `user_id`<br>`first_name`<br>`last_name`<br>`date_of_birth`<br>`phone`<br>`email`<br>`role`<br>`is_locked`<br>`preferred_ui_language`<br>`deleted_at`<br>`created_at` | UUID<br>VARCHAR<br>VARCHAR<br>DATE<br>VARCHAR<br>VARCHAR<br>ENUM<br>BOOLEAN<br>VARCHAR<br>TIMESTAMPTZ<br>TIMESTAMPTZ | **PK, FK** $\rightarrow$ `auth.users.id`<br>-<br>-<br>-<br>-<br>**UK / Auth**<br>User, Interpreter, Manager, Admin<br>DEFAULT FALSE (ใช้ใน MVP)<br>DEFAULT 'th'<br>NULL จนกว่าจะปิดบัญชี<br>DEFAULT NOW() | รหัสผู้ใช้จาก Supabase Auth<br>ชื่อ<br>นามสกุล<br>วันเดือนปีเกิด<br>เบอร์โทรศัพท์ติดต่อ<br>อีเมลจาก Supabase Auth<br>บทบาทและสิทธิ์การใช้งาน<br>สถานะล็อกบัญชีใน MVP<br>ภาษาหน้าจอที่ต้องการ<br>เวลาปิดบัญชีแบบ soft delete<br>วันเวลาที่สร้างบัญชี |
+| **`PROFILES`** | `user_id`<br>`first_name`<br>`last_name`<br>`date_of_birth`<br>`phone`<br>`email`<br>`role`<br>`is_locked`<br>`preferred_ui_language`<br>`deleted_at`<br>`created_at` | UUID<br>VARCHAR<br>VARCHAR<br>DATE<br>VARCHAR<br>VARCHAR<br>ENUM<br>BOOLEAN<br>VARCHAR<br>TIMESTAMPTZ<br>TIMESTAMPTZ | **PK, FK** $\rightarrow$ `auth.users.id`<br>-<br>-<br>-<br>-<br>**UK / Auth**<br>User, Interpreter, Manager, Admin<br>DEFAULT FALSE (ใช้ใน MVP)<br>DEFAULT 'th'<br>Legacy field<br>DEFAULT NOW() | รหัสผู้ใช้จาก Supabase Auth<br>ชื่อ<br>นามสกุล<br>วันเดือนปีเกิด<br>เบอร์โทรศัพท์ติดต่อ<br>อีเมลจาก Supabase Auth<br>บทบาทและสิทธิ์การใช้งาน<br>สถานะล็อกบัญชีใน MVP<br>ภาษาหน้าจอที่ต้องการ<br>ฟิลด์ legacy; การลบบัญชีปัจจุบันลบ Auth user และ profile แบบถาวร<br>วันเวลาที่สร้างบัญชี |
 | **`INTERPRETER_PROFILE`** | `user_id`<br>`primary_language_id`<br>`extra_contact`<br>`experience_summary`<br>`application_status`<br>`rejected_reason`<br>`reviewed_by_user_id`<br>`approved_at`<br>`average_rating`<br>`completed_job_count`<br>`created_at` | UUID<br>BIGINT<br>VARCHAR<br>TEXT<br>ENUM<br>TEXT<br>UUID<br>TIMESTAMPTZ<br>NUMERIC(3,2)<br>INT<br>TIMESTAMPTZ | **PK, FK** $\rightarrow$ `profiles`<br>**FK** $\rightarrow$ `LANGUAGE`<br>-<br>-<br>Pending, Approved, Rejected<br>-<br>**FK** $\rightarrow$ `profiles` (Manager/Admin)<br>-<br>DEFAULT 0.00<br>DEFAULT 0<br>DEFAULT NOW() | รหัสผู้ใช้ที่สมัครล่าม<br>ภาษาหลัก<br>ช่องทางติดต่อเสริม (เปิดหลังยืนยันล่าม)<br>รายละเอียดประสบการณ์<br>สถานะใบสมัคร<br>เหตุผลที่ไม่อนุมัติ<br>ผู้ตรวจใบสมัคร<br>เวลาที่อนุมัติ<br>คะแนนรีวิวเฉลี่ยสะสม<br>จำนวนงานที่ช่วยเหลือสำเร็จ<br>วันเวลาที่ยื่นสมัคร |
 | **`LANGUAGE`** | `language_id`<br>`language_name` | BIGSERIAL<br>VARCHAR | **PK**<br>**UK** | รหัสภาษา<br>ชื่อภาษา (เช่น Burmese, Chinese, Sign) |
 | **`CATEGORY`** | `category_id`<br>`category_name` | BIGSERIAL<br>VARCHAR | **PK**<br>**UK** | รหัสหมวดหมู่<br>ชื่อหมวดหมู่ (เช่น การแพทย์, สถานีตำรวจ) |

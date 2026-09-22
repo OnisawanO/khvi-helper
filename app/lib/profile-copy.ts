@@ -63,6 +63,7 @@ export type ProfileCopy = {
     cancelButton: string;
     confirmButton: string;
     deleting: string;
+    genericError: string;
   };
   photo: {
     title: string;
@@ -233,22 +234,21 @@ const copyTh: ProfileCopy = {
   accountDeletion: {
     eyebrow: "ความปลอดภัยของบัญชี",
     title: "ลบบัญชีผู้ใช้",
-    description:
-      "ปิดบัญชีและออกจากระบบ ประวัติงานที่เสร็จสิ้นแล้วจะยังคงอยู่เพื่อเป็นหลักฐานการให้บริการ แต่ข้อมูลติดต่อส่วนบุคคลจะถูกลบออก",
-    notice: "คำขอหรือภารกิจที่ดำเนินการอยู่ต้องเสร็จสิ้นหรือถูกยกเลิกก่อนจึงจะสามารถลบบัญชีได้",
+    description: "ลบข้อมูลเข้าสู่ระบบ โปรไฟล์ คำขอ รีวิว และเอกสารสมัครล่ามที่อัปโหลดแบบถาวร",
+    notice: "คำขอหรือภารกิจที่ดำเนินการอยู่ต้องเสร็จสิ้นหรือถูกยกเลิกก่อนจึงจะสามารถลบบัญชีถาวรได้",
     cannotUndo: " การดำเนินการนี้ไม่สามารถยกเลิกได้",
-    migrationPending: " ฟังก์ชันนี้จะพร้อมใช้งานหลังจากอัปเดตระบบฐานข้อมูล",
+    migrationPending: " ปุ่มนี้จะพร้อมใช้งานหลังตั้งค่า secret ฝั่ง server และใช้ migration ล่าสุดของ Supabase",
     deleteButton: "ลบบัญชีผู้ใช้",
     modalEyebrow: "โปรดยืนยัน",
     modalTitle: "คุณต้องการลบบัญชีผู้ใช้หรือไม่?",
     modalCloseAria: "ปิดหน้าต่างยืนยันการลบบัญชี",
-    modalDescription:
-      "เซสชันของคุณจะสิ้นสุดทันที ประวัติภารกิจที่เสร็จสิ้นจะยังคงอยู่ในระบบโดยไม่มีข้อมูลติดต่อส่วนตัว คุณจะไม่สามารถกู้คืนบัญชีนี้ได้อีก",
-    migrationWarning: "ยังไม่สามารถลบบัญชีได้จนกว่าจะอัปเดตระบบฐานข้อมูลล่าสุด",
-    checkboxLabel: "ฉันเข้าใจว่าบัญชีนี้จะถูกปิดและจะออกจากระบบทันที",
+    modalDescription: "ข้อมูลเข้าสู่ระบบ โปรไฟล์ คำขอ รีวิว และเอกสารสมัครล่ามที่อัปโหลดจะถูกลบ คุณจะไม่สามารถกู้คืนบัญชีหรือข้อมูลเหล่านี้ได้",
+    migrationWarning: "ยังไม่สามารถลบบัญชีถาวรได้จนกว่าจะตั้งค่า secret ฝั่ง server และใช้ migration ล่าสุดของ Supabase",
+    checkboxLabel: "ฉันเข้าใจว่าบัญชีและข้อมูลของบัญชีนี้จะถูกลบอย่างถาวร",
     cancelButton: "เก็บบัญชีไว้",
-    confirmButton: "ยืนยันการลบบัญชี",
-    deleting: "กำลังลบ…",
+    confirmButton: "ลบบัญชีถาวร",
+    deleting: "กำลังลบถาวร…",
+    genericError: "ไม่สามารถลบบัญชีถาวรได้ กรุณาลองอีกครั้ง",
   },
   photo: {
     title: "รูปโปรไฟล์",
@@ -419,22 +419,21 @@ const copyEn: ProfileCopy = {
   accountDeletion: {
     eyebrow: "Account safety",
     title: "Delete my account",
-    description:
-      "Close your account and sign out. Completed history stays available for service records, while personal contact details are removed.",
-    notice: "Active requests or assignments must be finished or cancelled before you can delete the account.",
+    description: "Permanently remove your login, profile, requests, reviews, and uploaded interpreter documents.",
+    notice: "Finish or cancel active requests and assignments before permanently deleting your account.",
     cannotUndo: " This action cannot be undone.",
-    migrationPending: " This control becomes available after the latest Supabase migration is applied.",
+    migrationPending: " This control becomes available after the server secret and latest Supabase migration are configured.",
     deleteButton: "Delete my account",
     modalEyebrow: "Please confirm",
     modalTitle: "Delete your account?",
     modalCloseAria: "Close delete account dialog",
-    modalDescription:
-      "Your session will end immediately. Your completed mission history will remain without your personal contact details. You cannot restore this account from Profile Settings.",
-    migrationWarning: "Account deletion is unavailable until the latest Supabase migration is applied.",
-    checkboxLabel: "I understand that this account will be closed and I will be signed out.",
+    modalDescription: "Your login, profile, requests, reviews, and uploaded interpreter documents will be deleted. You cannot restore this account or its data.",
+    migrationWarning: "Permanent account deletion is unavailable until the server secret and latest Supabase migration are configured.",
+    checkboxLabel: "I understand that this account and its data will be permanently deleted.",
     cancelButton: "Keep my account",
-    confirmButton: "Delete account",
-    deleting: "Deleting…",
+    confirmButton: "Permanently delete account",
+    deleting: "Deleting permanently…",
+    genericError: "The account could not be deleted permanently. Please try again.",
   },
   photo: {
     title: "Profile photo",
@@ -605,20 +604,21 @@ const copyZh: ProfileCopy = {
   accountDeletion: {
     eyebrow: "账户安全",
     title: "注销我的账户",
-    description: "注销您的账户并退出登录。已完成的任务历史记录将保留作为服务凭证，而个人联系信息将被删除。",
-    notice: "在注销账户之前，必须先完成或取消当前进行中的请求或任务。",
+    description: "永久删除您的登录信息、个人资料、求助请求、评价和已上传的口译员申请文件。",
+    notice: "永久删除账户前，请先完成或取消仍在进行中的请求和任务。",
     cannotUndo: " 此操作无法撤销。",
-    migrationPending: " 在应用最新的数据库迁移后即可使用此功能。",
+    migrationPending: " 配置服务器密钥并应用最新的 Supabase 数据库迁移后即可使用此功能。",
     deleteButton: "注销我的账户",
     modalEyebrow: "请确认",
     modalTitle: "确认注销您的账户？",
     modalCloseAria: "关闭注销账户对话框",
-    modalDescription: "您的会话将立即结束。已完成的任务历史记录将被保留，但不会包含您的个人联系方式。您将无法恢复此账户。",
-    migrationWarning: "在应用最新的数据库迁移之前，账户注销功能不可用。",
-    checkboxLabel: "我明白该账户将被注销，我将被登出。",
+    modalDescription: "您的登录信息、个人资料、求助请求、评价和已上传的口译员申请文件将被删除。账户及其数据无法恢复。",
+    migrationWarning: "在配置服务器密钥并应用最新的 Supabase 数据库迁移之前，无法永久删除账户。",
+    checkboxLabel: "我明白该账户及其数据将被永久删除。",
     cancelButton: "保留我的账户",
-    confirmButton: "确认注销",
-    deleting: "正在注销…",
+    confirmButton: "永久删除账户",
+    deleting: "正在永久删除…",
+    genericError: "无法永久删除账户，请重试。",
   },
   photo: {
     title: "个人头像",
