@@ -36,6 +36,16 @@ export function WorkspaceShell({ children, requiredRole, alternatePath }: {
   useEffect(() => {
     const supabase = createClient();
     let disposed = false;
+    let refreshTimer: number | null = null;
+
+    const refreshBookingViews = () => {
+      if (disposed || document.visibilityState !== "visible") return;
+      if (refreshTimer !== null) window.clearTimeout(refreshTimer);
+      refreshTimer = window.setTimeout(() => {
+        refreshTimer = null;
+        router.refresh();
+      }, 200);
+    };
 
     const refreshSession = async () => {
       const result = await getCurrentUserProfile(supabase);
@@ -71,14 +81,34 @@ export function WorkspaceShell({ children, requiredRole, alternatePath }: {
     const unsubscribeWorkspaceMode = subscribeInterpreterWorkspaceMode(() => {
       window.setTimeout(() => void refreshSession(), 0);
     });
-    const onWindowFocus = () => void refreshSession();
+    const bookingChannel = supabase
+      .channel(`workspace-bookings-${crypto.randomUUID()}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "bookings" },
+        refreshBookingViews,
+      )
+      .subscribe();
+    const bookingPoll = window.setInterval(refreshBookingViews, 10_000);
+    const onWindowFocus = () => {
+      void refreshSession();
+      refreshBookingViews();
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") refreshBookingViews();
+    };
     window.addEventListener("focus", onWindowFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
       disposed = true;
+      if (refreshTimer !== null) window.clearTimeout(refreshTimer);
+      window.clearInterval(bookingPoll);
+      void supabase.removeChannel(bookingChannel);
       authListener.subscription.unsubscribe();
       unsubscribeWorkspaceMode();
       window.removeEventListener("focus", onWindowFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [alternatePath, requiredRole, router]);
 

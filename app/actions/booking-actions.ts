@@ -48,6 +48,11 @@ async function runVoidRpc(functionName: string, args: Record<string, unknown>): 
   revalidatePath("/my-requests");
   revalidatePath("/my-assignments");
   revalidatePath("/find-requests");
+  revalidatePath("/welcome");
+  const bookingId = Number(args.p_booking_id);
+  if (Number.isSafeInteger(bookingId) && bookingId > 0) {
+    revalidatePath(`/my-requests/${bookingId}`);
+  }
   return { ok: true, data: undefined };
 }
 
@@ -80,6 +85,8 @@ export async function createBookingAction(input: {
 
   revalidatePath("/my-requests");
   revalidatePath("/find-requests");
+  revalidatePath("/my-assignments");
+  revalidatePath("/welcome");
   return { ok: true, data: { requestId: String(data) } };
 }
 
@@ -89,7 +96,9 @@ export async function claimBookingAction(bookingId: string): Promise<BookingActi
   if (error) return { ok: false, error: friendlyError(error) };
   revalidatePath("/find-requests");
   revalidatePath("/my-assignments");
+  revalidatePath("/my-requests");
   revalidatePath(`/my-requests/${bookingId}`);
+  revalidatePath("/welcome");
   return { ok: true, data: undefined };
 }
 
