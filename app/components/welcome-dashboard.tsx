@@ -3,7 +3,7 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRightIcon, LanguageIcon, ClipboardDocumentListIcon, HeartIcon, MapPinIcon, MagnifyingGlassIcon, ClockIcon, PhoneIcon, EnvelopeIcon, ChatBubbleLeftRightIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
+import { ArrowRightIcon, LanguageIcon, ClipboardDocumentListIcon, MapPinIcon, MagnifyingGlassIcon, ClockIcon, PhoneIcon, EnvelopeIcon, ChatBubbleLeftRightIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
 import { StarIcon } from "@heroicons/react/24/solid";
 import { useCopyLocale, useInterpreterAccess, useUiLocale } from "./app-shell";
 import { ExpiryCountdown } from "./expiry-countdown";
@@ -333,11 +333,7 @@ export function WelcomeDashboard({
     <section className={`${panel} mt-7 flex flex-col`}><div className="flex min-w-0 flex-wrap items-center justify-between gap-3"><h2 className="flex min-w-0 items-center gap-2 text-xl font-bold">{interpreter && <ClockIcon className="h-6 w-6 shrink-0 text-(--khvi-teal)" aria-hidden="true" />}{interpreter ? tr("งานที่ผ่านมาของคุณ", "Your past work", "您的历史工作") : tr("คำขอล่าสุด", "Recent requests", "最近的请求")}</h2><Link className={`${button} min-h-10 shrink-0 px-4 py-2 text-xs`} href={listPath}>{tr("ดูทั้งหมด", "View all", "查看全部")}</Link></div>{recent.length ? <ul className="min-w-0 divide-y divide-(--khvi-teal)/20">{recent.map(r => requestRow(r, false))}</ul> : <div className="flex items-start gap-4 py-6"><ClipboardDocumentListIcon className="h-8 w-8 shrink-0 text-(--khvi-teal)" aria-hidden="true" /><div><p className="text-sm leading-7">{interpreter ? tr("ยังไม่มีงานที่ผ่านมา เมื่อล่ามรับงาน รายการจะแสดงที่นี่", "You have no past assignments yet. Claimed assignments will appear here.", "您还没有历史任务，接取任务后会显示在这里。") : tr("ยังไม่มีคำขอล่าสุด เมื่อคุณส่งคำขอความช่วยเหลือ รายการจะแสดงที่นี่", "You have no recent requests yet. Requests you submit will appear here.", "您还没有最近的求助，提交求助后会显示在这里。")}</p><Link className={`${button} mt-3 min-h-10 px-4 py-2 text-xs`} href={interpreter ? "/find-requests#main-content" : "/request-help#main-content"}>{interpreter ? tr("ค้นหาคำขอ", "Find requests", "查找求助") : tr("ขอความช่วยเหลือ", "Request help", "请求帮助")}</Link></div></div>}</section>
     <div className="mt-7 grid items-stretch gap-5 md:grid-cols-2">
       <section id="volunteer-application" className="h-full scroll-mt-28 [&>section]:h-full">{interpreterAccess.loading || (interpreterAccess.applicationStatus && !activeApplication) ? null : <ApplicationStatusCard application={activeApplication} />}</section>
-      <section className={`${panel} h-full`}>{interpreter ? <>
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-(--khvi-coral)/10"><HeartIcon className="h-7 w-7 text-(--khvi-coral)" aria-hidden="true" /></div>
-        <h2 className="mt-4 text-xl font-bold">{tr("ขอบคุณที่สมัครเป็นล่ามอาสา", "Thank you for volunteering as an interpreter", "感谢您申请成为志愿口译员")}</h2>
-        <p className={muted}>{tr("ขอบคุณที่แบ่งปันทักษะด้านภาษาเพื่อช่วยให้ผู้คนสื่อสารและเข้าใจกันได้ดียิ่งขึ้น", "Thank you for sharing your language skills and helping people communicate and understand one another.", "感谢您分享语言能力，帮助人们更顺畅地沟通和相互理解。")}</p>
-      </> : <>
+      <section className={`${panel} h-full`}>
         <ChatBubbleLeftRightIcon className="h-7 w-7 text-(--khvi-teal)" aria-hidden="true" />
         <h2 className="mt-3 text-xl font-bold">{tr("ช่องทางติดต่อหากพบปัญหา", "Contact us if you have a problem", "遇到问题时的联系方式")}</h2>
         <p className={muted}>{tr("หากพบปัญหาในการใช้งานหรือต้องการความช่วยเหลือเพิ่มเติม ติดต่อเราได้ที่", "If you run into a problem or need further help, contact us through:", "如果遇到使用问题或需要更多帮助，请通过以下方式联系我们：")}</p>
@@ -345,7 +341,7 @@ export function WelcomeDashboard({
           <a className="flex items-center gap-3 font-bold text-(--khvi-ink) underline-offset-4 hover:text-(--khvi-teal) hover:underline" href="tel:0653735884"><PhoneIcon className="h-5 w-5 shrink-0 text-(--khvi-teal)" aria-hidden="true" /><span>0653735884</span></a>
           <a className="flex min-w-0 items-center gap-3 font-bold text-(--khvi-ink) underline-offset-4 hover:text-(--khvi-teal) hover:underline" href="mailto:wasutorn5884@gmail.com"><EnvelopeIcon className="h-5 w-5 shrink-0 text-(--khvi-teal)" aria-hidden="true" /><span className="break-all">wasutorn5884@gmail.com</span></a>
         </div>
-        {completed.length > 0 && <div className="mt-6 border-t border-(--khvi-teal)/20 pt-5">
+        {!interpreter && completed.length > 0 && <div className="mt-6 border-t border-(--khvi-teal)/20 pt-5">
           <ShieldCheckIcon className="h-7 w-7 text-(--khvi-teal)" aria-hidden="true" />
           <h3 className="mt-3 text-lg font-bold">{tr("รีวิวหลังจบภารกิจ", "Review after completion", "完成后评价")}</h3>
           <p className={muted}>{pendingReviews.length
@@ -353,7 +349,7 @@ export function WelcomeDashboard({
             : tr("คุณรีวิวงานที่เสร็จแล้วครบถ้วนแล้ว", "All completed assignments have been reviewed.", "所有已完成任务都已评价。")}</p>
           {pendingReviews[0] && <Link className={`${button} mt-4 min-h-10 self-start px-4 py-2 text-xs`} href={`/my-requests/${pendingReviews[0].requestId}#main-content`}>{tr("ไปรีวิวงานที่เสร็จแล้ว", "Review a completed assignment", "评价已完成任务")}<ArrowRightIcon className="h-4 w-4" aria-hidden="true" /></Link>}
         </div>}
-      </>}</section>
+      </section>
     </div>
   </main>;
 }
