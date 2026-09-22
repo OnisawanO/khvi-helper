@@ -8,6 +8,7 @@ export const metadata: Metadata = {
   title: "สมัครสมาชิกผู้ใช้ใหม่ · KHVI Helper",
   description: "ลงทะเบียนบัญชีผู้ใช้ใหม่สำหรับขอความช่วยเหลือด้านภาษาจากล่ามจิตอาสา",
 };
+
 export default function RegisterPage() {
   return (
     <AppShell hidePrimaryAction>
