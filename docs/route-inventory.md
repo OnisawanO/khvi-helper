@@ -64,6 +64,11 @@ This update supersedes the older mock-source and state-only behavior notes below
 | `/my-assignments` | Interpreter available-request and assignment list | Authenticated Interpreter (Supabase session) | Supabase `bookings` visible through matching-open and assigned-row RLS policies | Redirect User to `/my-requests`; approval guidance or empty state | Implemented at `app/(interpreter)/my-assignments/page.tsx` |
 | `/register` | Static auth route | Public | Supabase Auth + `public.profiles` trigger; UI locale is inherited from the Guest Welcome page | Not applicable | Implemented at `app/(auth)/register/page.tsx` |
 | `/login` | Static auth route | Public | Supabase Auth + `public.profiles`; development-only Fast Login uses server credentials | Not applicable | Implemented at `app/(auth)/login/page.tsx` |
+| `/api/auth/login` | Auth action route | Public | Supabase Auth session + `public.profiles` | `400` invalid request; `401` invalid credentials; `403` profile unavailable | Implemented at `app/api/auth/login/route.ts` |
+| `/api/auth/register` | Auth action route | Public | Supabase Auth + `public.profiles` trigger | `400` validation/registration error; `409` session unavailable; `500` profile unavailable | Implemented at `app/api/auth/register/route.ts` |
+| `/api/auth/logout` | Auth action route | Authenticated or idempotent session cleanup | Supabase Auth session | `500` logout failure | Implemented at `app/api/auth/logout/route.ts` |
+| `/api/auth/forgot-password` | Auth action route | Public | Supabase Auth password reset email | `400` invalid email; `500` reset request failure | Implemented at `app/api/auth/forgot-password/route.ts` |
+| `/api/auth/reset-password` | Auth action route | Recovery session | Supabase Auth recovery session | `400` invalid password; `401` missing/invalid recovery session | Implemented at `app/api/auth/reset-password/route.ts` |
 | `/api/auth/fast-login` | Auth action route | Development only; disabled in production | Supabase Auth accounts configured by `FAST_LOGIN_*` server environment variables | `400` invalid role; `503` missing dev account; `401` Auth failure | Implemented at `app/api/auth/fast-login/route.ts` |
 | `/sign-in` | Static auth redirect | Public | None | Redirects to `/?signin=true` | Implemented at `app/(auth)/sign-in/page.tsx` |
 
@@ -78,13 +83,15 @@ parameter ที่ผิดรูปแบบหรือไม่พบข้�
 
 `/register` เป็นระบบสมัครสมาชิกบัญชีผู้ใช้ใหม่ รับข้อมูลตาม Schema ตาราง `profiles` ใน `detail.md` ร่วมกับ Supabase Auth (ชื่อ-นามสกุล, อีเมล, รหัสผ่าน, เบอร์โทรศัพท์, วันเดือนปีเกิด, ภาษาหน้าจอ) โดยแสดงผลเป็น Modal Overlay แบบ 2 ฝั่ง (Split Card) ซ้อนบนหน้าแรก (`/`) และสามารถเข้าถึงผ่าน Direct URL `/register` ได้เช่นกัน
 
-`/login` (และ `/sign-in`) เป็นระบบลงชื่อเข้าใช้บัญชีผู้ใช้ที่มีอยู่แล้วผ่าน Supabase Auth ตรวจสอบอีเมลและรหัสผ่าน พร้อมปุ่ม Fast Login สำหรับ development ที่ลงชื่อเข้าบัญชีทดสอบจริง 4 บทบาท (User, Interpreter, Manager, Admin) ผ่าน server route โดยไม่แสดงใน production หน้า login แสดงผลเป็น Modal Overlay แบบ 2 ฝั่ง (Split Card) ซ้อนบนหน้าแรก (`/`) และสามารถเข้าถึงผ่าน Direct URL ได้
+`/login` (และ `/sign-in`) เป็นระบบลงชื่อเข้าใช้บัญชีผู้ใช้ที่มีอยู่แล้วผ่าน `/api/auth/login` ซึ่งตรวจสอบอีเมลและรหัสผ่านด้วย Supabase Auth และอ่าน role จาก `public.profiles` ฝั่ง server พร้อมปุ่ม Fast Login สำหรับ development ที่ลงชื่อเข้าบัญชีทดสอบจริง 4 บทบาท (User, Interpreter, Manager, Admin) ผ่าน server route โดยไม่แสดงใน production หน้า login แสดงผลเป็น Modal Overlay แบบ 2 ฝั่ง (Split Card) ซ้อนบนหน้าแรก (`/`) และสามารถเข้าถึงผ่าน Direct URL ได้
+
+Register, logout, forgot-password และ reset-password ใช้ Route Handler ฝั่ง server เช่นเดียวกัน เพื่อให้การสร้าง session, ล้าง session, ส่ง reset link และเปลี่ยนรหัสผ่านเดินผ่าน Supabase SSR client และไม่เรียก Auth mutation จาก browser โดยตรง
 
 ## Routes ที่วางแผนไว้
 
 | Path | Type | Access | Data source | Not found behavior | Status |
 |---|---|---|---|---|---|
-| `/profile` | Static private route | Authenticated User, Interpreter, Manager, Admin (preview session) | `app/lib/mock-auth.ts` browser session | Redirect to `/#top` when session is missing or locked | Implemented at `app/(workspace)/profile/page.tsx` |
+| `/profile` | Static private route | Authenticated User, Interpreter, Manager, Admin (preview session) | Supabase Auth `profiles`; browser mock session fallback | Redirect to `/#top` when session is missing, locked, or soft-deleted | Implemented at `app/(workspace)/profile/page.tsx`; self-service soft delete is available for Supabase sessions |
 | `/welcome` | Static private route | Authenticated User/Interpreter | Supabase Auth session + `public.profiles`; browser preview data | Redirect by Supabase profile role | Implemented at `app/(workspace)/welcome/page.tsx` |
 | `/map` | Resource map/list | Approved Interpreter | `bookings`, interpreter skills | Empty state or `403` | Planned |
 | `/volunteer/apply` | Resource create route | Authenticated User | `interpreter_profiles`, `languages`, `categories` | Redirect to current application status | Planned |

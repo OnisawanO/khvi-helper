@@ -26,6 +26,8 @@ import NextImage from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type PointerEvent, type ReactNode } from "react";
 import { AppShell, type WorkspaceRole } from "@/app/components/app-shell";
+import { deleteOwnAccountAction } from "@/app/actions/account-actions";
+import { authApi } from "@/app/lib/auth-client";
 import { WorkspaceAccountActions } from "@/app/components/workspace-account-actions";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
 import { UserAvatar } from "@/app/components/user-avatar";
@@ -140,6 +142,7 @@ function ProfileLoading() {
 export function ProfileSettings() {
   const router = useRouter();
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [canDeleteAccount, setCanDeleteAccount] = useState(false);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -161,6 +164,7 @@ export function ProfileSettings() {
         const previewSession = getMockUserSession();
         const sameAccountPreview = previewSession?.userId === supabaseResult.profile.userId ? previewSession : null;
         setUser(sameAccountPreview ? { ...supabaseResult.profile, ...sameAccountPreview } : supabaseResult.profile);
+        setCanDeleteAccount(supabaseResult.accountDeletionAvailable !== false);
         setReady(true);
         return;
       }
@@ -169,6 +173,7 @@ export function ProfileSettings() {
       // user without a valid profile or with a locked account.
       if (supabaseResult?.authenticated) {
         setUser(null);
+        setCanDeleteAccount(false);
         setReady(true);
         router.replace("/#top");
         return;
@@ -177,11 +182,13 @@ export function ProfileSettings() {
       const session = getMockUserSession();
       if (session && ["User", "Interpreter", "Manager", "Admin"].includes(session.role) && !session.isLocked) {
         setUser(session);
+        setCanDeleteAccount(false);
         setReady(true);
         return;
       }
 
       setUser(null);
+      setCanDeleteAccount(false);
       setReady(true);
       router.replace("/#top");
     };
@@ -217,22 +224,43 @@ export function ProfileSettings() {
         accountActions={
           <WorkspaceAccountActions
             user={user}
-            onSignOut={() => {
+            onSignOut={async () => {
               clearMockUserSession();
-              void createClient().auth.signOut();
+              await authApi.logout();
               setUser(null);
               router.replace("/#top");
             }}
           />
         }
       >
-        <ProfileContent user={user} onUserChange={setUser} />
+        <ProfileContent
+          user={user}
+          onUserChange={setUser}
+          canDeleteAccount={canDeleteAccount}
+          onAccountDeleted={async () => {
+            clearMockUserSession();
+            await authApi.logout();
+            setUser(null);
+            setCanDeleteAccount(false);
+            router.replace("/#top");
+          }}
+        />
       </AppShell>
     </div>
   );
 }
 
-function ProfileContent({ user, onUserChange }: { user: UserProfile; onUserChange: (user: UserProfile) => void }) {
+function ProfileContent({
+  user,
+  onUserChange,
+  canDeleteAccount,
+  onAccountDeleted,
+}: {
+  user: UserProfile;
+  onUserChange: (user: UserProfile) => void;
+  canDeleteAccount: boolean;
+  onAccountDeleted: () => void | Promise<void>;
+}) {
   const config = roleConfig[user.role];
 
   return (
@@ -265,6 +293,7 @@ function ProfileContent({ user, onUserChange }: { user: UserProfile; onUserChang
         <ProfileRail user={user} config={config} />
         <div className="min-w-0 space-y-6">
           <PersonalDetailsCard key={user.userId} user={user} onUserChange={onUserChange} />
+          <AccountDeletionCard canDeleteAccount={canDeleteAccount} onDeleted={onAccountDeleted} />
           <RoleSettings user={user} onUserChange={onUserChange} />
         </div>
       </div>
@@ -297,6 +326,10 @@ function ProfileRail({ user, config }: { user: UserProfile; config: RoleConfig }
         <a href="#role-settings" className="mt-1 flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-bold text-(--khvi-ink)/65 transition-colors hover:bg-(--khvi-paper) hover:text-(--khvi-teal)">
           <Cog6ToothIcon className="h-5 w-5" aria-hidden="true" />
           Role settings
+        </a>
+        <a href="#account-deletion" className="mt-1 flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-bold text-(--khvi-coral) transition-colors hover:bg-(--khvi-coral)/10">
+          <TrashIcon className="h-5 w-5" aria-hidden="true" />
+          Delete account
         </a>
       </nav>
 
@@ -416,6 +449,108 @@ function PersonalDetailsCard({ user, onUserChange }: { user: UserProfile; onUser
           </div>
         </div>
       </form>
+    </section>
+  );
+}
+
+function AccountDeletionCard({ canDeleteAccount, onDeleted }: { canDeleteAccount: boolean; onDeleted: () => void | Promise<void> }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const openDialog = () => {
+    setError(null);
+    setConfirmed(false);
+    setIsOpen(true);
+  };
+
+  const closeDialog = () => {
+    if (busy) return;
+    setIsOpen(false);
+    setConfirmed(false);
+    setError(null);
+  };
+
+  const handleDelete = async () => {
+    if (!confirmed || busy) return;
+    setBusy(true);
+    setError(null);
+
+    const result = await deleteOwnAccountAction();
+    if (!result.ok) {
+      setError(result.error);
+      setBusy(false);
+      return;
+    }
+
+    await onDeleted();
+  };
+
+  return (
+    <section id="account-deletion" className="scroll-mt-28 overflow-hidden rounded-(--khvi-radius-md) border border-(--khvi-coral)/35 bg-(--khvi-surface) shadow-[0_10px_24px_rgba(16,40,58,0.05)]">
+      <div className="border-b border-(--khvi-coral)/20 bg-(--khvi-coral)/5 px-5 py-5 sm:px-7">
+        <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-(--khvi-coral)">Account safety</p>
+        <h2 className="mt-1 text-xl font-black text-(--khvi-navy)">Delete my account</h2>
+        <p className="mt-1 max-w-2xl text-sm leading-6 text-(--khvi-ink)/65">
+          Close your account and sign out. Completed history stays available for service records, while personal contact details are removed.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-4 px-5 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+        <div className="flex gap-3 text-xs leading-5 text-(--khvi-ink)/60">
+          <TrashIcon className="mt-0.5 h-5 w-5 shrink-0 text-(--khvi-coral)" aria-hidden="true" />
+          <p>
+            Active requests or assignments must be finished or cancelled before you can delete the account.
+            {canDeleteAccount ? " This action cannot be undone." : " This control becomes available after the latest Supabase migration is applied."}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={openDialog}
+          className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg border border-(--khvi-coral)/50 px-4 py-3 text-sm font-extrabold text-(--khvi-coral) transition-colors hover:bg-(--khvi-coral)/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
+        >
+          <TrashIcon className="h-4 w-4" aria-hidden="true" />
+          Delete my account
+        </button>
+      </div>
+
+      {isOpen && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-(--khvi-navy)/70 p-4" role="dialog" aria-modal="true" aria-labelledby="delete-account-title" aria-describedby="delete-account-description">
+          <div className="w-full max-w-lg rounded-(--khvi-radius-md) border border-(--khvi-coral)/30 bg-(--khvi-surface) p-5 shadow-[0_24px_60px_rgba(9,47,69,0.28)] sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-(--khvi-coral)">Please confirm</p>
+                <h2 id="delete-account-title" className="mt-1 text-xl font-black text-(--khvi-navy)">Delete your account?</h2>
+              </div>
+              <button type="button" onClick={closeDialog} disabled={busy} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#cbd7dc] text-(--khvi-ink)/60 transition-colors hover:border-(--khvi-teal) hover:text-(--khvi-navy) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun) disabled:opacity-50" aria-label="Close delete account dialog">
+                <XMarkIcon className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
+
+            <p id="delete-account-description" className="mt-4 text-sm leading-6 text-(--khvi-ink)/70">
+              Your session will end immediately. Your completed mission history will remain without your personal contact details. You cannot restore this account from Profile Settings.
+            </p>
+
+            {!canDeleteAccount && <p role="alert" className="mt-4 rounded-lg border border-(--khvi-sun)/35 bg-[#fffaf1] p-3 text-sm font-bold leading-5 text-(--khvi-ink)/70">Account deletion is unavailable until the latest Supabase migration is applied.</p>}
+
+            <label className={`mt-5 flex items-start gap-3 rounded-lg border border-(--khvi-coral)/20 bg-(--khvi-coral)/5 p-3 text-sm font-semibold text-(--khvi-ink)/75 ${!canDeleteAccount ? "opacity-55" : ""}`}>
+              <input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} disabled={!canDeleteAccount || busy} className="mt-0.5 h-4 w-4 accent-(--khvi-coral) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)" />
+              <span>I understand that this account will be closed and I will be signed out.</span>
+            </label>
+
+            {error && <p role="alert" className="mt-4 text-sm font-extrabold text-(--khvi-coral)">{error}</p>}
+
+            <div className="mt-6 flex flex-col-reverse gap-3 border-t border-(--khvi-teal)/15 pt-5 sm:flex-row sm:justify-end">
+              <button type="button" onClick={closeDialog} disabled={busy} className="rounded-lg border border-[#cbd7dc] px-4 py-3 text-sm font-extrabold text-(--khvi-ink)/70 transition-colors hover:border-(--khvi-teal) hover:text-(--khvi-navy) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun) disabled:opacity-50">Keep my account</button>
+              <button type="button" onClick={() => void handleDelete()} disabled={!canDeleteAccount || !confirmed || busy} className="inline-flex items-center justify-center gap-2 rounded-lg bg-(--khvi-coral) px-4 py-3 text-sm font-extrabold text-white transition-colors hover:bg-[#c75f51] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun) disabled:cursor-not-allowed disabled:opacity-50">
+                <TrashIcon className="h-4 w-4" aria-hidden="true" />
+                {busy ? "Deleting…" : "Delete account"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

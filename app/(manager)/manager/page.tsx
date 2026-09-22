@@ -58,6 +58,7 @@ import {
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { persistPreferredUiLanguage, useStoredLocale } from "@/app/lib/locale";
 import { createClient } from "@/utils/supabase/client";
+import { authApi } from "@/app/lib/auth-client";
 import {
   loadManagerInterpreterApplicationsAction,
   reviewInterpreterApplicationAction,
@@ -255,8 +256,8 @@ export default function ManagerDashboard() {
     };
   }, [router, setLocale]);
 
-  const handleSignOut = () => {
-    void createClient().auth.signOut();
+  const handleSignOut = async () => {
+    await authApi.logout();
     setCurrentUser(null);
     router.push("/");
   };

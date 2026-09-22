@@ -13,6 +13,7 @@ import { LoginModal } from "@/app/components/auth/login-modal";
 import { getRedirectPathByRole } from "@/app/lib/mock-auth";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { createClient } from "@/utils/supabase/client";
+import { authApi } from "@/app/lib/auth-client";
 import type { UserProfile } from "@/app/lib/mock-auth";
 
 import { AdminActiveTab, AdminUserRecord, AuditLogEntry, SystemRole } from "./types";
@@ -305,8 +306,8 @@ export default function AdminPage() {
         {/* Global Top Header */}
         <AdminHeader
           onMenuClick={() => setIsMobileDrawerOpen((prev) => !prev)}
-          onSignOut={() => {
-            void createClient().auth.signOut();
+          onSignOut={async () => {
+            await authApi.logout();
             setCurrentUser(null);
             setAuthChecked(false);
             router.replace("/#top");

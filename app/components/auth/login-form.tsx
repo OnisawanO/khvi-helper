@@ -2,36 +2,30 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useState, type FormEvent } from "react";
 import {
   CheckCircleIcon,
   EnvelopeIcon,
   EyeIcon,
   EyeSlashIcon,
   LockClosedIcon,
-  SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { getAuthCopy } from "@/app/lib/auth-copy";
+import { DevFastLoginPanel } from "./dev-fast-login-panel";
 import { useStoredLocale } from "@/app/lib/locale";
-import { createClient } from "@/utils/supabase/client";
-import {
-  getAuthErrorMessage,
-  getCurrentUserProfile,
-  getRedirectPathByRole,
-  type UserProfile,
-  type UserRole,
-} from "@/app/lib/supabase-auth";
+import { authApi } from "@/app/lib/auth-client";
+import { getRedirectPathByRole, type UserProfile } from "@/app/lib/mock-auth";
 
 export interface LoginFormProps {
   onSuccess?: (user: UserProfile) => void;
   onSwitchToRegister?: () => void;
   isModal?: boolean;
+  isEmbedded?: boolean;
+  onDirtyChange?: (isDirty: boolean) => void;
 }
 
-export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: LoginFormProps) {
+export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false, isEmbedded = false, onDirtyChange }: LoginFormProps) {
   const router = useRouter();
-  const supabase = createClient();
-  const fastLoginEnabled = process.env.NODE_ENV !== "production";
   const [currentLocale, setStoredLocale] = useStoredLocale();
   const copy = getAuthCopy(currentLocale);
 
@@ -43,9 +37,14 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [successUser, setSuccessUser] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    onDirtyChange?.(Boolean(email || password));
+  }, [email, onDirtyChange, password]);
 
   function handleLoginSuccess(user: UserProfile) {
     setIsSuccess(true);
@@ -56,100 +55,60 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
       } else {
         router.push(getRedirectPathByRole(user.role));
       }
-    }, 900);
+    }, 300);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    setFieldErrors({});
     setIsSubmitting(true);
 
     try {
       const trimmedEmail = email.trim().toLowerCase();
       if (!trimmedEmail) {
-        setError(copy.login.emptyEmail);
+        const message = copy.login.emptyEmail;
+        setFieldErrors({ email: message });
+        setError(message);
         setIsSubmitting(false);
         return;
       }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-        setError(copy.login.invalidEmail);
+        const message = copy.login.invalidEmail;
+        setFieldErrors({ email: message });
+        setError(message);
         setIsSubmitting(false);
         return;
       }
       if (!password) {
-        setError(copy.login.emptyPassword);
+        const message = copy.login.emptyPassword;
+        setFieldErrors({ password: message });
+        setError(message);
         setIsSubmitting(false);
         return;
       }
 
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      const result = await authApi.login({
         email: trimmedEmail,
         password,
+        locale: currentLocale,
       });
 
-      if (signInError || !data.user) {
-        setError(getAuthErrorMessage(signInError, "login", currentLocale));
+      if (!result.ok) {
+        setError(result.error.message);
         setIsSubmitting(false);
         return;
       }
 
-      const profileResult = await getCurrentUserProfile(supabase);
-      if (!profileResult.profile) {
-        await supabase.auth.signOut();
-        setError(profileResult.error || copy.login.profileError);
-        setIsSubmitting(false);
-        return;
-      }
-
-      setStoredLocale(profileResult.profile.preferredUiLanguage);
-      handleLoginSuccess(profileResult.profile);
+      setStoredLocale(result.data.user.preferredUiLanguage);
+      handleLoginSuccess(result.data.user);
     } catch {
       setError(copy.login.genericError);
       setIsSubmitting(false);
     }
   }
 
-  async function handleQuickLogin(role: UserRole) {
-    setError(null);
-    setIsSubmitting(true);
-    try {
-      const response = await fetch("/api/auth/fast-login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role }),
-      });
-      const result = (await response.json()) as { error?: string };
-
-      if (!response.ok) {
-        setError(result.error || copy.login.fastLoginError);
-        setIsSubmitting(false);
-        return;
-      }
-
-      const profileResult = await getCurrentUserProfile(supabase);
-      if (!profileResult.profile) {
-        await supabase.auth.signOut();
-        setError(profileResult.error || copy.login.profileError);
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (profileResult.profile.role !== role) {
-        await supabase.auth.signOut();
-        setError(copy.login.fastLoginRoleMismatch);
-        setIsSubmitting(false);
-        return;
-      }
-
-      setStoredLocale(profileResult.profile.preferredUiLanguage);
-      handleLoginSuccess(profileResult.profile);
-    } catch {
-      setError(copy.login.fastLoginError);
-      setIsSubmitting(false);
-    }
-  }
-
-  const containerClasses = isModal
+  const containerClasses = isModal || isEmbedded
     ? "w-full"
     : "rounded-2xl border border-[#d6e0e4] bg-white p-6 shadow-[var(--khvi-shadow-soft)] sm:p-10";
 
@@ -209,10 +168,16 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
                   autoComplete="email"
                   placeholder="เช่น user@khvi.org"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-lg border border-[#cbd7dc] bg-white py-2.5 pl-9 pr-3 text-xs font-semibold text-[var(--khvi-ink)] transition-colors hover:border-[#8fbfc1] focus:border-[#0d8587] focus:outline-none focus:ring-2 focus:ring-[#0d8587]/20"
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setFieldErrors((previous) => ({ ...previous, email: undefined }));
+                  }}
+                aria-invalid={Boolean(fieldErrors.email)}
+                aria-describedby={fieldErrors.email ? `${emailId}-error` : undefined}
+                className={`w-full rounded-lg border bg-white py-2.5 pl-9 pr-3 text-xs font-semibold text-[var(--khvi-ink)] transition-colors hover:border-[#8fbfc1] focus:border-[#0d8587] focus:outline-none focus:ring-2 focus:ring-[#0d8587]/20 ${fieldErrors.email ? "border-[#e24432] bg-[#fdf8f7]" : "border-[#cbd7dc]"}`}
                 />
               </div>
+              {fieldErrors.email && <p id={`${emailId}-error`} className="mt-1 text-xs font-bold text-[#e24432]">{fieldErrors.email}</p>}
             </div>
 
             {/* Password */}
@@ -221,9 +186,9 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
                 <label htmlFor={passwordId} className="block text-xs font-extrabold text-[#294554]">
                   {copy.register.password} <span className="text-[#e24432]">*</span>
                 </label>
-                <span className="text-[11px] font-bold text-[#73848a]">
-                  {copy.login.forgotPassword} {copy.login.forgotPasswordSoon}
-                </span>
+                <Link href="/forgot-password" className="text-[11px] font-bold text-[#087f80] underline underline-offset-2 hover:text-[#092f45]">
+                  {copy.login.forgotPassword}
+                </Link>
               </div>
               <div className="relative mt-1">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#73848a]">
@@ -236,8 +201,13 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
                   autoComplete="current-password"
                   placeholder={copy.login.passwordPlaceholder}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-lg border border-[#cbd7dc] bg-white py-2.5 pl-9 pr-9 text-xs font-semibold text-[var(--khvi-ink)] transition-colors hover:border-[#8fbfc1] focus:border-[#0d8587] focus:outline-none focus:ring-2 focus:ring-[#0d8587]/20"
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setFieldErrors((previous) => ({ ...previous, password: undefined }));
+                  }}
+                  aria-invalid={Boolean(fieldErrors.password)}
+                  aria-describedby={fieldErrors.password ? `${passwordId}-error` : undefined}
+                  className={`w-full rounded-lg border bg-white py-2.5 pl-9 pr-9 text-xs font-semibold text-[var(--khvi-ink)] transition-colors hover:border-[#8fbfc1] focus:border-[#0d8587] focus:outline-none focus:ring-2 focus:ring-[#0d8587]/20 ${fieldErrors.password ? "border-[#e24432] bg-[#fdf8f7]" : "border-[#cbd7dc]"}`}
                 />
                 <button
                   type="button"
@@ -252,6 +222,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
                   )}
                 </button>
               </div>
+              {fieldErrors.password && <p id={`${passwordId}-error`} className="mt-1 text-xs font-bold text-[#e24432]">{fieldErrors.password}</p>}
             </div>
 
             {/* Remember Me */}
@@ -293,39 +264,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false }: Lo
             </div>
           </form>
 
-          {/* Development-only Fast Login */}
-          {fastLoginEnabled && (
-            <div className="pt-2 border-t border-[#edf2f4]">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-extrabold text-[#73848a] flex items-center gap-1">
-                  <SparklesIcon className="h-3.5 w-3.5 text-[#0d8587]" />
-                  {copy.login.fastLoginTitle}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {([
-                  ["User", copy.roleLabels.User, "text-[#10283a]", "hover:border-[#087f80] hover:bg-[#edf7f5]"],
-                  ["Interpreter", copy.roleLabels.Interpreter, "text-[#087f80]", "hover:border-[#087f80] hover:bg-[#edf7f5]"],
-                  ["Manager", copy.roleLabels.Manager, "text-[#b5680b]", "hover:border-[#b5680b] hover:bg-[#fff9ef]"],
-                  ["Admin", copy.roleLabels.Admin, "text-[#f04f3e]", "hover:border-[#f04f3e] hover:bg-[#fef4f3]"],
-                ] as const).map(([role, label, textColor, hoverColor]) => (
-                  <button
-                    key={role}
-                    type="button"
-                    onClick={() => handleQuickLogin(role)}
-                    disabled={isSubmitting}
-                    className={`flex flex-col items-center justify-center rounded-lg border border-[#cbd7dc] bg-[#f7f9fa] p-2 text-center transition-colors ${hoverColor}`}
-                  >
-                    <span className={`text-[11px] font-black ${textColor}`}>{role}</span>
-                    <span className="text-[9px] text-[#73848a]">{label}</span>
-                  </button>
-                ))}
-              </div>
-              <p className="mt-2 text-[10px] leading-4 text-[#73848a]">
-                {copy.login.fastLoginNote}
-              </p>
-            </div>
-          )}
+          <DevFastLoginPanel embedded />
 
           {/* Switch to Register */}
           <div className="border-t border-[#edf2f4] pt-3 text-center text-xs text-[#5c727d]">

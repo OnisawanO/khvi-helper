@@ -20,6 +20,19 @@ export const PROFILE_COLUMNS = [
   "preferred_ui_language",
   "role",
   "is_locked",
+  "deleted_at",
+  "created_at",
+].join(",");
+
+const LEGACY_PROFILE_COLUMNS = [
+  "user_id",
+  "first_name",
+  "last_name",
+  "phone",
+  "date_of_birth",
+  "preferred_ui_language",
+  "role",
+  "is_locked",
   "created_at",
 ].join(",");
 
@@ -32,6 +45,7 @@ type ProfileRow = {
   preferred_ui_language: string;
   role: string;
   is_locked: boolean;
+  deleted_at: string | null;
   created_at: string;
 };
 
@@ -39,6 +53,7 @@ export type AuthProfileResult = {
   profile: UserProfile | null;
   authenticated: boolean;
   error: string | null;
+  accountDeletionAvailable?: boolean;
 };
 
 const SUPPORTED_LOCALES: Locale[] = ["th", "en", "zh", "es", "ar"];
@@ -77,17 +92,33 @@ export async function getCurrentUserProfile(
     return { profile: null, authenticated: false, error: null };
   }
 
-  const { data, error } = await supabase
+  let accountDeletionAvailable = true;
+  let { data, error } = await supabase
     .from("profiles")
     .select(PROFILE_COLUMNS)
     .eq("user_id", userData.user.id)
     .maybeSingle();
+
+  // Keep sign-in and development Fast Login usable while a new migration is
+  // being applied. The account deletion control remains unavailable until the
+  // database has the deleted_at column.
+  if (error && /deleted_at|column .* does not exist/i.test(error.message)) {
+    accountDeletionAvailable = false;
+    const legacyResult = await supabase
+      .from("profiles")
+      .select(LEGACY_PROFILE_COLUMNS)
+      .eq("user_id", userData.user.id)
+      .maybeSingle();
+    data = legacyResult.data;
+    error = legacyResult.error;
+  }
 
   if (error) {
     return {
       profile: null,
       authenticated: true,
       error: "ไม่สามารถโหลดข้อมูลโปรไฟล์ได้ กรุณาตรวจสอบ migration ของ Supabase",
+      accountDeletionAvailable,
     };
   }
 
@@ -96,6 +127,16 @@ export async function getCurrentUserProfile(
       profile: null,
       authenticated: true,
       error: "บัญชีนี้ยังไม่มีข้อมูลโปรไฟล์ กรุณาตรวจสอบ trigger ของ Supabase",
+      accountDeletionAvailable,
+    };
+  }
+
+  if ((data as unknown as ProfileRow).deleted_at) {
+    return {
+      profile: null,
+      authenticated: true,
+      error: "บัญชีนี้ถูกลบแล้ว กรุณาติดต่อผู้ดูแลระบบหากต้องการความช่วยเหลือ",
+      accountDeletionAvailable,
     };
   }
 
@@ -106,10 +147,11 @@ export async function getCurrentUserProfile(
       profile: null,
       authenticated: true,
       error: "บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ",
+      accountDeletionAvailable,
     };
   }
 
-  return { profile, authenticated: true, error: null };
+  return { profile, authenticated: true, error: null, accountDeletionAvailable };
 }
 
 export function splitFullName(name: string): { firstName: string; lastName: string } {
