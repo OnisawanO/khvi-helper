@@ -31,10 +31,6 @@ export function SiteFooter({ copy, brandSubtitle, workspace = false }: SiteFoote
     <footer className="border-t border-(--khvi-teal)/20 bg-(--khvi-surface) px-5 py-7 sm:px-8 lg:px-12">
       <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-6">
         <BrandMark subtitle={brandSubtitle} />
-        <nav aria-label="Footer" className="flex flex-wrap gap-5 text-sm font-semibold text-(--khvi-ink)">
-          <Link className="underline underline-offset-4" href="/welcome#welcome-steps">{copy.links.how}</Link>
-          <Link className="underline underline-offset-4" href="/welcome#welcome-safety">{copy.links.privacy}</Link>
-        </nav>
       </div>
     </footer>
   );
@@ -51,14 +47,12 @@ export function SiteFooter({ copy, brandSubtitle, workspace = false }: SiteFoote
             <p className="text-xs font-extrabold text-white/45">{copy.explore}</p>
             <div className="mt-4 space-y-3 text-sm font-semibold text-white/75">
               <Link className="block transition-colors hover:text-white" href="/#map-preview">{copy.links.map}</Link>
-              <Link className="block transition-colors hover:text-white" href="/#how-it-works">{copy.links.how}</Link>
               <Link className="block transition-colors hover:text-white" href="/#roles">{copy.links.roles}</Link>
             </div>
           </nav>
           <nav aria-label="Footer safety">
             <p className="text-xs font-extrabold text-white/45">{copy.safety}</p>
             <div className="mt-4 space-y-3 text-sm font-semibold text-white/75">
-              <Link className="block transition-colors hover:text-white" href="/#safety">{copy.links.privacy}</Link>
               <Link className="block transition-colors hover:text-white" href="/request-help#main-content">{copy.links.request}</Link>
               <Link className="block transition-colors hover:text-white" href="/sign-in">{copy.links.signIn}</Link>
             </div>

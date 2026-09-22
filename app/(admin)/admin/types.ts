@@ -1,5 +1,9 @@
 export type SystemRole = "User" | "Interpreter" | "Manager" | "Admin";
 
+export type AccountStatus = "Active" | "Locked" | "Banned";
+
+export type UserStatusFilter = "All" | "Active" | "Locked" | "AppealPending";
+
 export type AdminUserRecord = {
   id: string;
   name: string;
@@ -10,6 +14,12 @@ export type AdminUserRecord = {
   role: SystemRole;
   isLocked: boolean;
   lockReason?: string;
+  accountStatus?: AccountStatus; // Active, Locked (Temporary), Banned (Permanent Hard Ban)
+  // Appeal fields for soft-banned users
+  hasPendingAppeal?: boolean;
+  appealReason?: string;
+  appealSubmittedAt?: string;
+  appealCategory?: "Accidental" | "Device Issue" | "Misunderstanding" | "Other";
   registeredAt: string;
   lastActive: string;
   // Interpreter specific fields if role === 'Interpreter'
@@ -23,6 +33,23 @@ export type AdminUserRecord = {
   };
 };
 
+export type AdminIncidentReport = {
+  id: string;
+  reporterName: string;
+  reporterRole: "User" | "Interpreter";
+  reportedUserId: string;
+  reportedUserName: string;
+  reportedUserRole: "User" | "Interpreter";
+  bookingId: string;
+  reason: string; // English translated reason for admin decision-making
+  originalReason?: string; // Original reason in user's native language
+  originalLanguage?: string; // e.g., "Spanish", "Thai", "Russian", "Japanese"
+  severity: "high" | "critical" | "medium";
+  createdAt: string;
+  status: "Escalated to Admin" | "Resolved (Locked)" | "Resolved (Hard Banned)" | "Resolved (Unlocked)" | "Dismissed";
+  actionTaken?: string;
+};
+
 export type AuditLogEntry = {
   id: string;
   timestamp: string;
@@ -33,4 +60,24 @@ export type AuditLogEntry = {
   details: string;
 };
 
-export type AdminActiveTab = "users" | "interpreters" | "audit";
+export type AdminActiveTab = "overview" | "users" | "reports" | "audit" | "policies";
+
+export type SystemSettingsConfig = {
+  // 1. Emergency Dispatch & SOS Policy
+  sosDispatchRadiusKm: number;
+  autoEscalateTicketMinutes: number;
+  allowGuestSosRequests: boolean;
+
+  // 2. Interpreter Accreditation & Platform Safeguards
+  interpreterMinRatingThreshold: number;
+  mandatoryIdVerification: boolean;
+  maxFalseAlarmsBeforeAutoLock: number;
+
+  // 3. Taxonomies & Catalogs
+  languagesCatalog: string[];
+  specialtyCategories: string[];
+
+  // Metadata
+  lastUpdated?: string;
+  updatedBy?: string;
+};

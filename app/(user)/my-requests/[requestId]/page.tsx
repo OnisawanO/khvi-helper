@@ -15,7 +15,7 @@ export async function generateMetadata(props: PageProps<"/my-requests/[requestId
   }
 
   return {
-    title: `Request #${requestId} | K-HVI`,
+    title: "Request details | K-HVI",
     description: "Track the status of a help request and see interpreter contact details once the job is claimed.",
   };
 }

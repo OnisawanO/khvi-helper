@@ -1,24 +1,30 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
 import { createBookingAction } from "@/app/actions/booking-actions";
-import { useEffect, useMemo, useRef, useState, type SubmitEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type SubmitEvent } from "react";
 import {
   BoltIcon,
   CalendarDaysIcon,
   CheckCircleIcon,
+  ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ExclamationTriangleIcon,
   EyeSlashIcon,
+  HeartIcon,
   LockClosedIcon,
   MapIcon,
   MapPinIcon,
+  SparklesIcon,
 } from "@heroicons/react/24/outline";
-import { useCopyLocale } from "@/app/components/app-shell";
-import { CATEGORIES, LANGUAGES, type CategoryId, type LanguageId, type Urgency } from "@/app/lib/mock-requests";
+import { useCopyLocale, useUiLocale } from "@/app/components/app-shell";
+import type { Urgency } from "@/app/lib/mock-requests";
+import type { ReferenceOption } from "@/app/lib/reference-catalog";
 import { LocationMapPicker, type LocationCoordinates } from "./location-map-picker";
+import styles from "./request-success.module.css";
 
 const copy = {
   en: {
@@ -154,8 +160,116 @@ type GpsState =
   | { kind: "unavailable" };
 const fieldClass =
   "w-full rounded-lg border border-[#cbd7dc] bg-white px-3.5 py-3 text-sm font-semibold text-(--khvi-ink) transition-colors hover:border-[#8fbfc1]";
+const selectClass =
+  "w-full rounded-lg border border-[#cbd7dc] bg-white px-3 py-2 text-sm font-semibold text-(--khvi-ink) transition-colors hover:border-[#8fbfc1]";
 const labelClass = "block text-sm font-extrabold text-[#294554]";
 const hintClass = "mt-1.5 text-xs leading-5 text-[#73848a]";
+
+function CompactSelect({
+  id,
+  value,
+  placeholder,
+  options,
+  invalid,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  placeholder: string;
+  options: Array<{ id: string; label: string }>;
+  invalid: boolean;
+  onChange: (value: string) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const selected = options.find((option) => option.id === value);
+
+  useEffect(() => {
+    if (!open) return;
+    function closeWhenClickedOutside(event: PointerEvent) {
+      if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    document.addEventListener("pointerdown", closeWhenClickedOutside);
+    return () => document.removeEventListener("pointerdown", closeWhenClickedOutside);
+  }, [open]);
+
+  function handleTriggerKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      setOpen(true);
+    }
+    if (event.key === "Escape") setOpen(false);
+  }
+
+  function handleOptionKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setOpen(false);
+      document.getElementById(id)?.focus();
+      return;
+    }
+    const nextIndex = event.key === "ArrowDown" ? index + 1 : event.key === "ArrowUp" ? index - 1 : null;
+    if (nextIndex !== null) {
+      event.preventDefault();
+      const nextOption = document.getElementById(`${id}-option-${nextIndex}`);
+      nextOption?.focus();
+    }
+  }
+
+  return (
+    <div ref={containerRef} className="relative mt-2">
+      <button
+        id={id}
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={`${id}-options`}
+        aria-describedby={invalid ? `${id}-error` : undefined}
+        className={`${selectClass} flex min-h-10 items-center justify-between gap-3 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f80] ${invalid ? "border-[#c33a2a]" : ""}`}
+        onClick={() => setOpen((current) => !current)}
+        onKeyDown={handleTriggerKeyDown}
+      >
+        <span className={selected ? "truncate" : "truncate text-[#73848a]"}>{selected?.label ?? placeholder}</span>
+        <ChevronDownIcon aria-hidden="true" className={`h-4 w-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div
+          id={`${id}-options`}
+          role="listbox"
+          aria-labelledby={id}
+          className="absolute z-30 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-[#cbd7dc] bg-white p-1 shadow-[0_10px_24px_rgba(16,40,58,0.16)]"
+        >
+          {options.map((option, index) => (
+            <button
+              key={option.id}
+              id={`${id}-option-${index}`}
+              type="button"
+              role="option"
+              aria-selected={option.id === value}
+              className={`block min-h-9 w-full rounded-md px-3 py-1.5 text-left text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#087f80] ${option.id === value ? "bg-[#edf7f5] text-[#087f80]" : "text-(--khvi-ink) hover:bg-[#f7f9fa]"}`}
+              onClick={() => {
+                onChange(option.id);
+                setOpen(false);
+              }}
+              onKeyDown={(event) => handleOptionKeyDown(event, index)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function focusAndScrollToField(id: string) {
+  window.requestAnimationFrame(() => {
+    const field = document.getElementById(id);
+    if (!field) return;
+    field.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (field instanceof HTMLElement) field.focus({ preventScroll: true });
+  });
+}
 
 function toDateInputValue(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -395,15 +509,39 @@ function TimeWheel({ id, label, value, max, onChange }: TimeWheelProps) {
   );
 }
 
-export function RequestHelpForm() {
+export function RequestHelpForm({
+  languageOptions,
+  categoryOptions,
+}: {
+  languageOptions: ReferenceOption[];
+  categoryOptions: ReferenceOption[];
+}) {
   const saving = useRef(false);
+  const successDialogRef = useRef<HTMLDialogElement>(null);
   const router = useRouter();
+  const locale = useUiLocale();
   const copyLocale = useCopyLocale();
   const t = copy[copyLocale];
+  const successCopy = locale === "th"
+    ? { title: "สร้างคำขอสำเร็จแล้ว!", body: "ส่งคำขอของคุณแล้ว รอล่ามอาสาเข้ามาช่วยนะ", next: "กำลังพาไปติดตามคำขอ…", track: "ดูคำขอของฉัน", saving: "กำลังส่งคำขอ…", error: "ส่งคำขอไม่สำเร็จ กรุณาลองอีกครั้ง" }
+    : locale === "zh"
+      ? { title: "求助已创建！", body: "您的求助已发布，请等待志愿口译员接单。", next: "即将打开求助详情…", track: "查看我的求助", saving: "正在提交…", error: "提交失败，请重试。" }
+      : { title: "Your request is ready!", body: "Your request is posted. A volunteer interpreter can now pick it up.", next: "Taking you to your request…", track: "View my request", saving: "Sending request…", error: "Could not send your request. Please try again." };
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createdRequestId, setCreatedRequestId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!createdRequestId) return;
+    const dialog = successDialogRef.current;
+    if (!dialog) return;
+    if (!dialog.open) dialog.showModal();
+    const timer = window.setTimeout(() => dialog.close(), 3000);
+    return () => window.clearTimeout(timer);
+  }, [createdRequestId]);
 
   const [urgency, setUrgency] = useState<Urgency>("Immediate");
-  const [languageId, setLanguageId] = useState<LanguageId | "">("");
-  const [categoryId, setCategoryId] = useState<CategoryId | "">("");
+  const [languageId, setLanguageId] = useState<string>("");
+  const [categoryId, setCategoryId] = useState<string>("");
   const [description, setDescription] = useState("");
   const [place, setPlace] = useState("");
   const [scheduledDate, setScheduledDate] = useState("");
@@ -482,26 +620,44 @@ export function RequestHelpForm() {
     }
 
     setErrors(nextErrors);
+    const firstErrorId = nextErrors.schedule
+      ? "scheduled-at"
+      : nextErrors.language
+        ? "language"
+        : nextErrors.category
+          ? "category"
+          : nextErrors.place
+            ? "place"
+            : null;
+    if (firstErrorId) focusAndScrollToField(firstErrorId);
 
     if (Object.keys(nextErrors).length === 0 && languageId && categoryId) {
       saving.current = true;
+      setIsSubmitting(true);
       setSaveError("");
-      const result = await createBookingAction({
-        languageId,
-        categoryId,
-        description: description.trim(),
-        urgency,
-        exactAddress: place.trim(),
-        latitude: gps.kind === "ready" ? gps.latitude : null,
-        longitude: gps.kind === "ready" ? gps.longitude : null,
-        scheduledAt: urgency === "Scheduled" ? selectedScheduledAt : null,
-      });
+      try {
+        const result = await createBookingAction({
+          languageId,
+          categoryId,
+          description: description.trim(),
+          urgency,
+          exactAddress: place.trim(),
+          latitude: gps.kind === "ready" ? gps.latitude : null,
+          longitude: gps.kind === "ready" ? gps.longitude : null,
+          scheduledAt: urgency === "Scheduled" ? selectedScheduledAt : null,
+        });
 
-      if (result.ok) {
-        router.push(`/my-requests/${result.data.requestId}`);
-      } else {
+        if (result.ok) {
+          setCreatedRequestId(result.data.requestId);
+        } else {
+          saving.current = false;
+          setSaveError(result.error);
+        }
+      } catch {
         saving.current = false;
-        setSaveError(result.error);
+        setSaveError(successCopy.error);
+      } finally {
+        setIsSubmitting(false);
       }
     }
   }
@@ -509,6 +665,26 @@ export function RequestHelpForm() {
 
   return (
     <main id="main-content" className="flex-1 px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
+      {createdRequestId && (
+        <dialog
+          ref={successDialogRef}
+          aria-labelledby="request-success-title"
+          aria-describedby="request-success-body request-success-next"
+          className={styles.dialog}
+          onClose={() => router.push(`/my-requests/${createdRequestId}`)}
+        >
+          <div aria-hidden="true" className={styles.illustration}>
+            <SparklesIcon className={styles.sparkles} />
+            <HeartIcon className={styles.heart} />
+            <CheckCircleIcon className={styles.check} />
+          </div>
+          <h2 id="request-success-title" className="text-2xl font-extrabold text-(--khvi-navy)">{successCopy.title}</h2>
+          <p id="request-success-body" className="mt-3 text-sm leading-7 text-(--khvi-ink)/80">{successCopy.body}</p>
+          <p id="request-success-next" className="mt-5 text-xs text-(--khvi-ink)/70">{successCopy.next}</p>
+          <button type="button" onClick={() => successDialogRef.current?.close()} className="mt-4 min-h-11 rounded-(--khvi-radius-sm) px-4 text-sm font-bold text-(--khvi-navy) underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-teal)">{successCopy.track}</button>
+          <div aria-hidden="true" className={styles.progress}><span /></div>
+        </dialog>
+      )}
       <div className="mx-auto max-w-[1180px]">
         <WorkspaceBreadcrumbs
           ariaLabel={t.breadcrumb}
@@ -562,7 +738,7 @@ export function RequestHelpForm() {
               </fieldset>
 
               {urgency === "Scheduled" && (
-                <fieldset className="mt-5" aria-describedby="scheduled-at-hint">
+                <fieldset id="scheduled-at" tabIndex={-1} className="mt-5 scroll-mt-28" aria-describedby="scheduled-at-hint">
                   <legend className={labelClass}>{t.scheduleLabel}</legend>
                   <div className="mt-2 grid grid-cols-2 gap-3 rounded-[var(--khvi-radius-md)] bg-[#edf3f4] p-3 sm:grid-cols-[minmax(280px,1.35fr)_minmax(96px,0.65fr)_minmax(96px,0.65fr)] sm:items-stretch">
                     <DateCalendar
@@ -616,42 +792,36 @@ export function RequestHelpForm() {
                   <label className={labelClass} htmlFor="language">
                     {t.languageLabel}
                   </label>
-                  <select
+                  <CompactSelect
                     id="language"
-                    className={`mt-2 ${fieldClass}`}
                     value={languageId}
-                    aria-invalid={Boolean(errors.language)}
-                    onChange={(event) => setLanguageId(event.target.value as LanguageId)}
-                  >
-                    <option value="">{t.languagePlaceholder}</option>
-                    {LANGUAGES.map((language) => (
-                      <option key={language.id} value={language.id}>
-                        {language[copyLocale]}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.language && <FieldError message={errors.language} />}
+                    placeholder={t.languagePlaceholder}
+                    options={languageOptions.map((language) => ({
+                      id: language.id,
+                      label: copyLocale === "zh" ? language.nameZh : language.name,
+                    }))}
+                    invalid={Boolean(errors.language)}
+                    onChange={setLanguageId}
+                  />
+                  {errors.language && <FieldError id="language-error" message={errors.language} />}
                 </div>
 
                 <div>
                   <label className={labelClass} htmlFor="category">
                     {t.categoryLabel}
                   </label>
-                  <select
+                  <CompactSelect
                     id="category"
-                    className={`mt-2 ${fieldClass}`}
                     value={categoryId}
-                    aria-invalid={Boolean(errors.category)}
-                    onChange={(event) => setCategoryId(event.target.value as CategoryId)}
-                  >
-                    <option value="">{t.categoryPlaceholder}</option>
-                    {CATEGORIES.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category[copyLocale]}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.category && <FieldError message={errors.category} />}
+                    placeholder={t.categoryPlaceholder}
+                    options={categoryOptions.map((category) => ({
+                      id: category.id,
+                      label: copyLocale === "zh" ? category.nameZh : category.name,
+                    }))}
+                    invalid={Boolean(errors.category)}
+                    onChange={setCategoryId}
+                  />
+                  {errors.category && <FieldError id="category-error" message={errors.category} />}
                 </div>
               </div>
 
@@ -749,11 +919,14 @@ export function RequestHelpForm() {
               {saveError && <FieldError message={saveError} />}
               <button
                 type="submit"
-                className="mt-7 flex h-14 w-full items-center justify-center gap-2 rounded-lg bg-(--khvi-coral) px-5 text-sm font-extrabold text-white shadow-[0_10px_20px_rgba(240,79,62,0.22)] transition-colors hover:bg-[#d94334]"
+                disabled={isSubmitting || Boolean(createdRequestId)}
+                aria-busy={isSubmitting}
+                className="mt-7 flex h-14 w-full items-center justify-center gap-2 rounded-lg bg-(--khvi-coral) px-5 text-sm font-extrabold text-white shadow-[0_10px_20px_rgba(240,79,62,0.22)] transition-colors hover:bg-[#d94334] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <MapPinIcon aria-hidden="true" className="h-5 w-5" />
-                {t.submit}
+                {isSubmitting ? successCopy.saving : createdRequestId ? successCopy.title : t.submit}
               </button>
+              {createdRequestId && <Link href={`/my-requests/${createdRequestId}`} className="mt-3 inline-flex min-h-11 items-center rounded-(--khvi-radius-sm) text-sm font-bold text-(--khvi-navy) underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-teal)">{successCopy.track}</Link>}
             </form>
 
             <aside className="border border-[#d6e0e4] bg-white p-5 lg:sticky lg:top-28">
@@ -795,9 +968,9 @@ export function RequestHelpForm() {
   );
 }
 
-function FieldError({ message }: { message: string }) {
+function FieldError({ id, message }: { id?: string; message: string }) {
   return (
-    <p role="alert" className="mt-2 flex items-start gap-2 text-xs font-bold leading-5 text-[#c33a2a]">
+    <p id={id} role="alert" className="mt-2 flex items-start gap-2 text-xs font-bold leading-5 text-[#c33a2a]">
       <ExclamationTriangleIcon aria-hidden="true" className="h-4 w-4 shrink-0" />
       {message}
     </p>

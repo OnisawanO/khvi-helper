@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { apiError, apiSuccess } from "@/app/lib/api/auth-response";
 import { createClient } from "@/utils/supabase/server";
-import type { UserRole } from "@/app/lib/mock-auth";
+import { getRedirectPathByRole, type UserRole } from "@/app/lib/mock-auth";
+import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 
 const FAST_LOGIN_ROLES: UserRole[] = ["User", "Interpreter", "Manager", "Admin"];
 
@@ -25,7 +26,7 @@ const credentialsByRole: Record<UserRole, { email: string | undefined; password:
 
 export async function POST(request: Request) {
   if (process.env.NODE_ENV === "production") {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return apiError("not_found", "Not found", 404);
   }
 
   let role: UserRole | undefined;
@@ -35,18 +36,19 @@ export async function POST(request: Request) {
       role = body.role as UserRole;
     }
   } catch {
-    return NextResponse.json({ error: "คำขอไม่ถูกต้อง" }, { status: 400 });
+    return apiError("invalid_request", "คำขอไม่ถูกต้อง", 400);
   }
 
   if (!role) {
-    return NextResponse.json({ error: "ไม่พบบทบาทสำหรับ Fast Login" }, { status: 400 });
+    return apiError("invalid_role", "ไม่พบบทบาทสำหรับ Fast Login", 400);
   }
 
   const credentials = credentialsByRole[role];
   if (!credentials.email || !credentials.password) {
-    return NextResponse.json(
-      { error: `ยังไม่ได้ตั้งค่าบัญชีทดสอบสำหรับ role ${role} ใน .env.local` },
-      { status: 503 },
+    return apiError(
+      "fast_login_not_configured",
+      "ยังไม่ได้ตั้งค่าบัญชีทดสอบสำหรับ role " + role + " ใน .env.local",
+      503,
     );
   }
 
@@ -57,11 +59,23 @@ export async function POST(request: Request) {
   });
 
   if (error) {
-    return NextResponse.json(
-      { error: "ไม่สามารถเข้าสู่ระบบด่วนได้ กรุณาตรวจสอบบัญชีทดสอบใน Supabase Auth" },
-      { status: 401 },
-    );
+    return apiError("fast_login_failed", "ไม่สามารถเข้าสู่ระบบด่วนได้ กรุณาตรวจสอบบัญชีทดสอบใน Supabase Auth", 401);
   }
 
-  return NextResponse.json({ ok: true, role }, { headers: { "Cache-Control": "no-store" } });
+  const profileResult = await getCurrentUserProfile(supabase);
+  if (!profileResult.profile) {
+    await supabase.auth.signOut();
+    return apiError("profile_unavailable", profileResult.error || "ไม่สามารถโหลดข้อมูลโปรไฟล์ได้", 403);
+  }
+
+  if (profileResult.profile.role !== role) {
+    await supabase.auth.signOut();
+    return apiError("role_mismatch", "บัญชีทดสอบนี้ไม่ตรงกับ role ที่เลือก", 403);
+  }
+
+  return apiSuccess({
+    user: profileResult.profile,
+    role,
+    redirectPath: getRedirectPathByRole(role),
+  });
 }

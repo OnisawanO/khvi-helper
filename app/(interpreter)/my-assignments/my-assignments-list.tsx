@@ -163,10 +163,6 @@ export function MyAssignmentsList({
     (request) => request.status === "Open" && request.requestId !== claimedRequestId,
   );
   const applicationApproved = applicationStatus === "approved";
-  const applicationHref = applicationStatus === null
-    ? "/volunteer/apply#main-content"
-    : "/volunteer/status#main-content";
-  const applicationAction = applicationStatus === null ? t.startApplication : t.viewApplicationStatus;
   const approvalBody = applicationStatus === null
     ? t.approvalMissingBody
     : applicationStatus === "needs_revision"
@@ -267,12 +263,14 @@ export function MyAssignmentsList({
                   <p className="mt-1.5 max-w-2xl text-sm leading-6 text-[#64777e]">{approvalBody}</p>
                 </div>
               </div>
-              <Link
-                href={applicationHref}
-                className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg bg-(--khvi-navy) px-4 py-2 text-sm font-extrabold text-white transition-colors hover:bg-[#0c4960] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
-              >
-                {applicationAction}
-              </Link>
+              {applicationStatus !== null && (
+                <Link
+                  href="/volunteer/status#main-content"
+                  className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg bg-(--khvi-navy) px-4 py-2 text-sm font-extrabold text-white transition-colors hover:bg-[#0c4960] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
+                >
+                  {t.viewApplicationStatus}
+                </Link>
+              )}
             </div>
           ) : availableRequests.length === 0 ? (
             <div className="mt-4 border border-[#d6e0e4] bg-white p-6 text-center" aria-live="polite">
@@ -294,7 +292,6 @@ export function MyAssignmentsList({
                           <div className="flex flex-wrap items-center gap-2">
                             <StatusBadge status={request.status} copyLocale={copyLocale} />
                             <UrgencyBadge urgency={request.urgency} copyLocale={copyLocale} />
-                            <span className="text-xs font-extrabold text-[#8a9aa0]">#{request.requestId}</span>
                           </div>
                           <h3 className="mt-3 text-lg font-extrabold text-[#173646]">
                             {categoryLabel(request.categoryId, copyLocale)} · {languageLabel(request.languageId, copyLocale)}
@@ -401,7 +398,6 @@ export function MyAssignmentsList({
                     <div className="flex flex-wrap items-center gap-2">
                       <StatusBadge status={request.status} copyLocale={copyLocale} />
                       <UrgencyBadge urgency={request.urgency} copyLocale={copyLocale} />
-                      <span className="text-xs font-extrabold text-[#8a9aa0]">#{request.requestId}</span>
                     </div>
                     <h2 className="mt-3 text-lg font-extrabold text-[#173646]">
                       {categoryLabel(request.categoryId, copyLocale)} · {languageLabel(request.languageId, copyLocale)}

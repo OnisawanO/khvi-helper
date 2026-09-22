@@ -65,6 +65,16 @@ const landingCopy = {
       note: "คนต่างภาษา แต่หัวใจเดียวกัน",
       imageAlt: "กลุ่มคนหลากหลายยืนเคียงกันมองทิวทัศน์ประเทศไทย",
     },
+    howItWorks: {
+      label: "ขั้นตอนใช้งาน",
+      title: "จากคำขอจนจบภารกิจ",
+      steps: ["เลือกภาษา หมวดหมู่ และจุดนัดพบ", "เมื่อล่ามรับงาน ตรวจสอบและยืนยันล่าม", "ทั้งสองฝ่ายยืนยันจบ แล้วจึงรีวิว"],
+    },
+    privacy: {
+      label: "ความเป็นส่วนตัว",
+      title: "แบ่งปันเฉพาะข้อมูลที่จำเป็น",
+      body: "ตรวจสอบบุคคลและจุดนัดพบก่อนเดินทาง ข้อมูลติดต่อและพิกัดละเอียดเปิดตามขั้นตอนยืนยันล่าม บริการนี้ช่วยด้านภาษา ไม่ทดแทนหน่วยงานฉุกเฉิน",
+    },
     footer: {
       description: "เครือข่ายอาสาสมัครล่ามเพื่อการสื่อสารที่เข้าถึงได้สำหรับทุกคน",
       note: "เชื่อมคน เชื่อมภาษา",
@@ -116,6 +126,16 @@ const landingCopy = {
       note: "Different languages, one community",
       imageAlt: "A diverse group standing together and looking over a Thai landscape",
     },
+    howItWorks: {
+      label: "How it works",
+      title: "From request to completion",
+      steps: ["Choose a language, category and meeting point", "Review and confirm the interpreter after claim", "Both people confirm completion, then review"],
+    },
+    privacy: {
+      label: "Privacy",
+      title: "Share only what is needed",
+      body: "Confirm who you are meeting and where. Contact details and exact locations follow interpreter confirmation. Language support does not replace emergency services.",
+    },
     footer: {
       description: "A volunteer interpreter network making communication accessible to everyone.",
       note: "Connecting people and languages",
@@ -166,6 +186,16 @@ const landingCopy = {
       quote: "当沟通跨越边界，\n每个人都能走得更远。",
       note: "语言不同，心意相通",
       imageAlt: "多元群体并肩眺望泰国景观",
+    },
+    howItWorks: {
+      label: "使用步骤",
+      title: "从请求到完成",
+      steps: ["选择语言、类别和见面地点", "口译员接单后查看并确认", "双方确认完成后评价"],
+    },
+    privacy: {
+      label: "隐私",
+      title: "仅分享必要信息",
+      body: "出发前确认见面对象和地点。确认口译员后才开放联系方式及详细位置。语言服务不能代替紧急救援。",
     },
     footer: {
       description: "让每个人都能获得沟通支持的志愿口译网络。",
@@ -439,7 +469,6 @@ export default function Home() {
 
       <section id="about" className="relative mx-auto grid max-w-[1480px] scroll-mt-24 gap-7 px-4 py-10 sm:px-8 sm:py-14 lg:grid-cols-[0.92fr_1.48fr] lg:items-center lg:gap-8 lg:px-8 lg:py-16">
         <span id="map-preview" className="absolute top-0" aria-hidden="true" />
-        <span id="how-it-works" className="absolute top-0" aria-hidden="true" />
         <div>
           <span className="inline-flex rounded-md bg-[#dff4f5] px-3 py-1.5 text-xs font-extrabold tracking-wide text-[#087f80]">{t.about.label}</span>
           <h2 className="mt-4 whitespace-pre-line text-3xl font-extrabold leading-tight tracking-[-0.02em] text-[#0b3550] sm:text-4xl">{t.about.title}</h2>
@@ -464,9 +493,29 @@ export default function Home() {
         </div>
       </section>
 
+      <section id="how-it-works" className="mx-auto grid max-w-[1480px] scroll-mt-24 gap-6 px-4 pb-10 sm:px-8 sm:pb-14 lg:grid-cols-[1.15fr_0.85fr] lg:items-stretch lg:gap-8 lg:px-8">
+        <div className="rounded-2xl border border-[#d7e4e8] bg-white p-6 sm:p-8">
+          <p className="text-xs font-extrabold tracking-wide text-[#087f80]">{t.howItWorks.label}</p>
+          <h2 className="mt-3 text-3xl font-extrabold tracking-[-0.02em] text-[#0b3550] sm:text-4xl">{t.howItWorks.title}</h2>
+          <ol className="mt-6 grid gap-4 md:grid-cols-3">
+            {t.howItWorks.steps.map((step, index) => (
+              <li key={step} className="flex gap-3 border-t border-[#dbe6ea] pt-4 text-sm font-semibold leading-6 text-[#536c79] md:block md:border-t-0 md:border-l md:pl-4 md:first:border-l-0 md:first:pl-0">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#dff4f5] font-extrabold text-[#087f80] md:mb-4">{index + 1}</span>
+                {step}
+              </li>
+            ))}
+          </ol>
+        </div>
+        <aside id="safety" className="rounded-2xl bg-(--khvi-sage)/10 p-6 sm:p-8">
+          <ShieldCheckIcon aria-hidden="true" className="h-8 w-8 text-(--khvi-teal)" />
+          <p className="mt-5 text-xs font-extrabold tracking-wide text-(--khvi-teal)">{t.privacy.label}</p>
+          <h2 className="mt-3 text-2xl font-extrabold tracking-[-0.02em] text-(--khvi-ink)">{t.privacy.title}</h2>
+          <p className="mt-4 text-sm leading-7 text-(--khvi-ink)/75">{t.privacy.body}</p>
+        </aside>
+      </section>
+
       <section id="community" className="relative mx-auto max-w-[1480px] scroll-mt-24 px-4 pb-10 sm:px-8 sm:pb-14 lg:px-8">
         <span id="roles" className="absolute top-0" aria-hidden="true" />
-        <span id="safety" className="absolute top-0" aria-hidden="true" />
         <div className="overflow-hidden rounded-2xl border border-[#d7e4e8] bg-white sm:relative sm:min-h-[280px] sm:bg-[#eef7f8]">
           <div className="relative aspect-[3/1] bg-[#eef7f8] sm:absolute sm:inset-0 sm:aspect-auto">
             <Image src="/khvi-community-banner.png" alt={t.community.imageAlt} fill className="object-cover object-center" sizes="(min-width: 1480px) 1420px, (min-width: 640px) calc(100vw - 64px), calc(100vw - 32px)" />
