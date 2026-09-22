@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   CheckCircleIcon,
   ClipboardDocumentListIcon,
   MapPinIcon,
   ShieldCheckIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { useCopyLocale } from "@/app/components/app-shell";
 import { ActiveTaskDialog } from "@/app/components/active-task-dialog";
@@ -160,12 +161,14 @@ export function MyAssignmentsList({
   const [cancelRequestId, setCancelRequestId] = useState<string | null>(null);
   const [cancelDraft, setCancelDraft] = useState("");
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const cancelReasonRef = useRef<HTMLTextAreaElement>(null);
   const allAssignments = allRequests.filter((request) => ["Claimed", "InProgress", "Completed"].includes(request.status));
   const matching = (filterId: AssignmentFilterId) => {
     const status = assignmentStatus(filterId);
     return allAssignments.filter((request) => status === null || request.status === status);
   };
   const assignments = matching(selectedFilter);
+  const cancelRequest = allAssignments.find((request) => request.requestId === cancelRequestId) ?? null;
   const counts = Object.fromEntries(ASSIGNMENT_FILTERS.map((filterId) => [filterId, matching(filterId).length]));
   const availableRequests = initialAvailableRequests.filter(
     (request) => request.status === "Open" && request.requestId !== claimedRequestId,
@@ -178,6 +181,27 @@ export function MyAssignmentsList({
       : applicationStatus === "rejected"
         ? t.approvalRejectedBody
         : t.approvalPendingBody;
+
+  useEffect(() => {
+    if (!cancelRequestId) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    cancelReasonRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setCancelRequestId(null);
+      setCancelDraft("");
+      setCancelError(null);
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [cancelRequestId]);
 
   async function handleClaimRequest(requestId: string) {
     if (workspaceBlocked) {
@@ -233,7 +257,8 @@ export function MyAssignmentsList({
   }
 
   return (
-    <main id="main-content" className="flex-1 px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
+    <>
+      <main id="main-content" className="flex-1 px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
       <div className="mx-auto max-w-[1180px]">
         <WorkspaceBreadcrumbs
           ariaLabel={t.breadcrumb}
@@ -451,70 +476,104 @@ export function MyAssignmentsList({
                       {(request.status === "Claimed" || request.status === "InProgress") && (
                         <button
                           type="button"
-                          aria-expanded={cancelRequestId === request.requestId}
-                          aria-controls={`cancel-assignment-${request.requestId}`}
-                          onClick={() => cancelRequestId === request.requestId ? closeCancelForm() : openCancelForm(request.requestId)}
+                          aria-haspopup="dialog"
+                          onClick={() => openCancelForm(request.requestId)}
                           className="inline-flex min-h-11 items-center justify-center rounded-lg border-2 border-(--khvi-coral) px-3 py-2 text-sm font-extrabold text-(--khvi-coral) transition-colors hover:bg-[#fff6f4] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
                         >
                           {t.cancelAssignment}
                         </button>
                       )}
                     </div>
-                    {cancelRequestId === request.requestId && (
-                      <form
-                        id={`cancel-assignment-${request.requestId}`}
-                        className="border-t border-[#e3e9ec] pt-3"
-                        onSubmit={(event) => {
-                          event.preventDefault();
-                          handleCancelAssignment(request.requestId);
-                        }}
-                      >
-                        <label className="block text-sm font-extrabold text-[#294554]" htmlFor={`cancel-reason-${request.requestId}`}>
-                          {t.cancelReasonLabel}
-                        </label>
-                        <textarea
-                          id={`cancel-reason-${request.requestId}`}
-                          rows={3}
-                          maxLength={300}
-                          autoFocus
-                          value={cancelDraft}
-                          placeholder={t.cancelReasonPlaceholder}
-                          aria-describedby={`cancel-reason-hint-${request.requestId}`}
-                          aria-invalid={Boolean(cancelError)}
-                          onChange={(event) => {
-                            setCancelDraft(event.target.value);
-                            setCancelError(null);
-                          }}
-                          className="mt-2 w-full resize-y rounded-lg border border-[#b9c8ce] bg-white px-3 py-2 text-sm text-(--khvi-ink) outline-none transition-colors placeholder:text-[#87969c] focus:border-[#087f80] focus:ring-2 focus:ring-[#087f80]/20"
-                        />
-                        <p id={`cancel-reason-hint-${request.requestId}`} className="mt-1.5 text-xs leading-5 text-[#73848a]">
-                          {t.cancelReasonHint}
-                        </p>
-                        {cancelError && <p role="alert" className="mt-2 text-xs font-bold text-(--khvi-coral)">{cancelError}</p>}
-                        <div className="mt-3 grid grid-cols-2 gap-2">
-                          <button
-                            type="submit"
-                            className="inline-flex min-h-10 items-center justify-center rounded-lg bg-(--khvi-coral) px-3 py-2 text-xs font-extrabold text-white transition-colors hover:bg-[#d94334] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
-                          >
-                            {t.cancelConfirm}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={closeCancelForm}
-                            className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[#b9c8ce] bg-white px-3 py-2 text-xs font-extrabold text-[#425761] transition-colors hover:border-[#087f80] hover:text-[#087f80] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
-                          >
-                            {t.cancelDismiss}
-                          </button>
-                        </div>
-                      </form>
-                    )}
                   </div>
                 </article>
               </li>
             ))}
           </ul>
         )}
-      </div>
-    </main>
+        </div>
+      </main>
+
+      {cancelRequest && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#092f45]/60 p-4 backdrop-blur-[2px]"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeCancelForm();
+          }}
+        >
+          <section
+            aria-labelledby="cancel-assignment-title"
+            aria-modal="true"
+            className="relative w-full max-w-[480px] overflow-hidden rounded-[var(--khvi-radius-lg)] bg-(--khvi-surface) shadow-(--khvi-shadow-raised)"
+            role="dialog"
+          >
+            <div className="border-b border-[#f2d5d0] bg-[#fff7f5] px-6 py-6 sm:px-7">
+              <button
+                type="button"
+                aria-label={t.cancelDismiss}
+                className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#efcbc5] bg-white text-[#9f3d32] transition-colors hover:border-(--khvi-coral) hover:text-(--khvi-coral) focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
+                onClick={closeCancelForm}
+              >
+                <XMarkIcon aria-hidden="true" className="h-5 w-5" />
+              </button>
+              <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-(--khvi-coral)">{t.label}</p>
+              <h2 id="cancel-assignment-title" className="mt-2 pr-12 text-2xl font-extrabold tracking-tight text-(--khvi-navy)">
+                {t.cancelAssignment}
+              </h2>
+              <p className="mt-2 text-sm font-bold leading-6 text-[#52676f]">
+                {categoryLabel(cancelRequest.categoryId, copyLocale)} · {languageLabel(cancelRequest.languageId, copyLocale)}
+              </p>
+            </div>
+
+            <form
+              className="px-6 py-6 sm:px-7"
+              onSubmit={(event) => {
+                event.preventDefault();
+                handleCancelAssignment(cancelRequest.requestId);
+              }}
+            >
+              <label className="block text-sm font-extrabold text-[#294554]" htmlFor="cancel-assignment-reason">
+                {t.cancelReasonLabel}
+              </label>
+              <textarea
+                ref={cancelReasonRef}
+                id="cancel-assignment-reason"
+                rows={4}
+                maxLength={300}
+                value={cancelDraft}
+                placeholder={t.cancelReasonPlaceholder}
+                aria-describedby="cancel-assignment-reason-hint"
+                aria-invalid={Boolean(cancelError)}
+                onChange={(event) => {
+                  setCancelDraft(event.target.value);
+                  setCancelError(null);
+                }}
+                className="mt-2 h-28 w-full resize-none overflow-y-auto rounded-xl border border-[#b9c8ce] bg-white px-4 py-3 text-sm text-(--khvi-ink) outline-none transition-colors placeholder:text-[#87969c] focus:border-[#087f80] focus:ring-2 focus:ring-[#087f80]/20"
+              />
+              <p id="cancel-assignment-reason-hint" className="mt-2 text-xs leading-5 text-[#73848a]">
+                {t.cancelReasonHint}
+              </p>
+              {cancelError && <p role="alert" className="mt-3 text-sm font-bold text-(--khvi-coral)">{cancelError}</p>}
+
+              <div className="mt-6 grid gap-2 sm:grid-cols-2">
+                <button
+                  type="submit"
+                  className="inline-flex min-h-12 items-center justify-center rounded-lg bg-(--khvi-coral) px-4 text-sm font-extrabold text-white transition-colors hover:bg-[#d94334] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
+                >
+                  {t.cancelConfirm}
+                </button>
+                <button
+                  type="button"
+                  onClick={closeCancelForm}
+                  className="inline-flex min-h-12 items-center justify-center rounded-lg border border-[#b9c8ce] bg-white px-4 text-sm font-extrabold text-[#425761] transition-colors hover:border-[#087f80] hover:text-[#087f80] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
+                >
+                  {t.cancelDismiss}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+    </>
   );
 }
