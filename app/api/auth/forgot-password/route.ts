@@ -1,4 +1,4 @@
-import { apiError, apiSuccess } from "@/app/lib/api/api-response";
+import { apiError, apiSuccess } from "@/app/lib/api/auth-response";
 import { isRecord, isValidEmail, normalizeEmail, normalizeLocale } from "@/app/lib/api/auth-utils";
 import { getAuthCopy } from "@/app/lib/auth-copy";
 import { createClient } from "@/utils/supabase/server";

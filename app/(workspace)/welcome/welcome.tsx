@@ -17,6 +17,7 @@ import { authApi } from "@/app/lib/auth-client";
 import { createClient } from "@/utils/supabase/client";
 import type { OpenRequestsDiagnostic } from "@/app/lib/real-request-data";
 import type { HelpRequest } from "@/app/lib/mock-requests";
+import type { ReferenceCatalog } from "@/app/lib/reference-catalog";
 
 export function Welcome({
   initialProfile,
@@ -24,12 +25,14 @@ export function Welcome({
   initialAssignments = [],
   initialRequesterRequests = [],
   initialDiagnostic,
+  initialReferenceCatalog = { languages: [], categories: [] },
 }: {
   initialProfile?: UserProfile | null;
   initialOpenRequests?: HelpRequest[];
   initialAssignments?: HelpRequest[];
   initialRequesterRequests?: HelpRequest[];
   initialDiagnostic?: OpenRequestsDiagnostic;
+  initialReferenceCatalog?: ReferenceCatalog;
 } = {}) {
   const router = useRouter();
   const [user, setUser] = useState<UserProfile | null>(initialProfile ?? null);
@@ -100,6 +103,7 @@ export function Welcome({
         assignments={initialAssignments}
         requesterRequests={initialRequesterRequests}
         diagnostic={initialDiagnostic}
+        referenceCatalog={initialReferenceCatalog}
       />
     </AppShell>
   </div>;

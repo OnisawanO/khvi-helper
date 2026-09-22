@@ -41,3 +41,4 @@ create policy "profiles_update_admin"
   to authenticated
   using (public.is_admin())
   with check (public.is_admin());
+

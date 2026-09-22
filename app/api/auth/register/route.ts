@@ -1,4 +1,4 @@
-import { apiError, apiSuccess } from "@/app/lib/api/api-response";
+import { apiError, apiSuccess } from "@/app/lib/api/auth-response";
 import { isRecord, normalizeEmail, normalizeLocale } from "@/app/lib/api/auth-utils";
 import { getAuthCopy } from "@/app/lib/auth-copy";
 import { getRedirectPathByRole, validateRegisterInput, type RegisterInput } from "@/app/lib/mock-auth";

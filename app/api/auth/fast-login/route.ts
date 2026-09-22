@@ -1,4 +1,4 @@
-import { apiError, apiSuccess } from "@/app/lib/api/api-response";
+import { apiError, apiSuccess } from "@/app/lib/api/auth-response";
 import { createClient } from "@/utils/supabase/server";
 import { getRedirectPathByRole, type UserRole } from "@/app/lib/mock-auth";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
