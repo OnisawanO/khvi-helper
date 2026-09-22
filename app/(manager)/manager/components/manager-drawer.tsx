@@ -3,35 +3,43 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
-  ChartBarSquareIcon,
+  ArchiveBoxXMarkIcon,
+  CheckCircleIcon,
+  ChatBubbleLeftRightIcon,
+  ClockIcon,
   Cog6ToothIcon,
-  DocumentMagnifyingGlassIcon,
+  InboxStackIcon,
   ShieldExclamationIcon,
-  UserGroupIcon,
   XMarkIcon,
-  ArrowTopRightOnSquareIcon,
 } from "@heroicons/react/24/outline";
-import { AdminActiveTab } from "../types";
+import { ManagerNavSection } from "../types";
+import { formatBadgeCount } from "../mock-data";
 
-interface AdminDrawerProps {
+interface ManagerDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  activeTab: AdminActiveTab;
-  setActiveTab: (tab: AdminActiveTab) => void;
-  totalUsersCount: number;
-  pendingReportsCount: number;
-  auditLogsCount: number;
+  navSection: ManagerNavSection;
+  setNavSection: (section: ManagerNavSection) => void;
+  pendingCount: number;
+  approvedCount: number;
+  rejectedCount: number;
+  openTicketCount: number;
+  pendingReportCount: number;
+  activitiesCount: number;
 }
 
-export function AdminDrawer({
+export function ManagerDrawer({
   isOpen,
   onClose,
-  activeTab,
-  setActiveTab,
-  totalUsersCount,
-  pendingReportsCount,
-  auditLogsCount,
-}: AdminDrawerProps) {
+  navSection,
+  setNavSection,
+  pendingCount,
+  approvedCount,
+  rejectedCount,
+  openTicketCount,
+  pendingReportCount,
+  activitiesCount,
+}: ManagerDrawerProps) {
   return (
     <div
       className={`fixed inset-0 z-50 transition-all duration-300 ${
@@ -62,21 +70,21 @@ export function AdminDrawer({
               href="/"
               onClick={onClose}
               className="group flex items-center gap-3 rounded-2xl transition-transform hover:scale-105"
-              title="KHVI Home (กลับสู่หน้าหลัก)"
+              title="KHVI Home"
             >
               <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#087f80]/40 bg-[#0d3b55] shadow-xs group-hover:border-[#087f80]">
                 <Image
-                  src="/khvi-logo.png"
+                  src="/khvi-logo.jpg"
                   alt="KHVI logo"
                   fill
                   sizes="36px"
-                  className="object-contain p-1"
+                  className="scale-[2.2] object-cover object-[50%_54%]"
                   priority
                 />
               </div>
               <div>
                 <span className="block text-sm font-black tracking-tight text-white">KHVI</span>
-                <span className="block truncate text-[10px] font-bold text-[#4d8a93]">Admin Console</span>
+                <span className="block truncate text-[10px] font-bold text-[#4d8a93]">Operations Hub</span>
               </div>
             </Link>
             <button
@@ -84,182 +92,209 @@ export function AdminDrawer({
               onClick={onClose}
               className="flex h-8 w-8 items-center justify-center rounded-xl text-slate-300 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
               aria-label="Close menu"
-              title="Close menu (ปิดเมนู)"
+              title="Close menu"
             >
               <XMarkIcon className="h-5 w-5" />
             </button>
           </div>
 
-          {/* Navigation Links */}
+          {/* Group 1: Verification */}
           <div>
             <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Overview
+              Verification & Onboarding
             </p>
             <nav className="mt-1 space-y-1">
+              {/* Application Queue */}
               <button
                 onClick={() => {
-                  setActiveTab("overview");
+                  setNavSection("queue");
                   onClose();
                 }}
-                type="button"
-                aria-current={activeTab === "overview" ? "page" : undefined}
                 className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === "overview"
+                  navSection === "queue"
                     ? "bg-[#087f80] text-white shadow-md"
                     : "text-slate-200 hover:bg-white/10 hover:text-white"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <ChartBarSquareIcon className="h-5 w-5 text-slate-300" />
-                  <span>Platform Overview</span>
+                  <InboxStackIcon className="h-5 w-5 text-slate-300" />
+                  <span>Application Queue</span>
                 </div>
+                {pendingCount > 0 && (
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                      navSection === "queue"
+                        ? "bg-white/20 text-white"
+                        : "bg-[#087f80] text-white"
+                    }`}
+                  >
+                    {formatBadgeCount(pendingCount)}
+                  </span>
+                )}
               </button>
-            </nav>
-          </div>
 
-          <div>
-            <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Identity & Access
-            </p>
-            <nav className="mt-1 space-y-1">
+              {/* Approved Volunteers */}
               <button
                 onClick={() => {
-                  setActiveTab("users");
+                  setNavSection("approved");
                   onClose();
                 }}
-                type="button"
-                aria-current={activeTab === "users" ? "page" : undefined}
                 className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === "users"
+                  navSection === "approved"
                     ? "bg-[#087f80] text-white shadow-md"
                     : "text-slate-200 hover:bg-white/10 hover:text-white"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <UserGroupIcon className="h-5 w-5 text-slate-300" />
-                  <span>User Management</span>
+                  <CheckCircleIcon className="h-5 w-5 text-slate-300" />
+                  <span>Approved Volunteers</span>
                 </div>
                 <span
                   className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                    activeTab === "users"
+                    navSection === "approved"
                       ? "bg-white/20 text-white"
-                      : "bg-slate-800 text-slate-300"
+                      : "bg-teal-900/60 text-teal-300 border border-teal-700/50"
                   }`}
                 >
-                  {totalUsersCount}
+                  {formatBadgeCount(approvedCount)}
+                </span>
+              </button>
+
+              {/* Rejected Archive */}
+              <button
+                onClick={() => {
+                  setNavSection("rejected");
+                  onClose();
+                }}
+                className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
+                  navSection === "rejected"
+                    ? "bg-[#087f80] text-white shadow-md"
+                    : "text-slate-200 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <ArchiveBoxXMarkIcon className="h-5 w-5 text-slate-300" />
+                  <span>Rejected Archive</span>
+                </div>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                    navSection === "rejected"
+                      ? "bg-white/20 text-white"
+                      : "bg-red-900/50 text-red-300 border border-red-800/50"
+                  }`}
+                >
+                  {formatBadgeCount(rejectedCount)}
                 </span>
               </button>
             </nav>
           </div>
 
-          {/* Group 2: Governance & Security */}
+          {/* Group 2: Escalation & Operations */}
           <div>
             <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Governance & Security
+              Operations & Support Desk
             </p>
             <nav className="mt-1 space-y-1">
+              {/* Help Tickets */}
               <button
                 onClick={() => {
-                  setActiveTab("reports");
+                  setNavSection("tickets");
                   onClose();
                 }}
-                type="button"
-                aria-current={activeTab === "reports" ? "page" : undefined}
                 className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === "reports"
-                    ? "bg-red-600 text-white shadow-md shadow-red-900/40"
+                  navSection === "tickets"
+                    ? "bg-[#087f80] text-white shadow-md"
+                    : "text-slate-200 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <ChatBubbleLeftRightIcon className="h-5 w-5 text-slate-300" />
+                  <span>Live Help Requests</span>
+                </div>
+                {openTicketCount > 0 && (
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                      navSection === "tickets"
+                        ? "bg-white/20 text-white"
+                        : "bg-[#f04f3e] text-white animate-pulse"
+                    }`}
+                  >
+                    {formatBadgeCount(openTicketCount)}
+                  </span>
+                )}
+              </button>
+
+              {/* Incident Reports */}
+              <button
+                onClick={() => {
+                  setNavSection("reports");
+                  onClose();
+                }}
+                className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
+                  navSection === "reports"
+                    ? "bg-[#087f80] text-white shadow-md"
                     : "text-slate-200 hover:bg-white/10 hover:text-white"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
                   <ShieldExclamationIcon className="h-5 w-5 text-slate-300" />
-                  <span>Escalated Reports</span>
-                </div>
-                {pendingReportsCount > 0 && (
-                  <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black text-white ring-1 ring-white/20">
-                    {pendingReportsCount}
-                  </span>
-                )}
-              </button>
-
-              <button
-                onClick={() => {
-                  setActiveTab("audit");
-                  onClose();
-                }}
-                type="button"
-                aria-current={activeTab === "audit" ? "page" : undefined}
-                className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === "audit"
-                    ? "bg-[#087f80] text-white shadow-md"
-                    : "text-slate-200 hover:bg-white/10 hover:text-white"
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <DocumentMagnifyingGlassIcon className="h-5 w-5 text-slate-300" />
-                  <span>Audit Trail</span>
+                  <span>Incident Reports</span>
                 </div>
                 <span
                   className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                    activeTab === "audit"
+                    navSection === "reports"
                       ? "bg-white/20 text-white"
-                      : "bg-slate-800 text-slate-300"
+                      : "bg-amber-900/60 text-amber-300 border border-amber-700/50"
                   }`}
                 >
-                  {auditLogsCount}
+                  {formatBadgeCount(pendingReportCount)}
                 </span>
               </button>
 
+              {/* Operations History */}
               <button
                 onClick={() => {
-                  setActiveTab("policies");
+                  setNavSection("history");
                   onClose();
                 }}
-                type="button"
-                aria-current={activeTab === "policies" ? "page" : undefined}
                 className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === "policies"
+                  navSection === "history"
                     ? "bg-[#087f80] text-white shadow-md"
                     : "text-slate-200 hover:bg-white/10 hover:text-white"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <Cog6ToothIcon className="h-5 w-5 text-slate-300" />
-                  <span>Platform Policies</span>
+                  <ClockIcon className="h-5 w-5 text-slate-300" />
+                  <span>Operations History</span>
                 </div>
                 <span
-                  className={`rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase ${
-                    activeTab === "policies"
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                    navSection === "history"
                       ? "bg-white/20 text-white"
-                      : "bg-teal-900/60 text-teal-300"
+                      : "bg-slate-700/60 text-slate-300 border border-slate-600/50"
                   }`}
                 >
-                  Active
+                  {activitiesCount}
                 </span>
               </button>
             </nav>
           </div>
         </div>
 
-        {/* Bottom Section in Drawer: Settings & Switch to Ops */}
-        {/* Bottom Section in Drawer: Switch to Ops */}
-        <div className="mt-auto pt-3 border-t border-[#16435c] space-y-1">
-          <Link
-            href="/manager"
-            onClick={onClose}
-            className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-xs font-bold text-amber-300 hover:bg-amber-400/20 hover:text-amber-200 transition-colors cursor-pointer border border-amber-500/20"
-            title="Switch to Operations Hub (Manager Mode)"
+        {/* Bottom Section: Settings */}
+        <div className="mt-auto pt-3 border-t border-[#16435c]">
+          <button
+            type="button"
+            onClick={() => alert("Manager System Settings & Preferences")}
+            className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-xs font-bold text-slate-300 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+            title="Manager Settings"
           >
-            <div className="flex items-center gap-2.5">
-              <ArrowTopRightOnSquareIcon className="h-4 w-4 shrink-0" />
-              <span>Operations Console</span>
-            </div>
-            <span className="rounded-md bg-amber-400/20 px-1.5 py-0.5 text-[9px] font-extrabold text-amber-300">
-              Manager View
-            </span>
-          </Link>
+            <Cog6ToothIcon className="h-5 w-5 shrink-0" />
+            <span>Profile & Settings</span>
+          </button>
         </div>
       </aside>
     </div>
   );
 }
+
