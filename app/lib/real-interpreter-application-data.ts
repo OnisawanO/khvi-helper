@@ -244,7 +244,6 @@ export async function loadMyInterpreterApplication(supabase?: SupabaseClient) {
     .from("interpreter_applications")
     .select(APPLICATION_COLUMNS)
     .eq("user_id", profileResult.profile.userId)
-    .neq("status", "cancelled")
     .order("application_id", { ascending: false })
     .limit(1)
     .maybeSingle();

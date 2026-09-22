@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { CheckBadgeIcon, DocumentCheckIcon, ExclamationTriangleIcon, LanguageIcon } from "@heroicons/react/24/outline";
-import { useUiLocale } from "@/app/components/app-shell";
+import { useInterpreterAccess, useUiLocale } from "@/app/components/app-shell";
 import type { ApplicationStatus, InterpreterApplication } from "@/app/lib/interpreter-application";
 
 type ApplicationStatusCardProps = {
@@ -21,12 +21,14 @@ const statusStyles: Record<ApplicationStatus, { label: string; className: string
 
 export function ApplicationStatusCard({ application, compact = false }: ApplicationStatusCardProps) {
   const locale = useUiLocale();
+  const { revoked, verified } = useInterpreterAccess();
   const isThai = locale === "th";
   const isChinese = locale === "zh";
 
   const text = (th: string, en: string, zh: string) => isThai ? th : isChinese ? zh : en;
 
   if (!application) {
+    if (!verified || revoked) return null;
     return (
       <section className="rounded-(--khvi-radius-md) border border-(--khvi-teal)/20 bg-(--khvi-surface) p-5 sm:p-7" aria-labelledby="volunteer-application-title">
         <div className="flex items-start gap-3">
@@ -51,8 +53,10 @@ export function ApplicationStatusCard({ application, compact = false }: Applicat
     );
   }
 
-  const style = statusStyles[application.status];
-  const detail = application.status === "needs_revision"
+  const style = revoked ? { label: "ถูกยกเลิกสถานะล่าม", className: "border-[#f04f3e] bg-[#fff1f2] text-[#b8291b]" } : statusStyles[application.status];
+  const detail = revoked
+    ? text("สถานะล่ามอาสาของคุณถูกยกเลิกแล้ว จึงไม่สามารถสมัครเป็นล่ามอีกครั้งได้", "Your interpreter accreditation has been revoked. You cannot submit another application.", "你的志愿口译员资格已被撤销，无法再次申请。")
+    : application.status === "needs_revision"
     ? application.revisionNote
     : application.status === "rejected"
       ? application.rejectReason
@@ -78,7 +82,7 @@ export function ApplicationStatusCard({ application, compact = false }: Applicat
           </div>
         </div>
         <span className={`inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-extrabold ${style.className}`}>
-          {text(style.label, application.status.replace("_", " "), application.status.replace("_", " "))}
+          {revoked ? text(style.label, "Accreditation revoked", "口译员资格已撤销") : text(style.label, application.status.replace("_", " "), application.status.replace("_", " "))}
         </span>
       </div>
 
@@ -93,16 +97,16 @@ export function ApplicationStatusCard({ application, compact = false }: Applicat
         </>
       )}
 
-      <div className="mt-5 flex flex-wrap gap-3">
+      {application.status !== "approved" && <div className="mt-5 flex flex-wrap gap-3">
         <Link className="inline-flex min-h-11 items-center justify-center rounded-(--khvi-radius-sm) border border-(--khvi-teal) px-4 py-2.5 text-sm font-bold text-(--khvi-teal) hover:bg-(--khvi-teal)/5" href="/volunteer/status#main-content">
           {text("ดูสถานะและรายละเอียด", "View application status", "查看申请状态")}
         </Link>
-        {(application.status === "needs_revision" || application.status === "rejected" || application.status === "cancelled") && (
+        {!revoked && (application.status === "needs_revision" || application.status === "rejected" || application.status === "cancelled") && (
           <Link className="inline-flex min-h-11 items-center justify-center rounded-(--khvi-radius-sm) bg-(--khvi-coral) px-4 py-2.5 text-sm font-bold text-white hover:opacity-90" href="/volunteer/apply#main-content">
             {text(application.status === "cancelled" ? "สมัครใหม่" : "แก้ไขใบสมัคร", application.status === "cancelled" ? "Start a new application" : "Update application", application.status === "cancelled" ? "重新申请" : "修改申请")}
           </Link>
         )}
-      </div>
+      </div>}
     </section>
   );
 }

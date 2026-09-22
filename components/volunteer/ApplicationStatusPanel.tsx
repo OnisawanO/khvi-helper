@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useUiLocale } from "@/app/components/app-shell";
+import { useInterpreterAccess, useUiLocale } from "@/app/components/app-shell";
 import type { ApplicationStatus, InterpreterApplication } from "@/app/lib/interpreter-application";
 
 type ApplicationStatusPanelProps = {
@@ -23,11 +23,14 @@ const statusCopy: Record<ApplicationStatus, { th: string; en: string; zh: string
 
 export function ApplicationStatusPanel({ application, onReupload, onCancel, compact = false }: ApplicationStatusPanelProps) {
   const locale = useUiLocale();
+  const { revoked } = useInterpreterAccess();
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const status = statusCopy[application.status];
-  const label = locale === "th" ? status.th : locale === "zh" ? status.zh : status.en;
-  const detail = application.status === "needs_revision"
+  const label = revoked ? locale === "th" ? "ถูกยกเลิกสถานะล่าม" : locale === "zh" ? "口译员资格已撤销" : "Accreditation revoked" : locale === "th" ? status.th : locale === "zh" ? status.zh : status.en;
+  const detail = revoked
+    ? locale === "th" ? "สถานะล่ามอาสาของคุณถูกยกเลิกแล้ว" : locale === "zh" ? "你的志愿口译员资格已被撤销" : "Your interpreter accreditation has been revoked."
+    : application.status === "needs_revision"
     ? application.revisionNote
     : application.status === "rejected"
       ? application.rejectReason
@@ -56,7 +59,7 @@ export function ApplicationStatusPanel({ application, onReupload, onCancel, comp
             </h1>
             <p className="mt-2 text-xs text-white/75">{application.id} · {application.applicantName}</p>
           </div>
-          <span className={`inline-flex w-fit rounded-full border px-3 py-1.5 text-xs font-extrabold ${status.className}`}>{label}</span>
+          <span className={`inline-flex w-fit rounded-full border px-3 py-1.5 text-xs font-extrabold ${revoked ? "border-[#f04f3e] bg-[#fff1f2] text-[#b8291b]" : status.className}`}>{label}</span>
         </div>
       </section>
 
@@ -248,7 +251,7 @@ export function ApplicationStatusPanel({ application, onReupload, onCancel, comp
 
       <div className="flex flex-wrap gap-3">
         <Link className="inline-flex min-h-11 items-center justify-center rounded-(--khvi-radius-sm) border border-[#087f80] px-4 py-2.5 text-sm font-bold text-[#087f80] hover:bg-[#edf7f5]" href="/welcome#welcome-user">กลับสู่หน้าหลัก</Link>
-        {(application.status === "needs_revision" || application.status === "rejected" || application.status === "cancelled") && <Link className="inline-flex min-h-11 items-center justify-center rounded-(--khvi-radius-sm) bg-[#092f45] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0c4960]" href="/volunteer/apply#main-content">{application.status === "cancelled" ? "สมัครใหม่" : "แก้ไขใบสมัคร"}</Link>}
+        {!revoked && (application.status === "needs_revision" || application.status === "rejected" || application.status === "cancelled") && <Link className="inline-flex min-h-11 items-center justify-center rounded-(--khvi-radius-sm) bg-[#092f45] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0c4960]" href="/volunteer/apply#main-content">{application.status === "cancelled" ? "สมัครใหม่" : "แก้ไขใบสมัคร"}</Link>}
       </div>
     </div>
   );

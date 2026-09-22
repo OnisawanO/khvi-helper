@@ -205,11 +205,16 @@ export default function AdminPage() {
   };
 
   const handleRevokeInterpreter = (targetUser: AdminUserRecord, reason: string) => {
-    revokeInterpreter(targetUser.id, reason, `${currentUser?.name || "Super Admin"} (Admin)`);
-    setIsEditModalOpen(false);
-    showToast(`Successfully revoked accreditation for ${targetUser.name}. Demoted to standard User.`);
-
-    void updateUserSecurityAction(targetUser.id, "User", targetUser.isLocked, targetUser.lockReason || "");
+    void (async () => {
+      const result = await updateUserSecurityAction(targetUser.id, "User", targetUser.isLocked, targetUser.lockReason || "");
+      if (!result.success) {
+        showToast(`Could not revoke accreditation for ${targetUser.name}: ${result.error}`);
+        return;
+      }
+      revokeInterpreter(targetUser.id, reason, `${currentUser?.name || "Super Admin"} (Admin)`);
+      setIsEditModalOpen(false);
+      showToast(`Successfully revoked accreditation for ${targetUser.name}. Demoted to standard User.`);
+    })();
   };
 
   const handleSaveUserChanges = () => {

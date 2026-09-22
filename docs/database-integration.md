@@ -168,7 +168,7 @@ open -> claimed -> in_progress -> completed
 
 - User ห้าม claim booking ของตนเอง
 - Claim ได้เฉพาะ profile ที่ role เป็น `Interpreter`, ไม่ locked และมี application `approved`; ล่ามทั่วไปต้องตรงทั้งภาษาและหมวดหมู่ ส่วนบัญชีที่มี `is_super_interpreter = true` ใช้ทดสอบได้กับคำขอเปิดทุกภาษาและหมวดหมู่
-- Interpreter ที่มีงาน `claimed` หรือ `in_progress` อยู่แล้วห้าม claim งานใหม่
+- หนึ่งบัญชีมีงานที่ยังค้างได้ไม่เกินหนึ่งรายการข้ามทั้งสองโหมด: หากมีคำขอฝั่งผู้ขอเป็น `open`, `claimed` หรือ `in_progress` (ยกเว้น `open` ที่หมดอายุแล้ว) หรือมีงานฝั่งล่ามเป็น `claimed` หรือ `in_progress` จะสร้างคำขอหรือ claim งานใหม่ไม่ได้
 - `start_booking` ต้องเกิดหลัง requester ยืนยัน interpreter
 - `completed` จะเกิดเมื่อ requester และ interpreter ยืนยันจบงานครบทั้งสองฝ่าย
 - การถอนตัวจาก `claimed` จะคืนงานเป็น `open` หากยังไม่พ้น deadline
@@ -189,7 +189,7 @@ pending | under_review | needs_revision | approved | rejected | cancelled
 - ตารางที่อยู่ใน `public` schema เปิด RLS ใน migration
 - `anon` ไม่มีสิทธิ์อ่านหรือเขียนข้อมูล domain
 - `authenticated` เข้าถึงตาม policy ที่ผูกกับ `auth.uid()` และ role ใน `profiles`
-- Application mutation revoke direct table write ใน migration ล่าสุดแล้ว ส่วน `bookings` และ `booking_private_details` ยังมีสิทธิ์ insert สำหรับ `authenticated` ตาม policy เดิม แต่ application code ต้องใช้ RPC เพื่อรักษา validation, expiry, private details และ atomic flow
+- Application mutation revoke direct table write ใน migration ล่าสุดแล้ว รวมถึง `bookings` และ `booking_private_details`; application code ต้องใช้ RPC เพื่อรักษา validation, expiry, private details และ atomic flow
 - RPC ที่อยู่ใน `public` ต้อง `revoke all ... from public` และ grant เฉพาะ role ที่ต้องใช้
 - `SECURITY DEFINER` ที่มีอยู่ต้องคง `auth.uid()` check และ `set search_path = public, pg_temp` ไว้
 - ห้ามใช้ `service_role` key ใน browser หรือ Server Action ของ user-facing flow
@@ -266,7 +266,9 @@ where u.id = p.user_id
 
 - `/admin` ยังใช้ mock dashboard data
 - Manager tickets, reports และ activity บางส่วนยังใช้ mock data
-- Review, notification, audit log และ report ยังไม่อยู่ใน migration ชุดนี้
+- คะแนนรีวิวเฉลี่ยของล่ามบน `/welcome#welcome-Interpreter` อ่านจาก RPC `get_interpreter_rating(p_interpreter_id)` ของ Supabase ที่เชื่อมอยู่จริง และแสดง “ยังไม่มีรีวิว” เมื่อ RPC คืนรายการว่างหรือนับรีวิวได้ 0
+- ตาราง `reviews` และ RPC ดังกล่าวมีอยู่ใน Supabase ที่เชื่อมอยู่ แต่ยังไม่มี migration สร้างสิ่งเหล่านี้ใน repository; ก่อนทำ local reset หรือ deploy ไปโครงการใหม่ ต้องนำ schema และ policy จริงมาเก็บเป็น migration โดยไม่เดาชื่อคอลัมน์หรือสิทธิ์
+- Review submission, notification, audit log และ report ยังไม่อยู่ใน migration ชุดนี้
 - Realtime config เปิดอยู่ แต่ application ยังใช้ request/response และ cache revalidation แทน realtime subscription
 
 `docs/route-inventory.md`, `detail.md` และ role documents บางส่วนยังมีข้อความที่อธิบาย route หรือ status เป็น mock/planned จากช่วงก่อนเชื่อม database เอกสารนี้บันทึก implementation ปัจจุบันจาก source code และ migration หากจะขยาย feature ให้ผ่าน Requirement Consistency Gate และอัปเดตเอกสารที่เกี่ยวข้องใน PR เดียวกัน
