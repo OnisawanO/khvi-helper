@@ -11,7 +11,7 @@ import { ResponsiveHeroImage } from "./responsive-hero-image";
 import { StatusBadge, UrgencyBadge } from "./request-badges";
 import type { HelpRequest, RequestStatus } from "@/app/lib/mock-requests";
 import type { UserProfile } from "@/app/lib/mock-auth";
-import { useMyInterpreterApplication, type InterpreterApplication } from "@/app/lib/interpreter-application";
+import type { InterpreterApplication } from "@/app/lib/interpreter-application";
 import { loadMyInterpreterApplicationAction } from "@/app/actions/interpreter-application-actions";
 import { ApplicationStatusCard } from "@/components/volunteer/ApplicationStatusCard";
 import type { InterpreterWorkspaceMode } from "@/app/lib/workspace-mode";
@@ -102,23 +102,41 @@ export function WelcomeDashboard({
   const tr = (th: string, en: string, zh: string) => locale === "th" ? th : locale === "zh" ? zh : en;
   const interpreterAccount = user.role === "Interpreter";
   const interpreter = interpreterAccount && interpreterMode === "helper";
-  const { application: volunteerApplication } = useMyInterpreterApplication(user.userId);
-  const [supabaseApplication, setSupabaseApplication] = useState<InterpreterApplication | null>(null);
+  const [applicationResult, setApplicationResult] = useState<{
+    userId: string;
+    application: InterpreterApplication | null;
+    loaded: boolean;
+    verified: boolean;
+  }>({ userId: user.userId, application: null, loaded: false, verified: false });
 
   useEffect(() => {
     let disposed = false;
-    void loadMyInterpreterApplicationAction().then((result) => {
-      if (!disposed && result.ok && result.data) {
-        setSupabaseApplication(result.data);
+    let requestId = 0;
+    const refreshApplication = async () => {
+      const currentRequest = ++requestId;
+      const result = await loadMyInterpreterApplicationAction();
+      if (!disposed && currentRequest === requestId) {
+        setApplicationResult({
+          userId: user.userId,
+          application: result.ok ? result.data : null,
+          loaded: true,
+          verified: result.ok,
+        });
       }
-    });
+    };
+    void refreshApplication();
+    window.addEventListener("focus", refreshApplication);
     return () => {
       disposed = true;
+      window.removeEventListener("focus", refreshApplication);
     };
-  }, []);
+  }, [user.userId]);
 
-  const activeApplication = supabaseApplication ?? volunteerApplication;
-  const applicationStatus = activeApplication?.status ?? interpreterAccess.applicationStatus;
+  const applicationLoaded = applicationResult.userId === user.userId && applicationResult.loaded;
+  const activeApplication = applicationLoaded && applicationResult.verified ? applicationResult.application : null;
+  const applicationStatus = applicationLoaded && applicationResult.verified
+    ? activeApplication?.status ?? null
+    : interpreterAccess.applicationStatus;
 
   const [location, setLocation] = useState<GeolocationCoordinates | null>(null);
   const [geo, setGeo] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -332,7 +350,7 @@ export function WelcomeDashboard({
     {interpreter && <section className={`${panel} mt-7 flex flex-col`} aria-labelledby="discover-title"><h2 id="discover-title" className="flex items-center gap-2 text-xl font-bold"><MagnifyingGlassIcon className="h-6 w-6 shrink-0 text-(--khvi-teal)" aria-hidden="true" />{tr("ค้นหาคำขอที่เหมาะกับคุณ", "Explore suitable requests", "查找合适的请求")}</h2><p className={muted}>{tr("ค้นหาและกรองคำขอที่ตรงกับความสามารถของคุณ", "Filter open requests that match your skills.", "按技能筛选符合您能力的求助任务。")}</p><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold">{tr("ภาษา", "Language", "语言")}<select className="mt-2 min-h-12 w-full rounded-lg border border-(--khvi-teal)/30 bg-white px-3" value={language} onChange={e => setLanguage(e.target.value)}><option value="all">{tr("ทุกภาษา", "All languages", "全部语言")}</option>{referenceCatalog.languages.map(option => <option key={option.id} value={option.id}>{referenceLabel([option], option.id, locale)}</option>)}</select></label><label className="text-sm font-bold">{tr("หมวดหมู่", "Category", "类别")}<select className="mt-2 min-h-12 w-full rounded-lg border border-(--khvi-teal)/30 bg-white px-3" value={category} onChange={e => setCategory(e.target.value)}><option value="all">{tr("ทุกหมวดหมู่", "All categories", "全部类别")}</option>{referenceCatalog.categories.map(option => <option key={option.id} value={option.id}>{referenceLabel([option], option.id, locale)}</option>)}</select></label></div>{open.length ? <ul className="mt-3 divide-y divide-(--khvi-teal)/20">{open.map(r => requestRow(r, true))}</ul> : <p role="status" className="my-6 rounded-lg bg-(--khvi-paper) p-5 text-sm leading-7">{diagnostic?.status === "application_not_approved" ? tr("ใบสมัครล่ามของคุณยังไม่ได้รับการอนุมัติ จึงยังไม่สามารถดูคำขอเปิดได้", "Your interpreter application is pending approval.", "您的口译员申请正在审核中，暂无法查看开放任务。") : diagnostic?.status === "no_matching_skills" ? tr("ยังไม่มีคำขอเปิดที่ตรงกับภาษาหรือหมวดหมู่ที่คุณได้รับอนุมัติ", "No open requests currently match your approved skills.", "当前暂无符合您获批技能的求助任务。") : tr("ยังไม่มีคำขอเปิดที่ตรงกับเงื่อนไขการค้นหา ลองเปลี่ยนภาษา หมวดหมู่ หรือระยะค้นหา", "No open requests match these filters. Try another language, category or distance.", "没有符合筛选条件的开放求助，请调整语言、类别或距离。")}</p>}<Link className={`${button} mt-4 min-h-10 shrink-0 self-start px-4 py-2 text-xs`} href="/find-requests#main-content">{tr("เปิดแผนที่", "Open the map", "打开地图")}</Link></section>}
     <section className={`${panel} mt-7 flex flex-col`}><div className="flex min-w-0 flex-wrap items-center justify-between gap-3"><h2 className="flex min-w-0 items-center gap-2 text-xl font-bold">{interpreter && <ClockIcon className="h-6 w-6 shrink-0 text-(--khvi-teal)" aria-hidden="true" />}{interpreter ? tr("งานที่ผ่านมาของคุณ", "Your past work", "您的历史工作") : tr("คำขอล่าสุด", "Recent requests", "最近的请求")}</h2><Link className={`${button} min-h-10 shrink-0 px-4 py-2 text-xs`} href={listPath}>{tr("ดูทั้งหมด", "View all", "查看全部")}</Link></div>{recent.length ? <ul className="min-w-0 divide-y divide-(--khvi-teal)/20">{recent.map(r => requestRow(r, false))}</ul> : <div className="flex items-start gap-4 py-6"><ClipboardDocumentListIcon className="h-8 w-8 shrink-0 text-(--khvi-teal)" aria-hidden="true" /><div><p className="text-sm leading-7">{interpreter ? tr("ยังไม่มีงานที่ผ่านมา เมื่อล่ามรับงาน รายการจะแสดงที่นี่", "You have no past assignments yet. Claimed assignments will appear here.", "您还没有历史任务，接取任务后会显示在这里。") : tr("ยังไม่มีคำขอล่าสุด เมื่อคุณส่งคำขอความช่วยเหลือ รายการจะแสดงที่นี่", "You have no recent requests yet. Requests you submit will appear here.", "您还没有最近的求助，提交求助后会显示在这里。")}</p><Link className={`${button} mt-3 min-h-10 px-4 py-2 text-xs`} href={interpreter ? "/find-requests#main-content" : "/request-help#main-content"}>{interpreter ? tr("ค้นหาคำขอ", "Find requests", "查找求助") : tr("ขอความช่วยเหลือ", "Request help", "请求帮助")}</Link></div></div>}</section>
     <div className="mt-7 grid items-stretch gap-5 md:grid-cols-2">
-      <section id="volunteer-application" className="h-full scroll-mt-28 [&>section]:h-full">{interpreterAccess.loading || (interpreterAccess.applicationStatus && !activeApplication) ? null : <ApplicationStatusCard application={activeApplication} />}</section>
+      <section id="volunteer-application" className="h-full scroll-mt-28 [&>section]:h-full">{!applicationLoaded || !applicationResult.verified || (interpreterAccount && !activeApplication) ? null : <ApplicationStatusCard application={activeApplication} />}</section>
       <section className={`${panel} h-full`}>
         <ChatBubbleLeftRightIcon className="h-7 w-7 text-(--khvi-teal)" aria-hidden="true" />
         <h2 className="mt-3 text-xl font-bold">{tr("ช่องทางติดต่อหากพบปัญหา", "Contact us if you have a problem", "遇到问题时的联系方式")}</h2>
