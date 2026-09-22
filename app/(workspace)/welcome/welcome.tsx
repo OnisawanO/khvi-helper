@@ -13,6 +13,7 @@ import {
 } from "@/app/lib/workspace-mode";
 import { getRedirectPathByRole, type UserProfile } from "@/app/lib/mock-auth";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
+import { authApi } from "@/app/lib/auth-client";
 import { createClient } from "@/utils/supabase/client";
 import type { OpenRequestsDiagnostic } from "@/app/lib/real-request-data";
 import type { HelpRequest } from "@/app/lib/mock-requests";
@@ -89,8 +90,8 @@ export function Welcome({
   }
 
   return <div id={activeRole === "Interpreter" ? "welcome-Interpreter" : "welcome-user"} className="min-h-screen bg-(--khvi-paper) text-(--khvi-ink)">
-    <AppShell welcomeRole={activeRole} accountActions={<WorkspaceAccountActions user={user} onSignOut={() => {
-      void createClient().auth.signOut();
+    <AppShell welcomeRole={activeRole} accountActions={<WorkspaceAccountActions user={user} onSignOut={async () => {
+      await authApi.logout();
       setUser(null);
       router.replace("/#top");
     }} />}>
