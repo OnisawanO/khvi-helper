@@ -151,6 +151,10 @@ html {
   min-height: 430px;
 }
 
+.request-leaflet-map--compact .leaflet-container {
+  min-height: 260px;
+}
+
 .mission-leaflet-map .leaflet-container {
   min-height: 18rem;
   touch-action: none;
@@ -298,6 +302,10 @@ html {
 @media (min-width: 640px) {
   .request-leaflet-map .leaflet-container {
     min-height: 520px;
+  }
+
+  .request-leaflet-map--compact .leaflet-container {
+    min-height: 260px;
   }
 
   .mission-leaflet-map .leaflet-container {

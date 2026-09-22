@@ -17,6 +17,8 @@ type RequestMapProps = {
   loadingLabel: string;
   myLocationLabel: string;
   onSelect: (request: HelpRequest) => void;
+  compact?: boolean;
+  radiusKm?: number;
 };
 
 const DEFAULT_CENTER: L.LatLngExpression = [8.64, 99.9];
@@ -49,6 +51,8 @@ export function RequestMap({
   loadingLabel,
   myLocationLabel,
   onSelect,
+  compact = false,
+  radiusKm,
 }: RequestMapProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -61,7 +65,13 @@ export function RequestMap({
 
     const map = L.map(mapContainerRef.current, {
       attributionControl: true,
+      boxZoom: !compact,
       zoomControl: false,
+      doubleClickZoom: !compact,
+      dragging: !compact,
+      keyboard: !compact,
+      scrollWheelZoom: !compact,
+      touchZoom: !compact,
     }).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
 
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -72,7 +82,7 @@ export function RequestMap({
       minZoom: 3,
     }).addTo(map);
 
-    L.control.zoom({ position: "bottomright" }).addTo(map);
+    if (!compact) L.control.zoom({ position: "bottomright" }).addTo(map);
     requestLayerRef.current = L.layerGroup().addTo(map);
     userLayerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
@@ -84,7 +94,7 @@ export function RequestMap({
       requestLayerRef.current = null;
       userLayerRef.current = null;
     };
-  }, []);
+  }, [compact]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -132,7 +142,7 @@ export function RequestMap({
         .bindTooltip(myLocationLabel, { direction: "top", opacity: 0.96 })
         .addTo(userLayer);
     }
-  }, [myLocationLabel, userLocation]);
+  }, [myLocationLabel, radiusKm, userLocation]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -143,6 +153,11 @@ export function RequestMap({
         ? []
         : [[request.latitude, request.longitude] as [number, number]]
     ));
+
+    if (userLocation && radiusKm) {
+      map.setView([userLocation.latitude, userLocation.longitude], 12, { animate: false });
+      return;
+    }
 
     if (userLocation) {
       boundsPoints.push([userLocation.latitude, userLocation.longitude]);
@@ -157,11 +172,11 @@ export function RequestMap({
     } else {
       map.setView(DEFAULT_CENTER, DEFAULT_ZOOM, { animate: false });
     }
-  }, [requests, userLocation]);
+  }, [radiusKm, requests, userLocation]);
 
   return (
-    <div className="request-leaflet-map relative min-h-[430px] sm:min-h-[520px]" aria-label={mapLabel}>
-      <div ref={mapContainerRef} className="h-full min-h-[430px] w-full sm:min-h-[520px]" />
+    <div className={`request-leaflet-map relative ${compact ? "request-leaflet-map--compact h-full min-h-[260px]" : "min-h-[430px] sm:min-h-[520px]"}`} aria-label={mapLabel}>
+      <div ref={mapContainerRef} className={`h-full w-full ${compact ? "min-h-[260px]" : "min-h-[430px] sm:min-h-[520px]"}`} />
       {!mapReady && (
         <div className="absolute inset-0 z-[500] grid place-items-center bg-white/65 backdrop-blur-[1px]">
           <p role="status" className="rounded-full bg-white px-4 py-2 text-sm font-extrabold text-[#425761] shadow-sm">

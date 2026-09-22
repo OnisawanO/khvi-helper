@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
@@ -22,7 +23,6 @@ import type { UserProfile } from "@/app/lib/mock-auth";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { claimBookingAction } from "@/app/actions/booking-actions";
 import type { OpenRequestsDiagnostic } from "@/app/lib/real-request-data";
-import { RequestMap } from "./request-map";
 import {
   CATEGORIES,
   categoryLabel,
@@ -31,6 +31,11 @@ import {
   type HelpRequest,
   type Urgency,
 } from "@/app/lib/mock-requests";
+
+const RequestMap = dynamic(
+  () => import("./request-map").then((module) => module.RequestMap),
+  { ssr: false },
+);
 
 const REQUEST_FILTERS = [
   { id: "all", urgency: null },
