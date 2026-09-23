@@ -19,7 +19,7 @@ import type { OpenRequestsDiagnostic } from "@/app/lib/real-request-data";
 import { referenceLabel, type ReferenceCatalog } from "@/app/lib/reference-catalog";
 import type { InterpreterRating } from "@/app/lib/real-interpreter-rating";
 const RequestMap = dynamic(
-  () => import("@/app/interpreter/find-requests/request-map").then((module) => module.RequestMap),
+  () => import("../interpreter/find-requests/request-map").then((module) => module.RequestMap),
   { ssr: false },
 );
 
