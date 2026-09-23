@@ -36,9 +36,6 @@ export function VolunteerApplyHeader() {
           <span className="rounded-(--khvi-radius-sm) border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-bold text-[#8ed5c4]">
             ✓ Data Dictionary 100%
           </span>
-          <span className="rounded-(--khvi-radius-sm) border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-bold text-white/80">
-            🔒 BR-04 Shield
-          </span>
         </div>
       </div>
     </div>
