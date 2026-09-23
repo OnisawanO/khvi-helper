@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useInterpreterAccess } from "@/app/components/app-shell";
 
 export type ApplicationStatus = "under_review" | "approved" | "needs_revision";
 
@@ -31,6 +32,7 @@ export function ApplicationStatusModal({
   data,
   defaultStatus = "under_review",
 }: ApplicationStatusModalProps) {
+  const interpreterAccess = useInterpreterAccess();
   // Status state for interactive simulation
   const [status, setStatus] = useState<ApplicationStatus>(defaultStatus);
   const [isAvailable, setIsAvailable] = useState(false);
@@ -574,7 +576,7 @@ export function ApplicationStatusModal({
               >
                 ไปที่กระดานรับงาน SOS →
               </Link>
-            ) : (
+            ) : interpreterAccess.verified && !interpreterAccess.revoked ? (
               <Link
                 href="/volunteer/apply"
                 onClick={onClose}
@@ -582,7 +584,7 @@ export function ApplicationStatusModal({
               >
                 แก้ไขข้อมูลใบสมัคร
               </Link>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

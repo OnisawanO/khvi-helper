@@ -18,6 +18,7 @@ import { createClient } from "@/utils/supabase/client";
 import type { OpenRequestsDiagnostic } from "@/app/lib/real-request-data";
 import type { HelpRequest } from "@/app/lib/mock-requests";
 import type { ReferenceCatalog } from "@/app/lib/reference-catalog";
+import type { InterpreterRating } from "@/app/lib/real-interpreter-rating";
 
 export function Welcome({
   initialProfile,
@@ -26,6 +27,7 @@ export function Welcome({
   initialRequesterRequests = [],
   initialDiagnostic,
   initialReferenceCatalog = { languages: [], categories: [] },
+  initialInterpreterRating = null,
 }: {
   initialProfile?: UserProfile | null;
   initialOpenRequests?: HelpRequest[];
@@ -33,6 +35,7 @@ export function Welcome({
   initialRequesterRequests?: HelpRequest[];
   initialDiagnostic?: OpenRequestsDiagnostic;
   initialReferenceCatalog?: ReferenceCatalog;
+  initialInterpreterRating?: InterpreterRating | null;
 } = {}) {
   const router = useRouter();
   const [user, setUser] = useState<UserProfile | null>(initialProfile ?? null);
@@ -69,7 +72,10 @@ export function Welcome({
     const { data: authListener } = supabase.auth.onAuthStateChange(() => {
       window.setTimeout(() => void refreshSession(), 0);
     });
-    const onWindowFocus = () => void refreshSession();
+    const onWindowFocus = () => {
+      void refreshSession();
+      router.refresh();
+    };
     window.addEventListener("focus", onWindowFocus);
     return () => {
       disposed = true;
@@ -84,13 +90,14 @@ export function Welcome({
 
   function changeInterpreterMode(mode: InterpreterWorkspaceMode) {
     if (!user) return;
+    if (mode === interpreterMode) return;
     setInterpreterMode(mode);
     setInterpreterWorkspaceMode(user.userId, mode);
     window.history.replaceState(null, "", mode === "helper" ? "#welcome-Interpreter" : "#welcome-user");
   }
 
   return <div id={activeRole === "Interpreter" ? "welcome-Interpreter" : "welcome-user"} className="min-h-screen bg-(--khvi-paper) text-(--khvi-ink)">
-    <AppShell welcomeRole={activeRole} accountActions={<WorkspaceAccountActions user={user} onSignOut={async () => {
+    <AppShell welcomeRole={activeRole} accountRole={user.role} accountActions={<WorkspaceAccountActions user={user} onSignOut={async () => {
       await authApi.logout();
       setUser(null);
       router.replace("/#top");
@@ -104,6 +111,7 @@ export function Welcome({
         requesterRequests={initialRequesterRequests}
         diagnostic={initialDiagnostic}
         referenceCatalog={initialReferenceCatalog}
+        interpreterRating={user.userId === initialProfile?.userId ? initialInterpreterRating : null}
       />
     </AppShell>
   </div>;

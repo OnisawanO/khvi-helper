@@ -21,6 +21,8 @@ export type ApplicationDocument = {
 export type ApplicationLanguage = {
   id: string;
   name: string;
+  nameTh?: string;
+  nameZh?: string;
   type?: string;
   level?: string;
 };
@@ -28,6 +30,8 @@ export type ApplicationLanguage = {
 export type ApplicationCategory = {
   id: number;
   name: string;
+  nameTh?: string;
+  nameZh?: string;
   icon?: string;
 };
 
@@ -66,6 +70,7 @@ export type InterpreterApplication = {
   cancelledByUserId?: string;
   assignedArea: string;
   isAvailable: boolean;
+  isProfileUpdate?: boolean;
 };
 
 export type ApplicationInput = {
@@ -343,6 +348,7 @@ export function submitInterpreterApplication(user: UserProfile, input: Applicati
     cancelledByUserId: undefined,
     assignedArea: input.assignedArea?.trim() || existingActiveApplication?.assignedArea || "ยังไม่ได้ระบุพื้นที่",
     isAvailable: false,
+    isProfileUpdate: Boolean(existingActiveApplication),
   };
 
   const applicationToSave = existingActiveApplication

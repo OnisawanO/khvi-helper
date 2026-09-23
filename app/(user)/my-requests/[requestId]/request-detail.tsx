@@ -32,6 +32,7 @@ import { useCopyLocale } from "@/app/components/app-shell";
 import { ExpiryCountdown } from "@/app/components/expiry-countdown";
 import { MissionLocationMap, type MissionMapPoint } from "@/app/components/mission-location-map";
 import { StatusBadge, UrgencyBadge } from "@/app/components/request-badges";
+import { ReviewModal, type SubmittedReview } from "@/app/components/review/review-modal";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
 import {
   approximateCoordinates,
@@ -88,6 +89,7 @@ const copy = {
     lockedBody: "A matching interpreter's profile appears here after they claim the request. Contact details unlock after you confirm them.",
     unlockedTitle: "Interpreter contact",
     requesterContactTitle: "Requester contact",
+    extraContactLabel: "Other contact",
     contactLockedTitle: "Contact and exact location are locked",
     contactLockedBody: "The requester must confirm the assigned interpreter before sensitive details appear.",
     mapTitle: "Requester and interpreter map",
@@ -136,6 +138,14 @@ const copy = {
     waitingOtherSide: "Waiting for the other side to confirm",
     justNow: "Just now",
     completedTitle: "Job completed",
+    reviewTitle: "Tell us about this completed job",
+    reviewCta: "Review interpreter",
+    reviewHint: "A quick rating helps us recognise reliable language support.",
+    reviewSubmitted: "Review submitted",
+    reviewReceived: "Requester review",
+    reviewPending: "The requester has not reviewed this completed job yet.",
+    reviewSubmittedAt: "Submitted",
+    reviewReadOnly: "Your feedback is shown here as a read-only preview.",
     closedTitle: "This request is closed",
     closedReason: "Reason",
     closedBy: {
@@ -185,6 +195,7 @@ const copy = {
     lockedBody: "匹配的口译员接取后，这里会显示其资料；你确认后才会解锁联系方式。",
     unlockedTitle: "口译员联系方式",
     requesterContactTitle: "求助者联系方式",
+    extraContactLabel: "其他联系方式",
     contactLockedTitle: "联系方式和准确位置尚未解锁",
     contactLockedBody: "求助者确认已接单的口译员后，系统才会显示敏感信息。",
     mapTitle: "求助者与口译员地图",
@@ -233,6 +244,14 @@ const copy = {
     waitingOtherSide: "等待另一方确认",
     justNow: "刚刚",
     completedTitle: "任务已完成",
+    reviewTitle: "评价这次已完成的任务",
+    reviewCta: "评价口译员",
+    reviewHint: "简短的评分可以帮助社区认可可靠的语言支持。",
+    reviewSubmitted: "评价已提交",
+    reviewReceived: "求助者评价",
+    reviewPending: "求助者尚未评价这次已完成的任务。",
+    reviewSubmittedAt: "提交时间",
+    reviewReadOnly: "你的反馈会以只读预览显示在这里。",
     closedTitle: "这条求助已关闭",
     closedReason: "原因",
     closedBy: {
@@ -294,12 +313,18 @@ export function RequestDetail({
   const [editMeetingPoint, setEditMeetingPoint] = useState(request.exactAddress);
   const [editError, setEditError] = useState<string | null>(null);
   const [editSuccess, setEditSuccess] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [submittedReview, setSubmittedReview] = useState<SubmittedReview | null>(null);
   const [locationState, setLocationState] = useState<"loading" | "saved" | "denied" | "unavailable" | "error">("loading");
   const [missionLocations, setMissionLocations] = useState<RealMissionLocations>(initialMissionLocations);
   const userConfirmedAt = request.userConfirmedDoneAtLabel;
 
   const interpreterConfirmedAt = request.interpreterConfirmedDoneAtLabel;
   const viewerConfirmedAt = isInterpreter ? interpreterConfirmedAt : userConfirmedAt;
+  const existingReview = request.review
+    ? { rating: request.review.rating, comment: request.review.comment ?? "" }
+    : null;
+  const reviewPreview = submittedReview ?? existingReview;
   const contactUnlocked = isContactUnlocked(status) && Boolean(request.requesterConfirmedAtLabel);
   const canSeeSensitiveLocation = !isInterpreter || contactUnlocked;
   const isClosed = status === "Cancelled" || status === "Expired";
@@ -866,7 +891,7 @@ export function RequestDetail({
             </section>
           </div>
 
-          <aside className="grid items-start gap-5 sm:grid-cols-2">
+          <aside className="grid gap-5 sm:grid-cols-2">
             {!isInterpreter && request.interpreter ? (
               <section className="border border-[#b6ddcd] bg-[#f3faf6] p-5 sm:p-6">
                 <h2 className="flex items-center gap-2 text-base font-extrabold text-[#0f3a2c]">
@@ -887,7 +912,9 @@ export function RequestDetail({
                 <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-bold text-[#3f6357]">
                   <span className="inline-flex items-center gap-1.5">
                     <StarIcon aria-hidden="true" className="h-4 w-4 text-[#e0952f]" />
-                    {request.interpreter.averageRating.toFixed(1)} {t.ratingLabel}
+                    {(request.interpreter.reviewCount ?? 0) > 0
+                      ? <>{request.interpreter.averageRating.toFixed(1)} {t.ratingLabel}</>
+                      : <>{copyLocale === "zh" ? "暂无评分" : "No rating yet"}</>}
                   </span>
                   <span>
                     {request.interpreter.completedJobCount} {t.jobsLabel}
@@ -903,10 +930,17 @@ export function RequestDetail({
                       <PhoneIcon aria-hidden="true" className="h-5 w-5" />
                       {request.interpreter.phone}
                     </a>
-                    <p className="inline-flex items-center gap-2 px-1 text-sm font-bold text-[#3f6357]">
-                      <ChatBubbleLeftRightIcon aria-hidden="true" className="h-5 w-5 text-[#087557]" />
-                      {request.interpreter.extraContact}
-                    </p>
+                    {request.interpreter.extraContact && (
+                      <div className="grid gap-1 rounded-lg border border-[#c6e3d5] bg-white/70 px-4 py-3">
+                        <p className="flex items-center gap-2 text-xs font-extrabold text-[#5c8073]">
+                          <ChatBubbleLeftRightIcon aria-hidden="true" className="h-4 w-4 text-[#087557]" />
+                          {t.extraContactLabel}
+                        </p>
+                        <p className="break-words text-sm font-bold leading-6 text-[#123a2d]">
+                          {request.interpreter.extraContact}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <p className="mt-4 border-t border-[#c6e3d5] pt-4 text-sm leading-6 text-[#52676f]">
@@ -924,11 +958,43 @@ export function RequestDetail({
                   <UserCircleIcon aria-hidden="true" className="h-11 w-11 shrink-0 text-[#087557]" />
                   <div className="min-w-0">
                     <p className="text-base font-extrabold text-[#123a2d]">{request.requester.name}</p>
-                    <a className="mt-1 inline-flex items-center gap-2 text-sm font-bold text-[#3f6357] underline" href={`tel:${request.requester.phone.replace(/\s/g, "")}`}>
-                      <PhoneIcon aria-hidden="true" className="h-4 w-4" />
-                      {request.requester.phone}
-                    </a>
+                    <p className="mt-0.5 text-xs font-bold text-[#5c8073]">{t.requesterMarker}</p>
                   </div>
+                </div>
+
+                <div className="mt-5 grid gap-4 border-t border-[#c6e3d5] pt-4">
+                  <a
+                    className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-(--khvi-navy) px-4 py-2 text-sm font-extrabold text-white transition-colors hover:bg-[#0c4960] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
+                    href={`tel:${request.requester.phone.replace(/\s/g, "")}`}
+                  >
+                    <PhoneIcon aria-hidden="true" className="h-5 w-5" />
+                    {request.requester.phone}
+                  </a>
+
+                  <div className="grid gap-1">
+                    <p className="flex items-center gap-2 text-xs font-extrabold text-[#5c8073]">
+                      <MapPinIcon aria-hidden="true" className="h-4 w-4" />
+                      {t.meetingPointLabel}
+                    </p>
+                    <p className="text-sm font-bold leading-6 text-[#123a2d]">
+                      {request.exactAddress || request.areaName}
+                    </p>
+                  </div>
+
+                  {requesterLocation && (
+                    <div className="grid gap-1 border-t border-[#c6e3d5] pt-4">
+                      <p className="flex items-center gap-2 text-xs font-extrabold text-[#5c8073]">
+                        <ArrowPathIcon aria-hidden="true" className="h-4 w-4" />
+                        {savedRequesterLocation ? t.liveGpsLabel : t.requestLocationLabel}
+                      </p>
+                      <p className="text-sm font-bold text-[#123a2d]">
+                        {requesterLocation.latitude.toFixed(5)}, {requesterLocation.longitude.toFixed(5)}
+                      </p>
+                      <p className="text-xs leading-5 text-[#5c8073]">
+                        {t.updatedMapLabel}: {savedRequesterLocation?.updatedAtLabel ?? request.createdAtLabel}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </section>
             ) : status === "Open" || isInterpreter ? (
@@ -944,10 +1010,15 @@ export function RequestDetail({
             ) : null}
 
             <section className={sectionClass}>
-              <h2 className={sectionTitleClass}>{t.actionsTitle}</h2>
+              <h2 className="flex items-center gap-2 text-base font-extrabold text-[#173646]">
+                <CheckCircleIcon aria-hidden="true" className="h-5 w-5" />
+                {t.actionsTitle}
+              </h2>
+
+              <div className="mt-5 grid gap-4 border-t border-[#dbe7e8] pt-4">
 
               {status === "Claimed" && (
-                <div className="mt-4">
+                <div>
                   {isInterpreter ? (
                     request.requesterConfirmedAtLabel ? (
                       <button
@@ -985,7 +1056,7 @@ export function RequestDetail({
               )}
 
               {status === "InProgress" && (
-                <div className="mt-4">
+                <div>
                   {viewerConfirmedAt ? (
                     <div className="border border-[#b6ddcd] bg-[#f3faf6] p-4">
                       <p className="flex items-center gap-2 text-sm font-extrabold text-[#087557]">
@@ -1011,7 +1082,7 @@ export function RequestDetail({
               )}
 
               {canCancel && (
-                <div className="mt-4">
+                <div className={status === "Claimed" || status === "InProgress" ? "border-t border-[#dbe7e8] pt-4" : ""}>
                   {cancelFormOpen ? (
                     <div>
                       <label className="block text-sm font-extrabold text-[#294554]" htmlFor="cancel-reason">
@@ -1071,14 +1142,78 @@ export function RequestDetail({
               )}
 
               {(status === "Completed" || isClosed) && (
-                <p className="mt-4 text-sm leading-7 text-[#64777e]">
+                <p className="text-sm font-bold leading-7 text-[#52676f]">
                   {status === "Completed" ? t.completedTitle : t.noActions}
                 </p>
               )}
+
+              {status === "Completed" && request.interpreter && (
+                <div className="border-t border-[#dbe7e8] pt-4">
+                  {reviewPreview ? (
+                    <div className="border border-[#b6ddcd] bg-[#f3faf6] p-4">
+                      <p className="flex items-center gap-2 text-sm font-extrabold text-[#087557]">
+                        <CheckCircleIcon aria-hidden="true" className="h-5 w-5" />
+                        {isInterpreter ? t.reviewReceived : t.reviewSubmitted}
+                      </p>
+                      <div className="mt-3 flex items-center gap-1" aria-label={`${reviewPreview.rating}/5`}>
+                        {Array.from({ length: 5 }, (_, index) => (
+                          <StarIcon
+                            key={index}
+                            aria-hidden="true"
+                            className={`h-5 w-5 ${index < reviewPreview.rating ? "fill-[#f0a35f] text-[#e0952f]" : "text-[#cbd7dc]"}`}
+                          />
+                        ))}
+                      </div>
+                      {reviewPreview.comment && <p className="mt-2 text-sm leading-6 text-[#52676f]">{reviewPreview.comment}</p>}
+                      {request.review && (
+                        <p className="mt-2 text-xs leading-5 text-[#3f6357]">
+                          {t.reviewSubmittedAt}: {request.review.createdAtLabel}
+                        </p>
+                      )}
+                      {!isInterpreter && <p className="mt-2 text-xs leading-5 text-[#3f6357]">{t.reviewReadOnly}</p>}
+                    </div>
+                  ) : isInterpreter ? (
+                    <p className="border border-[#d6e0e4] bg-[#f7f9fa] p-4 text-sm leading-6 text-[#64777e]">
+                      {t.reviewPending}
+                    </p>
+                  ) : (
+                    <div className="border border-[#b6ddcd] bg-[#f3faf6] p-4">
+                      <p className="text-sm font-extrabold text-[#0f3a2c]">{t.reviewTitle}</p>
+                      <p className="mt-1.5 text-xs leading-5 text-[#52676f]">{t.reviewHint}</p>
+                      <button
+                        type="button"
+                        className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-(--khvi-navy) px-4 text-sm font-extrabold text-white transition-colors hover:bg-[#0c4960] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
+                        onClick={() => setReviewOpen(true)}
+                      >
+                        <StarIcon aria-hidden="true" className="h-5 w-5" />
+                        {t.reviewCta}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+              </div>
             </section>
           </aside>
         </div>
       </div>
+
+      {!isInterpreter && status === "Completed" && request.interpreter && (
+        <ReviewModal
+          key={reviewOpen ? "review-open" : "review-closed"}
+          open={reviewOpen}
+          bookingId={request.requestId}
+          interpreterName={request.interpreter.name}
+          interpreterLanguage={request.interpreter.primaryLanguage}
+          completedAt={request.endedAtLabel ?? null}
+          existingReview={request.review}
+          onClose={() => setReviewOpen(false)}
+          onSubmitted={(review) => {
+            setSubmittedReview(review);
+            router.refresh();
+          }}
+        />
+      )}
     </main>
   );
 }

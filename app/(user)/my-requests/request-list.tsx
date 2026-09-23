@@ -44,6 +44,8 @@ const copy = {
       System: "Expired without a claim",
     },
     view: "Open request",
+    reviewPending: "Review pending",
+    reviewed: "Reviewed",
     emptyTitle: "Nothing here yet",
     emptyBody: "No request matches this filter. Create a pin when you need language help.",
   },
@@ -74,6 +76,8 @@ const copy = {
       System: "无人接取已过期",
     },
     view: "查看求助",
+    reviewPending: "待评价",
+    reviewed: "已评价",
     emptyTitle: "这里还没有内容",
     emptyBody: "没有符合此筛选条件的求助。需要语言帮助时可以创建求助点。",
   },
@@ -211,6 +215,12 @@ export function RequestList({
                     ) : request.cancelledBy ? (
                       <span className="text-xs font-bold text-[#8a9aa0]">{t.closedBy[request.cancelledBy]}</span>
                     ) : null}
+
+                    {request.status === "Completed" && request.interpreter && (
+                      <span className="text-xs font-extrabold text-[#087557]">
+                        {request.review ? t.reviewed : t.reviewPending}
+                      </span>
+                    )}
 
                     <span className="inline-flex min-h-11 items-center justify-center gap-1 rounded-lg bg-(--khvi-navy) px-4 text-xs font-extrabold text-white transition-colors group-hover:bg-[#0c4960] sm:self-end">
                       {t.view}

@@ -5,6 +5,7 @@ import type { Locale } from "@/app/components/site-header";
 import { createClient } from "@/utils/supabase/client";
 
 export const LOCALE_STORAGE_KEY = "khvi-locale";
+export const LOCALE_USER_SELECTED_KEY = "khvi-locale-user-selected";
 export const LOCALE_CHANGE_EVENT = "khvi-locale-change";
 // Keep the client default aligned with public.profiles.preferred_ui_language.
 const DEFAULT_LOCALE: Locale = "th";
@@ -57,6 +58,7 @@ export function useStoredLocale(): [Locale, (locale: Locale) => void] {
     if (typeof window === "undefined") return;
 
     window.localStorage.setItem(LOCALE_STORAGE_KEY, nextLocale);
+    window.localStorage.setItem(LOCALE_USER_SELECTED_KEY, "true");
     applyLocaleToDocument(nextLocale);
     window.dispatchEvent(new CustomEvent<Locale>(LOCALE_CHANGE_EVENT, { detail: nextLocale }));
   }, []);

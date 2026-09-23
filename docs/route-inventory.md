@@ -88,14 +88,14 @@ parameter ที่ผิดรูปแบบหรือไม่พบข้�
 
 | Path | Type | Access | Data source | Not found behavior | Status |
 |---|---|---|---|---|---|
-| `/profile` | Static private route | Authenticated User, Interpreter, Manager, Admin (preview session) | Supabase Auth `profiles`; browser mock session fallback | Redirect to `/#top` when session is missing, locked, or soft-deleted | Implemented at `app/(workspace)/profile/page.tsx`; self-service soft delete is available for Supabase sessions |
+| `/profile` | Static private route | Authenticated User, Interpreter, Manager, Admin (preview session) | Supabase Auth `profiles`; server-only Admin API for permanent deletion; browser mock session fallback | Redirect to `/#top` when session is missing or locked | Implemented at `app/(workspace)/profile/page.tsx`; permanent self-service deletion requires no active booking and a server secret key |
 | `/welcome` | Static private route | Authenticated User/Interpreter | Supabase Auth session + `public.profiles`; role-scoped `bookings` data through RLS | Redirect by Supabase profile role | Implemented at `app/(workspace)/welcome/page.tsx` |
 | `/map` | Resource map/list | Approved Interpreter | `bookings`, interpreter skills | Empty state or `403` | Planned |
 | `/volunteer/apply` | Resource create route | Authenticated User | `interpreter_profiles`, `languages`, `categories` | Redirect to current application status | Planned |
 | `/volunteer/status` | Resource detail route | Authenticated User | `interpreter_profiles` | Empty state if no application | Planned |
 | `/volunteer/dashboard` | Resource dashboard | Approved Interpreter | `bookings`, interpreter skills | `403` if not approved | Planned |
 | `/manager/verify-volunteers` | Resource list/detail | Manager/Admin | `interpreter_profiles`, user profile | Empty state or `403` | Planned |
-| `/admin` | Static dashboard | Admin | Users, bookings, reviews summary | `403` | Planned |
+| `/admin` | Static dashboard | Admin | Users, bookings, real interpreter rating summary; reports/audit remain preview data | `403` | Partially implemented |
 | `/admin/users` | Resource list/detail | Admin | User profile and roles | Empty state or `403` | Planned |
 
 `/request-help`, `/my-requests`, `/find-requests`, `/my-assignments`, `/register` และ `/login` อยู่ในตาราง implemented แล้ว
@@ -113,7 +113,7 @@ Authenticated flow ใช้ Supabase session แยกมุมมองตา�
 - `/welcome`, `/my-requests`, `/find-requests` และ `/my-assignments` ใช้ข้อมูล `bookings` จริงตาม Supabase session และ RLS
 - `/my-requests/[requestId]` เป็น shared mission room ของเจ้าของคำขอและล่ามที่รับงาน โดย action ทุกขั้นตรวจ authorization และ state transition ฝั่ง server
 - เวลาใช้ `TIMESTAMPTZ` จากฐานข้อมูล และ countdown คำนวณจาก `bookings.expires_at`
-- งานที่ยังไม่เปิดใน scope ปัจจุบันคือการส่ง Review หลังงาน `Completed`; หน้า Welcome แสดงสถานะนี้ว่า unavailable
+- Review หลังงาน `Completed` รองรับแล้วใน branch นี้: ผู้ขอส่งรีวิวจากหน้า Mission ได้ และ Welcome กับ Request List แสดงสถานะ pending/reviewed จากข้อมูลจริง
 - การตรวจล่าสุดครอบคลุม lint, TypeScript, production build, Supabase RLS query และ browser runtime ของ User mission link
 
 ## ข้อกำหนดเมื่อเพิ่ม route

@@ -21,9 +21,10 @@ Environment ที่ต้องมีใน `.env.local`:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+SUPABASE_SECRET_KEY=your_supabase_secret_key
 ```
 
-`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` ใช้ได้ทั้ง browser และ server เพราะเป็น publishable key ตามชื่อ environment ห้ามนำ `service_role` key หรือ secret key มาใส่ใน client code หรือ commit ลง repository
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` ใช้ได้ทั้ง browser และ server เพราะเป็น publishable key ตามชื่อ environment ส่วน `SUPABASE_SECRET_KEY` ใช้เฉพาะ Server Action สำหรับลบบัญชีถาวร ห้ามเติม prefix `NEXT_PUBLIC_`, นำไปใช้ใน client code หรือ commit ค่าจริงลง repository ระบบยังรองรับชื่อ legacy `SUPABASE_SERVICE_ROLE_KEY` สำหรับ environment เดิม
 
 ใช้ client ตาม execution boundary:
 
@@ -63,7 +64,8 @@ auth.users
              │       └──< public.interpreter_application_categories >── public.categories
              └──< public.bookings
                      ├── 1 public.booking_private_details
-                     └──< public.mission_locations >── public.profiles
+                     ├──< public.mission_locations >── public.profiles
+                     └──< public.reviews >── public.profiles (reviewer/reviewee)
 ```
 
 ตารางหลัก:
@@ -79,6 +81,7 @@ auth.users
 | `public.bookings` | คำขอและสถานะภารกิจ | เก็บพิกัดพื้นที่แบบหยาบเท่านั้น |
 | `public.booking_private_details` | ที่อยู่และพิกัดจริง | เปิดผ่าน guarded RPC ตามสิทธิ์ |
 | `public.mission_locations` | ตำแหน่งล่าสุดของแต่ละ actor | ห้ามอ่านหรือเขียน table โดยตรงจาก client |
+| `public.reviews` | คะแนนและความคิดเห็นของ User ต่อ Interpreter หลังงานเสร็จ | หนึ่ง review ต่อ booking ต่อ reviewer; เขียนผ่าน `create_review` เท่านั้น |
 
 `public.bookings.area_latitude` และ `area_longitude` ถูกปัดเหลือ 2 ตำแหน่งตอนสร้างงาน ส่วนพิกัดจริงอยู่ใน `booking_private_details` และเปิดให้ interpreter หลัง requester ยืนยัน interpreter แล้ว
 
@@ -141,6 +144,17 @@ Entry point อยู่ที่ `app/actions/booking-actions.ts`
 
 Entry point อยู่ที่ `app/actions/interpreter-application-actions.ts`
 
+### Review RPC
+
+| RPC | หน้าที่ | Result |
+|---|---|---|
+| `create_review` | สร้าง review ของ requester สำหรับ booking ที่ `completed` โดย derive reviewer/reviewee จาก booking | `review_id` |
+| `get_booking_review` | อ่าน review ของ booking ที่ผู้ขอ ล่าม หรือ Manager/Admin เกี่ยวข้อง | review row |
+| `get_interpreter_rating` | อ่านค่าเฉลี่ย จำนวน review และจำนวนงานที่ completed ของล่าม | rating summary |
+| `get_interpreter_reviews` | อ่านรายการ review ของล่ามสำหรับเจ้าตัวหรือ Manager/Admin | review rows |
+
+Entry point อยู่ที่ `app/actions/review-actions.ts` และ form อยู่ที่ `app/components/review-form.tsx`
+
 ตัวอย่าง mutation:
 
 ```ts
@@ -168,7 +182,7 @@ open -> claimed -> in_progress -> completed
 
 - User ห้าม claim booking ของตนเอง
 - Claim ได้เฉพาะ profile ที่ role เป็น `Interpreter`, ไม่ locked และมี application `approved`; ล่ามทั่วไปต้องตรงทั้งภาษาและหมวดหมู่ ส่วนบัญชีที่มี `is_super_interpreter = true` ใช้ทดสอบได้กับคำขอเปิดทุกภาษาและหมวดหมู่
-- Interpreter ที่มีงาน `claimed` หรือ `in_progress` อยู่แล้วห้าม claim งานใหม่
+- หนึ่งบัญชีมีงานที่ยังค้างได้ไม่เกินหนึ่งรายการข้ามทั้งสองโหมด: หากมีคำขอฝั่งผู้ขอเป็น `open`, `claimed` หรือ `in_progress` (ยกเว้น `open` ที่หมดอายุแล้ว) หรือมีงานฝั่งล่ามเป็น `claimed` หรือ `in_progress` จะสร้างคำขอหรือ claim งานใหม่ไม่ได้
 - `start_booking` ต้องเกิดหลัง requester ยืนยัน interpreter
 - `completed` จะเกิดเมื่อ requester และ interpreter ยืนยันจบงานครบทั้งสองฝ่าย
 - การถอนตัวจาก `claimed` จะคืนงานเป็น `open` หากยังไม่พ้น deadline
@@ -189,10 +203,10 @@ pending | under_review | needs_revision | approved | rejected | cancelled
 - ตารางที่อยู่ใน `public` schema เปิด RLS ใน migration
 - `anon` ไม่มีสิทธิ์อ่านหรือเขียนข้อมูล domain
 - `authenticated` เข้าถึงตาม policy ที่ผูกกับ `auth.uid()` และ role ใน `profiles`
-- Application mutation revoke direct table write ใน migration ล่าสุดแล้ว ส่วน `bookings` และ `booking_private_details` ยังมีสิทธิ์ insert สำหรับ `authenticated` ตาม policy เดิม แต่ application code ต้องใช้ RPC เพื่อรักษา validation, expiry, private details และ atomic flow
+- Application mutation revoke direct table write ใน migration ล่าสุดแล้ว รวมถึง `bookings` และ `booking_private_details`; application code ต้องใช้ RPC เพื่อรักษา validation, expiry, private details และ atomic flow
 - RPC ที่อยู่ใน `public` ต้อง `revoke all ... from public` และ grant เฉพาะ role ที่ต้องใช้
-- `SECURITY DEFINER` ที่มีอยู่ต้องคง `auth.uid()` check และ `set search_path = public, pg_temp` ไว้
-- ห้ามใช้ `service_role` key ใน browser หรือ Server Action ของ user-facing flow
+- `SECURITY DEFINER` ที่มีอยู่ต้องคง `auth.uid()` check และกำหนด `search_path`; function ใหม่ควรใช้ `set search_path = ''` พร้อมระบุ schema ของ relation ทุกจุด
+- ห้ามใช้ `service_role` หรือ secret key ใน browser โดยเด็ดขาด Server Action ใช้ได้เฉพาะ operation ระดับระบบที่ต้องใช้ Admin API เช่นการลบบัญชีถาวร โดยต้องตรวจ Supabase session ก่อนและห้ามรับ target user ID จาก client
 
 Certificate upload ใช้ bucket private:
 
@@ -215,7 +229,10 @@ Project นี้ใช้ imperative migration ใน `supabase/migrations/` �
 5. `20260917094342_real_interpreter_application_flow.sql`
 6. `20260917095513_real_interpreter_certificate_storage.sql`
 7. `20260917100148_complete_interpreter_reference_catalog.sql`
-8. `20260921085918_create_super_interpreter_test_access.sql`
+8. `20260921000100_add_self_account_deletion.sql`
+9. `20260921000200_admin_profiles_policy.sql`
+10. `20260921085918_create_super_interpreter_test_access.sql`
+11. `20260922091315_add_reviews_and_rating_summary.sql`
 
 เมื่อต้องเปลี่ยน schema, policy, RPC หรือ Storage ให้เพิ่ม migration ใหม่ตามลำดับ ห้ามแก้ migration ที่เคย apply ไปแล้วใน shared project
 
@@ -257,16 +274,21 @@ where u.id = p.user_id
 - `/my-requests`, `/find-requests`, `/my-assignments` อ่าน booking จริง
 - `/my-requests/[requestId]` อ่าน booking และข้อมูล private ผ่าน guarded RPC
 - Claim, confirm, start, complete, cancel และ mission location ใช้ booking RPC
-- `/profile` ปิดบัญชีตนเองผ่าน `delete_my_account` แบบ soft delete โดยป้องกันการลบเมื่อมีงาน `open`, `claimed` หรือ `in_progress`
+- `/profile` เริ่มการลบผ่าน `begin_permanent_account_deletion`, ลบไฟล์ใบสมัครล่ามด้วย server-only Storage client แล้วลบ Supabase Auth user แบบถาวรผ่าน Admin API ระบบป้องกันการลบเมื่อมีงาน `open` ที่ยังไม่หมดอายุหรือมีงาน `claimed`, `in_progress`
 - `/volunteer/apply` อ่าน reference จริงและส่ง application จริง
 - `/volunteer/status` อ่านและจัดการ application จริง
 - Manager application queue อ่านข้อมูลจริงและ review ผ่าน RPC
+- `/my-requests/[requestId]` ส่ง review หลัง booking เป็น `completed` และแสดง review แบบ read-only หลังส่งสำเร็จ
+- `/my-requests` และ `/welcome` แสดงสถานะงานที่รอ review หรือ review แล้ว
+- Admin และ Manager อ่าน rating, จำนวน review และจำนวนงาน completed ของล่ามจาก `get_interpreter_rating`
 
 ยังเป็น mock หรือยังไม่เชื่อมใน domain อื่น:
 
-- `/admin` ยังใช้ mock dashboard data
+- `/admin` ยังใช้ mock dashboard data ในส่วน reports, audit และ response-time; rating/completed missions ของล่ามอ่านจากฐานข้อมูลแล้ว
 - Manager tickets, reports และ activity บางส่วนยังใช้ mock data
-- Review, notification, audit log และ report ยังไม่อยู่ใน migration ชุดนี้
+- คะแนนรีวิวเฉลี่ยของล่ามบน `/welcome#welcome-Interpreter` อ่านจาก RPC `get_interpreter_rating(p_interpreter_id)` ของ Supabase ที่เชื่อมอยู่จริง และแสดง “ยังไม่มีรีวิว” เมื่อ RPC คืนรายการว่างหรือนับรีวิวได้ 0
+- ตาราง `reviews` และ RPC `get_interpreter_rating` อยู่ใน migration `20260922091315_add_reviews_and_rating_summary.sql`
+- Notification, audit log และ report ยังไม่อยู่ใน migration ชุดนี้
 - Realtime config เปิดอยู่ แต่ application ยังใช้ request/response และ cache revalidation แทน realtime subscription
 
 `docs/route-inventory.md`, `detail.md` และ role documents บางส่วนยังมีข้อความที่อธิบาย route หรือ status เป็น mock/planned จากช่วงก่อนเชื่อม database เอกสารนี้บันทึก implementation ปัจจุบันจาก source code และ migration หากจะขยาย feature ให้ผ่าน Requirement Consistency Gate และอัปเดตเอกสารที่เกี่ยวข้องใน PR เดียวกัน

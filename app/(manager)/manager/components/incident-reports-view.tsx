@@ -4,25 +4,65 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import {
   AdjustmentsHorizontalIcon,
   CheckIcon,
+  CheckCircleIcon,
   ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  LanguageIcon,
   MagnifyingGlassIcon,
   BellAlertIcon,
   ShieldCheckIcon,
   ShieldExclamationIcon,
   UserIcon,
 } from "@heroicons/react/24/outline";
-import { IncidentReport } from "../types";
+import { IncidentReport, IncidentSeverity } from "../types";
+import { EscalateReportModal } from "./escalate-report-modal";
+import { ResolveReportModal } from "./resolve-report-modal";
 
 interface IncidentReportsViewProps {
   reports: IncidentReport[];
-  onEscalate: (reportId: string) => void;
+  onEscalate: (
+    reportId: string,
+    severity: IncidentSeverity,
+    assessmentNote: string
+  ) => void;
+  onResolve: (reportId: string, resolutionNote: string) => void;
 }
+
+const severityBadgeConfig: Record<
+  IncidentSeverity,
+  { bg: string; text: string; border: string; label: string }
+> = {
+  critical: {
+    bg: "bg-[#fee2e2]",
+    text: "text-[#b91c1c]",
+    border: "border-[#f87171]",
+    label: "Critical",
+  },
+  high: {
+    bg: "bg-[#ffedd5]",
+    text: "text-[#c2410c]",
+    border: "border-[#fb923c]",
+    label: "High",
+  },
+  medium: {
+    bg: "bg-[#fef9c3]",
+    text: "text-[#854d0e]",
+    border: "border-[#facc15]",
+    label: "Medium",
+  },
+};
+
+const severityFilterOptions: Array<{ id: IncidentSeverity; label: string }> = [
+  { id: "critical", label: "Critical" },
+  { id: "high", label: "High" },
+  { id: "medium", label: "Medium" },
+];
 
 export function IncidentReportsView({
   reports,
   onEscalate,
+  onResolve,
 }: IncidentReportsViewProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 6;
@@ -31,8 +71,23 @@ export function IncidentReportsView({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [selectedReporterRoles, setSelectedReporterRoles] = useState<string[]>([]);
+  const [selectedSeverities, setSelectedSeverities] = useState<IncidentSeverity[]>([]);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const filterMenuRef = useRef<HTMLDivElement>(null);
+
+  // Modal states
+  const [escalatingReport, setEscalatingReport] = useState<IncidentReport | null>(null);
+  const [resolvingReport, setResolvingReport] = useState<IncidentReport | null>(null);
+
+  // Expanded original reason map
+  const [expandedOriginalMap, setExpandedOriginalMap] = useState<Record<string, boolean>>({});
+
+  const toggleOriginal = (id: string) => {
+    setExpandedOriginalMap((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
 
   // Close filter popover on outside click
   useEffect(() => {
@@ -60,13 +115,22 @@ export function IncidentReportsView({
     );
   };
 
+  const toggleSeverity = (sev: IncidentSeverity) => {
+    setSelectedSeverities((prev) =>
+      prev.includes(sev) ? prev.filter((s) => s !== sev) : [...prev, sev]
+    );
+  };
+
   const resetAllFilters = () => {
     setSelectedStatuses([]);
     setSelectedReporterRoles([]);
+    setSelectedSeverities([]);
   };
 
   const activeFilterCount =
-    selectedStatuses.length + selectedReporterRoles.length;
+    selectedStatuses.length +
+    selectedReporterRoles.length +
+    selectedSeverities.length;
 
   // Filtered reports
   const filteredReports = useMemo(() => {
@@ -79,6 +143,7 @@ export function IncidentReportsView({
         const matchReporter = r.reporterName.toLowerCase().includes(q);
         const matchReported = r.reportedUserName.toLowerCase().includes(q);
         const matchReason = r.reason.toLowerCase().includes(q);
+        const matchOriginalReason = r.originalReason?.toLowerCase().includes(q) ?? false;
         const matchAction = r.actionTaken?.toLowerCase().includes(q) ?? false;
         if (
           !matchId &&
@@ -86,6 +151,7 @@ export function IncidentReportsView({
           !matchReporter &&
           !matchReported &&
           !matchReason &&
+          !matchOriginalReason &&
           !matchAction
         ) {
           return false;
@@ -108,9 +174,16 @@ export function IncidentReportsView({
         return false;
       }
 
+      // 4. Severity filter
+      if (selectedSeverities.length > 0) {
+        if (!r.severity || !selectedSeverities.includes(r.severity)) {
+          return false;
+        }
+      }
+
       return true;
     });
-  }, [reports, searchQuery, selectedStatuses, selectedReporterRoles]);
+  }, [reports, searchQuery, selectedStatuses, selectedReporterRoles, selectedSeverities]);
 
   const totalPages = Math.max(1, Math.ceil(filteredReports.length / pageSize));
   const validCurrentPage = Math.min(currentPage, totalPages);
@@ -284,10 +357,46 @@ export function IncidentReportsView({
                     })}
                   </div>
                 </div>
+
+                {/* 3. Severity */}
+                <div>
+                  <label className="text-[11px] font-bold text-[#557180] flex items-center gap-1 mb-2">
+                    <ShieldExclamationIcon className="h-3.5 w-3.5 text-[#087f80]" />
+                    Severity
+                  </label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {severityFilterOptions.map((option) => {
+                      const isChecked = selectedSeverities.includes(option.id);
+                      const config = severityBadgeConfig[option.id];
+                      return (
+                        <label
+                          key={option.id}
+                          className={`flex cursor-pointer items-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs font-semibold transition-colors ${
+                            isChecked
+                              ? `${config.border} ${config.bg} ${config.text}`
+                              : "border-[#e0eaee] bg-[#f9fbfb] text-[#244253] hover:bg-white"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {
+                              toggleSeverity(option.id);
+                              setCurrentPage(1);
+                            }}
+                            className="h-3.5 w-3.5 rounded border-slate-300 text-[#087f80] focus:ring-[#087f80]"
+                          />
+                          <span className="truncate">{option.label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             )}
           </div>
         </div>
+      </div>
       </div>
 
       {/* Reports List Container */}
@@ -336,22 +445,53 @@ export function IncidentReportsView({
                   </div>
                 </div>
 
-                <span
-                  className={`rounded-full px-2.5 py-0.5 text-[11px] font-extrabold ${
-                    report.status === "Resolved"
-                      ? "bg-[#e8f5f1] text-[#087557]"
-                      : report.status === "Escalated to Admin"
-                      ? "bg-[#eef2f6] text-[#2c4755]"
-                      : "bg-[#fef4e8] text-[#b36916]"
-                  }`}
-                >
-                  {report.status}
-                </span>
+                <div className="flex flex-wrap items-center justify-end gap-1.5">
+                  {report.severity ? (
+                    <span
+                      className={`rounded-full border px-2.5 py-0.5 text-[11px] font-extrabold ${severityBadgeConfig[report.severity].bg} ${severityBadgeConfig[report.severity].text} ${severityBadgeConfig[report.severity].border}`}
+                    >
+                      Severity: {severityBadgeConfig[report.severity].label}
+                    </span>
+                  ) : (
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold text-slate-500">
+                      Severity: Not assessed
+                    </span>
+                  )}
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-[11px] font-extrabold ${
+                      report.status === "Resolved"
+                        ? "bg-[#e8f5f1] text-[#087557]"
+                        : report.status === "Escalated to Admin"
+                        ? "bg-[#eef2f6] text-[#2c4755]"
+                        : "bg-[#fef4e8] text-[#b36916]"
+                    }`}
+                  >
+                    {report.status}
+                  </span>
+                </div>
               </div>
 
               <div className="mt-3 rounded-lg border border-[#e4ecf0] bg-[#f8fbfc] p-3 text-xs leading-relaxed text-[#355261]">
                 <p className="font-bold text-[#143141]">Reported Issue:</p>
                 <p className="mt-0.5">{report.reason}</p>
+                {report.originalReason && report.originalLanguage && (
+                  <div className="mt-2 border-t border-[#e4ecf0] pt-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleOriginal(report.id)}
+                      aria-expanded={Boolean(expandedOriginalMap[report.id])}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-[#087f80] hover:underline focus:outline-none focus:ring-2 focus:ring-[#4d8a93] cursor-pointer"
+                    >
+                      <LanguageIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                      {expandedOriginalMap[report.id] ? "Hide original text" : `View original (${report.originalLanguage})`}
+                    </button>
+                    {expandedOriginalMap[report.id] && (
+                      <p className="mt-1 rounded-lg bg-white p-2 text-[11px] italic text-slate-600">
+                        {report.originalReason}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {report.actionTaken && (
@@ -365,14 +505,21 @@ export function IncidentReportsView({
 
               {/* Action buttons */}
               {report.status === "Pending Investigation" && (
-                <div className="mt-3 flex items-center justify-end gap-2 border-t border-[#edf2f5] pt-3">
+                <div className="mt-3 flex flex-wrap items-center justify-end gap-2 border-t border-[#edf2f5] pt-3">
                   <button
                     type="button"
-                    onClick={() => onEscalate(report.id)}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-[#092f45] px-4 py-1.5 text-xs font-bold text-white hover:bg-[#12425e] cursor-pointer"
+                    onClick={() => setResolvingReport(report)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#b9ddd2] bg-[#f1fbf7] px-4 py-1.5 text-xs font-bold text-[#087557] transition-colors hover:bg-[#e8f5f1] focus:outline-none focus:ring-2 focus:ring-[#4d8a93] cursor-pointer"
                   >
-                    <ShieldCheckIcon className="h-3.5 w-3.5 text-[#f59e0b]" />
-                    Escalate to Admin Portal (Lock Account FR-78)
+                    <CheckCircleIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                    Resolve internally
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEscalatingReport(report)}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-[#092f45] px-4 py-1.5 text-xs font-bold text-white transition-colors hover:bg-[#12425e] focus:outline-none focus:ring-2 focus:ring-[#4d8a93] cursor-pointer"
+                  >
+                    <ShieldCheckIcon className="h-3.5 w-3.5 text-[#f59e0b]" aria-hidden="true" />
                     Escalate to Admin Portal
                   </button>
                 </div>
@@ -445,7 +592,18 @@ export function IncidentReportsView({
         </div>
       )}
       </div>
-    </div>
+      <EscalateReportModal
+        report={escalatingReport}
+        isOpen={Boolean(escalatingReport)}
+        onClose={() => setEscalatingReport(null)}
+        onConfirm={onEscalate}
+      />
+      <ResolveReportModal
+        report={resolvingReport}
+        isOpen={Boolean(resolvingReport)}
+        onClose={() => setResolvingReport(null)}
+        onConfirm={onResolve}
+      />
     </div>
   );
 }

@@ -187,6 +187,7 @@ export function OperationsHistoryView({
                         { id: "rejection", label: "Interpreter Rejection" },
                         { id: "ticket_reply", label: "Ticket Reply" },
                         { id: "report_escalation", label: "Admin Escalation" },
+                        { id: "report_resolved", label: "Incident Resolved" },
                       ].map((t) => {
                         const isChecked = selectedTypes.includes(t.id);
                         return (
@@ -255,6 +256,10 @@ export function OperationsHistoryView({
                     badgeBg = "bg-[#fffbeb] text-[#d97706] border-[#fde68a]";
                     typeLabel = "Escalated to Admin";
                     IconComponent = ShieldExclamationIcon;
+                  } else if (act.type === "report_resolved") {
+                    badgeBg = "bg-[#ecfdf5] text-[#059669] border-[#a7f3d0]";
+                    typeLabel = "Incident Resolved";
+                    IconComponent = CheckCircleIcon;
                   }
 
                   return (
