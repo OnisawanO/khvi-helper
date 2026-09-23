@@ -369,12 +369,12 @@ export function isContactUnlocked(status: RequestStatus): boolean {
 }
 
 export const STATUS_FILTERS = [
-  { id: "all", statuses: null },
+  { id: "completed", statuses: ["Completed"] },
+  { id: "in-progress", statuses: ["InProgress"] },
   { id: "open", statuses: ["Open"] },
   { id: "claimed", statuses: ["Claimed"] },
-  { id: "in-progress", statuses: ["InProgress"] },
-  { id: "completed", statuses: ["Completed"] },
   { id: "closed", statuses: ["Cancelled", "Expired"] },
+  { id: "all", statuses: null },
 ] as const satisfies readonly { id: string; statuses: readonly RequestStatus[] | null }[];
 
 export type StatusFilterId = (typeof STATUS_FILTERS)[number]["id"];

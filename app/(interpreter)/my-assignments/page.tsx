@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export default async function MyAssignmentsPage(props: PageProps<"/my-assignments">) {
   const { status } = await props.searchParams;
-  const activeFilter = resolveStatusFilter(status);
+  const activeFilter = resolveStatusFilter(status ?? "completed");
   const supabase = await createClient();
   const [assignments, openRequestsResult, application, activity] = await Promise.all([
     loadInterpreterAssignments(supabase),
