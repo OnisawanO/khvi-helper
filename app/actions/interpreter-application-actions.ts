@@ -162,8 +162,9 @@ export async function reviewInterpreterApplicationAction(input: {
   if (error) return { ok: false, error: friendlyError(error) };
   revalidatePath("/manager");
   revalidatePath("/volunteer/status");
-  revalidatePath("/welcome");
-  revalidatePath("/find-requests");
+  revalidatePath("/user");
+  revalidatePath("/interpreter");
+  revalidatePath("/interpreter/find-requests");
   return { ok: true, data: undefined };
 }
 

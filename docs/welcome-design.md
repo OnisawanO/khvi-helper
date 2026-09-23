@@ -2,18 +2,18 @@
 
 งานนี้ปรับหน้าแรกและ Welcome ตามคำขอผู้ใช้ โดยใช้สี ฟอนต์ และ component เดิม ให้ผู้มาใหม่เริ่มใช้งานได้ และให้ผู้ที่ล็อกอินเห็นงานที่ต้องทำต่อก่อนคู่มือ
 
-> สถานะปัจจุบัน 2026-09-21: หน้า Welcome ของ User และ Interpreter อ่าน `bookings`, `languages` และ `categories` จาก Supabase ตาม session/RLS แล้ว ส่วน `/request-help` อ่าน catalog จาก Supabase และสร้าง booking ผ่าน `create_booking` RPC รายละเอียด mock ด้านล่างเป็นบันทึกประวัติและไม่ใช่ data source ปัจจุบัน
+> สถานะปัจจุบัน 2026-09-21: หน้า Welcome ของ User และ Interpreter อ่าน `bookings`, `languages` และ `categories` จาก Supabase ตาม session/RLS แล้ว ส่วน `/user/request-help` อ่าน catalog จาก Supabase และสร้าง booking ผ่าน `create_booking` RPC รายละเอียด mock ด้านล่างเป็นบันทึกประวัติและไม่ใช่ data source ปัจจุบัน
 
 ## ขอบเขตและผลตรวจความสอดคล้อง
 
 | ประเด็น | หลักฐาน | ผลตรวจและการใช้งานในงานนี้ |
 |---|---|---|
-| หน้าเริ่มต้นสามกลุ่ม | requirements FR-03/04, user-flows, route-inventory | สอดคล้อง: ผู้มาใหม่ใช้ / ส่วน User/Interpreter ใช้ /welcome และ route เดิม |
+| หน้าเริ่มต้นสามกลุ่ม | requirements FR-03/04, user-flows, route-inventory | สอดคล้อง: ผู้มาใหม่ใช้ `/`, User ใช้ `/user`, Interpreter ใช้ `/interpreter` และ `/welcome` redirect ตาม role |
 | ข้อมูลรายบัญชี | request-store และ mock-auth ไม่มี owner ID ในคำขอ | ยังไม่พร้อม: แสดงเป็นข้อมูลในเบราว์เซอร์ ไม่อ้างว่าเป็นงานที่เป็นเจ้าของหรือผลจับคู่ที่ยืนยันแล้ว |
 | การเปิดข้อมูลติดต่อ | FR-10/11 และ user-flows ต้องยืนยันล่าม; request detail เดิมปลดล็อกหลัง Claim | ขัดแย้งเดิม: Welcome แสดงเฉพาะชื่อ/ภาษาล่ามและคำแนะนำตาม requirement ไม่เปลี่ยนการปลดล็อกหรือ state machine ในหน้ารายละเอียด |
 | จำกัดงานที่ยังไม่จบ | requirements หมวด 5; store รองรับหลายรายการ | ต่างจากเป้าหมาย: ปุ่มหลักบน Welcome เน้นกลับสู่งานปัจจุบัน มีทางดูทั้งหมด ไม่เพิ่มกฎบังคับใน store |
 | โปรไฟล์ ใบสมัคร และรีวิว | FR-14/15/16; ไม่มี data source/route สำหรับดำเนินการ | ยังไม่พร้อม: มีส่วนแนะนำและสถานะไม่เปิดใช้งาน ไม่สร้างสถานะ Pending/Approved หรือรีวิวขึ้นมาเอง |
-| การค้นหา | FR-07; /find-requests มีแผนที่ต้นแบบ | สอดคล้องกับต้นแบบ: เพิ่มตัวกรองภาษา หมวดหมู่ และรัศมีบนรายการในเครื่อง พิกัด GPS อยู่ใน component memory เท่านั้น |
+| การค้นหา | FR-07; /interpreter/find-requests มีแผนที่ต้นแบบ | สอดคล้องกับต้นแบบ: เพิ่มตัวกรองภาษา หมวดหมู่ และรัศมีบนรายการในเครื่อง พิกัด GPS อยู่ใน component memory เท่านั้น |
 
 ## สิ่งที่เพิ่ม
 
@@ -39,7 +39,7 @@
 
 # Welcome workspace (task scope)
 
-`/welcome#welcome-user` is the signed-in starting view for User and `/welcome#welcome-Interpreter` is the signed-in starting view for Interpreter. Both views share the same header. The header shows the signed-in profile; its dropdown contains Profile & Settings and sign-out actions. Manager and Admin continue to their existing consoles. Visitors return to `/#top`. This describes the current mock implementation, not production authorization.
+`/user` is the signed-in starting view for a User account. `/interpreter` is the single signed-in page for an approved Interpreter and switches between helper and requester content without leaving that route. Both views share the same header. The header shows the signed-in profile; its dropdown contains Profile & Settings and sign-out actions. Manager and Admin continue to their existing consoles. Visitors return to `/#top`, while `/welcome` only redirects to the canonical role home.
 
 ## Consistency review
 
@@ -49,7 +49,7 @@
 | Interpreter starting page | Existing documents plan an interpreter dashboard; the current user request asks for Welcome for both roles. | Use role-specific Welcome content for this task. The map remains planned. |
 | Authentication | mock-auth.ts stores sessions locally; requirements FR-01 and server authorization are future integration work. | Use the existing session for navigation and presentation. This is not a security boundary. |
 | Request activity | request-store.ts stores device-wide records with no requester or interpreter identity. | Label activity as saved on this device. Interpreter routes may show status-based request summaries for preview, but must not present them as account-owned or skill-matched data. |
-| Interpreter jobs | Map, profile matching, claims and account-scoped job history have no implemented data source. | Use `/find-requests` for open summaries and `/my-assignments` for claimed, in-progress or completed summaries. Keep Claim unavailable until its workflow exists. |
+| Interpreter jobs | Map, profile matching, claims and account-scoped job history have no implemented data source. | Use `/interpreter/find-requests` for open summaries and `/interpreter/my-assignments` for claimed, in-progress or completed summaries. Keep Claim unavailable until its workflow exists. |
 | Privacy | FR-10/11 require requester confirmation before sensitive details unlock. | Explain the confirmation gate consistently in the requester and interpreter guidance. |
 | Scheduling | Scheduled requests start on the next calendar day and have no maximum future date. | Explain the next-day minimum; scheduled requests still expire at the appointment time. |
 
@@ -61,7 +61,7 @@ Production work still requires Supabase sessions, server authorization and accou
 
 - `npm run lint` and `npm run build` passed.
 - Existing development server: `http://localhost:3000`. `/_next/mcp` `get_errors` returned empty configuration and session errors.
-- Browser checks used the available Codex browser controls because `agent-browser` was unavailable: User and Interpreter quick login, visitor redirect from `/welcome`, sign-out to `/#top`, requester links, Back to main returning to `/welcome#welcome-user` with `scrollY = 0`, interpreter guide anchor and Chinese language switching.
+- Browser checks used the available Codex browser controls because `agent-browser` was unavailable: User and Interpreter quick login, visitor redirect from `/welcome`, sign-out to `/#top`, requester links, Back to main returning to the User welcome with `scrollY = 0`, interpreter guide anchor and Chinese language switching.
 - Checked layouts at 390, 768 and 1440 pixels with no horizontal overflow. Also checked overflow at 320 pixels. The requester empty state was exercised; populated records retain existing request-store and status-badge contracts.
 - LSP CLI was unavailable; source reads, reference searches and the TypeScript build covered import/type verification.
 - Post-change review keeps claim, contact-unlock, scheduling and database contracts unchanged. The implementation remains a mock workspace.

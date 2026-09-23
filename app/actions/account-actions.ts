@@ -97,11 +97,12 @@ export async function deleteOwnAccountAction(): Promise<AccountActionResult> {
 
   revalidatePath("/");
   revalidatePath("/profile");
-  revalidatePath("/welcome");
-  revalidatePath("/request-help");
-  revalidatePath("/find-requests");
-  revalidatePath("/my-requests");
-  revalidatePath("/my-assignments");
+  revalidatePath("/user");
+  revalidatePath("/interpreter");
+  revalidatePath("/user/request-help");
+  revalidatePath("/interpreter/find-requests");
+  revalidatePath("/user/my-requests");
+  revalidatePath("/interpreter/my-assignments");
 
   return { ok: true };
 }

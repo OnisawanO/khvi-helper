@@ -58,7 +58,7 @@ export default function VolunteerStatusPage() {
         <WorkspaceBreadcrumbs
           ariaLabel="แถบนำทางระบบล่ามอาสา"
           items={[
-            { label: "หน้าหลัก", href: "/welcome#welcome-user" },
+            { label: "หน้าหลัก", href: "/user" },
             { label: "สถานะใบสมัครล่ามอาสา" },
           ]}
           className="mb-6"
@@ -82,7 +82,7 @@ export default function VolunteerStatusPage() {
             </p>
             <div className="mt-5 flex flex-wrap justify-center gap-3">
               <a
-                href="/welcome"
+                href="/user"
                 className="inline-flex min-h-11 items-center justify-center rounded-(--khvi-radius-sm) border border-[#cbd7dc] bg-white px-5 py-2.5 text-sm font-bold text-[#53656c] hover:bg-[#f4f7f8]"
               >
                 {locale === "th" ? "กลับสู่หน้าหลัก" : locale === "zh" ? "返回首页" : "Back to Home"}
@@ -111,7 +111,7 @@ export default function VolunteerStatusPage() {
                     setError(result.error);
                     return;
                   }
-                  router.push("/welcome");
+                  router.push("/user");
                 });
               }}
               onReupload={(file) => {

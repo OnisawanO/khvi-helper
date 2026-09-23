@@ -46,10 +46,11 @@ export async function submitReviewAction(input: {
     return { ok: false, error: friendlyError(error) };
   }
 
-  revalidatePath(`/my-requests/${bookingId}`);
-  revalidatePath("/my-requests");
-  revalidatePath("/my-assignments");
-  revalidatePath("/welcome");
+  revalidatePath(`/user/my-requests/${bookingId}`);
+  revalidatePath("/user/my-requests");
+  revalidatePath("/interpreter/my-assignments");
+  revalidatePath("/user");
+  revalidatePath("/interpreter");
   revalidatePath("/admin");
   revalidatePath("/manager");
 

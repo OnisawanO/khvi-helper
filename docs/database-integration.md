@@ -270,23 +270,23 @@ where u.id = p.user_id
 
 เชื่อม database แล้ว:
 
-- `/request-help` สร้าง booking ผ่าน `create_booking`
-- `/my-requests`, `/find-requests`, `/my-assignments` อ่าน booking จริง
-- `/my-requests/[requestId]` อ่าน booking และข้อมูล private ผ่าน guarded RPC
+- `/user/request-help` สร้าง booking ผ่าน `create_booking`
+- `/user/my-requests`, `/interpreter/find-requests`, `/interpreter/my-assignments` อ่าน booking จริง
+- `/user/my-requests/[requestId]` อ่าน booking และข้อมูล private ผ่าน guarded RPC
 - Claim, confirm, start, complete, cancel และ mission location ใช้ booking RPC
 - `/profile` เริ่มการลบผ่าน `begin_permanent_account_deletion`, ลบไฟล์ใบสมัครล่ามด้วย server-only Storage client แล้วลบ Supabase Auth user แบบถาวรผ่าน Admin API ระบบป้องกันการลบเมื่อมีงาน `open` ที่ยังไม่หมดอายุหรือมีงาน `claimed`, `in_progress`
 - `/volunteer/apply` อ่าน reference จริงและส่ง application จริง
 - `/volunteer/status` อ่านและจัดการ application จริง
 - Manager application queue อ่านข้อมูลจริงและ review ผ่าน RPC
-- `/my-requests/[requestId]` ส่ง review หลัง booking เป็น `completed` และแสดง review แบบ read-only หลังส่งสำเร็จ
-- `/my-requests` และ `/welcome` แสดงสถานะงานที่รอ review หรือ review แล้ว
+- `/user/my-requests/[requestId]` ส่ง review หลัง booking เป็น `completed` และแสดง review แบบ read-only หลังส่งสำเร็จ
+- `/user/my-requests` และ `/user` แสดงสถานะงานที่รอ review หรือ review แล้ว
 - Admin และ Manager อ่าน rating, จำนวน review และจำนวนงาน completed ของล่ามจาก `get_interpreter_rating`
 
 ยังเป็น mock หรือยังไม่เชื่อมใน domain อื่น:
 
 - `/admin` ยังใช้ mock dashboard data ในส่วน reports, audit และ response-time; rating/completed missions ของล่ามอ่านจากฐานข้อมูลแล้ว
 - Manager tickets, reports และ activity บางส่วนยังใช้ mock data
-- คะแนนรีวิวเฉลี่ยของล่ามบน `/welcome#welcome-Interpreter` อ่านจาก RPC `get_interpreter_rating(p_interpreter_id)` ของ Supabase ที่เชื่อมอยู่จริง และแสดง “ยังไม่มีรีวิว” เมื่อ RPC คืนรายการว่างหรือนับรีวิวได้ 0
+- คะแนนรีวิวเฉลี่ยของล่ามบน `/interpreter` อ่านจาก RPC `get_interpreter_rating(p_interpreter_id)` ของ Supabase ที่เชื่อมอยู่จริง และแสดง “ยังไม่มีรีวิว” เมื่อ RPC คืนรายการว่างหรือนับรีวิวได้ 0
 - ตาราง `reviews` และ RPC `get_interpreter_rating` อยู่ใน migration `20260922091315_add_reviews_and_rating_summary.sql`
 - Notification, audit log และ report ยังไม่อยู่ใน migration ชุดนี้
 - Realtime config เปิดอยู่ แต่ application ยังใช้ request/response และ cache revalidation แทน realtime subscription
