@@ -11,7 +11,7 @@ const accountCopy = {
   th: { menu: "เปิดเมนูโปรไฟล์", profileSettings: "โปรไฟล์และการตั้งค่า", volunteerApply: "สมัครเป็นล่ามอาสา", signOut: "ออกจากระบบ" },
   zh: { menu: "打开个人资料菜单", profileSettings: "个人资料与设置", volunteerApply: "申请志愿口译员", signOut: "退出" },
   es: { menu: "Abrir menú de perfil", profileSettings: "Perfil y configuración", volunteerApply: "Solicitud de voluntariado", signOut: "Cerrar sesión" },
-  ar: { menu: "فتح قائمة الملف الشخصي", profileSettings: "الملฟ الشخصي والإعدادات", volunteerApply: "طلب التطوع كمترجم", signOut: "تسجيل الخروج" },
+  ar: { menu: "فتح قائمة الملف الشخصي", profileSettings: "الملف الشخصي والإعدادات", volunteerApply: "طلب التطوع كمترجم", signOut: "تسجيل الخروج" },
 } as const;
 
 export function WorkspaceAccountActions({ user, onSignOut }: { user: UserProfile; onSignOut: () => void | Promise<void> }) {
