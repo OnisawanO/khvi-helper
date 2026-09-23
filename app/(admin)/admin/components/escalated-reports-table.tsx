@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AdjustmentsHorizontalIcon,
   CheckCircleIcon,
@@ -10,23 +10,17 @@ import {
   ExclamationTriangleIcon,
   EyeIcon,
   LanguageIcon,
-  LockOpenIcon,
   MagnifyingGlassIcon,
-  NoSymbolIcon,
-  ShieldCheckIcon,
-  ShieldExclamationIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { AdminIncidentReport, AdminUserRecord } from "../types";
+import type { AdminIncidentReport } from "../types";
 import { ReportStatusFilter } from "./reports-kpi-cards";
 import { TablePagination } from "./table-pagination";
+import { SystemReportResolutionDialog } from "./system-report-resolution-dialog";
 
 interface EscalatedReportsTableProps {
   reports: AdminIncidentReport[];
-  users: AdminUserRecord[];
-  onTakeAction: (targetUser: AdminUserRecord, reportId: string) => void;
-  onOpenUserDetail: (user: AdminUserRecord) => void;
-  onUnlockUser: (userId: string, reportId?: string) => void;
+  onResolveSystemReport: (reportId: string, note: string) => void;
   selectedStatusFilter?: ReportStatusFilter;
   onSelectStatusFilter?: (status: ReportStatusFilter) => void;
 }
@@ -39,330 +33,211 @@ const severityWeight: Record<AdminIncidentReport["severity"], number> = {
 
 export function EscalatedReportsTable({
   reports,
-  users,
-  onTakeAction,
-  onOpenUserDetail,
-  onUnlockUser,
+  onResolveSystemReport,
   selectedStatusFilter = "All",
   onSelectStatusFilter,
 }: EscalatedReportsTableProps) {
   const [filterSeverity, setFilterSeverity] = useState<"All" | "critical" | "high" | "medium">("All");
-  const [selectedReportDetail, setSelectedReportDetail] = useState<AdminIncidentReport | null>(null);
-
-  // Search & Detailed Filter Popover State
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [selectedReporterRoles, setSelectedReporterRoles] = useState<string[]>([]);
   const [localStatusFilter, setLocalStatusFilter] = useState<ReportStatusFilter>(selectedStatusFilter);
+  const [searchQuery, setSearchQuery] = useState("");
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [expandedOriginalMap, setExpandedOriginalMap] = useState<Record<string, boolean>>({});
+  const [selectedReportDetail, setSelectedReportDetail] = useState<AdminIncidentReport | null>(null);
+  const [systemReportToResolve, setSystemReportToResolve] = useState<AdminIncidentReport | null>(null);
   const filterMenuRef = useRef<HTMLDivElement>(null);
+  const pageSize = 10;
 
-  // Sync status filter state
   const activeStatusFilter = onSelectStatusFilter ? selectedStatusFilter : localStatusFilter;
   const handleStatusChange = (status: ReportStatusFilter) => {
     setLocalStatusFilter(status);
-    if (onSelectStatusFilter) {
-      onSelectStatusFilter(status);
-    }
+    onSelectStatusFilter?.(status);
+    setCurrentPage(1);
   };
 
-  // Pagination state (10 items per page)
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
-
-  // Close filter popover on outside click
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (filterMenuRef.current && !filterMenuRef.current.contains(event.target as Node)) {
-        setFilterMenuOpen(false);
-      }
-    }
-    if (filterMenuOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+    if (!filterMenuOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!filterMenuRef.current?.contains(event.target as Node)) setFilterMenuOpen(false);
     };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [filterMenuOpen]);
 
-  // Track toggled expanded view for original language per report
-  const [expandedOriginalMap, setExpandedOriginalMap] = useState<Record<string, boolean>>({});
-
-  const toggleOriginal = (reportId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setExpandedOriginalMap((prev) => ({
-      ...prev,
-      [reportId]: !prev[reportId],
-    }));
+  const toggleOriginal = (reportId: string) => {
+    setExpandedOriginalMap((current) => ({ ...current, [reportId]: !current[reportId] }));
   };
 
-  // Safety confirmation dialog state for Unlock
-  const [unlockConfirmTarget, setUnlockConfirmTarget] = useState<{
-    user: AdminUserRecord;
-    reportId?: string;
-  } | null>(null);
-
   const filteredReports = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const query = searchQuery.trim().toLowerCase();
+
     return reports
-      .filter((r) => {
-        if (filterSeverity !== "All" && r.severity !== filterSeverity) return false;
+      .filter((report) => {
+        if (filterSeverity !== "All" && report.severity !== filterSeverity) return false;
+        if (activeStatusFilter === "Pending" && report.status !== "Escalated to Admin") return false;
+        if (activeStatusFilter === "Resolved" && report.status !== "Resolved") return false;
+        if (activeStatusFilter === "Dismissed" && report.status !== "Dismissed") return false;
+        if (selectedReporterRoles.length > 0 && !selectedReporterRoles.includes(report.reporterRole)) return false;
 
-        if (activeStatusFilter === "Pending" && r.status !== "Escalated to Admin") return false;
-        if (activeStatusFilter === "Locked" && r.status !== "Resolved (Locked)") return false;
-        if (activeStatusFilter === "Hard Banned" && r.status !== "Resolved (Hard Banned)") return false;
-        if (activeStatusFilter === "Dismissed" && r.status !== "Dismissed") return false;
-
-        if (selectedRoles.length > 0 && !selectedRoles.includes(r.reportedUserRole)) return false;
-        if (selectedReporterRoles.length > 0 && !selectedReporterRoles.includes(r.reporterRole)) return false;
-
-        if (q) {
-          const matchId = r.id.toLowerCase().includes(q);
-          const matchTarget = r.reportedUserName.toLowerCase().includes(q) || r.reportedUserId.toLowerCase().includes(q);
-          const matchReporter = r.reporterName.toLowerCase().includes(q);
-          const matchBooking = r.bookingId.toLowerCase().includes(q);
-          const matchReason = r.reason.toLowerCase().includes(q) || (r.originalReason?.toLowerCase().includes(q) ?? false);
-          if (!matchId && !matchTarget && !matchReporter && !matchBooking && !matchReason) {
-            return false;
-          }
+        if (query) {
+          const searchableText = [
+            report.id,
+            report.reporterName,
+            report.reporterRole,
+            report.bookingId,
+            report.category,
+            report.systemArea,
+            report.reason,
+            report.originalReason,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+          if (!searchableText.includes(query)) return false;
         }
 
         return true;
       })
-      .sort((a, b) => {
-        const diff = severityWeight[a.severity] - severityWeight[b.severity];
-        if (diff !== 0) return diff;
-        return b.createdAt.localeCompare(a.createdAt);
+      .sort((left, right) => {
+        const severityDifference = severityWeight[right.severity] - severityWeight[left.severity];
+        return severityDifference || right.createdAt.localeCompare(left.createdAt);
       });
-  }, [reports, filterSeverity, activeStatusFilter, selectedRoles, selectedReporterRoles, searchQuery]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredReports.length / pageSize));
-  const validCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
-
-  const paginatedReports = useMemo(() => {
-    const start = (validCurrentPage - 1) * pageSize;
-    return filteredReports.slice(start, start + pageSize);
-  }, [filteredReports, validCurrentPage, pageSize]);
+  }, [activeStatusFilter, filterSeverity, reports, searchQuery, selectedReporterRoles]);
 
   const activeFiltersCount =
     (filterSeverity !== "All" ? 1 : 0) +
     (activeStatusFilter !== "All" ? 1 : 0) +
-    selectedRoles.length +
     selectedReporterRoles.length;
+  const totalPages = Math.max(1, Math.ceil(filteredReports.length / pageSize));
+  const validCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const paginatedReports = filteredReports.slice(
+    (validCurrentPage - 1) * pageSize,
+    validCurrentPage * pageSize,
+  );
+
+  const resetFilters = () => {
+    setFilterSeverity("All");
+    setSelectedReporterRoles([]);
+    handleStatusChange("All");
+    setSearchQuery("");
+    setCurrentPage(1);
+  };
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-200">
-      {/* Search and Advanced Filter Toolbar: Flat Canvas Bar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between py-1">
-        {/* Search Bar */}
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 py-1 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative flex-1">
+          <label htmlFor="admin-system-report-search" className="sr-only">
+            Search system reports
+          </label>
           <input
-            type="text"
+            id="admin-system-report-search"
+            type="search"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search cases by ID, user, volunteer, booking or incident reason..."
-            className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-10 pr-4 text-xs text-slate-800 placeholder-slate-400 focus:border-[#087f80] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#087f80]"
+            onChange={(event) => {
+              setSearchQuery(event.target.value);
+              setCurrentPage(1);
+            }}
+            placeholder="Search report ID, system area, booking or issue..."
+            className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-10 pr-10 text-xs text-slate-800 placeholder-slate-400 focus:border-[#087f80] focus:outline-none focus:ring-1 focus:ring-[#087f80]"
           />
-          <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <MagnifyingGlassIcon aria-hidden="true" className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
           {searchQuery && (
             <button
               type="button"
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
+              onClick={() => {
+                setSearchQuery("");
+                setCurrentPage(1);
+              }}
+              aria-label="Clear search"
+              className="absolute right-3 top-2 text-slate-400 hover:text-slate-600"
             >
-              <XMarkIcon className="h-4 w-4" />
+              <XMarkIcon aria-hidden="true" className="h-4 w-4" />
             </button>
           )}
         </div>
 
-        {/* Severity Pills + Quick Status + Popover */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Severity Filter Pills: Compact Flat Segmented Pills */}
           <div className="flex items-center gap-0.5 rounded-lg border border-slate-200 bg-slate-50/70 p-0.5">
-            {(["All", "medium", "high", "critical"] as const).map((sev) => (
+            {(["All", "medium", "high", "critical"] as const).map((severity) => (
               <button
-                key={sev}
+                key={severity}
                 type="button"
-                onClick={() => setFilterSeverity(sev)}
-                className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${
-                  filterSeverity === sev
-                    ? "bg-white text-[#092f45] shadow-xs border border-slate-200/80"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
-                }`}
+                onClick={() => {
+                  setFilterSeverity(severity);
+                  setCurrentPage(1);
+                }}
+                className={`rounded-md px-2.5 py-1 text-xs font-bold transition-all ${filterSeverity === severity ? "border border-slate-200/80 bg-white text-[#092f45] shadow-xs" : "text-slate-600 hover:bg-white/50 hover:text-slate-900"}`}
               >
-                {sev === "All"
-                  ? "All"
-                  : sev === "medium"
-                  ? "Medium"
-                  : sev === "high"
-                  ? "High"
-                  : "Critical"}
+                {severity === "All" ? "All" : severity[0].toUpperCase() + severity.slice(1)}
               </button>
             ))}
           </div>
 
-          {/* Quick Status Filter on Toolbar */}
-          <div className="flex items-center gap-1.5">
-            <select
-              value={activeStatusFilter}
-              onChange={(e) => handleStatusChange(e.target.value as ReportStatusFilter)}
-              className="rounded-xl sm:rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 focus:border-[#087f80] focus:outline-none cursor-pointer"
-            >
-              <option value="All">All Statuses</option>
-              <option value="Pending">Pending Action Only</option>
-              <option value="Locked">Resolved (Locked)</option>
-              <option value="Hard Banned">Resolved (Hard Banned)</option>
-              <option value="Dismissed">Dismissed</option>
-            </select>
-          </div>
+          <select
+            value={activeStatusFilter}
+            onChange={(event) => handleStatusChange(event.target.value as ReportStatusFilter)}
+            aria-label="Filter report status"
+            className="rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 focus:border-[#087f80] focus:outline-none sm:rounded-lg"
+          >
+            <option value="All">All statuses</option>
+            <option value="Pending">Pending action only</option>
+            <option value="Resolved">Resolved</option>
+            <option value="Dismissed">Dismissed</option>
+          </select>
 
-          {/* Filter Popover Button */}
           <div className="relative" ref={filterMenuRef}>
             <button
               type="button"
-              onClick={() => setFilterMenuOpen(!filterMenuOpen)}
-              className={`flex items-center justify-center gap-2 rounded-xl sm:rounded-lg border px-3 py-2 text-xs font-bold transition-all shadow-2xs cursor-pointer ${
-                activeFiltersCount > 0
-                  ? "border-[#087f80] bg-[#edf7f5] text-[#087f80]"
-                  : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
-              }`}
+              onClick={() => setFilterMenuOpen((open) => !open)}
+              aria-expanded={filterMenuOpen}
+              aria-haspopup="dialog"
+              className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold transition-colors sm:rounded-lg ${activeFiltersCount > 0 ? "border-[#087f80] bg-[#edf7f5] text-[#087f80]" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"}`}
             >
-              <AdjustmentsHorizontalIcon className="h-4 w-4 text-[#087f80]" />
-              <span>Filter</span>
-              {activeFiltersCount > 0 && (
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#087f80] text-[9px] font-black text-white">
-                  {activeFiltersCount}
-                </span>
-              )}
-              <ChevronDownIcon
-                className={`h-3 w-3 text-[#5e7783] transition-transform ${
-                  filterMenuOpen ? "rotate-180" : ""
-                }`}
-              />
+              <AdjustmentsHorizontalIcon aria-hidden="true" className="h-4 w-4 text-[#087f80]" />
+              Filter
+              {activeFiltersCount > 0 && <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[#087f80] px-1 text-[9px] font-black text-white">{activeFiltersCount}</span>}
+              <ChevronDownIcon aria-hidden="true" className={`h-3 w-3 transition-transform ${filterMenuOpen ? "rotate-180" : ""}`} />
             </button>
 
-            {/* Filter Popover Dropdown */}
             {filterMenuOpen && (
-              <div className="absolute right-0 top-full z-30 mt-2 w-72 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl space-y-4 animate-in fade-in zoom-in-95">
+              <div role="dialog" aria-label="Filter system reports" className="absolute right-0 top-full z-30 mt-2 w-72 space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                  <span className="text-xs font-bold text-[#092f45] flex items-center gap-1.5">
-                    <AdjustmentsHorizontalIcon className="h-4 w-4 text-[#087f80]" />
-                    Incident Filters
+                  <span className="flex items-center gap-1.5 text-xs font-bold text-[#092f45]">
+                    <AdjustmentsHorizontalIcon aria-hidden="true" className="h-4 w-4 text-[#087f80]" />
+                    Report filters
                   </span>
-                  {activeFiltersCount > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedRoles([]);
-                        setSelectedReporterRoles([]);
-                        handleStatusChange("All");
-                        setFilterSeverity("All");
-                      }}
-                      className="text-[10px] font-bold text-red-600 hover:underline cursor-pointer"
-                    >
-                      Reset All ({activeFiltersCount})
-                    </button>
-                  )}
+                  {activeFiltersCount > 0 && <button type="button" onClick={resetFilters} className="text-[10px] font-bold text-red-600 hover:underline">Clear all ({activeFiltersCount})</button>}
                 </div>
-
-                {/* Section 1: Target (Reported) Role */}
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                      Target Role (ผู้ถูกร้องเรียน)
-                    </label>
-                    {selectedRoles.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setSelectedRoles([])}
-                        className="text-[10px] font-bold text-[#087f80] hover:underline cursor-pointer"
-                      >
-                        Reset ({selectedRoles.length})
-                      </button>
-                    )}
-                  </div>
+                  <p className="mb-2 text-[11px] font-bold text-slate-500">Reporter role</p>
                   <div className="grid grid-cols-2 gap-1.5">
                     {(["User", "Interpreter"] as const).map((role) => {
-                      const isChecked = selectedRoles.includes(role);
+                      const selected = selectedReporterRoles.includes(role);
                       return (
                         <button
                           type="button"
                           key={role}
-                          onClick={() =>
-                            setSelectedRoles((prev) =>
-                              prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
-                            )
-                          }
-                          className={`flex items-center justify-between rounded-lg border px-2.5 py-1.5 text-xs font-semibold cursor-pointer transition-colors ${
-                            isChecked
-                              ? "border-[#087f80] bg-[#edf7f5] text-[#087f80]"
-                              : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-white"
-                          }`}
+                          onClick={() => {
+                            setSelectedReporterRoles((current) => current.includes(role) ? current.filter((item) => item !== role) : [...current, role]);
+                            setCurrentPage(1);
+                          }}
+                          aria-pressed={selected}
+                          className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left text-xs font-semibold ${selected ? "border-[#087f80] bg-[#edf7f5] text-[#087f80]" : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-white"}`}
                         >
-                          <span>{role}</span>
-                          <span
-                            className={`flex h-3.5 w-3.5 items-center justify-center rounded border ${
-                              isChecked
-                                ? "border-[#087f80] bg-[#087f80] text-white"
-                                : "border-slate-300 bg-white"
-                            }`}
-                          >
-                            {isChecked && <CheckIcon className="h-2.5 w-2.5 stroke-[3]" />}
+                          <span className={`flex h-3.5 w-3.5 items-center justify-center rounded border ${selected ? "border-[#087f80] bg-[#087f80] text-white" : "border-slate-300 bg-white"}`}>
+                            {selected && <CheckIcon aria-hidden="true" className="h-2.5 w-2.5 stroke-[3]" />}
                           </span>
+                          {role}
                         </button>
                       );
                     })}
                   </div>
                 </div>
-
-                {/* Section 2: Reporter Role */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                      Reporter Role (ผู้แจ้งเรื่อง)
-                    </label>
-                    {selectedReporterRoles.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setSelectedReporterRoles([])}
-                        className="text-[10px] font-bold text-[#087f80] hover:underline cursor-pointer"
-                      >
-                        Reset ({selectedReporterRoles.length})
-                      </button>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {(["User", "Interpreter"] as const).map((role) => {
-                      const isChecked = selectedReporterRoles.includes(role);
-                      return (
-                        <button
-                          type="button"
-                          key={role}
-                          onClick={() =>
-                            setSelectedReporterRoles((prev) =>
-                              prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
-                            )
-                          }
-                          className={`flex items-center justify-between rounded-lg border px-2.5 py-1.5 text-xs font-semibold cursor-pointer transition-colors ${
-                            isChecked
-                              ? "border-[#087f80] bg-[#edf7f5] text-[#087f80]"
-                              : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-white"
-                          }`}
-                        >
-                          <span>{role}</span>
-                          <span
-                            className={`flex h-3.5 w-3.5 items-center justify-center rounded border ${
-                              isChecked
-                                ? "border-[#087f80] bg-[#087f80] text-white"
-                                : "border-slate-300 bg-white"
-                            }`}
-                          >
-                            {isChecked && <CheckIcon className="h-2.5 w-2.5 stroke-[3]" />}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-[11px] text-slate-500">
+                  <span>Found <strong className="text-[#092f45]">{filteredReports.length}</strong> report(s)</span>
+                  <button type="button" onClick={() => setFilterMenuOpen(false)} className="rounded-lg bg-[#087f80] px-3 py-1.5 text-xs font-bold text-white">Done</button>
                 </div>
               </div>
             )}
@@ -370,545 +245,161 @@ export function EscalatedReportsTable({
         </div>
       </div>
 
-      {/* Reports Table Container: Clean Flat Canvas with Hairline Grid */}
-      <div className="border-y border-slate-200">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/75 text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
-                <th className="py-3.5 pl-5 pr-3">Case ID / Date</th>
-                <th className="px-3.5 py-3.5">Reported Target</th>
-                <th className="px-3.5 py-3.5">Reporter</th>
-                <th className="px-3.5 py-3.5 text-center">Severity</th>
-                <th className="px-3.5 py-3.5">Misconduct Description (Translated)</th>
-                <th className="px-3.5 py-3.5 text-center">Status</th>
-                <th className="py-3.5 pl-3 pr-5 text-right">Administrative Action</th>
+      <div className="overflow-x-auto border-y border-slate-200">
+        <table className="w-full min-w-[980px] border-collapse text-left text-xs">
+          <thead>
+            <tr className="border-b border-slate-200 bg-slate-50/75 text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
+              <th className="py-3.5 pl-5 pr-3">Case ID / Date</th>
+              <th className="px-3.5 py-3.5">System area</th>
+              <th className="px-3.5 py-3.5">Reporter</th>
+              <th className="px-3.5 py-3.5 text-center">Severity</th>
+              <th className="px-3.5 py-3.5">System issue</th>
+              <th className="px-3.5 py-3.5 text-center">Status</th>
+              <th className="py-3.5 pl-3 pr-5 text-right">Administrative action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {paginatedReports.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="py-12 text-center text-slate-400">
+                  <CheckCircleIcon aria-hidden="true" className="mx-auto mb-1 h-8 w-8 text-slate-300" />
+                  No system reports match your filters.
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {paginatedReports.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
-                    <CheckCircleIcon className="mx-auto h-8 w-8 text-slate-300 mb-1" />
-                    No incident reports match your current filter criteria.
-                  </td>
-                </tr>
-              ) : (
-                paginatedReports.map((report) => {
-                  const targetUserObj: AdminUserRecord = users.find((u) => u.id === report.reportedUserId)
-                    || users.find((u) => u.name.toLowerCase() === report.reportedUserName.toLowerCase())
-                    || {
-                        id: report.reportedUserId || `USR-${report.id}`,
-                        name: report.reportedUserName,
-                        email: `${report.reportedUserName.toLowerCase().replace(/[^a-z0-9]/g, ".")}@example.com`,
-                        phone: "081-000-0000",
-                        primaryLanguage: report.originalLanguage || "English",
-                        spokenLanguages: [report.originalLanguage || "English"],
-                        role: report.reportedUserRole,
-                        isLocked: report.status.includes("Locked") || report.status.includes("Hard Banned"),
-                        accountStatus: report.status.includes("Hard Banned")
-                          ? "Banned"
-                          : report.status.includes("Locked")
-                          ? "Locked"
-                          : "Active",
-                        registeredAt: report.createdAt,
-                        lastActive: "Recent",
-                        interpreterStats:
-                          report.reportedUserRole === "Interpreter"
-                            ? {
-                                verificationStatus: "Approved",
-                                completedMissions: 15,
-                                rating: 4.2,
-                                specialties: ["General Help"],
-                                responseTimeAvg: "3.5 mins",
-                                feedbackHighlights: ["Under administrative review for reported incident."],
-                              }
-                            : undefined,
-                      };
-                  const isTargetLocked = targetUserObj.isLocked ?? false;
-                  const isTargetBanned = targetUserObj.accountStatus === "Banned";
-                  const isResolved =
-                    report.status === "Resolved (Hard Banned)" ||
-                    report.status === "Resolved (Locked)" ||
-                    report.status === "Dismissed";
-                  const isOriginalExpanded = expandedOriginalMap[report.id] ?? false;
+            ) : (
+              paginatedReports.map((report) => {
+                const isResolved = report.status !== "Escalated to Admin";
+                const isOriginalExpanded = expandedOriginalMap[report.id] ?? false;
+                const systemArea = report.category || report.systemArea || "Platform";
 
-                  const reporterUserObj = users.find((u) => u.name.toLowerCase() === report.reporterName.toLowerCase());
-
-                  return (
-                    <tr
-                      key={report.id}
-                      className="hover:bg-slate-50/80 transition-colors"
-                    >
-                      {/* ID & Date */}
-                      <td className="py-3.5 pl-5 pr-3 whitespace-nowrap font-sans">
-                        <div className="font-mono font-bold text-[#092f45]">{report.id}</div>
-                        <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                          {report.createdAt}
+                return (
+                  <tr key={report.id} className="transition-colors hover:bg-slate-50/80">
+                    <td className="whitespace-nowrap py-3.5 pl-5 pr-3">
+                      <span className="font-mono font-bold text-[#092f45]">{report.id}</span>
+                      <div className="mt-0.5 font-mono text-[10px] text-slate-400">{report.createdAt}</div>
+                      {report.bookingId && <span className="mt-1 inline-flex rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-500">Booking: {report.bookingId}</span>}
+                    </td>
+                    <td className="px-3.5 py-3.5 align-top">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 text-[11px] font-bold text-amber-700">!</span>
+                        <div>
+                          <div className="font-bold text-[#092f45]">System issue</div>
+                          <span className="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[9px] font-bold text-amber-800">{systemArea}</span>
                         </div>
-                        <span className="inline-block mt-1 text-[10px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded">
-                          {report.bookingId}
-                        </span>
-                      </td>
-
-                      {/* Reported User / Interpreter */}
-                      <td className="px-3.5 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[#092f45] text-[11px] font-bold">
-                            {report.reportedUserName.slice(0, 1).toUpperCase()}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (targetUserObj) {
-                                    onOpenUserDetail(targetUserObj);
-                                  }
-                                }}
-                                className="font-bold text-[#092f45] hover:text-[#087f80] hover:underline cursor-pointer text-left"
-                                title="View User Security Profile"
-                              >
-                                {report.reportedUserName}
-                              </button>
-                              <span
-                                className={`rounded px-1.5 py-0.2 text-[9px] font-bold ${
-                                  report.reportedUserRole === "Interpreter"
-                                    ? "bg-teal-50 text-[#087f80] border border-teal-200"
-                                    : "bg-slate-100 text-slate-600 border border-slate-200"
-                                }`}
-                              >
-                                {report.reportedUserRole}
-                              </span>
-                            </div>
-                            <div className="text-[10px] text-slate-400 font-mono">
-                              ID: {report.reportedUserId || "N/A"} • Booking: {report.bookingId}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Reporter */}
-                      <td className="px-3.5 py-3.5 whitespace-nowrap">
-                        <div className="font-bold text-slate-700">
-                          {report.reporterName}
-                        </div>
-                        {reporterUserObj ? (
-                          <button
-                            type="button"
-                            onClick={() => onOpenUserDetail(reporterUserObj)}
-                            className="font-bold text-slate-700 hover:text-[#087f80] hover:underline cursor-pointer text-left block"
-                            title="View Reporter User Profile"
-                          >
-                            {report.reporterName}
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap px-3.5 py-3.5 align-top">
+                      <div className="font-bold text-slate-700">{report.reporterName}</div>
+                      <div className="text-[10px] text-slate-400">{report.reporterRole}</div>
+                    </td>
+                    <td className="whitespace-nowrap px-3.5 py-3.5 text-center align-top">
+                      <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide ${report.severity === "critical" ? "border-red-200 bg-red-100 text-red-700" : report.severity === "high" ? "border-amber-200 bg-amber-100 text-amber-800" : "border-blue-200 bg-blue-100 text-blue-700"}`}>
+                        {report.severity === "critical" ? <ExclamationCircleIcon aria-hidden="true" className="h-3 w-3 text-red-600" /> : <ExclamationTriangleIcon aria-hidden="true" className="h-3 w-3 text-amber-600" />}
+                        {report.severity}
+                      </span>
+                    </td>
+                    <td className="max-w-sm px-3.5 py-3.5 align-top">
+                      {report.originalReason && report.originalLanguage && (
+                        <div className="mb-1 flex items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1 rounded border border-slate-200/60 bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold text-slate-600">
+                            <LanguageIcon aria-hidden="true" className="h-2.5 w-2.5 text-slate-500" />
+                            {report.originalLanguage}
+                          </span>
+                          <button type="button" onClick={() => toggleOriginal(report.id)} className="text-[10px] font-bold text-[#087f80] hover:underline">
+                            {isOriginalExpanded ? "Hide original" : "View original"}
                           </button>
-                        ) : (
-                          <div className="font-bold text-slate-700">
-                            {report.reporterName}
-                          </div>
-                        )}
-                        <div className="text-[10px] text-slate-400">
-                          {report.reporterRole}
                         </div>
-                      </td>
-
-                      {/* Severity */}
-                      <td className="px-3.5 py-3.5 text-center whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide ${
-                            report.severity === "critical"
-                              ? "bg-red-100 text-red-700 border border-red-200"
-                              : report.severity === "high"
-                              ? "bg-amber-100 text-amber-800 border border-amber-200"
-                              : "bg-blue-100 text-blue-700 border border-blue-200"
-                          }`}
-                        >
-                          {report.severity === "critical" ? (
-                            <ExclamationCircleIcon className="h-3 w-3 text-red-600" />
-                          ) : (
-                            <ExclamationTriangleIcon className="h-3 w-3 text-amber-600" />
-                          )}
-                          {report.severity}
-                        </span>
-                      </td>
-
-                      {/* Multilingual Reason & Collapsible Original Text */}
-                      <td className="px-3.5 py-3.5 max-w-sm">
-                        {/* Reporter & Language Pill */}
-                        {report.originalReason && report.originalLanguage && (
-                          <div className="mb-1 flex items-center gap-1.5">
-                            <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold text-slate-600 border border-slate-200/60">
-                              <LanguageIcon className="h-2.5 w-2.5 text-slate-500" />
-                              Translated from {report.originalLanguage}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={(e) => toggleOriginal(report.id, e)}
-                              className="text-[10px] font-bold text-[#087f80] hover:underline cursor-pointer"
-                            >
-                              {isOriginalExpanded ? "Hide original text" : "View original language"}
-                            </button>
-                          </div>
-                        )}
-
-                        {/* English Translated Reason */}
-                        <p className="text-xs text-slate-800 font-medium leading-relaxed" title={report.reason}>
-                          {report.reason}
-                        </p>
-
-                        {/* Collapsible Original Text */}
-                        {isOriginalExpanded && report.originalReason && (
-                          <div className="mt-1.5 rounded-lg border border-slate-200 bg-slate-50 p-2 text-[11px] text-slate-600 italic">
-                            <span className="font-bold not-italic text-slate-700">Original ({report.originalLanguage}):</span> &ldquo;{report.originalReason}&rdquo;
-                          </div>
-                        )}
-
-                        {report.actionTaken && (
-                          <p className="text-[10px] text-slate-500 italic mt-1 line-clamp-1">
-                            Resolution Note: {report.actionTaken}
-                          </p>
-                        )}
-                      </td>
-
-                      {/* Status */}
-                      <td className="px-3.5 py-3.5 text-center whitespace-nowrap">
-                        <span
-                          className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                            report.status === "Escalated to Admin"
-                              ? "bg-red-50 text-red-600 border border-red-200 animate-pulse"
-                              : report.status === "Resolved (Hard Banned)"
-                              ? "bg-slate-900 text-red-300 border border-slate-700"
-                              : report.status === "Resolved (Locked)"
-                              ? "bg-amber-100 text-amber-800 border border-amber-200"
-                              : report.status === "Resolved (Unlocked)"
-                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                              : "bg-slate-100 text-slate-600 border border-slate-200"
-                          }`}
-                        >
-                          {report.status}
-                        </span>
-                      </td>
-
-                      {/* Action */}
-                      <td className="py-3.5 pl-3 pr-5 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-2">
-                          {/* 1. If user is currently soft-locked, offer Unlock button with safety confirmation */}
-                          {isTargetLocked && !isTargetBanned && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (targetUserObj) {
-                                  setUnlockConfirmTarget({ user: targetUserObj, reportId: report.id });
-                                }
-                              }}
-                              className="inline-flex items-center gap-1 rounded-xl border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer shadow-2xs"
-                              title="Unlock account with verification"
-                            >
-                              <LockOpenIcon className="h-3.5 w-3.5 text-emerald-600" />
-                              Unlock Account
-                            </button>
-                          )}
-
-                          {/* 2. Take Action button (Lock / Hard Ban safety dialog) */}
-                          {!isResolved ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (targetUserObj) {
-                                  onTakeAction(targetUserObj, report.id);
-                                } else {
-                                  alert("Target user not found in the current system database.");
-                                }
-                              }}
-                              className="inline-flex items-center gap-1 rounded-xl bg-red-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-red-700 transition-colors cursor-pointer"
-                              title="Open Safety Enforcement Dialog (Soft Lock or Hard Ban)"
-                            >
-                              <NoSymbolIcon className="h-3.5 w-3.5" />
-                              Take Action
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => setSelectedReportDetail(report)}
-                              className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
-                            >
-                              <EyeIcon className="h-3.5 w-3.5" />
-                              View History
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Table Pagination Footer */}
-        <TablePagination
-          totalItems={filteredReports.length}
-          currentPage={validCurrentPage}
-          pageSize={pageSize}
-          onPageChange={setCurrentPage}
-          itemName="incident reports"
-        />
+                      )}
+                      <p className="font-medium leading-relaxed text-slate-800" title={report.reason}>{report.reason}</p>
+                      {isOriginalExpanded && report.originalReason && <p className="mt-1.5 rounded-lg border border-slate-200 bg-slate-50 p-2 text-[11px] italic text-slate-600">{report.originalReason}</p>}
+                      {report.actionTaken && <p className="mt-1 line-clamp-1 text-[10px] italic text-slate-500">Resolution note: {report.actionTaken}</p>}
+                    </td>
+                    <td className="whitespace-nowrap px-3.5 py-3.5 text-center align-top">
+                      <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${report.status === "Escalated to Admin" ? "animate-pulse border-red-200 bg-red-50 text-red-600" : report.status === "Dismissed" ? "border-slate-200 bg-slate-100 text-slate-600" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}>
+                        {report.status}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap py-3.5 pl-3 pr-5 text-right align-top">
+                      {isResolved ? (
+                        <button type="button" onClick={() => setSelectedReportDetail(report)} className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50">
+                          <EyeIcon aria-hidden="true" className="h-3.5 w-3.5" /> View history
+                        </button>
+                      ) : (
+                        <button type="button" onClick={() => setSystemReportToResolve(report)} className="inline-flex items-center gap-1 rounded-xl bg-[#087f80] px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-[#066768]">
+                          <CheckCircleIcon aria-hidden="true" className="h-3.5 w-3.5" /> Resolve system issue
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
       </div>
 
-      {/* Safety Confirmation Dialog for Unlocking User Account */}
-      {unlockConfirmTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
-                  <ShieldCheckIcon className="h-5 w-5" />
+      <TablePagination
+        totalItems={filteredReports.length}
+        currentPage={validCurrentPage}
+        pageSize={pageSize}
+        onPageChange={setCurrentPage}
+        itemName="reports"
+      />
+
+      <SystemReportResolutionDialog
+        report={systemReportToResolve}
+        onClose={() => setSystemReportToResolve(null)}
+        onConfirm={(reportId, note) => {
+          onResolveSystemReport(reportId, note);
+          setSystemReportToResolve(null);
+        }}
+      />
+
+      {selectedReportDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-xl space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between border-b border-slate-100 pb-4">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-xs font-bold text-slate-500">{selectedReportDetail.id}</span>
+                  <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-800">System report</span>
                 </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-[#092f45]">
-                    Confirm Account Unlock
-                  </h3>
-                  <p className="text-xs text-slate-500">Security Unlock Confirmation & Audit</p>
-                </div>
+                <h3 className="mt-1 text-lg font-extrabold text-[#092f45]">System report history</h3>
+                <p className="text-xs text-slate-500">Logged: {selectedReportDetail.createdAt}{selectedReportDetail.bookingId ? ` · Booking: ${selectedReportDetail.bookingId}` : ""}</p>
               </div>
-              <button
-                type="button"
-                onClick={() => setUnlockConfirmTarget(null)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-              >
-                ✕
+              <button type="button" onClick={() => setSelectedReportDetail(null)} aria-label="Close report history" className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+                <XMarkIcon aria-hidden="true" className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="px-6 space-y-3">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#092f45] text-xs font-black text-white">
-                  {unlockConfirmTarget.user.name.slice(0, 2).toUpperCase()}
-                </div>
-                <div>
-                  <p className="text-xs font-extrabold text-[#092f45]">{unlockConfirmTarget.user.name}</p>
-                  <p className="text-[11px] text-slate-500">{unlockConfirmTarget.user.email} • {unlockConfirmTarget.user.role}</p>
-                </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-3.5">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-amber-700">System area</p>
+                <p className="mt-1 text-sm font-bold text-[#092f45]">{selectedReportDetail.category || selectedReportDetail.systemArea || "Platform"}</p>
               </div>
-
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Are you sure you want to <strong>lift the temporary suspension (Soft-Lock)</strong> for this user? Once confirmed, their platform privileges will be restored immediately and recorded in the immutable Audit Trail.
-              </p>
+              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3.5">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Reported by</p>
+                <p className="mt-1 text-sm font-bold text-[#092f45]">{selectedReportDetail.reporterName}</p>
+                <p className="text-xs text-slate-500">{selectedReportDetail.reporterRole}</p>
+              </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 border-t border-slate-100 bg-slate-50/80 px-6 py-3.5">
-              <button
-                type="button"
-                onClick={() => setUnlockConfirmTarget(null)}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onUnlockUser(unlockConfirmTarget.user.id, unlockConfirmTarget.reportId);
-                  setUnlockConfirmTarget(null);
-                }}
-                className="rounded-xl bg-emerald-600 hover:bg-emerald-700 px-5 py-2 text-xs font-extrabold text-white shadow-xs cursor-pointer transition-colors"
-              >
-                Confirm Unlock
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-sm leading-relaxed text-slate-800">
+              <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">System issue</p>
+              {selectedReportDetail.reason}
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-3.5">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Resolution note</p>
+              <p className="mt-1 text-xs text-slate-700">{selectedReportDetail.actionTaken || "No resolution note recorded."}</p>
+            </div>
+            <div className="flex justify-end border-t border-slate-100 pt-3">
+              <button type="button" onClick={() => setSelectedReportDetail(null)} className="rounded-xl bg-slate-900 px-5 py-2 text-xs font-bold text-white hover:bg-slate-800">
+                Close history
               </button>
             </div>
           </div>
         </div>
       )}
-
-      {/* Case Resolution Detail Modal */}
-      {selectedReportDetail && (() => {
-        const reportedUser = users.find((u) => u.id === selectedReportDetail.reportedUserId);
-        const reporterUser = users.find((u) => u.name === selectedReportDetail.reporterName);
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs animate-in fade-in">
-            <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl space-y-5 animate-in zoom-in-95">
-              {/* Modal Header */}
-              <div className="flex items-start justify-between border-b border-slate-100 pb-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-slate-500 uppercase tracking-wider">
-                      {selectedReportDetail.id}
-                    </span>
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase ${
-                        selectedReportDetail.severity === "critical"
-                          ? "bg-red-50 text-red-700 border border-red-200"
-                          : selectedReportDetail.severity === "high"
-                          ? "bg-amber-50 text-amber-800 border border-amber-200"
-                          : "bg-blue-50 text-blue-700 border border-blue-200"
-                      }`}
-                    >
-                      <ExclamationTriangleIcon className="h-3 w-3" />
-                      {selectedReportDetail.severity} Severity
-                    </span>
-                    <span
-                      className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                        selectedReportDetail.status === "Escalated to Admin"
-                          ? "bg-red-50 text-red-600 border border-red-200"
-                          : selectedReportDetail.status === "Resolved (Hard Banned)"
-                          ? "bg-slate-900 text-red-300 border border-slate-700"
-                          : selectedReportDetail.status === "Resolved (Locked)"
-                          ? "bg-amber-100 text-amber-800 border border-amber-200"
-                          : selectedReportDetail.status === "Resolved (Unlocked)"
-                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                          : "bg-slate-100 text-slate-600 border border-slate-200"
-                      }`}
-                    >
-                      {selectedReportDetail.status}
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-extrabold text-[#092f45]">
-                    Incident Dossier & Case History
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Logged: {selectedReportDetail.createdAt} • Mission ID: <span className="font-mono font-medium text-slate-700">{selectedReportDetail.bookingId}</span>
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSelectedReportDetail(null)}
-                  className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 cursor-pointer transition-colors"
-                >
-                  <XMarkIcon className="h-5 w-5" />
-                </button>
-              </div>
-
-              {/* Parties Involved Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Reported User Card */}
-                <div className="rounded-xl border border-red-100 bg-red-50/30 p-3.5 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-red-600 uppercase tracking-wide flex items-center gap-1">
-                      <ShieldExclamationIcon className="h-3.5 w-3.5" />
-                      Reported Target
-                    </span>
-                    <span className="rounded-full bg-white border border-red-200 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
-                      {selectedReportDetail.reportedUserRole}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-red-100 font-bold text-red-700 text-xs shadow-2xs">
-                      {selectedReportDetail.reportedUserName.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-extrabold text-slate-900 truncate">
-                        {selectedReportDetail.reportedUserName}
-                      </p>
-                      <p className="font-mono text-[11px] text-slate-500">
-                        {selectedReportDetail.reportedUserId}
-                      </p>
-                    </div>
-                  </div>
-                  {reportedUser && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedReportDetail(null);
-                        onOpenUserDetail(reportedUser);
-                      }}
-                      className="w-full text-center text-[11px] font-bold text-[#092f45] hover:underline pt-1 cursor-pointer"
-                    >
-                      View User Profile & Governance &rarr;
-                    </button>
-                  )}
-                </div>
-
-                {/* Reporter Card */}
-                <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3.5 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wide flex items-center gap-1">
-                      <ShieldCheckIcon className="h-3.5 w-3.5 text-slate-500" />
-                      Reported By
-                    </span>
-                    <span className="rounded-full bg-white border border-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
-                      {selectedReportDetail.reporterRole}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 font-bold text-slate-700 text-xs shadow-2xs">
-                      {selectedReportDetail.reporterName.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-extrabold text-slate-900 truncate">
-                        {selectedReportDetail.reporterName}
-                      </p>
-                      <p className="text-[11px] text-slate-500">
-                        Incident Escalator
-                      </p>
-                    </div>
-                  </div>
-                  {reporterUser && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedReportDetail(null);
-                        onOpenUserDetail(reporterUser);
-                      }}
-                      className="w-full text-center text-[11px] font-bold text-[#092f45] hover:underline pt-1 cursor-pointer"
-                    >
-                      View Reporter Profile &rarr;
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Incident Description & Testimony */}
-              <div className="space-y-2.5">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                  Incident Report & Description
-                </label>
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-xs text-slate-800 leading-relaxed space-y-2">
-                  <p className="font-semibold text-slate-900">
-                    &ldquo;{selectedReportDetail.reason}&rdquo;
-                  </p>
-
-                  {/* Native Language Testimony snippet if available */}
-                  {selectedReportDetail.originalReason && (
-                    <div className="mt-2 rounded-lg border border-amber-200/80 bg-amber-50/50 p-2.5 text-[11px] text-amber-900">
-                      <div className="flex items-center gap-1.5 font-bold text-amber-800 mb-1">
-                        <LanguageIcon className="h-3.5 w-3.5 text-amber-700" />
-                        Original Native Testimony ({selectedReportDetail.originalLanguage || "Original"})
-                      </div>
-                      <p className="italic font-medium text-amber-950/80">
-                        &ldquo;{selectedReportDetail.originalReason}&rdquo;
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Resolution & Enforcement Audit Log Note */}
-              <div className="rounded-xl border border-slate-200 bg-white p-3.5 space-y-1.5 shadow-2xs">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                  Resolution & Enforcement Audit Note
-                </span>
-                <p className="text-xs text-slate-700 font-mono">
-                  {selectedReportDetail.actionTaken || "No enforcement actions or notes recorded yet."}
-                </p>
-              </div>
-
-              {/* Action Footer */}
-              <div className="flex items-center justify-between border-t border-slate-100 pt-3">
-                <div className="text-[11px] text-slate-400">
-                  Case ID: <span className="font-mono">{selectedReportDetail.id}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSelectedReportDetail(null)}
-                  className="rounded-xl bg-slate-900 px-5 py-2 text-xs font-bold text-white hover:bg-slate-800 shadow-xs cursor-pointer transition-colors"
-                >
-                  Close Dossier
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
     </div>
   );
 }

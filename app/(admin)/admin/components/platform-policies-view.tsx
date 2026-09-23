@@ -17,11 +17,11 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { SystemSettingsConfig } from "../types";
-import { initialSystemSettings } from "../mock-data";
+import { DEFAULT_PLATFORM_SETTINGS } from "../platform-settings-defaults";
 
 interface PlatformPoliciesViewProps {
   settings: SystemSettingsConfig;
-  onSave: (newSettings: SystemSettingsConfig) => void;
+  onSave: (newSettings: SystemSettingsConfig) => void | Promise<void>;
 }
 
 export function PlatformPoliciesView({ settings, onSave }: PlatformPoliciesViewProps) {
@@ -84,14 +84,18 @@ export function PlatformPoliciesView({ settings, onSave }: PlatformPoliciesViewP
 
   const handleResetToDefault = () => {
     if (confirm("Reset all platform governance parameters to system defaults?")) {
-      setFormData({ ...initialSystemSettings });
+      setFormData({
+        ...DEFAULT_PLATFORM_SETTINGS,
+        lastUpdated: settings.lastUpdated,
+        updatedBy: settings.updatedBy,
+      });
       setHasUnsavedChanges(true);
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({
+    await onSave({
       ...formData,
       lastUpdated: new Date().toISOString().replace("T", " ").slice(0, 19),
     });

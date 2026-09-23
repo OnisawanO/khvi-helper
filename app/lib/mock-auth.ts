@@ -2,6 +2,7 @@ import type { Locale } from "@/app/components/site-header";
 import { getAuthCopy } from "@/app/lib/auth-copy";
 
 export type UserRole = "User" | "Interpreter" | "Manager" | "Admin";
+export type AdminLevel = "primary" | "delegated";
 
 export interface UserProfile {
   userId: string;
@@ -11,6 +12,7 @@ export interface UserProfile {
   phone: string;
   dateOfBirth: string;
   role: UserRole;
+  adminLevel?: AdminLevel;
   isLocked: boolean;
   preferredUiLanguage: Locale;
   serviceLanguageIds?: string[];
@@ -241,6 +243,7 @@ export const DEFAULT_MOCK_USERS: Record<UserRole, UserProfile & { password: stri
     phone: "0834567890",
     dateOfBirth: "1985-03-30",
     role: "Admin",
+    adminLevel: "primary",
     isLocked: false,
     preferredUiLanguage: "en",
     createdAt: "2026-01-04T00:00:00.000Z",

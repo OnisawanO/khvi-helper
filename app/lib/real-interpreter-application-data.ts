@@ -91,6 +91,9 @@ const APPLICATION_COLUMNS = [
   "cancelled_by_user_id",
 ].join(",");
 
+const CERTIFICATE_BUCKET = "interpreter-certificates";
+const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24;
+
 function formatTimestamp(value: string | null): string {
   if (!value) return "";
   const timestamp = new Date(value);
@@ -114,6 +117,96 @@ function fileFormat(fileName: string): "pdf" | "png" | "jpg" {
   if (extension === "png") return "png";
   if (extension === "jpg" || extension === "jpeg") return "jpg";
   return "pdf";
+}
+
+function documentType(value: unknown): ApplicationDocument["type"] {
+  return value === "id" || value === "cv" || value === "police" ? value : "cert";
+}
+
+function asApplicationDocuments(
+  value: unknown,
+  fallbackName: string,
+  fallbackUrl?: string,
+): ApplicationDocument[] {
+  if (!Array.isArray(value)) {
+    return [{ name: fallbackName, type: "cert", size: "", url: fallbackUrl }];
+  }
+
+  const documents = value.flatMap((item): ApplicationDocument[] => {
+    if (!item || typeof item !== "object") return [];
+    const raw = item as Record<string, unknown>;
+    if (typeof raw.name !== "string" || !raw.name.trim()) return [];
+
+    return [{
+      name: raw.name,
+      type: documentType(raw.type),
+      size: typeof raw.size === "string" ? raw.size : "",
+      url: typeof raw.url === "string" && raw.url.trim() ? raw.url.trim() : undefined,
+    }];
+  });
+
+  return documents.length > 0
+    ? documents
+    : [{ name: fallbackName, type: "cert", size: "", url: fallbackUrl }];
+}
+
+function isDirectDocumentUrl(value: string) {
+  return /^(https?|data|blob):/i.test(value);
+}
+
+async function resolveCertificateUrl(client: SupabaseClient, row: ApplicationRow) {
+  const storage = client.storage.from(CERTIFICATE_BUCKET);
+  const storedDocuments = asApplicationDocuments(row.documents, row.certificate_file_name, row.certificate_url ?? undefined);
+  const rawValues = [
+    row.certificate_url?.trim() ?? "",
+    ...storedDocuments.map((document) => document.url?.trim() ?? ""),
+  ].filter(Boolean);
+
+  const signPath = async (path: string) => {
+    if (!path) return null;
+    const { data } = await storage.createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
+    return data?.signedUrl ?? null;
+  };
+
+  for (const rawValue of [...new Set(rawValues)]) {
+    if (isDirectDocumentUrl(rawValue)) return rawValue;
+
+    const directSignedUrl = await signPath(rawValue);
+    if (directSignedUrl) return directSignedUrl;
+
+    const bucketPrefix = `${CERTIFICATE_BUCKET}/`;
+    if (rawValue.startsWith(bucketPrefix)) {
+      const prefixedPathUrl = await signPath(rawValue.slice(bucketPrefix.length));
+      if (prefixedPathUrl) return prefixedPathUrl;
+    }
+  }
+
+  // Older application rows may have the file name but no storage path. Uploads
+  // are stored as <user_id>/<uuid>-<original-file-name>, so resolve that path
+  // from the interpreter's private folder before returning the application.
+  if (!row.user_id || !row.certificate_file_name) return null;
+
+  const expectedName = row.certificate_file_name.trim().toLowerCase();
+  const matchesExpectedName = (objectName: string) => {
+    const normalizedName = objectName.trim().toLowerCase();
+    return normalizedName === expectedName || normalizedName.endsWith(`-${expectedName}`);
+  };
+
+  const { data: userObjects } = await storage.list(row.user_id, {
+    limit: 100,
+    search: row.certificate_file_name,
+  });
+  const userObject = (userObjects ?? []).find((object) => matchesExpectedName(object.name));
+  if (userObject) return signPath(`${row.user_id}/${userObject.name}`);
+
+  // Keep compatibility with older test records that stored the object at the
+  // bucket root instead of under the interpreter's user folder.
+  const { data: rootObjects } = await storage.list("", {
+    limit: 100,
+    search: row.certificate_file_name,
+  });
+  const rootObject = (rootObjects ?? []).find((object) => matchesExpectedName(object.name));
+  return rootObject ? signPath(rootObject.name) : null;
 }
 
 function asWorkHistory(value: unknown): WorkHistoryEntry[] {
@@ -199,12 +292,11 @@ function toApplication(
       const item = reference.categories.get(Number(link.category_id));
       return item ? [{ id: Number(item.category_id), name: item.category_name, icon: item.icon ?? undefined }] : [];
     });
-  const document: ApplicationDocument = {
-    name: row.certificate_file_name,
-    type: "cert",
-    size: "",
-    url: row.certificate_url ?? undefined,
-  };
+  const documents = asApplicationDocuments(
+    row.documents,
+    row.certificate_file_name,
+    row.certificate_url ?? undefined,
+  );
 
   return {
     id: String(row.application_id),
@@ -220,7 +312,7 @@ function toApplication(
     workHistory: asWorkHistory(row.work_history),
     certificateFileName: row.certificate_file_name,
     certificateUrl: row.certificate_url ?? "",
-    documents: [document],
+    documents,
     submittedAt: formatTimestamp(row.submitted_at),
     reviewedAt: row.reviewed_at ? formatTimestamp(row.reviewed_at) : undefined,
     reviewedByManagerId: row.reviewed_by_user_id ?? undefined,
@@ -274,7 +366,11 @@ function toManagerApplicant(application: InterpreterApplication): InterpreterApp
     specialtyCategories: application.categories.map((category) => category.name),
     experienceSummary: application.workHistory.map((entry) => entry.organization ? `${entry.description} (${entry.organization})` : entry.description).join("; ") || "No experience history submitted.",
     contactChannels: [application.phone, application.email, application.extraContact].filter(Boolean).join(" · "),
+    phone: application.phone,
+    email: application.email,
+    extraContact: application.extraContact,
     appliedDate: application.submittedAt,
+    reviewedAt: application.reviewedAt,
     status: application.status === "approved" ? "Approved" : application.status === "rejected" ? "Rejected" : application.status === "under_review" ? "Under Review" : "Pending",
     rejectionReason: application.rejectReason,
     document: {
@@ -314,22 +410,16 @@ export async function loadManagerInterpreterApplications(supabase?: SupabaseClie
     const app = toApplication(row as unknown as ApplicationRow, relation, reference);
     const managerApp = toManagerApplicant(app);
 
-    const certPath = (row as unknown as ApplicationRow).certificate_url;
-    if (typeof certPath === "string" && certPath.length > 0 && !certPath.startsWith("http://") && !certPath.startsWith("https://")) {
-      try {
-        const { data: signed } = await client.storage
-          .from("interpreter-certificates")
-          .createSignedUrl(certPath, 60 * 60 * 24);
-        const signedUrl = signed?.signedUrl;
-        if (signedUrl) {
-          managerApp.document.url = signedUrl;
-          if (managerApp.documents && managerApp.documents[0]) {
-            managerApp.documents[0].url = signedUrl;
-          }
+    try {
+      const signedUrl = await resolveCertificateUrl(client, row as unknown as ApplicationRow);
+      if (signedUrl) {
+        managerApp.document.url = signedUrl;
+        if (managerApp.documents && managerApp.documents[0]) {
+          managerApp.documents[0].url = signedUrl;
         }
-      } catch {
-        // Fallback handled on client
       }
+    } catch {
+      // The dossier can still render the file metadata when storage is unavailable.
     }
 
     return managerApp;

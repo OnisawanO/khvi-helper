@@ -4,14 +4,14 @@ import {
   ArchiveBoxXMarkIcon,
   Bars3Icon,
   CheckCircleIcon,
-  ChatBubbleLeftRightIcon,
   ClockIcon,
-  Cog6ToothIcon,
+  DocumentCheckIcon,
   InboxStackIcon,
   ShieldExclamationIcon,
 } from "@heroicons/react/24/outline";
 import { ManagerNavSection } from "../types";
-import { formatBadgeCount } from "../mock-data";
+import { formatBadgeCount } from "../utils";
+import type { ManagerTranslation } from "../locales";
 
 interface ManagerRailBarProps {
   onMenuClick: () => void;
@@ -19,9 +19,10 @@ interface ManagerRailBarProps {
   setNavSection: (section: ManagerNavSection) => void;
   pendingCount: number;
   approvedCount: number;
+  pendingProfileChangeCount: number;
   rejectedCount: number;
-  openTicketCount: number;
   pendingReportCount: number;
+  t: ManagerTranslation["navigation"];
 }
 
 export function ManagerRailBar({
@@ -30,9 +31,10 @@ export function ManagerRailBar({
   setNavSection,
   pendingCount,
   approvedCount,
+  pendingProfileChangeCount,
   rejectedCount,
-  openTicketCount,
   pendingReportCount,
+  t,
 }: ManagerRailBarProps) {
   return (
     <aside className="hidden md:flex flex-col w-[68px] shrink-0 items-center justify-between border-r border-[#16435c] bg-[#092f45] py-3.5 z-20 select-none shadow-[4px_0_16px_rgba(0,0,0,0.15)]">
@@ -64,8 +66,8 @@ export function ManagerRailBar({
                 ? "bg-[#087f80] text-white shadow-md ring-2 ring-[#087f80]/30"
                 : "text-slate-300 hover:bg-white/10 hover:text-white"
             }`}
-            title="Application Queue (Pending Review)"
-            aria-label="Application Queue"
+            title={t.queue}
+            aria-label={t.queue}
           >
             <InboxStackIcon className="h-5 w-5" />
             {pendingCount > 0 && (
@@ -84,8 +86,8 @@ export function ManagerRailBar({
                 ? "bg-[#087f80] text-white shadow-md ring-2 ring-[#087f80]/30"
                 : "text-slate-300 hover:bg-white/10 hover:text-white"
             }`}
-            title="Approved Volunteer Interpreters"
-            aria-label="Approved Volunteer Interpreters"
+            title={t.approved}
+            aria-label={t.approved}
           >
             <CheckCircleIcon className="h-5 w-5" />
             {approvedCount > 0 && (
@@ -95,7 +97,27 @@ export function ManagerRailBar({
             )}
           </button>
 
-          {/* 3. Rejected Archive */}
+          {/* 3. Profile Change Requests */}
+          <button
+            type="button"
+            onClick={() => setNavSection("change-requests")}
+            className={`relative flex h-10 w-10 items-center justify-center rounded-2xl transition-all cursor-pointer ${
+              navSection === "change-requests"
+                ? "bg-[#087f80] text-white shadow-md ring-2 ring-[#087f80]/30"
+                : "text-slate-300 hover:bg-white/10 hover:text-white"
+            }`}
+            title="Profile Change Requests"
+            aria-label="Profile Change Requests"
+          >
+            <DocumentCheckIcon className="h-5 w-5" />
+            {pendingProfileChangeCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-sky-500 px-1 text-[9px] font-black text-white ring-2 ring-[#092f45]">
+                {formatBadgeCount(pendingProfileChangeCount)}
+              </span>
+            )}
+          </button>
+
+          {/* 4. Rejected Archive */}
           <button
             type="button"
             onClick={() => setNavSection("rejected")}
@@ -104,8 +126,8 @@ export function ManagerRailBar({
                 ? "bg-[#087f80] text-white shadow-md ring-2 ring-[#087f80]/30"
                 : "text-slate-300 hover:bg-white/10 hover:text-white"
             }`}
-            title="Rejected Applicant Archive"
-            aria-label="Rejected Applicant Archive"
+            title={t.rejected}
+            aria-label={t.rejected}
           >
             <ArchiveBoxXMarkIcon className="h-5 w-5" />
             {rejectedCount > 0 && (
@@ -120,27 +142,7 @@ export function ManagerRailBar({
 
         {/* Group 2: Live Operations & Escalations */}
         <div className="flex flex-col items-center gap-2.5 w-full">
-          {/* 4. Live Help Requests */}
-          <button
-            type="button"
-            onClick={() => setNavSection("tickets")}
-            className={`relative flex h-10 w-10 items-center justify-center rounded-2xl transition-all cursor-pointer ${
-              navSection === "tickets"
-                ? "bg-[#087f80] text-white shadow-md ring-2 ring-[#087f80]/30"
-                : "text-slate-300 hover:bg-white/10 hover:text-white"
-            }`}
-            title="Live Help Requests & Support Desk"
-            aria-label="Live Help Requests"
-          >
-            <ChatBubbleLeftRightIcon className="h-5 w-5" />
-            {openTicketCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#f04f3e] px-1 text-[9px] font-black text-white ring-2 ring-[#092f45] animate-pulse">
-                {formatBadgeCount(openTicketCount)}
-              </span>
-            )}
-          </button>
-
-          {/* 5. Incident Reports */}
+          {/* 4. System Reports */}
           <button
             type="button"
             onClick={() => setNavSection("reports")}
@@ -149,8 +151,8 @@ export function ManagerRailBar({
                 ? "bg-[#087f80] text-white shadow-md ring-2 ring-[#087f80]/30"
                 : "text-slate-300 hover:bg-white/10 hover:text-white"
             }`}
-            title="Incident Reports & Disputes"
-            aria-label="Incident Reports"
+            title={t.reports}
+            aria-label={t.reports}
           >
             <ShieldExclamationIcon className="h-5 w-5" />
             {pendingReportCount > 0 && (
@@ -169,25 +171,12 @@ export function ManagerRailBar({
                 ? "bg-[#087f80] text-white shadow-md ring-2 ring-[#087f80]/30"
                 : "text-slate-300 hover:bg-white/10 hover:text-white"
             }`}
-            title="Operations Activity History"
-            aria-label="Operations History"
+            title={t.history}
+            aria-label={t.history}
           >
             <ClockIcon className="h-5 w-5" />
           </button>
         </div>
-      </div>
-
-      {/* Bottom Rail Actions: Settings */}
-      <div className="flex flex-col items-center w-full px-2">
-        <button
-          type="button"
-          onClick={() => alert("Manager System Settings & Regional Preferences")}
-          className="flex h-10 w-10 items-center justify-center rounded-2xl text-slate-300 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
-          title="Settings & Preferences"
-          aria-label="Settings"
-        >
-          <Cog6ToothIcon className="h-5 w-5" />
-        </button>
       </div>
     </aside>
   );

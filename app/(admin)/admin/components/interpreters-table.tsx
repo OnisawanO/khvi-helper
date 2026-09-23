@@ -19,11 +19,11 @@ export function InterpretersTable({
           <div>
             <h3 className="text-sm font-bold text-[#092f45]">Interpreter Quality & Ratings</h3>
             <p className="text-xs text-slate-500">
-              Calculated from user reviews, SOS response velocity, and completed emergency missions.
+              Connected application status, completed missions, and review data from Supabase.
             </p>
           </div>
-          <div className="text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 px-3 py-1 rounded-full w-fit">
-            Sorted by Rating (Descending)
+          <div className="text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-200 px-3 py-1 rounded-full w-fit">
+            Review data when available
           </div>
         </div>
 
@@ -80,15 +80,21 @@ export function InterpretersTable({
                   </td>
 
                   {/* Avg SOS Dispatch */}
-                  <td className="px-3 py-4 text-center font-mono text-[11px] text-slate-600">
-                    {interp.interpreterStats?.responseTimeAvg}
+                    <td className="px-3 py-4 text-center font-mono text-[11px] text-slate-600">
+                    {interp.interpreterStats?.responseTimeAvg || "Not recorded"}
                   </td>
 
                   {/* Avg Rating */}
                   <td className="py-4 pl-3 pr-6 text-right">
                     <div className="inline-flex items-center gap-1 font-bold text-amber-600 bg-amber-50 border border-amber-200/80 px-2.5 py-1 rounded-lg">
-                      <StarIcon className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
-                      <span>{interp.interpreterStats?.rating}</span>
+                      {typeof interp.interpreterStats?.rating === "number" ? (
+                        <>
+                          <StarIcon className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+                          <span>{interp.interpreterStats.rating.toFixed(1)}</span>
+                        </>
+                      ) : (
+                        <span className="text-slate-500">Not recorded</span>
+                      )}
                     </div>
                   </td>
                 </tr>

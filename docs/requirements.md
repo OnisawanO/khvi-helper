@@ -23,7 +23,7 @@
 | `User` | สร้างคำขอ ดูสถานะ ยืนยันล่าม ยืนยันจบงาน และรีวิวล่าม |
 | `Interpreter` | ดูหมุดที่ตรงความสามารถ Claim งาน เริ่มงาน ยืนยันจบงาน และยกเลิกงานตามกฎ |
 | `Manager` | ตรวจใบสมัครล่าม ดูแล Help Request/Report และเห็นข้อมูลตาม permission ที่ได้รับ |
-| `Admin` | จัดการผู้ใช้ role ข้อมูลระบบ และเห็นข้อมูลทั้งหมดตามสิทธิ์ Admin |
+| `Admin` | จัดการผู้ใช้ role ข้อมูลระบบ และเห็นข้อมูลทั้งหมดตามระดับสิทธิ์ Admin |
 
 กฎ role:
 
@@ -31,7 +31,8 @@
 - ผู้ใช้ที่สมัครล่ามอยู่สถานะ `Pending` และยังรับงานไม่ได้
 - เมื่อ Manager/Admin อนุมัติ `application_status` ระบบเปลี่ยน role เป็น `Interpreter`
 - Manager ไม่สามารถเปลี่ยน role หรือ Lock/Unlock
-- Admin เปลี่ยน role ได้
+- Admin หลัก (`admin_level = primary`) เปลี่ยน role และจัดการสิทธิ์ระดับ Admin ได้
+- Admin รอง (`admin_level = delegated`) จัดการข้อมูลและ security ของ `User` กับ `Interpreter` ได้ รวมถึงใช้ Manager operations ตามขอบเขตงาน แต่ดู `Manager` และ `Admin` ได้อย่างเดียวใน User Directory และห้ามเปลี่ยน role, Lock/Unlock, `admin_level` หรือสิทธิ์ของ staff
 - Lock/Unlock อยู่ในขอบเขต MVP และต้องมีเหตุผลประกอบพร้อม Audit Log
 
 ## 3. Flow หลัก
@@ -631,21 +632,23 @@ open -> claimed -> in_progress -> completed
 
 **Preconditions:**
 
-- Actor Login ด้วย role `Admin`
+- Actor Login ด้วย role `Admin` และมี `admin_level` ที่ active
 - Server ตรวจ session และ permission ก่อนอ่านหรือแก้ข้อมูล
 
 **รายละเอียด:**
 
 - Admin ดู ค้นหา และกรองรายชื่อผู้ใช้ตามชื่อ อีเมล role และข้อมูลที่ได้รับอนุญาตได้
 - Admin ดูรายละเอียด profile, role, สถานะใบสมัคร และข้อมูลล่ามที่เกี่ยวข้องได้
-- Admin เปลี่ยน role ของผู้ใช้อื่นได้ตาม transition rule และต้องระบุเหตุผลเมื่อ policy กำหนด
-- Server ต้องป้องกัน privilege escalation จากผู้ที่ไม่ใช่ Admin
+- Admin หลักเปลี่ยน role ของผู้ใช้อื่นได้ตาม transition rule และต้องระบุเหตุผลเมื่อ policy กำหนด
+- Admin หลักสามารถสร้างบัญชี `Manager` โดยตรงโดยไม่ต้องเริ่มจาก `User`
+- Admin หลักสามารถเลื่อน `Manager` เป็น Admin รอง โดยใช้ `admin_level = delegated`
+- Server ต้องป้องกัน privilege escalation จากผู้ที่ไม่ใช่ Admin หลัก
 - การเปลี่ยน role ต้องสร้าง Audit Log เมื่อ FR-19 เปิดใช้
 - Lock/Unlock อยู่ใน MVP โดยต้องตรวจสิทธิ์ฝั่ง server บังคับเหตุผล และสร้าง Audit Log การ Lock/Unlock ทุกครั้ง การมี control ใน mock UI เพียงอย่างเดียวไม่ถือว่า feature เสร็จ
 
 **ผลลัพธ์และเกณฑ์ตรวจรับ:**
 
-- เฉพาะ Admin ที่ผ่าน server authorization เปลี่ยน role ได้
+- เฉพาะ Admin หลักที่ผ่าน server authorization เปลี่ยน role หรือสิทธิ์ระดับ Admin ได้
 - Role ใหม่มีผลกับ route และ action หลังบันทึกโดยไม่ต้องพึ่ง client state เดิม
 - Manager และ role อื่นเรียก action เดียวกันแล้วถูกปฏิเสธ
 - การแก้ข้อมูลไม่ทำลาย booking, review, audit หรือ relation ที่ต้องเก็บย้อนหลัง

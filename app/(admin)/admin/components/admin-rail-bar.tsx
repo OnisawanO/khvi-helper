@@ -1,16 +1,21 @@
 "use client";
 
-import Link from "next/link";
 import {
+  ArchiveBoxXMarkIcon,
   Bars3Icon,
   ChartBarSquareIcon,
+  CheckCircleIcon,
+  ClockIcon,
   Cog6ToothIcon,
+  DocumentCheckIcon,
   DocumentMagnifyingGlassIcon,
+  InboxStackIcon,
   ShieldExclamationIcon,
   UserGroupIcon,
-  ArrowTopRightOnSquareIcon,
 } from "@heroicons/react/24/outline";
 import { AdminActiveTab } from "../types";
+import type { ManagerNavSection } from "@/app/(manager)/manager/types";
+import { formatBadgeCount } from "@/app/(manager)/manager/utils";
 
 interface AdminRailBarProps {
   onMenuClick: () => void;
@@ -19,6 +24,14 @@ interface AdminRailBarProps {
   totalUsersCount: number;
   pendingReportsCount: number;
   auditLogsCount: number;
+  managerSection: ManagerNavSection;
+  setManagerSection: (section: ManagerNavSection) => void;
+  pendingApplicantCount: number;
+  approvedApplicantCount: number;
+  pendingProfileChangeCount: number;
+  rejectedApplicantCount: number;
+  pendingManagerReportCount: number;
+  managerActivitiesCount: number;
 }
 
 export function AdminRailBar({
@@ -28,9 +41,29 @@ export function AdminRailBar({
   totalUsersCount,
   pendingReportsCount,
   auditLogsCount,
+  managerSection,
+  setManagerSection,
+  pendingApplicantCount,
+  approvedApplicantCount,
+  pendingProfileChangeCount,
+  rejectedApplicantCount,
+  pendingManagerReportCount,
+  managerActivitiesCount,
 }: AdminRailBarProps) {
+  const openManagerSection = (section: ManagerNavSection) => {
+    setManagerSection(section);
+    setActiveTab("manager-operations");
+  };
+
+  const managerButtonClass = (section: ManagerNavSection) =>
+    `relative flex h-10 w-10 items-center justify-center rounded-2xl transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#087f80]/70 ${
+      activeTab === "manager-operations" && managerSection === section
+        ? "bg-[#087f80] text-white shadow-md ring-2 ring-[#087f80]/30"
+        : "text-slate-300 hover:bg-white/10 hover:text-white"
+    }`;
+
   return (
-    <aside className="hidden md:flex flex-col w-[68px] shrink-0 items-center justify-between border-r border-[#16435c] bg-[#092f45] py-3.5 z-20 select-none shadow-[4px_0_16px_rgba(0,0,0,0.15)]">
+    <aside className="hidden md:flex max-h-screen flex-col w-[68px] shrink-0 items-center justify-between overflow-y-auto border-r border-[#16435c] bg-[#092f45] py-3.5 z-20 select-none shadow-[4px_0_16px_rgba(0,0,0,0.15)]">
       {/* Top: Section Quick Buttons with Notification Badges */}
       <div className="flex flex-col items-center gap-4 w-full px-2">
         {/* Menu Hamburger Button: Seamless top corner block level with Header */}
@@ -89,7 +122,7 @@ export function AdminRailBar({
             )}
           </button>
 
-          {/* 2. Escalated Incident Reports (from Manager) */}
+          {/* 2. System Reports */}
           <button
             type="button"
             onClick={() => setActiveTab("reports")}
@@ -98,8 +131,8 @@ export function AdminRailBar({
                 ? "bg-red-600 text-white shadow-md shadow-red-900/40"
                 : "text-slate-300 hover:bg-white/10 hover:text-white"
             }`}
-            title="Escalated Incident Reports (รายงานพฤติกรรมไม่เหมาะสมจาก Manager)"
-            aria-label="Escalated Incident Reports"
+            title="System Reports"
+            aria-label="System Reports"
             aria-pressed={activeTab === "reports"}
           >
             <ShieldExclamationIcon className="h-5 w-5" />
@@ -147,19 +180,107 @@ export function AdminRailBar({
             <Cog6ToothIcon className="h-5 w-5" />
           </button>
         </div>
-      </div>
 
-      {/* Bottom Rail Actions */}
-      <div className="flex flex-col items-center gap-2 w-full px-2">
-        {/* Switch to Operations Hub (Manager Mode) */}
-        <Link
-          href="/manager"
-          className="flex h-10 w-10 items-center justify-center rounded-2xl text-amber-300 hover:bg-amber-400/20 hover:text-amber-200 transition-colors cursor-pointer border border-amber-500/30"
-          title="Switch to Operations Hub (Manager Mode) • ตรวจสอบงานหน้างาน"
-          aria-label="Switch to Operations Hub"
-        >
-          <ArrowTopRightOnSquareIcon className="h-4 w-4" />
-        </Link>
+        <div className="h-px w-8 bg-[#16435c]" />
+
+        {/* Manager operations group */}
+        <div className="flex flex-col items-center gap-2.5 w-full">
+          <button
+            type="button"
+            onClick={() => openManagerSection("queue")}
+            className={managerButtonClass("queue")}
+            title="Application Queue"
+            aria-label="Application Queue"
+            aria-pressed={activeTab === "manager-operations" && managerSection === "queue"}
+          >
+            <InboxStackIcon className="h-5 w-5" />
+            {pendingApplicantCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#087f80] px-1 text-[9px] font-black text-white ring-2 ring-[#092f45]">
+                {formatBadgeCount(pendingApplicantCount)}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => openManagerSection("approved")}
+            className={managerButtonClass("approved")}
+            title="Approved Volunteer Interpreters"
+            aria-label="Approved Volunteer Interpreters"
+            aria-pressed={activeTab === "manager-operations" && managerSection === "approved"}
+          >
+            <CheckCircleIcon className="h-5 w-5" />
+            {approvedApplicantCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-teal-900/80 px-1 text-[9px] font-extrabold text-teal-300 ring-1 ring-[#092f45] border border-teal-700/50">
+                {formatBadgeCount(approvedApplicantCount)}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => openManagerSection("change-requests")}
+            className={managerButtonClass("change-requests")}
+            title="Profile Change Requests"
+            aria-label="Profile Change Requests"
+            aria-pressed={activeTab === "manager-operations" && managerSection === "change-requests"}
+          >
+            <DocumentCheckIcon className="h-5 w-5" />
+            {pendingProfileChangeCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-sky-500 px-1 text-[9px] font-black text-white ring-2 ring-[#092f45]">
+                {formatBadgeCount(pendingProfileChangeCount)}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => openManagerSection("rejected")}
+            className={managerButtonClass("rejected")}
+            title="Rejected Applicant Archive"
+            aria-label="Rejected Applicant Archive"
+            aria-pressed={activeTab === "manager-operations" && managerSection === "rejected"}
+          >
+            <ArchiveBoxXMarkIcon className="h-5 w-5" />
+            {rejectedApplicantCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-900/80 px-1 text-[9px] font-bold text-red-300 ring-1 ring-[#092f45] border border-red-800/50">
+                {formatBadgeCount(rejectedApplicantCount)}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => openManagerSection("reports")}
+            className={managerButtonClass("reports")}
+            title="Manager System Reports"
+            aria-label="Manager System Reports"
+            aria-pressed={activeTab === "manager-operations" && managerSection === "reports"}
+          >
+            <ShieldExclamationIcon className="h-5 w-5" />
+            {pendingManagerReportCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-black text-white ring-2 ring-[#092f45]">
+                {formatBadgeCount(pendingManagerReportCount)}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => openManagerSection("history")}
+            className={managerButtonClass("history")}
+            title="Operations History"
+            aria-label="Operations History"
+            aria-pressed={activeTab === "manager-operations" && managerSection === "history"}
+          >
+            <ClockIcon className="h-5 w-5" />
+            {managerActivitiesCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-slate-700 px-1 text-[9px] font-black text-slate-200 ring-2 ring-[#092f45]">
+                {formatBadgeCount(managerActivitiesCount)}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
     </aside>
   );

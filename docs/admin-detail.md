@@ -22,6 +22,11 @@
   - ตรวจสอบดัชนีคุณภาพและคะแนนรีวิวของล่ามอาสา (`Interpreter Quality & Ratings`)
   - ตรวจสอบประวัติการใช้งานและกิจกรรมของผู้ดูแลระบบอย่างละเอียดผ่านระบบบันทึกความปลอดภัยที่ไม่สามารถแก้ไขได้ (`Immutable Audit Trail`)
 
+### ระดับสิทธิ์ของ Admin
+
+- **Primary Admin (`admin_level = primary`):** จัดการ role และ security settings ของบัญชีทั้งหมด รวมถึงสร้าง Manager และ grant/revoke delegated Admin
+- **Delegated Admin (`admin_level = delegated`):** จัดการข้อมูลและสถานะของ `User` กับ `Interpreter` ได้ แต่ดู `Manager` และ `Admin` ได้อย่างเดียว และไม่มีสิทธิ์สร้าง Manager หรือเปลี่ยนระดับ Admin
+
 ---
 
 ## 2. ฟังก์ชันการทำงานหลักของหน้า Admin Dashboard (`/admin`)
@@ -87,7 +92,7 @@
 
 ## 3. กฎทางธุรกิจและความปลอดภัย (Business Rules & Security)
 
-1. **การสืบทอดสิทธิ์ (Privilege Escalation Guard):** เฉพาะผู้ใช้ที่มีบทบาท `Admin` เท่านั้นที่สามารถเข้าถึงเส้นทาง `/admin` และมีสิทธิ์ปรับเปลี่ยน Role ของผู้ใช้อื่นได้
+1. **การสืบทอดสิทธิ์ (Privilege Escalation Guard):** เฉพาะผู้ใช้ที่มีบทบาท `Admin` เท่านั้นที่สามารถเข้าถึงเส้นทาง `/admin`; `Primary Admin` จัดการ role ได้ทุกระดับ ส่วน `Delegated Admin` จัดการได้เฉพาะ `User` และ `Interpreter`
 2. **การบังคับระงับบัญชี (Account Lockout Effect):** บัญชีที่มีสถานะ `is_locked = true` จะไม่สามารถล็อกอินเข้าสู่ระบบ ไม่สามารถส่งคำขอ SOS ไม่สามารถกดรับภารกิจล่าม และไม่สามารถเข้าถึงหน้า Dashboard ภายในได้
 3. **การบันทึกประวัติที่โปร่งใส (Audit Traceability):** ทุกครั้งที่มีการเปลี่ยนแปลง Role หรือสั่งระงับ/ปลดล็อกบัญชี ระบบจะต้องสร้างรายการบันทึกใน Audit Log โดยอัตโนมัติ พร้อมระบุชื่อผู้ดำเนินการและเหตุผลประกอบ
 

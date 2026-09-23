@@ -3,15 +3,21 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
+  ArchiveBoxXMarkIcon,
   ChartBarSquareIcon,
+  CheckCircleIcon,
+  ClockIcon,
   Cog6ToothIcon,
+  DocumentCheckIcon,
   DocumentMagnifyingGlassIcon,
+  InboxStackIcon,
   ShieldExclamationIcon,
   UserGroupIcon,
   XMarkIcon,
-  ArrowTopRightOnSquareIcon,
 } from "@heroicons/react/24/outline";
 import { AdminActiveTab } from "../types";
+import type { ManagerNavSection } from "@/app/(manager)/manager/types";
+import { formatBadgeCount } from "@/app/(manager)/manager/utils";
 
 interface AdminDrawerProps {
   isOpen: boolean;
@@ -21,6 +27,14 @@ interface AdminDrawerProps {
   totalUsersCount: number;
   pendingReportsCount: number;
   auditLogsCount: number;
+  managerSection: ManagerNavSection;
+  setManagerSection: (section: ManagerNavSection) => void;
+  pendingApplicantCount: number;
+  approvedApplicantCount: number;
+  pendingProfileChangeCount: number;
+  rejectedApplicantCount: number;
+  pendingManagerReportCount: number;
+  managerActivitiesCount: number;
 }
 
 export function AdminDrawer({
@@ -31,7 +45,28 @@ export function AdminDrawer({
   totalUsersCount,
   pendingReportsCount,
   auditLogsCount,
+  managerSection,
+  setManagerSection,
+  pendingApplicantCount,
+  approvedApplicantCount,
+  pendingProfileChangeCount,
+  rejectedApplicantCount,
+  pendingManagerReportCount,
+  managerActivitiesCount,
 }: AdminDrawerProps) {
+  const openManagerSection = (section: ManagerNavSection) => {
+    setManagerSection(section);
+    setActiveTab("manager-operations");
+    onClose();
+  };
+
+  const managerItemClass = (section: ManagerNavSection) =>
+    `flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#087f80]/70 ${
+      activeTab === "manager-operations" && managerSection === section
+        ? "bg-[#087f80] text-white shadow-md"
+        : "text-slate-200 hover:bg-white/10 hover:text-white"
+    }`;
+
   return (
     <div
       className={`fixed inset-0 z-50 transition-all duration-300 ${
@@ -51,7 +86,7 @@ export function AdminDrawer({
 
       {/* Drawer content sliding smoothly from left (Navy Dark Theme) */}
       <aside
-        className={`relative z-10 flex h-full w-[290px] max-w-[85vw] flex-col justify-between bg-[#092f45] text-white p-4 shadow-2xl border-r border-[#16435c] transition-transform duration-300 [transition-timing-function:cubic-bezier(0.2,0,0,1)] select-none ${
+        className={`relative z-10 flex h-full w-[290px] max-w-[85vw] flex-col justify-between overflow-y-auto bg-[#092f45] text-white p-4 shadow-2xl border-r border-[#16435c] transition-transform duration-300 [transition-timing-function:cubic-bezier(0.2,0,0,1)] select-none ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -173,7 +208,7 @@ export function AdminDrawer({
               >
                 <div className="flex items-center gap-2.5">
                   <ShieldExclamationIcon className="h-5 w-5 text-slate-300" />
-                  <span>Escalated Reports</span>
+                  <span>System Reports</span>
                 </div>
                 {pendingReportsCount > 0 && (
                   <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black text-white ring-1 ring-white/20">
@@ -239,26 +274,40 @@ export function AdminDrawer({
               </button>
             </nav>
           </div>
+
+          <div>
+            <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Manager Operations
+            </p>
+            <nav className="mt-1 space-y-1">
+              <button type="button" onClick={() => openManagerSection("queue")} aria-current={activeTab === "manager-operations" && managerSection === "queue" ? "page" : undefined} className={managerItemClass("queue")}>
+                <span className="flex items-center gap-2.5"><InboxStackIcon className="h-5 w-5 text-slate-300" />Application Queue</span>
+                {pendingApplicantCount > 0 && <span className="rounded-full bg-[#087f80] px-2 py-0.5 text-[10px] font-extrabold text-white">{formatBadgeCount(pendingApplicantCount)}</span>}
+              </button>
+              <button type="button" onClick={() => openManagerSection("approved")} aria-current={activeTab === "manager-operations" && managerSection === "approved" ? "page" : undefined} className={managerItemClass("approved")}>
+                <span className="flex items-center gap-2.5"><CheckCircleIcon className="h-5 w-5 text-slate-300" />Approved Volunteers</span>
+                {approvedApplicantCount > 0 && <span className="rounded-full bg-teal-900/60 px-2 py-0.5 text-[10px] font-extrabold text-teal-300 border border-teal-700/50">{formatBadgeCount(approvedApplicantCount)}</span>}
+              </button>
+              <button type="button" onClick={() => openManagerSection("change-requests")} aria-current={activeTab === "manager-operations" && managerSection === "change-requests" ? "page" : undefined} className={managerItemClass("change-requests")}>
+                <span className="flex items-center gap-2.5"><DocumentCheckIcon className="h-5 w-5 text-slate-300" />Profile Change Requests</span>
+                {pendingProfileChangeCount > 0 && <span className="rounded-full bg-sky-900/60 px-2 py-0.5 text-[10px] font-extrabold text-sky-300 border border-sky-700/50">{formatBadgeCount(pendingProfileChangeCount)}</span>}
+              </button>
+              <button type="button" onClick={() => openManagerSection("rejected")} aria-current={activeTab === "manager-operations" && managerSection === "rejected" ? "page" : undefined} className={managerItemClass("rejected")}>
+                <span className="flex items-center gap-2.5"><ArchiveBoxXMarkIcon className="h-5 w-5 text-slate-300" />Rejected Archive</span>
+                {rejectedApplicantCount > 0 && <span className="rounded-full bg-red-900/60 px-2 py-0.5 text-[10px] font-extrabold text-red-300 border border-red-800/50">{formatBadgeCount(rejectedApplicantCount)}</span>}
+              </button>
+              <button type="button" onClick={() => openManagerSection("reports")} aria-current={activeTab === "manager-operations" && managerSection === "reports" ? "page" : undefined} className={managerItemClass("reports")}>
+                <span className="flex items-center gap-2.5"><ShieldExclamationIcon className="h-5 w-5 text-slate-300" />System Reports</span>
+                {pendingManagerReportCount > 0 && <span className="rounded-full bg-amber-900/60 px-2 py-0.5 text-[10px] font-extrabold text-amber-300 border border-amber-700/50">{formatBadgeCount(pendingManagerReportCount)}</span>}
+              </button>
+              <button type="button" onClick={() => openManagerSection("history")} aria-current={activeTab === "manager-operations" && managerSection === "history" ? "page" : undefined} className={managerItemClass("history")}>
+                <span className="flex items-center gap-2.5"><ClockIcon className="h-5 w-5 text-slate-300" />Operations History</span>
+                {managerActivitiesCount > 0 && <span className="rounded-full bg-slate-700/60 px-2 py-0.5 text-[10px] font-extrabold text-slate-300 border border-slate-600/50">{formatBadgeCount(managerActivitiesCount)}</span>}
+              </button>
+            </nav>
+          </div>
         </div>
 
-        {/* Bottom Section in Drawer: Settings & Switch to Ops */}
-        {/* Bottom Section in Drawer: Switch to Ops */}
-        <div className="mt-auto pt-3 border-t border-[#16435c] space-y-1">
-          <Link
-            href="/manager"
-            onClick={onClose}
-            className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-xs font-bold text-amber-300 hover:bg-amber-400/20 hover:text-amber-200 transition-colors cursor-pointer border border-amber-500/20"
-            title="Switch to Operations Hub (Manager Mode)"
-          >
-            <div className="flex items-center gap-2.5">
-              <ArrowTopRightOnSquareIcon className="h-4 w-4 shrink-0" />
-              <span>Operations Console</span>
-            </div>
-            <span className="rounded-md bg-amber-400/20 px-1.5 py-0.5 text-[9px] font-extrabold text-amber-300">
-              Manager View
-            </span>
-          </Link>
-        </div>
       </aside>
     </div>
   );

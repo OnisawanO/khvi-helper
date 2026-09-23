@@ -6,13 +6,14 @@ import {
   BriefcaseIcon,
   CheckBadgeIcon,
   CheckCircleIcon,
+  ChatBubbleLeftRightIcon,
   DocumentTextIcon,
+  EnvelopeIcon,
   ExclamationCircleIcon,
   IdentificationIcon,
   LanguageIcon,
   PhoneIcon,
   PhotoIcon,
-  ShieldCheckIcon,
   XCircleIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
@@ -48,49 +49,71 @@ export function ApplicantDetailModal({
   const [asyncDocUrl, setAsyncDocUrl] = useState<string | null>(null);
   const [docError, setDocError] = useState(false);
 
-  const docUrl = isDirectUrl ? rawDocUrl : asyncDocUrl;
-  const docLoading = Boolean(previewDocOpen && rawDocUrl && !isDirectUrl && !asyncDocUrl && !docError);
+  const docUrl = asyncDocUrl;
+  const docLoading = Boolean(previewDocOpen && rawDocUrl && !asyncDocUrl && !docError);
 
   useEffect(() => {
-    if (!previewDocOpen || !rawDocUrl || isDirectUrl) return;
+    if (!previewDocOpen || !rawDocUrl) return;
 
     let cancelled = false;
+    let objectUrl: string | null = null;
 
     const resolveUrl = async () => {
       try {
-        const supabase = createClient();
-        const { data } = await supabase.storage
-          .from("interpreter-certificates")
-          .createSignedUrl(rawDocUrl, 3600);
+        if (isDirectUrl) {
+          if (rawDocUrl.startsWith("blob:") || rawDocUrl.startsWith("data:")) {
+            if (!cancelled) setAsyncDocUrl(rawDocUrl);
+            return;
+          }
 
-        if (!cancelled && data?.signedUrl) {
-          setAsyncDocUrl(data.signedUrl);
+          try {
+            const response = await fetch(rawDocUrl);
+            if (!response.ok) throw new Error(`Document request failed: ${response.status}`);
+            const blob = await response.blob();
+            const previewBlob =
+              applicant?.document?.format === "pdf"
+                ? new Blob([blob], { type: "application/pdf" })
+                : blob;
+            objectUrl = URL.createObjectURL(previewBlob);
+            if (!cancelled) setAsyncDocUrl(objectUrl);
+            return;
+          } catch {
+            if (!cancelled) setAsyncDocUrl(rawDocUrl);
+            return;
+          }
+        }
+
+        const supabase = createClient();
+        const storage = supabase.storage.from("interpreter-certificates");
+        const { data: blob } = await storage.download(rawDocUrl);
+
+        if (blob) {
+          const previewBlob =
+            applicant?.document?.format === "pdf"
+              ? new Blob([blob], { type: "application/pdf" })
+              : blob;
+          objectUrl = URL.createObjectURL(previewBlob);
+          if (!cancelled) setAsyncDocUrl(objectUrl);
           return;
         }
 
-        const { data: blob } = await supabase.storage
-          .from("interpreter-certificates")
-          .download(rawDocUrl);
-
-        if (!cancelled) {
-          if (blob) {
-            setAsyncDocUrl(URL.createObjectURL(blob));
-          } else {
-            setDocError(true);
-          }
-        }
-      } catch {
-        if (!cancelled) {
+        const { data: signed } = await storage.createSignedUrl(rawDocUrl, 3600);
+        if (!cancelled && signed?.signedUrl) {
+          setAsyncDocUrl(signed.signedUrl);
+        } else if (!cancelled) {
           setDocError(true);
         }
+      } catch {
+        if (!cancelled) setDocError(true);
       }
     };
 
     void resolveUrl();
     return () => {
       cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [previewDocOpen, rawDocUrl, isDirectUrl]);
+  }, [applicant?.document?.format, previewDocOpen, rawDocUrl, isDirectUrl]);
 
   if (!isOpen || !applicant) return null;
 
@@ -104,244 +127,347 @@ export function ApplicantDetailModal({
 
   return (
     <>
-      {/* ================= CENTERED POP-UP MODAL (30% / 70% SPLIT) ================= */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-in fade-in">
-        <div className="relative flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[#d6e0e4] bg-white shadow-[0_24px_56px_rgba(15,38,54,0.25)] sm:flex-row max-h-[90vh]">
-          {/* Close Button */}
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute right-3.5 top-3.5 z-10 rounded-lg p-1.5 text-[#6c8591] hover:bg-[#edf3f6] hover:text-[#112d3e] transition-colors cursor-pointer"
-          >
-            <XMarkIcon className="h-5 w-5" />
-          </button>
-
-          {/* LEFT COLUMN: 30% (Profile, Photo, Contacts, Demographics) */}
-          <div className="w-full sm:w-[32%] border-b sm:border-b-0 sm:border-r border-[#e3ebef] bg-[#f8fbfc] p-6 flex flex-col justify-between">
-            <div>
-              {/* Avatar & Name */}
-              <div className="flex flex-col items-center text-center">
-                <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-[#092f45] text-2xl font-black text-white shadow-md">
-                  {applicant.name.slice(0, 2).toUpperCase()}
-                </div>
-                <h3 className="mt-3 text-base font-black text-[#102d3f]">
-                  {applicant.name}
-                </h3>
-                <p className="text-xs text-[#637d8a]">
-                  Application ID: <strong className="text-[#087f80]">#{applicant.id}</strong>
-                </p>
-                <span
-                  className={`mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${
-                    applicant.status === "Approved"
-                      ? "bg-[#e7f5f0] text-[#087557]"
-                      : applicant.status === "Rejected"
-                      ? "bg-[#fff1ef] text-[#d93829]"
-                      : "bg-[#fef4e8] text-[#b36916]"
-                  }`}
-                >
-                  {applicant.status}
-                </span>
+      {/* ================= ADMIN-STYLE CENTERED POP-UP MODAL ================= */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-3 sm:p-5 backdrop-blur-xs animate-in fade-in">
+        <div className="relative flex h-[92vh] max-h-[850px] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-200 animate-in zoom-in-95">
+          
+          {/* 1. Header Bar (Admin Standard) */}
+          <div className="flex min-h-[3.5rem] items-center justify-between border-b border-slate-200 bg-white px-5 sm:px-6 py-3 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#092f45] text-white shrink-0 shadow-xs">
+                <IdentificationIcon className="h-5 w-5 text-teal-400" />
               </div>
-
-              {/* Demographics & Check Badges */}
-              <div className="mt-6 space-y-3 text-xs border-t border-[#e8f0f3] pt-4">
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#8198a4]">
-                    Nationality & Age
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm sm:text-base font-bold text-[#092f45] leading-tight">
+                    Volunteer Applicant Dossier
+                  </h3>
+                  <span className="text-xs text-slate-300">•</span>
+                  <span className="font-mono text-xs text-slate-500 font-medium">
+                    ID: #{applicant.id}
                   </span>
-                  <p className="font-extrabold text-[#17384a]">
-                    {applicant.country} · {applicant.age} years old
-                  </p>
                 </div>
+              </div>
+            </div>
 
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#8198a4]">
-                    Background Validation
-                  </span>
-                  <div className="mt-1 flex items-center gap-1.5">
-                    <ShieldCheckIcon className="h-4 w-4 text-[#087557]" />
-                    <span className="font-extrabold text-[#087557]">
-                      {applicant.backgroundCheck}
-                    </span>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors cursor-pointer"
+              aria-label="Close modal"
+            >
+              <XMarkIcon className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* 2. Modal Body: Split Columns Container */}
+          <div className="flex-1 overflow-y-auto bg-white">
+            <div className="flex flex-col md:flex-row min-h-full">
+              
+              {/* LEFT COLUMN: 35% (Identity, Contact Channels, Demographics) */}
+              <div className="w-full md:w-[36%] border-b md:border-b-0 md:border-r border-slate-200 p-5 sm:p-6 space-y-5 bg-white shrink-0">
+                
+                {/* Horizontal Identity Banner (Admin Style) */}
+                <div className="flex items-center gap-3.5 pb-4 border-b border-slate-100">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#092f45] text-lg font-black text-white shrink-0 shadow-xs">
+                    {applicant.name.slice(0, 2).toUpperCase()}
                   </div>
-                </div>
-
-                {/* Direct Contact Channels */}
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#8198a4]">
-                    Contact Channels
-                  </span>
-                  <div className="mt-1.5 space-y-1.5 text-xs text-[#2b4857]">
-                    <div className="flex items-center gap-2 rounded-lg bg-white p-2 border border-[#e1ebef]">
-                      <PhoneIcon className="h-3.5 w-3.5 text-[#087f80]" />
-                      <span className="font-bold truncate">{applicant.contactChannels}</span>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-base font-bold text-[#092f45] truncate">
+                      {applicant.name}
+                    </h4>
+                    <div className="mt-1 flex items-center gap-2 flex-wrap">
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-bold ${
+                          applicant.status === "Approved"
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            : applicant.status === "Rejected"
+                            ? "bg-red-50 text-red-700 border border-red-200"
+                            : "bg-amber-50 text-amber-700 border border-amber-200"
+                        }`}
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            applicant.status === "Approved"
+                              ? "bg-emerald-500"
+                              : applicant.status === "Rejected"
+                              ? "bg-red-500"
+                              : "bg-amber-500"
+                          }`}
+                        />
+                        {applicant.status}
+                      </span>
+                      <span className="text-[11px] text-slate-400 font-medium">
+                        {applicant.country}
+                      </span>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            <div className="mt-4 text-[10px] text-[#869caa]">
-              Submission timestamp: {applicant.appliedDate}
-            </div>
-          </div>
-
-          {/* RIGHT COLUMN: 70% (Qualifications, Attachments, Experience, Decision Actions) */}
-          <div className="w-full sm:w-[68%] p-6 flex flex-col justify-between overflow-y-auto">
-            <div className="space-y-5">
-              {/* 1. Language Competencies */}
-              <div>
-                <h4 className="text-xs font-black uppercase tracking-wider text-[#637f8d] flex items-center gap-1.5">
-                  <LanguageIcon className="h-4 w-4 text-[#087f80]" />
-                  Language Qualifications & Proficiency
-                </h4>
-                <div className="mt-2 rounded-xl border border-[#e2ecf0] bg-[#fafcfd] p-3">
-                  <p className="text-xs text-[#204051]">
-                    Primary Language: <strong className="text-[#092f45]">{applicant.primaryLanguage}</strong>
-                  </p>
-                  <p className="mt-1 text-xs text-[#204051]">
-                    Proficiency Scores: <strong className="text-[#087f80]">{applicant.proficiencyScore || "Verified Native"}</strong>
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {applicant.spokenLanguages.map((l) => (
-                      <span
-                        key={l}
-                        className="rounded-md border border-[#d6e3e8] bg-white px-2 py-0.5 text-[11px] font-semibold text-[#224050]"
-                      >
-                        {l}
+                {/* Demographics Details (Flat Slate Card) */}
+                <div className="space-y-2.5">
+                  <h5 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    Demographics
+                  </h5>
+                  <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3.5 space-y-2.5 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400 text-[11px]">Age & Assigned Area:</span>
+                      <span className="font-semibold text-slate-800">
+                        {applicant.age} yrs · {applicant.country}
                       </span>
-                    ))}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400 text-[11px]">Applied Timestamp:</span>
+                      <span className="font-mono text-slate-600 text-[11px]">
+                        {applicant.appliedDate}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* 2. Submitted Credential File (Single document: .pdf, .png, .jpg) */}
-              <div>
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-[#637f8d] flex items-center gap-1.5">
-                    <IdentificationIcon className="h-4 w-4 text-[#087f80]" />
-                    Submitted Credential Document (1 File Max)
-                  </h4>
-                  <span className="rounded-full bg-[#f1f5f8] px-2 py-0.5 text-[10px] font-bold text-[#486575] border border-[#dce6ec]">
-                    Allowed: .PDF, .PNG, .JPG
-                  </span>
+                {/* Direct Contact Channels (Unified Clean Card, Separated Rows) */}
+                <div className="space-y-2.5">
+                  <h5 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    Direct Contact Channels
+                  </h5>
+                  <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3.5 space-y-2.5 text-xs">
+                    {/* Phone */}
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-slate-400 flex items-center gap-1.5 text-[11px] shrink-0">
+                        <PhoneIcon className="h-3.5 w-3.5 text-[#087f80]" />
+                        Phone:
+                      </span>
+                      {applicant.phone ? (
+                        <a
+                          href={`tel:${applicant.phone}`}
+                          className="font-semibold text-[#092f45] hover:text-[#087f80] hover:underline transition-colors truncate"
+                        >
+                          {applicant.phone}
+                        </a>
+                      ) : (
+                        <span className="text-slate-400 italic text-[11px]">Not provided</span>
+                      )}
+                    </div>
+
+                    {/* Email */}
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-slate-400 flex items-center gap-1.5 text-[11px] shrink-0">
+                        <EnvelopeIcon className="h-3.5 w-3.5 text-[#087f80]" />
+                        Email:
+                      </span>
+                      {applicant.email ? (
+                        <a
+                          href={`mailto:${applicant.email}`}
+                          className="font-semibold text-[#092f45] hover:text-[#087f80] hover:underline transition-colors truncate"
+                          title={applicant.email}
+                        >
+                          {applicant.email}
+                        </a>
+                      ) : (
+                        <span className="text-slate-400 italic text-[11px]">Not provided</span>
+                      )}
+                    </div>
+
+                    {/* Extra / Social */}
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-slate-400 flex items-center gap-1.5 text-[11px] shrink-0">
+                        <ChatBubbleLeftRightIcon className="h-3.5 w-3.5 text-[#087f80]" />
+                        Other:
+                      </span>
+                      <span className="font-semibold text-[#092f45] truncate">
+                        {applicant.extraContact || applicant.contactChannels || "None"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                {applicant.document ? (
-                  <div className="mt-2 flex items-center justify-between rounded-xl border border-[#dce6eb] bg-white p-3 transition-colors hover:border-[#087f80] shadow-2xs">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-black text-xs ${
-                        applicant.document.format === "pdf"
-                          ? "bg-red-50 text-red-600 border border-red-200"
-                          : applicant.document.format === "png"
-                          ? "bg-blue-50 text-blue-600 border border-blue-200"
-                          : "bg-emerald-50 text-emerald-600 border border-emerald-200"
-                      }`}>
-                        {applicant.document.format.toUpperCase()}
+                {/* Rejection Note If Applicable */}
+                {applicant.rejectionReason && (
+                  <div className="rounded-xl border border-red-200 bg-red-50/60 p-3 text-xs">
+                    <p className="font-bold text-red-800">Specified Rejection Reason:</p>
+                    <p className="mt-1 text-red-700 text-[11px] leading-relaxed">
+                      {applicant.rejectionReason}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* RIGHT COLUMN: 64% (Qualifications, Attachments, Experience) */}
+              <div className="w-full md:w-[64%] p-5 sm:p-6 space-y-6 flex flex-col justify-between overflow-y-auto bg-white">
+                <div className="space-y-5">
+                  
+                  {/* 1. Language Competencies & Proficiency */}
+                  <div>
+                    <h5 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                      <LanguageIcon className="h-4 w-4 text-[#087f80]" />
+                      Language Qualifications & Competency
+                    </h5>
+                    <div className="mt-2.5 rounded-xl border border-slate-100 bg-slate-50/70 p-3.5 space-y-2 text-xs">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <span className="text-slate-400 text-[11px]">Primary Language:</span>
+                        <span className="font-bold text-[#092f45]">
+                          {applicant.primaryLanguage}
+                        </span>
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-[#143242] truncate">{applicant.document.name}</p>
-                        <div className="flex items-center gap-2 text-[10px] text-[#7b93a0] mt-0.5">
-                          <span>{applicant.document.size}</span>
-                          <span>•</span>
-                          <span className="uppercase font-semibold text-[#087f80]">
-                            {applicant.document.type} credential
-                          </span>
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <span className="text-slate-400 text-[11px]">Proficiency Scores:</span>
+                        <span className="font-semibold text-[#087f80]">
+                          {applicant.proficiencyScore || "Verified Native"}
+                        </span>
+                      </div>
+                      <div className="pt-2 border-t border-slate-200/60">
+                        <span className="text-[11px] text-slate-400 block mb-1.5">Spoken & Certified Languages:</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {applicant.spokenLanguages.map((l) => (
+                            <span
+                              key={l}
+                              className="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 shadow-2xs"
+                            >
+                              {l}
+                            </span>
+                          ))}
                         </div>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setPreviewDocOpen(true)}
-                      className="inline-flex items-center gap-1 rounded-lg border border-[#087f80]/30 bg-[#f0f9f8] px-3 py-1.5 text-xs font-extrabold text-[#087f80] hover:bg-[#087f80] hover:text-white transition-colors cursor-pointer"
-                    >
-                      Preview
-                    </button>
                   </div>
-                ) : (
-                  <div className="mt-2 rounded-xl border border-dashed border-[#dce6eb] bg-[#fbfcfd] p-4 text-center text-xs text-[#7b93a0]">
-                    No credential document uploaded
-                  </div>
-                )}
-              </div>
 
-              {/* 3. Field Specialization / Categories */}
-              <div>
-                <h4 className="text-xs font-black uppercase tracking-wider text-[#637f8d] flex items-center gap-1.5">
-                  <BriefcaseIcon className="h-4 w-4 text-[#087f80]" />
-                  Field Specialization & Categories
-                </h4>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {applicant.specialtyCategories.map((cat) => (
-                    <span
-                      key={cat}
-                      className="rounded-md bg-[#edf7f5] px-2.5 py-1 text-xs font-bold text-[#087f80]"
-                    >
-                      {cat}
-                    </span>
-                  ))}
+                  {/* 2. Submitted Credential Document */}
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <h5 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                        <IdentificationIcon className="h-4 w-4 text-[#087f80]" />
+                        Submitted Credential File
+                      </h5>
+                      <span className="text-[10px] font-medium text-slate-400">
+                        Max 1 file (.PDF, .PNG, .JPG)
+                      </span>
+                    </div>
+
+                    {applicant.document ? (
+                      <div className="mt-2.5 flex items-center justify-between rounded-xl border border-slate-200 bg-white p-3 shadow-2xs hover:border-[#087f80] transition-colors">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div
+                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-black ${
+                              applicant.document.format === "pdf"
+                                ? "bg-red-50 text-red-600 border border-red-200"
+                                : applicant.document.format === "png"
+                                ? "bg-blue-50 text-blue-600 border border-blue-200"
+                                : "bg-emerald-50 text-emerald-600 border border-emerald-200"
+                            }`}
+                          >
+                            {applicant.document.format.toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-[#092f45] truncate">
+                              {applicant.document.name}
+                            </p>
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                              {applicant.document.size || "Original Document"} · {applicant.document.type.toUpperCase()} Credential
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAsyncDocUrl(null);
+                            setDocError(false);
+                            setPreviewDocOpen(true);
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-[#087f80] hover:bg-[#087f80] hover:text-white hover:border-[#087f80] transition-colors cursor-pointer"
+                        >
+                          Preview File
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="mt-2.5 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-4 text-center text-xs text-slate-400">
+                        No credential file submitted
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 3. Field Specialization Categories */}
+                  <div>
+                    <h5 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                      <BriefcaseIcon className="h-4 w-4 text-[#087f80]" />
+                      Field Specialization Categories
+                    </h5>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {applicant.specialtyCategories.map((cat) => (
+                        <span
+                          key={cat}
+                          className="rounded-lg bg-teal-50 px-2.5 py-1 text-xs font-semibold text-[#087f80] border border-teal-100"
+                        >
+                          {cat}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 4. Experience Summary */}
+                  {applicant.experienceSummary && (
+                    <div>
+                      <h5 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                        Experience Summary
+                      </h5>
+                      <p className="mt-1.5 rounded-xl border border-slate-100 bg-slate-50/50 p-3 text-xs leading-relaxed text-slate-600 italic">
+                        &ldquo;{applicant.experienceSummary}&rdquo;
+                      </p>
+                    </div>
+                  )}
                 </div>
-              </div>
 
-              {/* Rejection Note If Applicable */}
-              {applicant.rejectionReason && (
-                <div className="rounded-xl border border-[#f8c9c4] bg-[#fff5f4] p-3 text-xs">
-                  <p className="font-extrabold text-[#d93829]">Specified Rejection Reason:</p>
-                  <p className="mt-1 text-[#b8291b]">{applicant.rejectionReason}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Bottom Action Bar */}
-            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-[#edf2f5] pt-4">
-              <div className="text-xs text-[#627d8c]">
-                {applicant.status === "Approved" ? (
-                  <span className="inline-flex items-center gap-1.5 font-medium text-[#087557]">
-                    <CheckCircleIcon className="h-4 w-4" />
-                    Approved volunteers are locked. Revocation or role suspension is managed by Admin (FR-76–83).
-                  </span>
-                ) : applicant.status === "Rejected" ? (
-                  <span className="inline-flex items-center gap-1.5 font-medium text-[#c0392b]">
-                    <XCircleIcon className="h-4 w-4" />
-                    Application rejected. Re-review or status alteration requires Manager escalation.
-                  </span>
-                ) : (
-                  <span>Review all credentials before approving or rejecting candidate.</span>
-                )}
-              </div>
-
-              <div className="flex w-full sm:w-auto items-center justify-end gap-3">
-                {/* Manager cannot reject once Approved (Admin manages revocation/lock FR-76 to 83) */}
-                {applicant.status !== "Approved" && (
-                  <button
-                    type="button"
-                    onClick={() => setRejectModalOpen(true)}
-                    disabled={applicant.status === "Rejected"}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#f2a299] bg-[#fff6f5] px-5 py-2.5 text-xs font-black text-[#d93829] hover:bg-[#ffeceb] disabled:opacity-50 cursor-pointer"
-                  >
-                    <XCircleIcon className="h-4 w-4" />
-                    Reject Application
-                  </button>
-                )}
-
-                {applicant.status !== "Approved" ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onApprove(applicant.id);
-                      onClose();
-                    }}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#087557] px-6 py-2.5 text-xs font-black text-white shadow-xs hover:bg-[#066148] cursor-pointer"
-                  >
-                    <CheckCircleIcon className="h-4 w-4" />
-                    Approve Application
-                  </button>
-                ) : (
-                  <div className="inline-flex items-center gap-1.5 rounded-xl bg-[#e7f5f0] px-4 py-2 text-xs font-bold text-[#087557]">
-                    <CheckBadgeIcon className="h-4 w-4" />
-                    Authorized Interpreter
+                {/* 3. Footer Action Bar (Sticky Bottom inside Right Column) */}
+                <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200 pt-4">
+                  <div className="text-xs text-slate-500">
+                    {applicant.status === "Approved" ? (
+                      <span className="inline-flex items-center gap-1.5 font-medium text-emerald-700">
+                        <CheckCircleIcon className="h-4 w-4" />
+                        Approved volunteer. Role modifications are administered via Admin Portal.
+                      </span>
+                    ) : applicant.status === "Rejected" ? (
+                      <span className="inline-flex items-center gap-1.5 font-medium text-red-600">
+                        <XCircleIcon className="h-4 w-4" />
+                        Application rejected and logged in Archive.
+                      </span>
+                    ) : (
+                      <span>Verify credentials and security check before making a determination.</span>
+                    )}
                   </div>
-                )}
+
+                  <div className="flex w-full sm:w-auto items-center justify-end gap-2.5 shrink-0">
+                    {applicant.status !== "Approved" && (
+                      <button
+                        type="button"
+                        onClick={() => setRejectModalOpen(true)}
+                        disabled={applicant.status === "Rejected"}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-white px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-40 transition-colors cursor-pointer"
+                      >
+                        <XCircleIcon className="h-4 w-4" />
+                        Reject
+                      </button>
+                    )}
+
+                    {applicant.status !== "Approved" ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onApprove(applicant.id);
+                          onClose();
+                        }}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#087f80] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#066a6a] transition-all cursor-pointer"
+                      >
+                        <CheckCircleIcon className="h-4 w-4" />
+                        Approve Candidate
+                      </button>
+                    ) : (
+                      <div className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-50 px-3.5 py-1.5 text-xs font-bold text-emerald-700 border border-emerald-200">
+                        <CheckBadgeIcon className="h-4 w-4" />
+                        Authorized Volunteer
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -523,8 +649,8 @@ export function ApplicantDetailModal({
                 ) : (
                   <button
                     type="button"
-                    onClick={() => alert(`Simulating file download: ${applicant.document.name}`)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#215777] bg-[#0d3b55] px-3.5 py-1.5 text-xs font-bold text-slate-200 hover:bg-[#124a6b] hover:text-white transition-colors cursor-pointer"
+                    disabled
+                    className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-lg border border-[#215777] bg-[#0d3b55] px-3.5 py-1.5 text-xs font-bold text-slate-500 opacity-70"
                   >
                     <ArrowDownTrayIcon className="h-3.5 w-3.5" />
                     Download File

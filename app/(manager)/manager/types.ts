@@ -18,7 +18,11 @@ export type InterpreterApplicant = {
   specialtyCategories: string[];
   experienceSummary: string;
   contactChannels: string;
+  phone?: string;
+  email?: string;
+  extraContact?: string;
   appliedDate: string;
+  reviewedAt?: string;
   status: "Pending" | "Under Review" | "Approved" | "Rejected";
   rejectionReason?: string;
   document: ApplicantDocument;
@@ -27,44 +31,62 @@ export type InterpreterApplicant = {
   proficiencyScore?: string;
 };
 
-export type HelpTicket = {
-  id: string;
-  requesterName: string;
-  requesterRole: "User" | "Interpreter";
-  category: "Safety" | "Communication" | "No-Show" | "Other";
-  missionId: string;
-  title: string;
-  detail: string;
-  createdAt: string;
-  status: "Open" | "In Progress" | "Resolved";
-  urgency: "urgent" | "normal";
-  response?: string;
-};
-
 export type IncidentSeverity = "critical" | "high" | "medium";
 
 export type IncidentReport = {
   id: string;
   reporterName: string;
   reporterRole: "User" | "Interpreter";
-  reportedUserName: string;
-  reportedUserRole: "User" | "Interpreter";
-  bookingId: string;
+  bookingId?: string;
+  category?: string;
+  systemArea?: string;
   reason: string;
   originalReason?: string;
   originalLanguage?: string;
   severity?: IncidentSeverity;
   createdAt: string;
+  updatedAt?: string;
   status: "Pending Investigation" | "Escalated to Admin" | "Resolved";
   actionTaken?: string;
 };
 
-export type ManagerNavSection = "queue" | "approved" | "rejected" | "tickets" | "reports" | "history";
+export type ProfileChangeRequestType = "language" | "category" | "both";
+export type ProfileChangeRequestStatus =
+  | "Pending Review"
+  | "Changes Requested"
+  | "Approved"
+  | "Rejected";
+
+export type ProfileChangeRequest = {
+  id: string;
+  interpreterId: string;
+  interpreterName: string;
+  requestType: ProfileChangeRequestType;
+  currentValues: string[];
+  requestedValues: string[];
+  currentLanguages?: string[];
+  requestedLanguages?: string[];
+  currentCategories?: string[];
+  requestedCategories?: string[];
+  reason: string;
+  evidenceFiles: Array<{
+    name: string;
+    format: "pdf" | "image";
+    size: string;
+    url?: string;
+  }>;
+  submittedAt: string;
+  reviewedAt?: string;
+  status: ProfileChangeRequestStatus;
+  reviewNote?: string;
+};
+
+export type ManagerNavSection = "queue" | "approved" | "rejected" | "change-requests" | "reports" | "history";
 
 export type ManagerActivity = {
   id: string;
   timestamp: string;
-  type: "approval" | "rejection" | "ticket_reply" | "report_escalation" | "report_resolved";
+  type: "approval" | "rejection" | "change_request" | "report_escalation" | "report_resolved";
   targetName: string;
   description: string;
 };

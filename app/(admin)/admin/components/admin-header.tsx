@@ -82,7 +82,11 @@ export function AdminHeader({
                   {currentUser?.name || "Ilham Khamsikeaw"}
                 </p>
                 <p className="text-[11px] font-semibold text-[#087f80]">
-                  {currentUser?.role === "Admin" ? "Super Admin" : currentUser?.role || "Super Admin"}
+                  {currentUser?.role === "Admin"
+                    ? currentUser.adminLevel === "primary"
+                      ? "Primary Admin"
+                      : "Delegated Admin"
+                    : currentUser?.role || "Admin"}
                 </p>
               </div>
               <ChevronDownIcon
@@ -104,7 +108,7 @@ export function AdminHeader({
                   </p>
                   <span className="mt-2 inline-flex items-center gap-1 rounded-md bg-[#e6f4ef] px-2 py-0.5 text-[11px] font-bold text-[#087557]">
                     <CheckBadgeIcon className="h-3.5 w-3.5" />
-                    Authorized Root Admin
+                    {currentUser?.adminLevel === "primary" ? "Authorized Primary Admin" : "Authorized Delegated Admin"}
                   </span>
                 </div>
                 <div className="py-1 space-y-0.5">

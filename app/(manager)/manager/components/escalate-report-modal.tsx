@@ -115,7 +115,7 @@ function EscalateReportModalContent({
             </span>
             <div>
               <h2 id="escalate-modal-title" className="text-base font-extrabold text-[#092f45]">
-                Escalate Incident #{report.id}
+                Escalate System Report #{report.id}
               </h2>
               <p className="mt-0.5 text-xs text-[#527082]">
                 เลือกระดับความรุนแรงก่อนส่งให้ Admin ดำเนินการ
@@ -137,7 +137,7 @@ function EscalateReportModalContent({
             <div className="flex items-center justify-between gap-3">
               <span className="font-semibold text-slate-600">ผู้ถูกรายงาน</span>
               <span className="text-right font-extrabold text-red-600">
-                {report.reportedUserName} ({report.reportedUserRole})
+                {`System issue${report.category ? ` (${report.category})` : ""}`}
               </span>
             </div>
             <div className="flex items-center justify-between gap-3">

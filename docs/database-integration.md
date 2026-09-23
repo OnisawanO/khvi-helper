@@ -47,6 +47,10 @@ Role ที่ระบบรองรับ:
 User | Interpreter | Manager | Admin
 ```
 
+บัญชี `Admin` แยกระดับสิทธิ์ด้วย `profiles.admin_level` ซึ่งมีค่า `primary` หรือ
+`delegated` โดยมี Admin หลักได้เพียงหนึ่งบัญชี ส่วนบัญชี role อื่นต้องมีค่าเป็น `null`.
+เฉพาะ Admin หลักเท่านั้นที่เปลี่ยน role หรือจัดการสิทธิ์ของ Admin ได้
+
 `profiles` เปิด RLS และให้ผู้ใช้ที่ login แล้วอ่านหรือแก้ไขเฉพาะ profile ของตนเอง ฟิลด์ role, lock status และ `is_super_interpreter` ต้องเปลี่ยนผ่าน server-side authorization เท่านั้น อย่าใช้ `user_metadata` เป็นแหล่งตัดสินสิทธิ์
 
 Fast Login ใช้เฉพาะ development ผ่าน `FAST_LOGIN_*` server environment variables และ `/api/auth/fast-login` ไม่ควรนำไปใช้เป็น production login flow
@@ -193,6 +197,7 @@ pending | under_review | needs_revision | approved | rejected | cancelled
 - RPC ที่อยู่ใน `public` ต้อง `revoke all ... from public` และ grant เฉพาะ role ที่ต้องใช้
 - `SECURITY DEFINER` ที่มีอยู่ต้องคง `auth.uid()` check และ `set search_path = public, pg_temp` ไว้
 - ห้ามใช้ `service_role` key ใน browser หรือ Server Action ของ user-facing flow
+- Staff account provisioning ใช้ `service_role` ได้เฉพาะภายใน Supabase Edge Function `create-manager-account` ซึ่งตรวจ JWT และ `admin_level = primary` ก่อนเรียก Auth Admin API; ห้ามส่ง key เข้า Next.js หรือ client
 
 Certificate upload ใช้ bucket private:
 
@@ -284,5 +289,19 @@ where u.id = p.user_id
 - `app/actions/booking-actions.ts`
 - `app/actions/interpreter-application-actions.ts`
 - `.env.example`
+
+Account suspension and hard-ban enforcement use `supabase/functions/manage-account-security`.
+The function validates the caller's active Admin level, updates Supabase Auth `ban_duration`,
+and persists `profiles.restriction_type` as `none`, `soft`, or `hard`. Deploy the function only
+after applying migrations `20260923000900_add_account_restrictions.sql`,
+`20260923001000_add_interpreter_access_status.sql`, and
+`20260923001100_reset_interpreter_access_on_reapproval.sql`.
+
+## Current Admin and Manager database status
+
+- Admin user directory, account restrictions, reports, staff provisioning, and delegated Admin access use Supabase-backed Server Actions or the trusted Edge Function. Empty database results are shown as empty states; they are never replaced with seed data.
+- Manager applications, profile change requests, reports, and operations history use Supabase-backed data. Operations history is derived from persisted application, profile-change, and report timestamps.
+- Admin audit records and platform policies are persisted by `system_audit_logs` and `platform_settings` from migration `20260923001200_create_admin_governance_data.sql`.
+- The migration must be applied to the linked Supabase project before the Audit Trail and Platform Policies tabs can load data.
 
 ก่อนแก้ database contract ให้ตรวจ source files และ migration เหล่านี้พร้อมกัน แล้วรัน `npm run lint` และ `npm run build`

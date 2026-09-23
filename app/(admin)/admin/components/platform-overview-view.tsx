@@ -64,9 +64,7 @@ export function PlatformOverviewView({
     const pendingReports = reports.filter((r) => r.status === "Escalated to Admin");
     const criticalReports = pendingReports.filter((r) => r.severity === "critical");
     const highReports = pendingReports.filter((r) => r.severity === "high");
-    const resolvedReports = reports.filter(
-      (r) => r.status === "Resolved (Locked)" || r.status === "Resolved (Hard Banned)"
-    );
+    const resolvedReports = reports.filter((r) => r.status === "Resolved");
 
     // Language Coverage breakdown from Interpreters
     const languageCounts: Record<string, number> = {};
@@ -598,7 +596,7 @@ export function PlatformOverviewView({
                 <div className="py-2 flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
                     <span className="h-2 w-2 rounded-full bg-[#092f45] shrink-0" />
-                    <span className="text-xs font-semibold text-slate-700">Tourists</span>
+                    <span className="text-xs font-semibold text-slate-700">Users</span>
                   </div>
                   <div className="text-right">
                     <span className="font-mono text-xs font-bold text-[#10283a]">

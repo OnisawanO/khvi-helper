@@ -1,24 +1,19 @@
 "use client";
 
 import {
+  CheckCircleIcon,
   ExclamationCircleIcon,
-  LockClosedIcon,
   NoSymbolIcon,
   ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
 
-export type ReportStatusFilter =
-  | "All"
-  | "Pending"
-  | "Locked"
-  | "Hard Banned"
-  | "Dismissed";
+export type ReportStatusFilter = "All" | "Pending" | "Resolved" | "Dismissed";
 
 interface ReportsKpiCardsProps {
   totalReportsCount: number;
   pendingReportsCount: number;
-  lockedReportsCount: number;
-  hardBannedReportsCount: number;
+  resolvedReportsCount: number;
+  dismissedReportsCount: number;
   selectedStatusFilter: ReportStatusFilter;
   onSelectStatusFilter: (status: ReportStatusFilter) => void;
 }
@@ -26,159 +21,94 @@ interface ReportsKpiCardsProps {
 export function ReportsKpiCards({
   totalReportsCount,
   pendingReportsCount,
-  lockedReportsCount,
-  hardBannedReportsCount,
+  resolvedReportsCount,
+  dismissedReportsCount,
   selectedStatusFilter,
   onSelectStatusFilter,
 }: ReportsKpiCardsProps) {
+  const cards = [
+    {
+      filter: "All" as const,
+      label: "Total System Reports",
+      value: totalReportsCount,
+      suffix: "cases",
+      footer: "All logged platform issues",
+      icon: ShieldCheckIcon,
+      tone: "blue",
+    },
+    {
+      filter: "Pending" as const,
+      label: "Pending Review",
+      value: pendingReportsCount,
+      suffix: "awaiting",
+      footer: pendingReportsCount > 0 ? "Action required" : "All clear",
+      icon: ExclamationCircleIcon,
+      tone: "amber",
+    },
+    {
+      filter: "Resolved" as const,
+      label: "Resolved Issues",
+      value: resolvedReportsCount,
+      suffix: "resolved",
+      footer: "Verified platform fixes",
+      icon: CheckCircleIcon,
+      tone: "emerald",
+    },
+    {
+      filter: "Dismissed" as const,
+      label: "Dismissed Reports",
+      value: dismissedReportsCount,
+      suffix: "dismissed",
+      footer: "Closed without a fix",
+      icon: NoSymbolIcon,
+      tone: "slate",
+    },
+  ];
+
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-1 shadow-2xs">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-1">
-        {/* 1. All Reports Card */}
-        <button
-          type="button"
-          onClick={() => onSelectStatusFilter("All")}
-          className={`group text-left rounded-lg p-3.5 sm:p-4 transition-all cursor-pointer border ${
-            selectedStatusFilter === "All"
-              ? "bg-white border-blue-200 shadow-xs ring-1 ring-blue-500/20"
-              : "bg-white/60 hover:bg-white border-transparent hover:border-slate-200"
-          }`}
-        >
-          <div className="flex items-center justify-between gap-1">
-            <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate">
-              Total Incident Reports
-            </p>
-            <div className={`flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-md ${
-              selectedStatusFilter === "All" ? "bg-blue-100 text-blue-700" : "bg-blue-50 text-blue-600"
-            }`}>
-              <ShieldCheckIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            </div>
-          </div>
-          <div className="mt-1.5 flex items-baseline gap-2">
-            <p className="text-xl sm:text-2xl font-black text-[#092f45]">
-              {totalReportsCount}
-            </p>
-            <span className="text-[11px] font-semibold text-slate-400">cases</span>
-          </div>
-          <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px] sm:text-xs text-slate-500">
-            <span className="text-slate-400">Escalated Base</span>
-            <span className={`font-bold ${selectedStatusFilter === "All" ? "text-blue-700 underline" : "text-blue-600 group-hover:underline"}`}>
-              {selectedStatusFilter === "All" ? "Active Filter" : "Filter All"}
-            </span>
-          </div>
-        </button>
+      <div className="grid grid-cols-2 gap-1 lg:grid-cols-4">
+        {cards.map((card) => {
+          const Icon = card.icon;
+          const selected = selectedStatusFilter === card.filter;
+          const toneClasses = {
+            blue: selected ? "border-blue-200 ring-blue-500/20 text-blue-700" : "text-blue-600",
+            amber: selected ? "border-amber-200 ring-amber-500/20 text-amber-700" : "text-amber-600",
+            emerald: selected ? "border-emerald-200 ring-emerald-500/20 text-emerald-700" : "text-emerald-600",
+            slate: selected ? "border-slate-300 ring-slate-500/20 text-slate-700" : "text-slate-600",
+          }[card.tone] ?? "text-slate-600";
 
-        {/* 2. Pending Escalated Reports Card */}
-        <button
-          type="button"
-          onClick={() => onSelectStatusFilter("Pending")}
-          className={`group text-left rounded-lg p-3.5 sm:p-4 transition-all cursor-pointer border ${
-            selectedStatusFilter === "Pending"
-              ? "bg-white border-amber-200 shadow-xs ring-1 ring-amber-500/20"
-              : "bg-white/60 hover:bg-white border-transparent hover:border-slate-200"
-          }`}
-        >
-          <div className="flex items-center justify-between gap-1">
-            <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate">
-              Pending Review
-            </p>
-            <div className={`flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-md ${
-              selectedStatusFilter === "Pending" ? "bg-amber-100 text-amber-700" : "bg-amber-50 text-amber-600"
-            }`}>
-              <ExclamationCircleIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            </div>
-          </div>
-          <div className="mt-1.5 flex items-baseline gap-2">
-            <p
-              className={`text-xl sm:text-2xl font-black ${
-                pendingReportsCount > 0 ? "text-amber-600" : "text-slate-700"
+          return (
+            <button
+              key={card.filter}
+              type="button"
+              onClick={() => onSelectStatusFilter(card.filter)}
+              className={`group rounded-lg border bg-white p-3.5 text-left transition-all hover:bg-white sm:p-4 ${
+                selected ? `shadow-xs ring-1 ${toneClasses}` : "border-transparent hover:border-slate-200"
               }`}
             >
-              {pendingReportsCount}
-            </p>
-            <span className="text-[11px] font-semibold text-amber-600/80">awaiting</span>
-          </div>
-          <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px] sm:text-xs text-slate-500">
-            <span className="text-slate-400">Urgency Status</span>
-            <span
-              className={`font-bold ${
-                pendingReportsCount > 0 ? "text-amber-600" : "text-slate-500"
-              } ${selectedStatusFilter === "Pending" ? "underline" : "group-hover:underline"}`}
-            >
-              {pendingReportsCount > 0 ? "Action Required" : "All Clear"}
-            </span>
-          </div>
-        </button>
-
-        {/* 3. Soft Locked Reports Card */}
-        <button
-          type="button"
-          onClick={() => onSelectStatusFilter("Locked")}
-          className={`group text-left rounded-lg p-3.5 sm:p-4 transition-all cursor-pointer border ${
-            selectedStatusFilter === "Locked"
-              ? "bg-white border-orange-200 shadow-xs ring-1 ring-orange-500/20"
-              : "bg-white/60 hover:bg-white border-transparent hover:border-slate-200"
-          }`}
-        >
-          <div className="flex items-center justify-between gap-1">
-            <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate">
-              Soft-Locked
-            </p>
-            <div className={`flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-md ${
-              selectedStatusFilter === "Locked" ? "bg-orange-100 text-orange-700" : "bg-orange-50 text-orange-600"
-            }`}>
-              <LockClosedIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            </div>
-          </div>
-          <div className="mt-1.5 flex items-baseline gap-2">
-            <p className="text-xl sm:text-2xl font-black text-orange-600">
-              {lockedReportsCount}
-            </p>
-            <span className="text-[11px] font-semibold text-slate-400">suspended</span>
-          </div>
-          <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px] sm:text-xs text-slate-500">
-            <span className="text-slate-400">Enforcement Tier</span>
-            <span className={`font-bold text-orange-600 ${selectedStatusFilter === "Locked" ? "underline" : "group-hover:underline"}`}>
-              {selectedStatusFilter === "Locked" ? "Active Filter" : "Filter Soft-Locked"}
-            </span>
-          </div>
-        </button>
-
-        {/* 4. Hard Banned Reports Card */}
-        <button
-          type="button"
-          onClick={() => onSelectStatusFilter("Hard Banned")}
-          className={`group text-left rounded-lg p-3.5 sm:p-4 transition-all cursor-pointer border ${
-            selectedStatusFilter === "Hard Banned"
-              ? "bg-white border-red-200 shadow-xs ring-1 ring-red-500/20"
-              : "bg-white/60 hover:bg-white border-transparent hover:border-slate-200"
-          }`}
-        >
-          <div className="flex items-center justify-between gap-1">
-            <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate">
-              Permanently Hard Banned
-            </p>
-            <div className={`flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-md ${
-              selectedStatusFilter === "Hard Banned" ? "bg-red-100 text-red-700" : "bg-red-50 text-red-600"
-            }`}>
-              <NoSymbolIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            </div>
-          </div>
-          <div className="mt-1.5 flex items-baseline gap-2">
-            <p className="text-xl sm:text-2xl font-black text-red-600">
-              {hardBannedReportsCount}
-            </p>
-            <span className="text-[11px] font-semibold text-red-600/80">hard ban ⚠️</span>
-          </div>
-          <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px] sm:text-xs text-slate-500">
-            <span className="text-slate-400">Final Disposition</span>
-            <span className={`font-bold text-red-600 ${selectedStatusFilter === "Hard Banned" ? "underline" : "group-hover:underline"}`}>
-              {selectedStatusFilter === "Hard Banned" ? "Active Filter" : "Filter Hard Banned"}
-            </span>
-          </div>
-        </button>
+              <div className="flex items-center justify-between gap-1">
+                <p className="truncate text-[10px] font-bold uppercase tracking-wider text-slate-500 sm:text-xs">
+                  {card.label}
+                </p>
+                <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-slate-50 sm:h-7 sm:w-7 ${toneClasses.split(" ").at(-1)}`}>
+                  <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                </span>
+              </div>
+              <div className="mt-1.5 flex items-baseline gap-2">
+                <p className="text-xl font-black text-[#092f45] sm:text-2xl">{card.value}</p>
+                <span className="text-[11px] font-semibold text-slate-400">{card.suffix}</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px] text-slate-500 sm:text-xs">
+                <span className="truncate text-slate-400">{card.footer}</span>
+                <span className="ml-2 shrink-0 font-bold text-[#087f80] group-hover:underline">
+                  {selected ? "Active Filter" : "Filter"}
+                </span>
+              </div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 }
-

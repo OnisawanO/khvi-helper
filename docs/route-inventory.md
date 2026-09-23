@@ -93,6 +93,10 @@ parameter ที่ผิดรูปแบบหรือไม่พบข้�
 | `/admin` | Static dashboard | Admin | Users, bookings, reviews summary | `403` | Planned |
 | `/admin/users` | Resource list/detail | Admin | User profile and roles | Empty state or `403` | Planned |
 
+Admin ที่ต้องตรวจงานปฏิบัติการสามารถเปิด Manager View ภายใน route เดิมด้วย
+`/admin?view=manager-operations` ได้ โดยไม่เปลี่ยนไป `/manager` และไม่เปลี่ยน role
+ของผู้ใช้งาน
+
 `/request-help`, `/my-requests`, `/find-requests`, `/my-assignments`, `/register` และ `/login` อยู่ในตาราง implemented แล้ว
 
 ### Route สำหรับติดตามภารกิจ

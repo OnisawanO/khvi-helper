@@ -270,6 +270,16 @@ Pending
 
 ใน production ต้องบังคับ transition ฝั่ง server และป้องกันการกด Approve ซ้ำจากหลาย session หน้าจอ mockup เปลี่ยนเฉพาะ state ใน memory จึงยังไม่ใช่ concurrency control จริง
 
+### 5.4 กติกาการเรียงรายการ
+
+- `Application Queue`, `Approved` และ `Rejected` เรียงจาก `appliedDate` ล่าสุดไปเก่าสุด
+- เมื่อ Manager กด Approve หรือ Reject รายการจะออกจากคิวเดิมและไปอยู่ท้ายรายการปลายทางใน session ปัจจุบัน
+- `Profile Change Requests` เรียงจาก `submittedAt` ล่าสุดไปเก่าสุด และรายการที่เพิ่งถูก Approve หรือ Reject จะไปท้ายรายการ
+- `Profile Change Requests` แสดง 3 รายการต่อหน้า และใช้ pagination รูปแบบเดียวกับรายการ Approved
+- `Incident Reports` เรียงจาก `createdAt` ล่าสุดไปเก่าสุด
+- `Operations Activity History` เรียงจากเวลาที่เกิด action ล่าสุดไปเก่าสุด
+- การค้นหาและ filter เปลี่ยนเฉพาะชุดข้อมูลที่แสดง ไม่เปลี่ยนหลักการเรียงลำดับ
+
 ---
 
 ## 6. Web Component ที่เหมาะกับแต่ละ Case
@@ -417,3 +427,20 @@ Status badge ต้องมีข้อความเสมอ เช่น `A
 - [ ] ให้เหตุผลของ layout, ลำดับข้อมูล, สี, typography, icon และตำแหน่ง action
 - [ ] ระบุความแตกต่างระหว่าง mockup ปัจจุบันกับ production behavior
 - [ ] ไม่ตีความ `/manager/verify-volunteers` ว่ามีอยู่แล้วจนกว่าจะพบ route จริง
+## Profile Change Request behavior
+
+The current implementation uses Supabase-backed Manager Actions for applications, profile change requests, and reports. The former `/manager/dashboard` mock route redirects to `/manager`. Operations history is derived from persisted records and is not seeded from client mock data.
+
+Admin เปิด Manager View จาก Rail Bar ภายใน `/admin?view=manager-operations` ได้
+หน้าดังกล่าว reuse queue, applicant review, Profile Change Requests, reports และ operations history
+โดยคง Admin Console เป็น shell หลักและไม่เปลี่ยน route ไป `/manager`
+
+## Profile Change Request persistence
+
+- Profile Change Requests are stored in `public.interpreter_profile_change_requests` and retained after approval, rejection, or a request for changes.
+- The Manager page loads these requests through a server-side authorization check and the `review_interpreter_profile_change_request` RPC.
+- Approving a language or category request updates the related approved application links atomically. Rejecting or requesting changes updates only the request status and review note.
+
+- `Request changes` requires a non-empty Manager note and changes the status to `Changes Requested`.
+- Profile Change Requests can cover a language update, a category update, or both in one request. Combined requests show separate language and category comparisons, and one Manager decision applies to the complete request.
+- `Preview File` opens the same dark document viewer used by `Submitted Credential File` and supports PDF/image previews when a direct URL or protected storage path is available.
