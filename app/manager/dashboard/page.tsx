@@ -43,7 +43,7 @@ const footerCopy = {
     how: "/#how-it-works",
     roles: "/#roles",
     privacy: "/#safety",
-    request: "/request-help",
+    request: "/user/request-help",
     signIn: "/sign-in",
   },
 };

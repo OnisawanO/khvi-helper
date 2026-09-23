@@ -896,7 +896,7 @@ export function ApplicationForm({
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
             <Link
-              href="/welcome"
+              href="/user"
               className="inline-flex min-h-11 items-center justify-center rounded-(--khvi-radius-sm) border border-[#cbd7dc] bg-white px-5 py-2.5 text-sm font-bold text-[#53656c] hover:bg-[#f4f7f8] hover:text-[#10283a] transition-colors"
             >
               {locale === "th"
@@ -1056,7 +1056,7 @@ export function ApplicationForm({
             {/* Modal Bottom Actions */}
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#eef3f5] pt-3">
               <Link
-                href="/welcome"
+                href="/user"
                 className="rounded-(--khvi-radius-sm) px-2.5 py-1.5 text-xs font-bold text-[#b8291b] hover:bg-[#fff1f2] hover:underline transition-colors"
               >
                 {locale === "th"

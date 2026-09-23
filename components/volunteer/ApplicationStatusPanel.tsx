@@ -523,7 +523,7 @@ export function ApplicationStatusPanel({ application, onReupload, onCancel, comp
       </section>
 
       <div className="flex flex-wrap gap-3">
-        <Link className="inline-flex min-h-11 items-center justify-center rounded-(--khvi-radius-sm) border border-[#087f80] px-4 py-2.5 text-sm font-bold text-[#087f80] hover:bg-[#edf7f5]" href="/welcome#welcome-user">
+        <Link className="inline-flex min-h-11 items-center justify-center rounded-(--khvi-radius-sm) border border-[#087f80] px-4 py-2.5 text-sm font-bold text-[#087f80] hover:bg-[#edf7f5]" href="/user">
           {locale === "th" ? "กลับสู่หน้าหลัก" : locale === "zh" ? "返回首页" : "Back to Home"}
         </Link>
         {!revoked && (application.status === "needs_revision" || application.status === "rejected" || application.status === "cancelled") && (

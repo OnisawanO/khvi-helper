@@ -166,10 +166,10 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
   const pathname = usePathname();
   const isLandingPage = pathname === "/";
   const isRequestWorkspacePage =
-    pathname === "/request-help" ||
-    pathname.startsWith("/my-requests") ||
-    pathname === "/find-requests" ||
-    pathname.startsWith("/my-assignments");
+    pathname === "/user/request-help" ||
+    pathname.startsWith("/user/my-requests") ||
+    pathname === "/interpreter/find-requests" ||
+    pathname.startsWith("/interpreter/my-assignments");
   const isAuthOrOnboardingPage =
     pathname.startsWith("/register") ||
     pathname.startsWith("/volunteer") ||
@@ -299,7 +299,13 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
 
   const registerLabel = getRegisterLabel(locale);
   const primaryActionLabel = copy.primaryAction;
-  const workspaceHomeHref = workspaceRole === "Manager" ? "/manager" : workspaceRole === "Admin" ? "/admin" : "/welcome";
+  const workspaceHomeHref = workspaceRole === "Manager"
+    ? "/manager"
+    : workspaceRole === "Admin"
+      ? "/admin"
+      : workspaceRole === "Interpreter"
+        ? "/interpreter"
+        : "/user";
 
   return (
     <>
@@ -349,7 +355,7 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
             </a>
           )}
           {!shouldHidePrimaryAction && (
-            <a className="flex h-10 items-center rounded-lg bg-[#092f45] px-4 text-xs font-extrabold text-white shadow-[0_6px_14px_rgba(9,47,69,0.16)] transition-colors hover:bg-[#0c4960] sm:px-5" href="/request-help#main-content">
+            <a className="flex h-10 items-center rounded-lg bg-[#092f45] px-4 text-xs font-extrabold text-white shadow-[0_6px_14px_rgba(9,47,69,0.16)] transition-colors hover:bg-[#0c4960] sm:px-5" href="/user/request-help#main-content">
               {primaryActionLabel}
             </a>
           )}
@@ -386,7 +392,7 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
             className="absolute inset-y-0 right-0 flex h-dvh w-[min(88vw,360px)] flex-col overflow-hidden bg-white shadow-[-18px_0_45px_rgba(9,47,69,0.24)] animate-in slide-in-from-right duration-200 motion-reduce:animate-none"
           >
             <div className="flex items-center justify-between gap-4 border-b border-[#e1e9ec] px-5 py-4">
-              <BrandMark subtitle={copy.brandSubtitle} href={workspaceRole ? "/welcome" : "/#top"} ariaLabel={workspaceRole ? "KHVI welcome" : "KHVI home"} />
+              <BrandMark subtitle={copy.brandSubtitle} href={workspaceRole ? workspaceHomeHref : "/#top"} ariaLabel={workspaceRole ? "KHVI welcome" : "KHVI home"} />
               <button
                 ref={closeButtonRef}
                 type="button"
