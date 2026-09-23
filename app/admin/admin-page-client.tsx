@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, useMemo } from "react";
 import { CheckCircleIcon, UserPlusIcon } from "@heroicons/react/24/outline";
-import { LoginModal } from "@/app/components/auth/login-modal";
 import { getRedirectPathByRole } from "@/app/lib/mock-auth";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { createClient } from "@/utils/supabase/client";
@@ -126,7 +125,6 @@ export default function AdminPage() {
   const [auditLogsLoadError, setAuditLogsLoadError] = useState<string | null>(null);
   const [systemSettingsLoadError, setSystemSettingsLoadError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isStaffAccountModalOpen, setIsStaffAccountModalOpen] = useState(false);
 
   const handleSetActiveTab = (tab: AdminActiveTab) => {
@@ -253,16 +251,6 @@ export default function AdminPage() {
       authListener.subscription.unsubscribe();
     };
   }, [router, setAuditLogs, setReports, setUsers]);
-
-  const handleLoginSuccess = (user: UserProfile) => {
-    setCurrentUser(user);
-    setIsLoginModalOpen(false);
-    if (user.role !== "Admin") {
-      router.replace(getRedirectPathByRole(user.role));
-      return;
-    }
-    showToast(`Logged in as ${user.name}`);
-  };
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -675,7 +663,6 @@ export default function AdminPage() {
             setAuthChecked(false);
             router.replace("/#top");
           }}
-          onChangeAccount={() => setIsLoginModalOpen(true)}
           currentUser={currentUser}
         />
 
@@ -911,12 +898,6 @@ export default function AdminPage() {
         onSubmit={handleCreateManagerAccount}
       />
 
-      {/* Login & Switch Account Modal */}
-      <LoginModal
-        isOpen={isLoginModalOpen}
-        onClose={() => setIsLoginModalOpen(false)}
-        onSuccess={handleLoginSuccess}
-      />
     </div>
   );
 }

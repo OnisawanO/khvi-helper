@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import {
   ArrowLeftOnRectangleIcon,
-  ArrowsRightLeftIcon,
   Bars3Icon,
   CheckBadgeIcon,
   ChevronDownIcon,
@@ -15,14 +14,12 @@ import { UserProfile } from "@/app/lib/mock-auth";
 interface AdminHeaderProps {
   onMenuClick?: () => void;
   onSignOut: () => void;
-  onChangeAccount: () => void;
   currentUser: UserProfile | null;
 }
 
 export function AdminHeader({
   onMenuClick,
   onSignOut,
-  onChangeAccount,
   currentUser,
 }: AdminHeaderProps) {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -120,18 +117,6 @@ export function AdminHeader({
                     <UserCircleIcon className="h-4 w-4" />
                     Profile
                   </a>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setProfileMenuOpen(false);
-                      onChangeAccount();
-                    }}
-                    role="menuitem"
-                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#2d4957] transition-colors hover:bg-[#f2f7f9] hover:text-[#087f80] cursor-pointer"
-                  >
-                    <ArrowsRightLeftIcon className="h-4 w-4" />
-                    Change account
-                  </button>
                 </div>
                 <div className="border-t border-[#eef3f5] pt-1">
                   <button
