@@ -225,6 +225,7 @@ feature/* = branch สำหรับงานแต่ละชิ้น
 - ผ่าน lint และ build ที่เกี่ยวข้อง
 - ผ่าน test ที่เกี่ยวข้องเมื่อมี test script
 - เอกสารถูกอัปเดตเมื่อ setup, workflow หรือ behavior เปลี่ยน
+- โครงสร้าง page route ตรงกับ canonical mapping ในหัวข้อ Route และ Path Governance และ `/welcome` ยังคงเป็น redirect เท่านั้น
 - ไม่มี secret หรือไฟล์ generated ถูกเพิ่ม
 - มีรายงานไฟล์ที่แก้ไขและผลการตรวจสอบ
 - ยังไม่มีการ commit หรือ push หากผู้ใช้ไม่ได้สั่ง
@@ -300,6 +301,15 @@ feature/* = branch สำหรับงานแต่ละชิ้น
 - หากเปลี่ยน public path ต้องระบุ redirect หรือ migration plan ก่อนแก้ไข
 - ทุก route ใหม่ต้องเพิ่มใน `docs/route-inventory.md`
 - ทุก dynamic route ต้องระบุ access rule, data source, metadata และการทดสอบ navigation
+- Page route ต้องวางเป็นโฟลเดอร์ตรงใต้ `app/` ให้ตำแหน่งไฟล์สอดคล้องกับ public URL และห้ามเพิ่ม route group สำหรับหน้าใหม่
+- Canonical role home คือ `app/page.tsx` สำหรับ Landing, `app/user/page.tsx` สำหรับ User, `app/interpreter/page.tsx` สำหรับ Interpreter, `app/manager/page.tsx` สำหรับ Manager และ `app/admin/page.tsx` สำหรับ Admin
+- Interpreter ต้องสลับโหมดช่วยเหลือและขอความช่วยเหลือภายใน `app/interpreter/page.tsx` และคง URL หลักเป็น `/interpreter`; ห้ามสร้าง page route แยกสำหรับโหมด requester ของบัญชี Interpreter
+- Page ที่เป็นของ role เดียวต้องอยู่ใต้โฟลเดอร์ role นั้น เช่น `app/user/request-help`, `app/user/my-requests`, `app/interpreter/find-requests` และ `app/interpreter/my-assignments`
+- `/request-help`, `/my-requests`, `/find-requests` และ `/my-assignments` เป็น compatibility redirect เท่านั้น ห้ามเพิ่ม UI หรือ business logic ใหม่ใน route เหล่านี้
+- Page ที่ใช้ร่วมกันหลาย role เช่น `profile` หรือเป็นโดเมนร่วม เช่น `volunteer` ให้อยู่ตรงใต้ `app/` จนกว่าจะมี requirement ระบุเจ้าของ role เดียว
+- Auth page เช่น `login`, `register`, `forgot-password`, `reset-password` และ `sign-in` ต้องเป็นโฟลเดอร์ตรงใต้ `app/`
+- `/welcome` เป็น compatibility redirect ที่ `app/welcome/page.tsx` เท่านั้น ห้ามเพิ่ม UI หรือ business logic ใหม่ใน route นี้
+- HTTP Route Handler ต้องใช้รูปแบบ `app/api/<resource>/route.ts`
 - ยังไม่ใช้ catch-all route, i18n route หรือ middleware สำหรับ routing จนกว่าจะมี requirement จริง
 
 ## 17. New Idea และ System Setting Decision Gate

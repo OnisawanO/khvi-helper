@@ -72,14 +72,19 @@ async function runVoidRpc(functionName: string, args: Record<string, unknown>): 
   const { error } = await supabase.rpc(functionName, args);
   if (error) return { ok: false, error: friendlyError(error), code: errorCode(error) };
 
-  revalidatePath("/request-help");
-  revalidatePath("/my-requests");
-  revalidatePath("/my-assignments");
-  revalidatePath("/find-requests");
-  revalidatePath("/welcome");
+  revalidatePath("/user");
+  revalidatePath("/user/request-help");
+  revalidatePath("/user/my-requests");
+  revalidatePath("/interpreter");
+  revalidatePath("/interpreter/request-help");
+  revalidatePath("/interpreter/my-requests");
+  revalidatePath("/interpreter/my-assignments");
+  revalidatePath("/interpreter/find-requests");
   const bookingId = Number(args.p_booking_id);
   if (Number.isSafeInteger(bookingId) && bookingId > 0) {
-    revalidatePath(`/my-requests/${bookingId}`);
+    revalidatePath(`/user/my-requests/${bookingId}`);
+    revalidatePath(`/interpreter/my-requests/${bookingId}`);
+    revalidatePath(`/interpreter/my-assignments/${bookingId}`);
   }
   return { ok: true, data: undefined };
 }
@@ -111,10 +116,12 @@ export async function createBookingAction(input: {
     return { ok: false, error: friendlyError(error), code: errorCode(error) };
   }
 
-  revalidatePath("/my-requests");
-  revalidatePath("/find-requests");
-  revalidatePath("/my-assignments");
-  revalidatePath("/welcome");
+  revalidatePath("/user");
+  revalidatePath("/user/my-requests");
+  revalidatePath("/interpreter");
+  revalidatePath("/interpreter/my-requests");
+  revalidatePath("/interpreter/find-requests");
+  revalidatePath("/interpreter/my-assignments");
   return { ok: true, data: { requestId: String(data) } };
 }
 
@@ -122,11 +129,12 @@ export async function claimBookingAction(bookingId: string): Promise<BookingActi
   const supabase = await createClient();
   const { error } = await supabase.rpc("claim_booking", { p_booking_id: Number(bookingId) });
   if (error) return { ok: false, error: friendlyError(error), code: errorCode(error) };
-  revalidatePath("/find-requests");
-  revalidatePath("/my-assignments");
-  revalidatePath("/my-requests");
-  revalidatePath(`/my-requests/${bookingId}`);
-  revalidatePath("/welcome");
+  revalidatePath("/interpreter");
+  revalidatePath("/interpreter/find-requests");
+  revalidatePath("/interpreter/my-assignments");
+  revalidatePath(`/interpreter/my-assignments/${bookingId}`);
+  revalidatePath("/user/my-requests");
+  revalidatePath(`/user/my-requests/${bookingId}`);
   return { ok: true, data: undefined };
 }
 

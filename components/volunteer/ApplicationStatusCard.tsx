@@ -44,7 +44,7 @@ export function ApplicationStatusCard({ application, compact = false }: Applicat
                 "提交语言、服务类别、联系方式和资质文件，等待管理员审核。",
               )}
             </p>
-            <Link className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-(--khvi-radius-sm) bg-(--khvi-navy) px-4 py-2.5 text-sm font-bold text-white hover:opacity-90" href="/volunteer/apply#main-content">
+            <Link className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-(--khvi-radius-sm) bg-(--khvi-navy) px-4 py-2.5 text-sm font-bold text-white hover:opacity-90" href="/user/volunteer/apply#main-content">
               {text("เริ่มใบสมัคร", "Start application", "开始申请")}
             </Link>
           </div>
@@ -98,11 +98,11 @@ export function ApplicationStatusCard({ application, compact = false }: Applicat
       )}
 
       {application.status !== "approved" && <div className="mt-5 flex flex-wrap gap-3">
-        <Link className="inline-flex min-h-11 items-center justify-center rounded-(--khvi-radius-sm) border border-(--khvi-teal) px-4 py-2.5 text-sm font-bold text-(--khvi-teal) hover:bg-(--khvi-teal)/5" href="/volunteer/status#main-content">
+        <Link className="inline-flex min-h-11 items-center justify-center rounded-(--khvi-radius-sm) border border-(--khvi-teal) px-4 py-2.5 text-sm font-bold text-(--khvi-teal) hover:bg-(--khvi-teal)/5" href="/user/volunteer/status#main-content">
           {text("ดูสถานะและรายละเอียด", "View application status", "查看申请状态")}
         </Link>
         {!revoked && (application.status === "needs_revision" || application.status === "rejected" || application.status === "cancelled") && (
-          <Link className="inline-flex min-h-11 items-center justify-center rounded-(--khvi-radius-sm) bg-(--khvi-coral) px-4 py-2.5 text-sm font-bold text-white hover:opacity-90" href="/volunteer/apply#main-content">
+          <Link className="inline-flex min-h-11 items-center justify-center rounded-(--khvi-radius-sm) bg-(--khvi-coral) px-4 py-2.5 text-sm font-bold text-white hover:opacity-90" href="/user/volunteer/apply#main-content">
             {text(application.status === "cancelled" ? "สมัครใหม่" : "แก้ไขใบสมัคร", application.status === "cancelled" ? "Start a new application" : "Update application", application.status === "cancelled" ? "重新申请" : "修改申请")}
           </Link>
         )}

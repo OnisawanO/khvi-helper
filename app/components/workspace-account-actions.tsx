@@ -88,7 +88,7 @@ export function WorkspaceAccountActions({ user, onSignOut }: { user: UserProfile
             </a>
             {user.role === "User" && interpreterAccess.verified && !interpreterAccess.applicationStatus && (
               <a
-                href="/volunteer/apply#main-content"
+                href="/user/volunteer/apply#main-content"
                 role="menuitem"
                 onClick={() => setProfileMenuOpen(false)}
                 className="flex w-full items-center gap-2.5 rounded-(--khvi-radius-sm) px-3 py-2 text-xs font-bold text-(--khvi-ink)/80 transition-colors hover:bg-(--khvi-paper) hover:text-(--khvi-teal) focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--khvi-sun)"
