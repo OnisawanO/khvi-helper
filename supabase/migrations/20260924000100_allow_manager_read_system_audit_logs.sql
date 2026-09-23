@@ -1,6 +1,7 @@
 -- Allow active Manager accounts to read the shared operations history.
 -- Admin access remains available through the same policy.
 drop policy if exists system_audit_logs_select_admin on public.system_audit_logs;
+drop policy if exists system_audit_logs_select_staff on public.system_audit_logs;
 
 create policy system_audit_logs_select_staff
   on public.system_audit_logs
