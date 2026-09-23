@@ -236,28 +236,39 @@ export async function updateInterpreterProfileAction(
 
     applicationId = String(appRow.application_id);
 
-    const { error: updateError } = await dbClient
+    const updatePayload = {
+      applicant_name: `${input.firstName.trim()} ${input.lastName.trim()}`,
+      phone: input.phone.trim(),
+      email: input.email.trim(),
+      extra_contact: input.extraContact.trim() || null,
+      assigned_area: input.assignedArea.trim() || null,
+      certificate_file_name: input.certificateFileName.trim(),
+      certificate_url: input.certificateUrl.trim() || null,
+      status: "pending",
+      reject_reason: null,
+      revision_note: null,
+      cancellation_reason: null,
+      cancelled_at: null,
+      cancelled_by_user_id: null,
+      reviewed_at: null,
+      reviewed_by_user_id: null,
+      submitted_at: new Date().toISOString(),
+      is_profile_update: true,
+    };
+    let { error: updateError } = await dbClient
       .from("interpreter_applications")
-      .update({
-        applicant_name: `${input.firstName.trim()} ${input.lastName.trim()}`,
-        phone: input.phone.trim(),
-        email: input.email.trim(),
-        extra_contact: input.extraContact.trim() || null,
-        assigned_area: input.assignedArea.trim() || null,
-        certificate_file_name: input.certificateFileName.trim(),
-        certificate_url: input.certificateUrl.trim() || null,
-        status: "pending",
-        reject_reason: null,
-        revision_note: null,
-        cancellation_reason: null,
-        cancelled_at: null,
-        cancelled_by_user_id: null,
-        reviewed_at: null,
-        reviewed_by_user_id: null,
-        submitted_at: new Date().toISOString(),
-        is_profile_update: true,
-      })
+      .update(updatePayload)
       .eq("application_id", Number(applicationId));
+
+    if (updateError?.code === "42703" && updateError.message.includes("is_profile_update")) {
+      const legacyPayload: Partial<typeof updatePayload> = { ...updatePayload };
+      delete legacyPayload.is_profile_update;
+      const legacyResult = await dbClient
+        .from("interpreter_applications")
+        .update(legacyPayload)
+        .eq("application_id", Number(applicationId));
+      updateError = legacyResult.error;
+    }
 
     if (updateError) {
       return { ok: false, error: friendlyError(updateError) };

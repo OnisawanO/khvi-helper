@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default async function MyRequestsPage(props: PageProps<"/my-requests">) {
   const { status } = await props.searchParams;
-  const activeFilter = resolveStatusFilter(status);
+  const activeFilter = resolveStatusFilter(status ?? "completed");
   const requests = await loadRequesterRequests();
 
   return (

@@ -128,7 +128,7 @@ export function RequestList({
         <div role="group" aria-label={t.filterLabel} className="mt-7 flex flex-wrap gap-2">
           {STATUS_FILTERS.map((filter) => {
             const isActive = filter.id === selectedFilter;
-            const href = filter.id === "all" ? "/my-requests#main-content" : `/my-requests?status=${filter.id}#main-content`;
+            const href = `/my-requests?status=${filter.id}#main-content`;
 
             return (
               <button
