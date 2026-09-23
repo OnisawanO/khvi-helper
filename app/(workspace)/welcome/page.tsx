@@ -10,6 +10,7 @@ import {
   type OpenRequestsDiagnostic,
 } from "@/app/lib/real-request-data";
 import { loadReferenceCatalog } from "@/app/lib/real-reference-data";
+import { loadMyInterpreterRating, type InterpreterRating } from "@/app/lib/real-interpreter-rating";
 import type { ReferenceCatalog } from "@/app/lib/reference-catalog";
 import type { HelpRequest } from "@/app/lib/mock-requests";
 import { Welcome } from "./welcome";
@@ -34,19 +35,22 @@ export default async function WelcomePage() {
   let requesterRequests: HelpRequest[] = [];
   let diagnostic: OpenRequestsDiagnostic = { status: "success", message: "OK" };
   let referenceCatalog: ReferenceCatalog = { languages: [], categories: [] };
+  let interpreterRating: InterpreterRating | null = null;
 
   if (profile.role === "Interpreter") {
-    const [openRes, assignRes, reqRes, catalog] = await Promise.all([
+    const [openRes, assignRes, reqRes, catalog, ratingResult] = await Promise.all([
       loadOpenInterpreterRequests(supabase),
       loadInterpreterAssignments(supabase),
       loadRequesterRequests(supabase),
       loadReferenceCatalog(supabase),
+      loadMyInterpreterRating(supabase, profile.userId).catch(() => null),
     ]);
     openRequests = openRes.requests;
     diagnostic = openRes.diagnostic;
     assignments = assignRes;
     requesterRequests = reqRes;
     referenceCatalog = catalog;
+    interpreterRating = ratingResult;
   } else {
     [requesterRequests, referenceCatalog] = await Promise.all([
       loadRequesterRequests(supabase),
@@ -62,6 +66,7 @@ export default async function WelcomePage() {
       initialRequesterRequests={requesterRequests}
       initialDiagnostic={diagnostic}
       initialReferenceCatalog={referenceCatalog}
+      initialInterpreterRating={interpreterRating}
     />
   );
 }

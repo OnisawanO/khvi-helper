@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { WorkspaceShell } from "@/app/components/workspace-shell";
 import type { ApplicationStatus } from "@/app/lib/interpreter-application";
 import { loadMyInterpreterApplication } from "@/app/lib/real-interpreter-application-data";
-import { loadInterpreterAssignments, loadOpenInterpreterRequests } from "@/app/lib/real-request-data";
+import { loadInterpreterAssignments, loadOpenInterpreterRequests, loadWorkspaceActivity } from "@/app/lib/real-request-data";
 import { resolveStatusFilter } from "@/app/lib/mock-requests";
 import { createClient } from "@/utils/supabase/server";
 import { MyAssignmentsList } from "./my-assignments-list";
@@ -16,10 +16,11 @@ export default async function MyAssignmentsPage(props: PageProps<"/my-assignment
   const { status } = await props.searchParams;
   const activeFilter = resolveStatusFilter(status);
   const supabase = await createClient();
-  const [assignments, openRequestsResult, application] = await Promise.all([
+  const [assignments, openRequestsResult, application, activity] = await Promise.all([
     loadInterpreterAssignments(supabase),
     loadOpenInterpreterRequests(supabase),
     loadMyInterpreterApplication(supabase),
+    loadWorkspaceActivity(supabase),
   ]);
   const availableRequests = openRequestsResult.requests;
   const applicationStatus: ApplicationStatus | null = application?.status ?? null;
@@ -31,6 +32,7 @@ export default async function MyAssignmentsPage(props: PageProps<"/my-assignment
         applicationStatus={applicationStatus}
         initialAssignments={assignments}
         initialAvailableRequests={availableRequests}
+        workspaceBlocked={Boolean(activity.requester || activity.assignment)}
       />
     </WorkspaceShell>
   );

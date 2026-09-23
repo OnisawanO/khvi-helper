@@ -44,6 +44,7 @@ type ApplicationRow = {
   reviewed_by_user_id: string | null;
   cancelled_at: string | null;
   cancelled_by_user_id: string | null;
+  is_profile_update?: boolean | null;
 };
 
 type LanguageLink = {
@@ -93,6 +94,7 @@ const APPLICATION_COLUMNS = [
   "reviewed_by_user_id",
   "cancelled_at",
   "cancelled_by_user_id",
+  "is_profile_update",
 ].join(",");
 
 function formatTimestamp(value: string | null): string {
@@ -270,6 +272,7 @@ function toApplication(
     cancelledByUserId: row.cancelled_by_user_id ?? undefined,
     assignedArea: row.assigned_area ?? "",
     isAvailable: row.status === "approved",
+    isProfileUpdate: Boolean(row.is_profile_update),
   };
 }
 
@@ -300,7 +303,6 @@ export async function loadMyInterpreterApplication(supabase?: SupabaseClient) {
     .from("interpreter_applications")
     .select(APPLICATION_COLUMNS)
     .eq("user_id", profileResult.profile.userId)
-    .neq("status", "cancelled")
     .order("application_id", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -373,6 +375,7 @@ function toManagerApplicant(application: InterpreterApplication): InterpreterApp
     rating: 0,
     reviewCount: 0,
     completedMissions: 0,
+    isProfileUpdate: Boolean(application.isProfileUpdate),
   };
 }
 

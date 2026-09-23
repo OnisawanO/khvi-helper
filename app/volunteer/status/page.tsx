@@ -68,6 +68,10 @@ export default function VolunteerStatusPage() {
           <section className="rounded-(--khvi-radius-md) border border-[#d6e0e4] bg-white p-8 text-center text-sm text-[#64777e] shadow-sm">
             {locale === "th" ? "กำลังโหลดข้อมูลใบสมัคร..." : locale === "zh" ? "正在加载申请数据..." : "Loading application data..."}
           </section>
+        ) : error && !application ? (
+          <section role="alert" className="rounded-(--khvi-radius-md) border border-[#f8c5be] bg-[#fff1f2] p-8 text-center text-sm font-bold text-[#b8291b]">
+            {error}
+          </section>
         ) : !application ? (
           <section className="rounded-(--khvi-radius-md) border border-[#d6e0e4] bg-white p-8 text-center shadow-sm">
             <p className="text-sm font-extrabold text-[#10283a]">

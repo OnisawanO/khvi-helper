@@ -9,6 +9,7 @@ import {
   InterpreterApplicant,
   HelpTicket,
   IncidentReport,
+  IncidentSeverity,
   ManagerNavSection,
   ManagerActivity,
 } from "./types";
@@ -354,46 +355,103 @@ export default function ManagerDashboard() {
   };
 
   // Handle Incident Report Escalation to Admin (FR-53 -> FR-76)
-  const handleEscalateReport = (reportId: string) => {
+  const handleEscalateReport = (
+    reportId: string,
+    severity: IncidentSeverity,
+    assessmentNote: string
+  ) => {
     const target = reports.find((r) => r.id === reportId);
+    if (!target || target.status !== "Pending Investigation") return;
+
+    const actionNote =
+      assessmentNote.trim() ||
+      `Escalated by Manager (${severity.toUpperCase()}) to Admin Portal for user account lock evaluation (FR-78).`;
+
     setReports((prev) =>
       prev.map((r) =>
         r.id === reportId
           ? {
               ...r,
+              severity,
               status: "Escalated to Admin",
-              actionTaken: "Escalated by Manager to Admin Portal for user account lock evaluation (FR-78).",
+              actionTaken: actionNote,
             }
           : r
       )
     );
+    // Map reportedUserId for real-time link to Admin user directory.
+    const matchedUser = governanceStore
+      .getUsers()
+      .find((user) => user.name.toLowerCase() === target.reportedUserName.toLowerCase());
+    const reportedUserId =
+      matchedUser?.id || (target.reportedUserRole === "Interpreter" ? "USR-010" : "USR-009");
+
+    // Sync to shared governance store for Admin Portal real-time pickup.
+    governanceStore.escalateReportToAdmin(
+      {
+        id: target.id,
+        reporterName: target.reporterName,
+        reporterRole: target.reporterRole,
+        reportedUserId,
+        reportedUserName: target.reportedUserName,
+        reportedUserRole: target.reportedUserRole,
+        bookingId: target.bookingId,
+        reason: target.reason,
+        severity,
+        originalReason: target.originalReason,
+        originalLanguage: target.originalLanguage,
+        createdAt: target.createdAt,
+        status: "Escalated to Admin",
+        actionTaken: actionNote,
+      },
+      `${currentUser?.name || "Manager Coordinator"} (Manager)`
+    );
+
+    setActivities((prev) => [
+      {
+        id: `ACT-REP-${reportId}-${prev.length + 1}`,
+        timestamp: "Just now",
+        type: "report_escalation",
+        targetName: `${target.reportedUserName} (${target.id})`,
+        description: `Escalated [${severity.toUpperCase()}] incident report regarding "${target.reason}" to Super Admin.`,
+      },
+      ...prev,
+    ]);
+  };
+
+  // Handle Self-Resolve of Incident Report by Manager (Dispute Mediation)
+  const handleResolveReport = (reportId: string, resolutionNote: string) => {
+    const target = reports.find((r) => r.id === reportId);
+    const actionNote = `Resolved by Manager: ${resolutionNote}`;
+
+    setReports((prev) =>
+      prev.map((r) =>
+        r.id === reportId
+          ? {
+              ...r,
+              status: "Resolved",
+              actionTaken: actionNote,
+            }
+          : r
+      )
+    );
+
     if (target) {
-      // Sync to shared governance store for Admin Portal real-time pickup
-      governanceStore.escalateReportToAdmin(
-        {
-          id: target.id,
-          reporterName: target.reporterName,
-          reporterRole: target.reporterRole,
-          reportedUserId: target.reportedUserRole === "Interpreter" ? "USR-005" : "USR-006",
-          reportedUserName: target.reportedUserName,
-          reportedUserRole: target.reportedUserRole,
-          bookingId: target.bookingId,
-          reason: target.reason,
-          severity: "high",
-          createdAt: target.createdAt,
-          status: "Escalated to Admin",
-          actionTaken: "Escalated by Manager for Super Admin review and account restriction.",
-        },
+      // If report was previously in governanceStore, update it as Resolved
+      governanceStore.resolveReport(
+        reportId,
+        "Dismissed",
+        actionNote,
         `${currentUser?.name || "Manager Coordinator"} (Manager)`
       );
 
       setActivities((prev) => [
         {
-          id: `ACT-REP-${reportId}-${prev.length + 1}`,
+          id: `ACT-RES-${reportId}-${prev.length + 1}`,
           timestamp: "Just now",
-          type: "report_escalation",
+          type: "report_resolved",
           targetName: `${target.reportedUserName} (${target.id})`,
-          description: `Escalated incident report regarding "${target.reason}" to Super Admin for account lock review.`,
+          description: `Resolved incident dispute: "${resolutionNote}"`,
         },
         ...prev,
       ]);
@@ -511,6 +569,7 @@ export default function ManagerDashboard() {
               <IncidentReportsView
                 reports={reports}
                 onEscalate={handleEscalateReport}
+                onResolve={handleResolveReport}
               />
             )}
 

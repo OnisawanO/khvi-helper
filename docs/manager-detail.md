@@ -220,8 +220,8 @@ flowchart TD
 1. User หรือ Interpreter ส่ง Report ที่อ้างอิง Booking
 2. Manager เปิด `Incident Reports` และตรวจผู้รายงาน ผู้ถูกรายงาน Booking และเหตุผล
 3. Manager ตัดสินใจว่ากรณีอยู่ในขอบเขตการประสานงานหรือเกี่ยวข้องกับมาตรการบัญชี
-4. ถ้าต้องล็อกบัญชีหรือใช้สิทธิ์สูง Manager กด `Escalate to Admin`
-5. ระบบเปลี่ยนสถานะเป็น `Escalated to Admin` และบันทึกเหตุผลการส่งต่อ
+4. ถ้าต้องล็อกบัญชีหรือใช้สิทธิ์สูง Manager เลือกระดับ `Medium`, `High` หรือ `Critical` แล้วกด `Escalate to Admin`
+5. ระบบเปลี่ยนสถานะเป็น `Escalated to Admin` และบันทึกระดับความรุนแรงกับเหตุผลการส่งต่อ
 6. Admin ตรวจสอบและดำเนินการใน Admin Portal ตามสิทธิ์ของตน
 
 ---
@@ -243,7 +243,7 @@ flowchart TD
 | Reject Modal | กรอกเหตุผลแล้ว Confirm | เปลี่ยนเป็น Rejected, เก็บ reason และแจ้งผล | เหตุผลต้องไม่ว่าง | validation, submit loading, success/error |
 | Help Requests | `Respond to Requester` | เปิดช่องตอบกลับ | Ticket ต้องยังไม่ Resolved | draft, cancel, validation |
 | Help Requests | `Send & Resolve Ticket` | เก็บ response และเป็น Resolved | response ต้องไม่ว่าง | submit loading, success/error |
-| Incident Reports | `Escalate to Admin` | เป็น Escalated to Admin | Manager ส่งต่อได้ แต่ lock account เองไม่ได้ | confirmation, success, duplicate escalation |
+| Incident Reports | เลือก severity แล้ว `Escalate to Admin` | เป็น Escalated to Admin พร้อม severity | Manager ส่งต่อได้ แต่ lock account เองไม่ได้ และต้องเลือก `Medium`, `High` หรือ `Critical` | validation, confirmation, success, duplicate escalation |
 | Footer | เปิด policy/support/audit link | ไปยังข้อมูลที่เกี่ยวข้อง | link ต้องไม่พาออกนอกสิทธิ์ | link unavailable, focus state |
 
 ### 5.2 สถานะข้อมูลของหน้า
