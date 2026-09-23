@@ -90,7 +90,7 @@ export type ManagerNavSection = "queue" | "approved" | "rejected" | "change-requ
 export type ManagerActivity = {
   id: string;
   timestamp: string;
-  type: "approval" | "rejection" | "change_request" | "report_escalation" | "report_resolved";
+  type: "approval" | "rejection" | "change_request" | "report_escalation" | "report_resolved" | "system_action";
   targetName: string;
   description: string;
 };

@@ -36,16 +36,13 @@ import { getManagerTranslation } from "./locales";
 import { parseManagerTimestamp } from "./utils";
 import {
   getManagerApplicationsAction,
+  getManagerAuditLogsAction,
   getManagerProfileChangeRequestsAction,
   getManagerReportsAction,
   reviewApplicationAction,
   reviewProfileChangeRequestAction,
   updateManagerReportAction,
 } from "./actions/manager-actions";
-
-function profileChangeTypeLabel(requestType: ProfileChangeRequest["requestType"]) {
-  return requestType === "both" ? "language and category" : requestType;
-}
 
 type ManagerDashboardProps = {
   embedded?: boolean;
@@ -83,6 +80,9 @@ export default function ManagerDashboard({
   const [profileChangeRequests, setProfileChangeRequests] = useState<ProfileChangeRequest[]>([]);
   const [profileChangeRequestsLoadError, setProfileChangeRequestsLoadError] = useState<string | null>(null);
   const [loadingApplicants, setLoadingApplicants] = useState(false);
+  const [activities, setActivities] = useState<ManagerActivity[]>([]);
+  const [activitiesLoadError, setActivitiesLoadError] = useState<string | null>(null);
+  const [loadingActivities, setLoadingActivities] = useState(false);
 
   const loadApplications = async () => {
     setLoadingApplicants(true);
@@ -140,6 +140,26 @@ export default function ManagerDashboard({
     }
   };
 
+  const loadActivities = async () => {
+    setLoadingActivities(true);
+    try {
+      const res = await getManagerAuditLogsAction();
+      if (res.success && res.data) {
+        setActivities(res.data);
+        setActivitiesLoadError(null);
+      } else {
+        setActivities([]);
+        setActivitiesLoadError(res.error || "Unable to load operations history from Supabase.");
+      }
+    } catch (err) {
+      console.error("Failed to load operations history from Supabase:", err);
+      setActivities([]);
+      setActivitiesLoadError("Unable to load operations history from Supabase.");
+    } finally {
+      setLoadingActivities(false);
+    }
+  };
+
   useEffect(() => {
     const supabase = createClient();
     let disposed = false;
@@ -163,6 +183,7 @@ export default function ManagerDashboard({
       void loadApplications();
       void loadReports();
       void loadProfileChangeRequests();
+      void loadActivities();
     };
 
     void checkManagerSession();
@@ -284,50 +305,6 @@ export default function ManagerDashboard({
     });
   }, [applicants, visibleNavSection, searchQuery, selectedLanguages, selectedCategories, statusDecisionOrder, currentTime]);
 
-  const activities = useMemo<ManagerActivity[]>(() => {
-    const applicationActivities = applicants
-      .filter((applicant) => applicant.status === "Approved" || applicant.status === "Rejected")
-      .map((applicant): ManagerActivity => ({
-        id: `application-${applicant.id}-${applicant.status}`,
-        timestamp: applicant.reviewedAt || applicant.appliedDate,
-        type: applicant.status === "Approved" ? "approval" : "rejection",
-        targetName: applicant.name,
-        description: applicant.status === "Approved"
-          ? `Approved volunteer interpreter application (${applicant.primaryLanguage}, ${applicant.specialtyCategories.join(", ") || "No category recorded"}).`
-          : `Rejected application: ${applicant.rejectionReason || "No reason recorded."}`,
-      }));
-
-    const profileActivities = profileChangeRequests
-      .filter((request) => request.status !== "Pending Review")
-      .map((request): ManagerActivity => ({
-        id: `profile-change-${request.id}-${request.status}`,
-        timestamp: request.reviewedAt || request.submittedAt,
-        type: request.status === "Approved" ? "approval" : request.status === "Rejected" ? "rejection" : "change_request",
-        targetName: `${request.interpreterName} (${request.id})`,
-        description: request.status === "Approved"
-          ? `Approved ${profileChangeTypeLabel(request.requestType)} profile change request.`
-          : request.status === "Rejected"
-            ? `Rejected ${profileChangeTypeLabel(request.requestType)} profile change request: ${request.reviewNote || "No note recorded."}`
-            : `Requested changes for ${profileChangeTypeLabel(request.requestType)} profile change request: ${request.reviewNote || "No note recorded."}`,
-      }));
-
-    const reportActivities = reports
-      .filter((report) => report.status === "Escalated to Admin" || report.status === "Resolved")
-      .map((report): ManagerActivity => ({
-        id: `report-${report.id}-${report.status}`,
-        timestamp: report.updatedAt || report.createdAt,
-        type: report.status === "Resolved" ? "report_resolved" : "report_escalation",
-        targetName: `${report.systemArea || report.category || "System issue"} (${report.id})`,
-        description: report.status === "Resolved"
-          ? `Resolved system report: "${report.actionTaken || report.reason}"`
-          : `Escalated system report regarding "${report.reason}" to Admin.`,
-      }));
-
-    return [...applicationActivities, ...profileActivities, ...reportActivities].sort(
-      (left, right) => parseManagerTimestamp(right.timestamp, currentTime) - parseManagerTimestamp(left.timestamp, currentTime),
-    );
-  }, [applicants, currentTime, profileChangeRequests, reports]);
-
   // Selected applicant for the centered pop-up modal
   const selectedApplicant = useMemo(() => {
     return applicants.find((a) => a.id === selectedApplicantId) || null;
@@ -363,6 +340,8 @@ export default function ManagerDashboard({
       const res = await reviewApplicationAction(id, "approved");
       if (!res.success) {
         console.error("Failed to approve in Supabase:", res.error);
+      } else {
+        void loadActivities();
       }
     } catch (err) {
       console.error("Failed to persist approval:", err);
@@ -385,6 +364,8 @@ export default function ManagerDashboard({
       const res = await reviewApplicationAction(id, "rejected", reason);
       if (!res.success) {
         console.error("Failed to reject in Supabase:", res.error);
+      } else {
+        void loadActivities();
       }
     } catch (err) {
       console.error("Failed to persist rejection:", err);
@@ -407,6 +388,7 @@ export default function ManagerDashboard({
     );
 
     void loadApplications();
+    void loadActivities();
   };
 
   const handleRequestProfileChange = async (requestId: string, note: string): Promise<void> => {
@@ -422,6 +404,8 @@ export default function ManagerDashboard({
       ),
     );
 
+    void loadActivities();
+
   };
 
   const handleRejectProfileChange = async (requestId: string, note: string): Promise<void> => {
@@ -436,6 +420,8 @@ export default function ManagerDashboard({
           : request,
       ),
     );
+
+    void loadActivities();
 
   };
 
@@ -474,6 +460,7 @@ export default function ManagerDashboard({
     if (!persisted.success && /^REP-\d+$/i.test(reportId)) {
       console.error("Failed to persist report escalation:", persisted.error);
     }
+    if (persisted.success) void loadActivities();
 
   };
 
@@ -504,6 +491,7 @@ export default function ManagerDashboard({
       if (!persisted.success && /^REP-\d+$/i.test(reportId)) {
         console.error("Failed to persist report resolution:", persisted.error);
       }
+      if (persisted.success) void loadActivities();
 
     }
   };
@@ -750,7 +738,19 @@ export default function ManagerDashboard({
             {/* VIEW 4: Operations Activity History Timeline */}
             {/* VIEW 3: Operations Activity History Timeline */}
             {visibleNavSection === "history" && (
-              <OperationsHistoryView activities={activities} />
+              <>
+                {activitiesLoadError && (
+                  <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-800">
+                    {activitiesLoadError}
+                  </p>
+                )}
+                {loadingActivities && (
+                  <p role="status" className="mb-4 text-xs font-semibold text-slate-500">
+                    Loading operations history...
+                  </p>
+                )}
+                <OperationsHistoryView activities={activities} />
+              </>
             )}
           </main>
         </div>

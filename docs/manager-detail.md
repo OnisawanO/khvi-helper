@@ -429,7 +429,7 @@ Status badge ต้องมีข้อความเสมอ เช่น `A
 - [ ] ไม่ตีความ `/manager/verify-volunteers` ว่ามีอยู่แล้วจนกว่าจะพบ route จริง
 ## Profile Change Request behavior
 
-The current implementation uses Supabase-backed Manager Actions for applications, profile change requests, and reports. The former `/manager/dashboard` mock route redirects to `/manager`. Operations history is derived from persisted records and is not seeded from client mock data.
+The current implementation uses Supabase-backed Manager Actions for applications, profile change requests, reports, and operations history. The former `/manager/dashboard` compatibility route redirects to `/manager`. Operations history reads immutable staff actions from `system_audit_logs` and is not reconstructed from current application or report status.
 
 Admin เปิด Manager View จาก Rail Bar ภายใน `/admin?view=manager-operations` ได้
 หน้าดังกล่าว reuse queue, applicant review, Profile Change Requests, reports และ operations history

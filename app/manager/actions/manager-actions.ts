@@ -12,7 +12,7 @@ import {
   type ReportProfileRow,
   type ReportRow,
 } from "@/app/lib/report-data";
-import type { IncidentReport, InterpreterApplicant, ProfileChangeRequest } from "../types";
+import type { IncidentReport, InterpreterApplicant, ManagerActivity, ProfileChangeRequest } from "../types";
 import type { AuditLogEntry } from "@/app/admin/types";
 
 export type ManagerActionResult<T = void> = {
@@ -39,6 +39,59 @@ async function insertManagerAuditLog(
   });
 
   if (error) console.error("Failed to persist Manager audit log:", error.message);
+}
+
+type ManagerAuditLogRow = {
+  audit_log_id: number;
+  actor_name: string;
+  actor_role: "Admin" | "Manager" | "System";
+  action: string;
+  target_user: string;
+  details: string;
+  created_at: string;
+};
+
+function getManagerActivityType(action: string): ManagerActivity["type"] {
+  const normalizedAction = action.toUpperCase();
+
+  if (normalizedAction.includes("APPROVED") || normalizedAction === "ADMIN_ACCESS_GRANTED") {
+    return "approval";
+  }
+  if (normalizedAction.includes("REJECTED")) {
+    return "rejection";
+  }
+  if (normalizedAction.includes("REVISION_REQUESTED") || normalizedAction.includes("CHANGE_REQUESTED")) {
+    return "change_request";
+  }
+  if (normalizedAction === "REPORT_ESCALATED") {
+    return "report_escalation";
+  }
+  if (normalizedAction === "REPORT_RESOLVED") {
+    return "report_resolved";
+  }
+
+  return "system_action";
+}
+
+function formatManagerActivityAction(action: string) {
+  return action
+    .toLowerCase()
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+function mapManagerAuditLog(row: ManagerAuditLogRow): ManagerActivity {
+  const actor = `${row.actor_name} (${row.actor_role})`;
+  const actionLabel = formatManagerActivityAction(row.action);
+
+  return {
+    id: `AUD-${String(row.audit_log_id).padStart(6, "0")}`,
+    timestamp: row.created_at.slice(0, 19).replace("T", " "),
+    type: getManagerActivityType(row.action),
+    targetName: row.target_user,
+    description: `${actionLabel} by ${actor}. ${row.details}`,
+  };
 }
 
 /**
@@ -110,6 +163,28 @@ export async function getManagerProfileChangeRequestsAction(): Promise<ManagerAc
     return { success: true, data: requests };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load profile change requests";
+    return { success: false, error: message };
+  }
+}
+
+/** Fetches the persisted operational history shared by Manager and Admin. */
+export async function getManagerAuditLogsAction(): Promise<ManagerActionResult<ManagerActivity[]>> {
+  try {
+    const authCheck = await verifyManagerCaller();
+    if (!authCheck.authorized || !authCheck.supabase) {
+      return { success: false, error: authCheck.error || "Access denied" };
+    }
+
+    const { data, error } = await authCheck.supabase
+      .from("system_audit_logs")
+      .select("audit_log_id, actor_name, actor_role, action, target_user, details, created_at")
+      .order("created_at", { ascending: false })
+      .limit(500);
+
+    if (error) return { success: false, error: `Failed to fetch operations history: ${error.message}` };
+    return { success: true, data: ((data || []) as ManagerAuditLogRow[]).map(mapManagerAuditLog) };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to load operations history";
     return { success: false, error: message };
   }
 }

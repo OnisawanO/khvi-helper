@@ -72,6 +72,7 @@ export function OperationsHistoryView({
     { id: "change_request", label: "Requested Changes" },
     { id: "report_escalation", label: "Admin Escalations" },
     { id: "report_resolved", label: "Resolved Incidents" },
+    { id: "system_action", label: "System & Access" },
   ];
 
   const filteredActivities = useMemo(() => {
@@ -281,6 +282,10 @@ export function OperationsHistoryView({
                     badgeBg = "bg-[#ecfdf5] text-[#059669] border-[#a7f3d0]";
                     typeLabel = "Incident Resolved";
                     IconComponent = CheckCircleIcon;
+                  } else if (act.type === "system_action") {
+                    badgeBg = "bg-[#eef6ff] text-[#2463a6] border-[#c7def7]";
+                    typeLabel = "System & Access";
+                    IconComponent = ShieldExclamationIcon;
                   }
 
                   return (
@@ -337,7 +342,7 @@ export function OperationsHistoryView({
                       <p className="font-semibold text-slate-500">No activity records found</p>
                       <p className="text-[11px] text-slate-400 mt-0.5">
                         {activities.length === 0
-                          ? "Actions taken by managers will be logged here."
+                          ? "Actions taken by managers and admins will be logged here."
                           : "No activity matches your search or filter criteria."}
                       </p>
                     </div>
