@@ -634,6 +634,12 @@ function renderCroppedImage(source: CropSource, zoom: number, offset: CropOffset
   });
 }
 
+async function dataUrlToJpegFile(dataUrl: string): Promise<File> {
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+  return new File([blob], "profile.jpg", { type: "image/jpeg" });
+}
+
 function ProfileImagePicker({
   user,
   onUserChange,
@@ -676,15 +682,25 @@ function ProfileImagePicker({
   };
 
   const handleCropConfirm = async (avatarUrl: string) => {
-    const result = await updateProfileAvatarAction(avatarUrl);
-    if (!result.ok) {
-      setError(result.error);
-      return;
+    setBusy(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.set("file", await dataUrlToJpegFile(avatarUrl));
+      const result = await updateProfileAvatarAction(formData);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      onUserChange(result.profile);
+      if (cropSource) URL.revokeObjectURL(cropSource.url);
+      setCropSource(null);
+      setMessage(copy.photo.photoUpdated);
+    } catch {
+      setError(copy.photo.cropError);
+    } finally {
+      setBusy(false);
     }
-    onUserChange(result.profile);
-    if (cropSource) URL.revokeObjectURL(cropSource.url);
-    setCropSource(null);
-    setMessage(copy.photo.photoUpdated);
   };
 
   const handleCropCancel = () => {
@@ -693,14 +709,21 @@ function ProfileImagePicker({
   };
 
   const removePhoto = async () => {
-    const result = await updateProfileAvatarAction(null);
-    if (!result.ok) {
-      setError(result.error);
-      return;
-    }
-    onUserChange(result.profile);
-    setMessage(copy.photo.photoRemoved);
+    setBusy(true);
     setError(null);
+    try {
+      const result = await updateProfileAvatarAction(null);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      onUserChange(result.profile);
+      setMessage(copy.photo.photoRemoved);
+    } catch {
+      setError(copy.photo.cropError);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -733,7 +756,7 @@ function CropEditor({
 }: {
   source: CropSource;
   onCancel: () => void;
-  onConfirm: (avatarUrl: string) => void;
+  onConfirm: (avatarUrl: string) => void | Promise<void>;
   copy: ProfileCopy;
 }) {
   const [zoom, setZoom] = useState(1);
@@ -780,7 +803,7 @@ function CropEditor({
     setRendering(true);
     setError(null);
     try {
-      onConfirm(await renderCroppedImage(source, zoom, offset));
+      await onConfirm(await renderCroppedImage(source, zoom, offset));
     } catch {
       setError(copy.photo.cropError);
     } finally {

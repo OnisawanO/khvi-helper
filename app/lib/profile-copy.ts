@@ -437,7 +437,7 @@ const copyEn: ProfileCopy = {
   },
   photo: {
     title: "Profile photo",
-    description: "Use a clear image, then crop it to a square before saving it to this browser preview.",
+    description: "Use a clear image, then crop it to a square before saving it to your profile.",
     processing: "Processing…",
     changePhoto: "Change photo",
     removePhoto: "Remove",

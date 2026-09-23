@@ -10,6 +10,7 @@
 - Server Actions ใช้ Supabase RPC สำหรับ mutation ที่ต้องตรวจสิทธิ์ เปลี่ยน status หรือทำหลายขั้นตอนใน transaction เดียว
 - Server data loader ใช้ `@supabase/ssr` และ session cookie ของผู้ใช้
 - Certificate ใช้ Supabase Storage bucket ชื่อ `interpreter-certificates` ซึ่งเป็น private bucket
+- Profile photo ใช้ Supabase Storage bucket public ชื่อ `avatars` โดยเก็บไฟล์ใต้ path `{auth.uid()}/{uuid}.jpg` และเก็บเฉพาะ URL/path สั้น ๆ ใน Auth metadata
 - `supabase/config.toml` เปิด Realtime ไว้ แต่ application flow ปัจจุบันยังไม่มี subscription ผ่าน `channel()` หรือ `postgres_changes`; หน้าเว็บใช้ Server Action และ `revalidatePath()`
 
 ให้ยึด source code และ migration ปัจจุบันเป็นหลักเมื่อเอกสาร roadmap ระบุสถานะเก่ากว่า implementation
@@ -206,6 +207,8 @@ interpreter-certificates/{auth.uid()}/{uuid}-{safe-file-name}
 ```
 
 Upload ทำใน `uploadInterpreterCertificateAction()` หลังตรวจชนิดไฟล์และขนาดไม่เกิน 10 MB จากนั้นจึงส่ง path เข้า `submit_interpreter_application` หรือ `reupload_interpreter_certificate`
+
+Profile photo upload ทำใน `updateProfileAvatarAction()` หลังตรวจ session, MIME type, JPEG signature และขนาดไฟล์ไม่เกิน 5 MB จากนั้นอัปโหลดไฟล์ใหม่เข้า Storage, อัปเดต URL ใน Auth metadata และลบไฟล์เก่าของเจ้าของบัญชี
 
 ## Migration workflow
 
