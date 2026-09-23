@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
-import type { HelpRequest } from "@/app/lib/mock-requests";
+import type { HelpRequest } from "@/app/lib/request-types";
 
 const RequesterRequestsContext = createContext<HelpRequest[] | null>(null);
 

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { createClient } from "@/utils/supabase/server";
-import { getRedirectPathByRole } from "@/app/lib/mock-auth";
+import { getRedirectPathByRole } from "@/app/lib/auth-types";
 
 export const metadata: Metadata = { title: "Redirecting | KHVI" };
 

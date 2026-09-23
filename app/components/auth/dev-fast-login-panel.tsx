@@ -5,7 +5,7 @@ import { BeakerIcon } from "@heroicons/react/24/outline";
 import { getAuthCopy } from "@/app/lib/auth-copy";
 import { useStoredLocale } from "@/app/lib/locale";
 import { authApi } from "@/app/lib/auth-client";
-import { getRedirectPathByRole, type UserProfile, type UserRole } from "@/app/lib/mock-auth";
+import { getRedirectPathByRole, type UserProfile, type UserRole } from "@/app/lib/auth-types";
 
 export function DevFastLoginPanel({ onSuccess, embedded = false }: { onSuccess?: (user: UserProfile) => void; embedded?: boolean }) {
   const [locale] = useStoredLocale();

@@ -1,4 +1,4 @@
-import type { UserProfile } from "@/app/lib/mock-auth";
+import type { UserProfile } from "@/app/lib/auth-types";
 import Image from "next/image";
 
 type AvatarSize = "sm" | "md" | "lg" | "xl" | "xxl";

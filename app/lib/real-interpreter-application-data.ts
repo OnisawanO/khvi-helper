@@ -7,7 +7,7 @@ import type {
   ApplicationLanguage,
   InterpreterApplication,
   WorkHistoryEntry,
-} from "@/app/lib/interpreter-application";
+} from "@/app/lib/interpreter-application-types";
 import type { InterpreterApplicant } from "@/app/manager/types";
 
 type ApplicationRow = {

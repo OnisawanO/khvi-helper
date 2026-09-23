@@ -1,6 +1,6 @@
 import { apiError, apiSuccess } from "@/app/lib/api/auth-response";
 import { createClient } from "@/utils/supabase/server";
-import { getRedirectPathByRole, type UserRole } from "@/app/lib/mock-auth";
+import { getRedirectPathByRole, type UserRole } from "@/app/lib/auth-types";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 
 const FAST_LOGIN_ROLES: UserRole[] = ["User", "Interpreter", "Manager", "Admin"];

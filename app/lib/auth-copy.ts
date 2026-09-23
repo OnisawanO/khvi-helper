@@ -1,5 +1,5 @@
 import type { Locale } from "@/app/components/site-header";
-import type { UserRole } from "@/app/lib/mock-auth";
+import type { UserRole } from "@/app/lib/auth-types";
 
 export type AuthCopy = {
   login: {

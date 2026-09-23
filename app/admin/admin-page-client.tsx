@@ -3,10 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, useMemo } from "react";
 import { CheckCircleIcon, UserPlusIcon } from "@heroicons/react/24/outline";
-import { getRedirectPathByRole } from "@/app/lib/mock-auth";
+import { getRedirectPathByRole } from "@/app/lib/auth-types";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { createClient } from "@/utils/supabase/client";
-import type { UserProfile } from "@/app/lib/mock-auth";
+import type { UserProfile } from "@/app/lib/auth-types";
 
 import {
   AdminActiveTab,

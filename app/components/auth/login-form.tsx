@@ -14,7 +14,7 @@ import { getAuthCopy } from "@/app/lib/auth-copy";
 import { DevFastLoginPanel } from "./dev-fast-login-panel";
 import { useStoredLocale } from "@/app/lib/locale";
 import { authApi } from "@/app/lib/auth-client";
-import { getRedirectPathByRole, type UserProfile } from "@/app/lib/mock-auth";
+import { getRedirectPathByRole, type UserProfile } from "@/app/lib/auth-types";
 
 export interface LoginFormProps {
   onSuccess?: (user: UserProfile) => void;

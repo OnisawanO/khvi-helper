@@ -1,6 +1,6 @@
 import { BoltIcon, CalendarDaysIcon } from "@heroicons/react/24/outline";
 import type { CopyLocale } from "@/app/lib/locale";
-import type { RequestStatus, Urgency } from "@/app/lib/mock-requests";
+import type { RequestStatus, Urgency } from "@/app/lib/request-types";
 
 const statusCopy: Record<RequestStatus, Record<CopyLocale | "th", string>> = {
   Open: { th: "รอรับงาน", en: "Open", zh: "开放中" },

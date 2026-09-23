@@ -7,7 +7,7 @@ import { WorkspaceAccountActions } from "./workspace-account-actions";
 import {
   getRedirectPathByRole,
   type UserProfile,
-} from "@/app/lib/mock-auth";
+} from "@/app/lib/auth-types";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { authApi } from "@/app/lib/auth-client";
 import {

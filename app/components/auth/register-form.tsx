@@ -20,7 +20,7 @@ import {
   validateRegisterInput,
   type RegisterInput,
   type ValidationErrors,
-} from "@/app/lib/mock-auth";
+} from "@/app/lib/auth-types";
 import { authApi } from "@/app/lib/auth-client";
 import { DatePicker, toDateInputValue } from "./date-picker";
 

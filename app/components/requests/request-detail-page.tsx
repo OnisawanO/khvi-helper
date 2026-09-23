@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { WorkspaceShell } from "@/app/components/workspace-shell";
-import type { UserRole } from "@/app/lib/mock-auth";
+import type { UserRole } from "@/app/lib/auth-types";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { loadBookingById } from "@/app/lib/real-request-data";
 import { createClient } from "@/utils/supabase/server";

@@ -1,6 +1,6 @@
 import type { AuthApiResponse } from "./api/auth-response";
 import type { Locale } from "@/app/components/site-header";
-import type { RegisterInput, UserProfile, UserRole } from "./mock-auth";
+import type { RegisterInput, UserProfile, UserRole } from "./auth-types";
 
 async function apiFetch<T>(endpoint: string, init?: RequestInit): Promise<AuthApiResponse<T>> {
   try {

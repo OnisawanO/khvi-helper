@@ -12,14 +12,14 @@
 Requirement → User → Use Case → User Flow → UI → Web Component → Design Rationale
 ```
 
-เอกสารนี้แยกสถานะสองแบบเพื่อไม่ให้ผู้พัฒนาเข้าใจ mockup เป็น production feature:
+เอกสารนี้อธิบาย implementation ปัจจุบันที่ใช้ production data path:
 
 | สถานะ | ความหมาย | หลักฐานใน repository |
 |---|---|---|
-| Implemented mockup | มีหน้าและ interaction จำลองให้ทดลองได้ แต่ยังใช้ข้อมูลใน memory | `/manager`, `app/manager/page.tsx` |
-| Planned production behavior | เป็นพฤติกรรมเป้าหมายที่ต้องเชื่อม Auth, database, Server Action และ authorization | `docs/requirements.md`, `detail.md`, `docs/route-inventory.md` |
+| Implemented production flow | หน้าและ interaction ใช้ข้อมูลจาก Supabase พร้อม server actions และ authorization | `/manager`, `app/manager/page.tsx` |
+| Development-only test flow | Fast Login ใช้บัญชีทดสอบจาก server environment เพื่อทดสอบ role | `/api/auth/fast-login` |
 
-ปัจจุบัน `/manager` เป็น Static Mockup ที่ใช้ mock data ตาม `route-inventory.md` ส่วน `/manager/verify-volunteers` ยังเป็น route ที่วางแผนไว้ เอกสารนี้จึงใช้ UI ใน `app/manager/page.tsx` เป็นตัวอย่างหน้าจอ และใช้ requirements กับ business rules เป็นเงื่อนไขของระบบจริง
+ปัจจุบัน `/manager` ใช้ข้อมูลจริงจาก Supabase และ `/manager/dashboard` เป็น compatibility redirect ไปยัง route เดียวกัน ส่วน `/manager/verify-volunteers` ยังเป็น route ที่วางแผนไว้
 
 ### หลักฐานที่ใช้ตรวจตามเกณฑ์ในภาพ
 
@@ -268,7 +268,7 @@ Pending
         └─ Reject + non-empty reason ─► Rejected
 ```
 
-ใน production ต้องบังคับ transition ฝั่ง server และป้องกันการกด Approve ซ้ำจากหลาย session หน้าจอ mockup เปลี่ยนเฉพาะ state ใน memory จึงยังไม่ใช่ concurrency control จริง
+การ transition ถูกบังคับผ่าน server action/RPC และ audit log เพื่อป้องกันการกด Approve ซ้ำจากหลาย session
 
 ### 5.4 กติกาการเรียงรายการ
 
@@ -284,7 +284,7 @@ Pending
 
 ## 6. Web Component ที่เหมาะกับแต่ละ Case
 
-### 6.1 Component ที่มีใน mockup ปัจจุบัน
+### 6.1 Component ที่มีใน production implementation
 
 | Component หรือกลุ่ม component | Case ที่รองรับ | เหตุผลด้านความเข้าใจและความสะดวก |
 |---|---|---|
@@ -399,15 +399,15 @@ Status badge ต้องมีข้อความเสมอ เช่น `A
 - Error และ success ต้องสื่อด้วยข้อความ ไม่พึ่งสีหรือ icon เพียงอย่างเดียว
 - ทดสอบอย่างน้อย mobile, tablet และ desktop รวมถึง keyboard-only navigation
 
-### 8.3 ช่องว่างระหว่าง mockup กับ production
+### 8.3 Production controls
 
-| ประเด็น | ใน mockup ปัจจุบัน | สิ่งที่ production ต้องเพิ่ม |
+| ประเด็น | implementation ปัจจุบัน | production control |
 |---|---|---|
-| Data source | array ใน `page.tsx` | Supabase query และ typed data access |
-| Approve/Reject | เปลี่ยน React state ใน memory | Server Action, transaction, authorization, notification และ audit |
-| Permission | หน้า mockup แสดงข้อมูลตัวอย่าง | production ต้องตรวจ permission ฝั่ง server ก่อนเปิดข้อมูล |
+| Data source | Supabase query และ typed data access | RLS และ empty/error state |
+| Approve/Reject | Server Action/RPC และ audit log | authorization และ conflict handling |
+| Permission | ตรวจ session และ role ฝั่ง serverก่อนโหลดข้อมูล | RLS และ action authorization |
 | Help/Report | มี card และ local state | `help_requests`, `reports`, manager action และ Admin handoff |
-| Auth | profile เป็นข้อมูลตัวอย่าง | Supabase Auth, role check, unauthorized state และ RLS |
+| Auth | Supabase Auth profile | role check, unauthorized state และ RLS |
 | Document preview | จำลอง `alert` | protected storage URL, access check, loading และ preview error |
 | Concurrency | ยังไม่ป้องกันการตัดสินใจซ้ำ | atomic update หรือ optimistic concurrency control |
 
@@ -425,7 +425,7 @@ Status badge ต้องมีข้อความเสมอ เช่น `A
 - [ ] ระบุ loading, empty, error, unauthorized, conflict และ success state
 - [ ] แยก component ตามหน้าที่และระบุว่า component ใดมีอยู่จริงหรือเป็นโครงสร้างที่วางแผน
 - [ ] ให้เหตุผลของ layout, ลำดับข้อมูล, สี, typography, icon และตำแหน่ง action
-- [ ] ระบุความแตกต่างระหว่าง mockup ปัจจุบันกับ production behavior
+- [ ] ตรวจ production behavior และ authorization contract ให้ตรงกับ route inventory
 - [ ] ไม่ตีความ `/manager/verify-volunteers` ว่ามีอยู่แล้วจนกว่าจะพบ route จริง
 ## Profile Change Request behavior
 

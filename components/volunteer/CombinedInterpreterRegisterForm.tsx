@@ -19,8 +19,6 @@ import {
 } from "@/app/actions/interpreter-application-actions";
 import {
   type InterpreterApplicationReference,
-  DEFAULT_INTERPRETER_CATEGORIES,
-  DEFAULT_INTERPRETER_LANGUAGES,
   sortCategoriesByPriority,
 } from "@/app/lib/interpreter-reference-catalog";
 import {
@@ -28,7 +26,7 @@ import {
   CHANNEL_DEFS,
   formatContactChannelValue,
 } from "@/components/volunteer/ApplicationForm";
-import { calculateAge } from "@/app/lib/mock-auth";
+import { calculateAge } from "@/app/lib/auth-types";
 import { authApi } from "@/app/lib/auth-client";
 
 export function CombinedInterpreterRegisterForm({
@@ -38,10 +36,8 @@ export function CombinedInterpreterRegisterForm({
   availableLanguages?: InterpreterApplicationReference[];
   availableCategories?: InterpreterApplicationReference[];
 }) {
-  const availableLanguages = initialLanguages.length > 0 ? initialLanguages : DEFAULT_INTERPRETER_LANGUAGES;
-  const availableCategories = sortCategoriesByPriority(
-    initialCategories.length > 0 ? initialCategories : DEFAULT_INTERPRETER_CATEGORIES
-  );
+  const availableLanguages = initialLanguages;
+  const availableCategories = sortCategoriesByPriority(initialCategories);
   const locale = useUiLocale();
   const router = useRouter();
 

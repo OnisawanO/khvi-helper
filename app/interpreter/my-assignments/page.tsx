@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { WorkspaceShell } from "@/app/components/workspace-shell";
-import type { ApplicationStatus } from "@/app/lib/interpreter-application";
+import type { ApplicationStatus } from "@/app/lib/interpreter-application-types";
 import { loadMyInterpreterApplication } from "@/app/lib/real-interpreter-application-data";
 import { loadInterpreterAssignments, loadOpenInterpreterRequests, loadWorkspaceActivity } from "@/app/lib/real-request-data";
-import { resolveStatusFilter } from "@/app/lib/mock-requests";
+import { resolveStatusFilter } from "@/app/lib/request-types";
 import { requireWorkspaceAccountRole } from "@/app/lib/workspace-auth";
 import { MyAssignmentsList } from "./my-assignments-list";
 

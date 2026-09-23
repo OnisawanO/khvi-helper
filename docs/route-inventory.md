@@ -18,11 +18,10 @@ The global UI language switcher supports English (en), Chinese (zh), Thai (th), 
 ## Shared profile route
 
 - `/profile` is the shared authenticated Profile & Settings route for `User`, `Interpreter`, `Manager`, and `Admin`.
-- The page reads the current Supabase Auth profile and redirects to `/#top` when no valid active session is available. Browser mock session fallback remains available for local preview without Supabase. Locked sessions cannot open the page.
-- Every role can edit only their own first name, last name, phone, date of birth, and preferred UI language in the current preview. The browser-local session is updated after validation.
-- Every role can change, crop, or remove an optional profile photo in the current preview. The cropped image is resized and stored as `avatarUrl` in the browser-local session; production storage and ownership checks remain planned.
-- Approved Interpreter profiles can add, type, or remove service language and matching category selections in the current preview. The UI keeps at least one language and two categories, stores standard IDs or custom values in the browser-local session, and does not replace the planned `interpreter_languages` or `interpreter_categories` relations. Production must validate custom values against the system catalog before persistence.
-- Role, lock status, interpreter approval status, and management permissions are shown as read-only context. Production ownership checks, Supabase persistence, role-specific profile tables, and server authorization remain planned.
+- The page reads the current Supabase Auth profile and redirects to `/#top` when no valid active session is available. Locked sessions cannot open the page.
+- Every role can edit only their own first name, last name, phone, date of birth, preferred UI language, and profile photo through Supabase-backed actions.
+- Approved Interpreter profiles read and update service language and matching category selections through the Supabase application flow and active reference catalog.
+- Role, lock status, interpreter approval status, and management permissions are shown as read-only context and enforced by server authorization.
 
 ## Requester mission flow update
 
@@ -36,7 +35,7 @@ The global UI language switcher supports English (en), Chinese (zh), Thai (th), 
 - Malformed, missing and unauthorized request IDs return server `notFound()` so the route does not reveal whether another account owns the booking.
 - Verification: Supabase RLS query, `npm run lint`, `npx tsc --noEmit --incremental false`, `npm run build` and browser runtime checks.
 
-This update supersedes the older mock-source and state-only behavior notes below.
+This update supersedes the older source and state-only behavior notes below.
 
 เอกสารนี้เป็นรายการกลางของ path ในระบบ ใช้ตรวจสอบชื่อ route, สิทธิ์, data source และ behavior เมื่อไม่พบข้อมูล
 
@@ -54,8 +53,8 @@ This update supersedes the older mock-source and state-only behavior notes below
 |---|---|---|---|---|---|
 | `/` | Static | Public | None | Not applicable | Implemented at `app/(public)/page.tsx` |
 | `/_not-found` | Framework fallback | Public | None | Framework fallback | Implemented at `app/not-found.tsx` |
-| `/manager` | Static Mockup | Manager Role (Supabase session) | Mock data (FR-14–18) | Redirect unauthenticated or wrong role to public/role route | Implemented at `app/(manager)/manager/page.tsx` |
-| `/admin` | Static Mockup | Admin Role (Supabase session) | Mock data | Redirect unauthenticated or wrong role to public/role route | Implemented at `app/(admin)/admin/page.tsx` |
+| `/manager` | Protected workspace | Manager/Admin Role (Supabase session) | Supabase applications, reports, profile changes and audit logs | Redirect unauthenticated or wrong role to public/role route | Implemented at `app/manager/page.tsx` |
+| `/admin` | Protected dashboard | Admin Role (Supabase session) | Supabase profiles, reports, audit logs and platform settings | Redirect unauthenticated or wrong role to public/role route | Implemented at `app/admin/page.tsx` |
 | `/request-help` | Resource create route | Authenticated User | Supabase `create_booking` RPC | Redirect Interpreter to `/find-requests` | Implemented at `app/(user)/request-help/page.tsx` |
 | `/my-requests` | Requester resource list | Authenticated User | Supabase `bookings` owned by the signed-in account through RLS | Redirect Interpreter to `/my-assignments`; empty state | Implemented at `app/(user)/my-requests/page.tsx` |
 | `/my-requests/[requestId]` | Dynamic resource | เจ้าของคำขอ หรือ Interpreter ที่ Claim แล้ว | Supabase `bookings`, authorized private-detail/contact/location RPCs | `notFound()` สำหรับ ID ผิดรูปแบบ ไม่พบ หรือไม่มีสิทธิ์เข้าถึง | Implemented shared mission route at `app/(user)/my-requests/[requestId]/page.tsx` |
@@ -83,7 +82,7 @@ parameter ที่ผิดรูปแบบหรือไม่พบข้�
 
 | Path | Type | Access | Data source | Not found behavior | Status |
 |---|---|---|---|---|---|
-| `/profile` | Static private route | Authenticated User, Interpreter, Manager, Admin (preview session) | Supabase Auth `profiles`; browser mock session fallback | Redirect to `/#top` when session is missing, locked, or soft-deleted | Implemented at `app/(workspace)/profile/page.tsx`; self-service soft delete is available for Supabase sessions |
+| `/profile` | Static private route | Authenticated User, Interpreter, Manager, Admin | Supabase Auth `profiles` and authenticated user metadata | Redirect to `/#top` when session is missing, locked, or soft-deleted | Implemented at `app/profile/page.tsx`; self-service soft delete is available |
 | `/welcome` | Static private route | Authenticated User/Interpreter | Supabase Auth session + `public.profiles`; role-scoped `bookings` data through RLS | Redirect by Supabase profile role | Implemented at `app/(workspace)/welcome/page.tsx` |
 | `/map` | Resource map/list | Approved Interpreter | `bookings`, interpreter skills | Empty state or `403` | Planned |
 | `/volunteer/apply` | Resource create route | Authenticated User | `interpreter_profiles`, `languages`, `categories` | Redirect to current application status | Planned |

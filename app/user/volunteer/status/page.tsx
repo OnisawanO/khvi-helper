@@ -11,7 +11,7 @@ import {
   reuploadInterpreterCertificateAction,
   uploadInterpreterCertificateAction,
 } from "@/app/actions/interpreter-application-actions";
-import type { InterpreterApplication } from "@/app/lib/interpreter-application";
+import type { InterpreterApplication } from "@/app/lib/interpreter-application-types";
 import { ApplicationStatusPanel } from "@/components/volunteer/ApplicationStatusPanel";
 
 export default function VolunteerStatusPage() {

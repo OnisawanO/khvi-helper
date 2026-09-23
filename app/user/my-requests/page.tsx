@@ -16,7 +16,7 @@ import {
   resolveStatusFilter,
   STATUS_FILTERS,
   type StatusFilterId,
-} from "@/app/lib/mock-requests";
+} from "@/app/lib/request-types";
 
 const copy = {
   en: {

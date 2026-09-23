@@ -15,7 +15,7 @@ import { SiteHeader } from "./site-header";
 import type { Locale } from "./site-header";
 import { createClient } from "@/utils/supabase/client";
 import { loadMyInterpreterApplicationAction } from "@/app/actions/interpreter-application-actions";
-import type { ApplicationStatus } from "@/app/lib/interpreter-application";
+import type { ApplicationStatus } from "@/app/lib/interpreter-application-types";
 
 export type WorkspaceRole = "User" | "Interpreter" | "Manager" | "Admin";
 

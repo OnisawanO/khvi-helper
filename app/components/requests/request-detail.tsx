@@ -11,7 +11,7 @@ import {
   updateBookingDetailsAction,
 } from "@/app/actions/booking-actions";
 import type { RealMissionLocations } from "@/app/lib/real-request-data";
-import type { UserProfile } from "@/app/lib/mock-auth";
+import type { UserProfile } from "@/app/lib/auth-types";
 import { useEffect, useState, type SubmitEvent } from "react";
 import {
   ArrowPathIcon,
@@ -46,7 +46,7 @@ import {
   type HelpRequest,
   type LanguageId,
   type RequestStatus,
-} from "@/app/lib/mock-requests";
+} from "@/app/lib/request-types";
 
 const TIMELINE_STEPS = ["Open", "Claimed", "InProgress", "Completed"] as const;
 

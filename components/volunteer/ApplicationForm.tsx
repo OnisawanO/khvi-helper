@@ -10,11 +10,8 @@ import {
 } from "@/app/actions/interpreter-application-actions";
 import {
   type InterpreterApplicationReference,
-  DEFAULT_INTERPRETER_CATEGORIES,
-  DEFAULT_INTERPRETER_LANGUAGES,
   sortCategoriesByPriority,
 } from "@/app/lib/interpreter-reference-catalog";
-import { getMockUserSession, splitDisplayName } from "@/app/lib/mock-auth";
 import { createClient } from "@/utils/supabase/client";
 
 export type InitialProfile = {
@@ -133,10 +130,8 @@ export function ApplicationForm({
   availableCategories?: InterpreterApplicationReference[];
   initialProfile?: InitialProfile | null;
 }) {
-  const availableLanguages = initialLanguages.length > 0 ? initialLanguages : DEFAULT_INTERPRETER_LANGUAGES;
-  const availableCategories = sortCategoriesByPriority(
-    initialCategories.length > 0 ? initialCategories : DEFAULT_INTERPRETER_CATEGORIES
-  );
+  const availableLanguages = initialLanguages;
+  const availableCategories = sortCategoriesByPriority(initialCategories);
   const locale = useUiLocale();
   const router = useRouter();
 
@@ -216,19 +211,7 @@ export function ApplicationForm({
         // Supabase client error or unconfigured
       }
 
-      if (!disposed) {
-        const session = getMockUserSession();
-        if (session) {
-          const { firstName: fName, lastName: lName } = splitDisplayName(session.name);
-          setFirstName((prev) => prev || fName || "");
-          setLastName((prev) => prev || lName || "");
-          setPhone((prev) => prev || session.phone || "");
-          setUserEmail((prev) => prev || session.email || "");
-          if (fName || session.phone) {
-            setHasPrefilled(true);
-          }
-        }
-      }
+      if (!disposed) setHasPrefilled(false);
     };
 
     void loadProfile();

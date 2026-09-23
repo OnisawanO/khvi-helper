@@ -28,7 +28,7 @@ import { LoginModal } from "@/app/components/auth/login-modal";
 import {
   getRedirectPathByRole,
   type UserProfile,
-} from "@/app/lib/mock-auth";
+} from "@/app/lib/auth-types";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { createClient } from "@/utils/supabase/client";
 import { useStoredLocale } from "@/app/lib/locale";

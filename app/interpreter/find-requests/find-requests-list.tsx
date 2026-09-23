@@ -30,7 +30,7 @@ import {
   languageLabel,
   type HelpRequest,
   type Urgency,
-} from "@/app/lib/mock-requests";
+} from "@/app/lib/request-types";
 
 const RequestMap = dynamic(
   () => import("./request-map").then((module) => module.RequestMap),

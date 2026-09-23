@@ -11,7 +11,7 @@ import {
   type RequesterContact,
   type RequestStatus,
   type Urgency,
-} from "@/app/lib/mock-requests";
+} from "@/app/lib/request-types";
 import { isActiveHelpRequest } from "@/app/lib/workspace-activity";
 
 export type RealMissionLocation = {

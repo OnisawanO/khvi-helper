@@ -267,13 +267,13 @@ where u.id = p.user_id
 - `/volunteer/status` อ่านและจัดการ application จริง
 - Manager application queue อ่านข้อมูลจริงและ review ผ่าน RPC
 
-ยังเป็น mock หรือยังไม่เชื่อมใน domain อื่น:
+ยังไม่อยู่ใน migration ชุดนี้:
 
 - Notification และ ticket domain แยกยังไม่อยู่ใน migration ชุดนี้
 - Admin, Manager reports, review records และ audit log ใช้ Supabase-backed actions แล้ว
 - Realtime config เปิดอยู่ แต่ application ยังใช้ request/response และ cache revalidation แทน realtime subscription
 
-`docs/route-inventory.md`, `detail.md` และ role documents บางส่วนยังมีข้อความที่อธิบาย route หรือ status เป็น mock/planned จากช่วงก่อนเชื่อม database เอกสารนี้บันทึก implementation ปัจจุบันจาก source code และ migration หากจะขยาย feature ให้ผ่าน Requirement Consistency Gate และอัปเดตเอกสารที่เกี่ยวข้องใน PR เดียวกัน
+`docs/route-inventory.md`, `detail.md` และ role documents บางส่วนยังมีข้อความ historical จากช่วงก่อนเชื่อม database เอกสารนี้บันทึก implementation ปัจจุบันจาก source code และ migration หากจะขยาย feature ให้ผ่าน Requirement Consistency Gate และอัปเดตเอกสารที่เกี่ยวข้องใน PR เดียวกัน
 
 ## ไฟล์อ้างอิงหลัก
 

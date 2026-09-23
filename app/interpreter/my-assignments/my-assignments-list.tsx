@@ -16,13 +16,13 @@ import { ExpiryCountdown } from "@/app/components/expiry-countdown";
 import { StatusBadge, UrgencyBadge } from "@/app/components/request-badges";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
 import { cancelBookingAction, claimBookingAction } from "@/app/actions/booking-actions";
-import type { ApplicationStatus } from "@/app/lib/interpreter-application";
+import type { ApplicationStatus } from "@/app/lib/interpreter-application-types";
 import {
   categoryLabel,
   languageLabel,
   type HelpRequest,
   type StatusFilterId,
-} from "@/app/lib/mock-requests";
+} from "@/app/lib/request-types";
 
 const ASSIGNMENT_FILTERS = ["completed", "in-progress", "open", "claimed", "closed", "all"] as const;
 type AssignmentFilterId = (typeof ASSIGNMENT_FILTERS)[number];

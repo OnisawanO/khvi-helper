@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useTransition, type FormEvent } from "reac
 import { CheckCircleIcon, StarIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { submitReviewAction } from "@/app/actions/review-actions";
 import { useUiLocale } from "@/app/components/app-shell";
-import type { Review } from "@/app/lib/mock-requests";
+import type { Review } from "@/app/lib/request-types";
 
 export type SubmittedReview = {
   rating: number;

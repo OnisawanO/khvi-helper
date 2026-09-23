@@ -2,7 +2,7 @@
 
 import { ArrowRightOnRectangleIcon, ChevronDownIcon, IdentificationIcon, UserCircleIcon } from "@heroicons/react/24/outline";
 import { useEffect, useRef, useState } from "react";
-import { getDisplayName, type UserProfile } from "@/app/lib/mock-auth";
+import { getDisplayName, type UserProfile } from "@/app/lib/auth-types";
 import { useInterpreterAccess, useUiLocale } from "./app-shell";
 import { UserAvatar } from "./user-avatar";
 

@@ -1,4 +1,4 @@
-import type { HelpRequest, RequestStatus } from "./mock-requests";
+import type { HelpRequest, RequestStatus } from "./request-types";
 
 const ACTIVE_REQUEST_STATUSES: readonly RequestStatus[] = ["Open", "Claimed", "InProgress"];
 

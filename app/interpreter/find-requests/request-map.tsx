@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as L from "leaflet";
-import type { HelpRequest } from "@/app/lib/mock-requests";
+import type { HelpRequest } from "@/app/lib/request-types";
 
 export type RequestMapCoordinates = {
   latitude: number;

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getRedirectPathByRole, type UserRole } from "@/app/lib/mock-auth";
+import { getRedirectPathByRole, type UserRole } from "@/app/lib/auth-types";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { createClient } from "@/utils/supabase/server";
 

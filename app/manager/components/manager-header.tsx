@@ -11,7 +11,7 @@ import {
   UserCircleIcon,
 } from "@heroicons/react/24/outline";
 import { BrandMark } from "@/app/components/brand-mark";
-import { UserProfile } from "@/app/lib/mock-auth";
+import { UserProfile } from "@/app/lib/auth-types";
 import { useStoredLocale } from "@/app/lib/locale";
 import { getManagerTranslation } from "../locales";
 

@@ -11,12 +11,12 @@ import {
   setInterpreterWorkspaceMode,
   type InterpreterWorkspaceMode,
 } from "@/app/lib/workspace-mode";
-import { getRedirectPathByRole, type UserProfile } from "@/app/lib/mock-auth";
+import { getRedirectPathByRole, type UserProfile } from "@/app/lib/auth-types";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { authApi } from "@/app/lib/auth-client";
 import { createClient } from "@/utils/supabase/client";
 import type { OpenRequestsDiagnostic } from "@/app/lib/real-request-data";
-import type { HelpRequest } from "@/app/lib/mock-requests";
+import type { HelpRequest } from "@/app/lib/request-types";
 import type { ReferenceCatalog } from "@/app/lib/reference-catalog";
 import type { InterpreterRating } from "@/app/lib/real-interpreter-rating";
 

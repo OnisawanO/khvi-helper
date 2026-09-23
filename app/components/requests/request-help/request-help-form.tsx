@@ -21,7 +21,7 @@ import {
   SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { useCopyLocale, useUiLocale } from "@/app/components/app-shell";
-import type { Urgency } from "@/app/lib/mock-requests";
+import type { Urgency } from "@/app/lib/request-types";
 import type { ReferenceOption } from "@/app/lib/reference-catalog";
 import { LocationMapPicker, type LocationCoordinates } from "./location-map-picker";
 import styles from "./request-success.module.css";

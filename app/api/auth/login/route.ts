@@ -1,7 +1,7 @@
 import { apiError, apiSuccess } from "@/app/lib/api/auth-response";
 import { normalizeEmail, normalizeLocale, isRecord } from "@/app/lib/api/auth-utils";
 import { getAuthCopy } from "@/app/lib/auth-copy";
-import { getRedirectPathByRole } from "@/app/lib/mock-auth";
+import { getRedirectPathByRole } from "@/app/lib/auth-types";
 import { getAuthErrorMessage, getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { createClient } from "@/utils/supabase/server";
 

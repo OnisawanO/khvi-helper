@@ -7,7 +7,7 @@ import {
   type AdminLevel,
   type UserProfile,
   type UserRole,
-} from "@/app/lib/mock-auth";
+} from "@/app/lib/auth-types";
 
 export { getRedirectPathByRole };
 export type { AdminLevel, UserProfile, UserRole };
@@ -70,12 +70,13 @@ function toRole(value: string): UserRole {
   return SUPPORTED_ROLES.includes(value as UserRole) ? (value as UserRole) : "User";
 }
 
-export function profileRowToUserProfile(row: ProfileRow, authUser: Pick<User, "id" | "email">): UserProfile {
+export function profileRowToUserProfile(row: ProfileRow, authUser: Pick<User, "id" | "email" | "user_metadata">): UserProfile {
   const name = [row.first_name, row.last_name].filter(Boolean).join(" ").trim();
 
   return {
     userId: authUser.id,
     name: name || authUser.email?.split("@")[0] || "KHVI User",
+    avatarUrl: typeof authUser.user_metadata?.avatar_url === "string" ? authUser.user_metadata.avatar_url : undefined,
     email: authUser.email || "",
     phone: row.phone || "",
     dateOfBirth: row.date_of_birth || "",

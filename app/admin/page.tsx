@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import { getRedirectPathByRole, type UserRole } from "@/app/lib/mock-auth";
+import { getRedirectPathByRole, type UserRole } from "@/app/lib/auth-types";
 import AdminPageClient from "./admin-page-client";
 
 export default async function AdminPage() {

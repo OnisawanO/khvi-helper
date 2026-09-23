@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useInterpreterAccess, useUiLocale } from "@/app/components/app-shell";
-import type { ApplicationStatus, InterpreterApplication } from "@/app/lib/interpreter-application";
+import type { ApplicationStatus, InterpreterApplication } from "@/app/lib/interpreter-application-types";
 
 type ApplicationStatusPanelProps = {
   application: InterpreterApplication;

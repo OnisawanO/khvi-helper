@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { CheckBadgeIcon, DocumentCheckIcon, ExclamationTriangleIcon, LanguageIcon } from "@heroicons/react/24/outline";
 import { useInterpreterAccess, useUiLocale } from "@/app/components/app-shell";
-import type { ApplicationStatus, InterpreterApplication } from "@/app/lib/interpreter-application";
+import type { ApplicationStatus, InterpreterApplication } from "@/app/lib/interpreter-application-types";
 
 type ApplicationStatusCardProps = {
   application: InterpreterApplication | null;
