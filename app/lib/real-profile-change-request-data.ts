@@ -3,7 +3,7 @@ import type {
   ProfileChangeRequest,
   ProfileChangeRequestStatus,
   ProfileChangeRequestType,
-} from "@/app/(manager)/manager/types";
+} from "@/app/manager/types";
 
 type ProfileChangeRequestRow = {
   request_id: number;

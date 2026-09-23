@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useUiLocale } from "@/app/components/app-shell";
+import { useInterpreterAccess, useUiLocale } from "@/app/components/app-shell";
 import type { ApplicationStatus, InterpreterApplication } from "@/app/lib/interpreter-application";
 
 type ApplicationStatusPanelProps = {
@@ -21,13 +21,34 @@ const statusCopy: Record<ApplicationStatus, { th: string; en: string; zh: string
   cancelled: { th: "ถอนใบสมัครแล้ว", en: "Withdrawn", zh: "已撤回", className: "border-[#cbd7dc] bg-[#f3f6f7] text-[#53656c]" },
 };
 
+function getExtraContactIcon(extraContact: string): string {
+  if (extraContact.startsWith("ID_LINE:") || extraContact.toLowerCase().includes("line")) return "💬";
+  if (extraContact.startsWith("FACEBOOK:") || extraContact.toLowerCase().includes("facebook")) return "📘";
+  if (extraContact.startsWith("WHATSAPP:") || extraContact.toLowerCase().includes("whatsapp")) return "📱";
+  if (extraContact.startsWith("WECHAT:") || extraContact.toLowerCase().includes("wechat")) return "🟢";
+  if (extraContact.startsWith("TELEGRAM:") || extraContact.toLowerCase().includes("telegram")) return "✈️";
+  return "🌐";
+}
+
 export function ApplicationStatusPanel({ application, onReupload, onCancel, compact = false }: ApplicationStatusPanelProps) {
   const locale = useUiLocale();
+  const { revoked } = useInterpreterAccess();
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [previewDoc, setPreviewDoc] = useState<{ name: string; url: string } | null>(null);
+
+  const resolveDocUrl = (rawUrl?: string) => {
+    if (!rawUrl) return "";
+    if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://") || rawUrl.startsWith("/")) {
+      return rawUrl;
+    }
+    return `/api/interpreter-certificate?path=${encodeURIComponent(rawUrl)}`;
+  };
   const status = statusCopy[application.status];
-  const label = locale === "th" ? status.th : locale === "zh" ? status.zh : status.en;
-  const detail = application.status === "needs_revision"
+  const label = revoked ? locale === "th" ? "ถูกยกเลิกสถานะล่าม" : locale === "zh" ? "口译员资格已撤销" : "Accreditation revoked" : locale === "th" ? status.th : locale === "zh" ? status.zh : status.en;
+  const detail = revoked
+    ? locale === "th" ? "สถานะล่ามอาสาของคุณถูกยกเลิกแล้ว" : locale === "zh" ? "你的志愿口译员资格已被撤销" : "Your interpreter accreditation has been revoked."
+    : application.status === "needs_revision"
     ? application.revisionNote
     : application.status === "rejected"
       ? application.rejectReason
@@ -56,7 +77,7 @@ export function ApplicationStatusPanel({ application, onReupload, onCancel, comp
             </h1>
             <p className="mt-2 text-xs text-white/75">{application.id} · {application.applicantName}</p>
           </div>
-          <span className={`inline-flex w-fit rounded-full border px-3 py-1.5 text-xs font-extrabold ${status.className}`}>{label}</span>
+          <span className={`inline-flex w-fit rounded-full border px-3 py-1.5 text-xs font-extrabold ${revoked ? "border-[#f04f3e] bg-[#fff1f2] text-[#b8291b]" : status.className}`}>{label}</span>
         </div>
       </section>
 
@@ -89,7 +110,11 @@ export function ApplicationStatusPanel({ application, onReupload, onCancel, comp
                   {locale === "th" ? "1. ส่งใบสมัครล่าม" : locale === "zh" ? "1. 提交口译申请" : "1. Submit application"}
                 </p>
                 <p className="mt-0.5 text-xs text-[#53656c]">
-                  {locale === "th" ? `ส่งเมื่อ ${application.submittedAt}` : `Submitted ${application.submittedAt}`}
+                  {locale === "th"
+                    ? `ส่งเมื่อ ${application.submittedAt}`
+                    : locale === "zh"
+                      ? `提交于 ${application.submittedAt}`
+                      : `Submitted ${application.submittedAt}`}
                 </p>
               </div>
             </li>
@@ -113,12 +138,16 @@ export function ApplicationStatusPanel({ application, onReupload, onCancel, comp
                 </p>
                 <p className="mt-0.5 text-xs text-[#53656c]">
                   {isStep2Done
-                    ? locale === "th" ? (application.reviewedAt ? `ตรวจเมื่อ ${application.reviewedAt}` : "ตรวจสอบเรียบร้อย") : "Review completed"
+                    ? locale === "th"
+                      ? (application.reviewedAt ? `ตรวจเมื่อ ${application.reviewedAt}` : "ตรวจสอบเรียบร้อย")
+                      : locale === "zh"
+                        ? (application.reviewedAt ? `审核于 ${application.reviewedAt}` : "审核已完成")
+                        : (application.reviewedAt ? `Reviewed ${application.reviewedAt}` : "Review completed")
                     : application.status === "under_review"
-                      ? locale === "th" ? "Manager กำลังตรวจสอบข้อมูล" : "Manager is reviewing"
+                      ? locale === "th" ? "Manager กำลังตรวจสอบข้อมูล" : locale === "zh" ? "管理员正在审核" : "Manager is reviewing"
                       : isCancelled
-                        ? locale === "th" ? "ยกเลิกคำขอแล้ว" : "Withdrawn"
-                        : locale === "th" ? "อยู่ในคิวรอการตรวจสอบ" : "In review queue"}
+                        ? locale === "th" ? "ยกเลิกคำขอแล้ว" : locale === "zh" ? "已撤回申请" : "Withdrawn"
+                        : locale === "th" ? "อยู่ในคิวรอการตรวจสอบ" : locale === "zh" ? "排队等待审核" : "In review queue"}
                 </p>
               </div>
             </li>
@@ -152,14 +181,14 @@ export function ApplicationStatusPanel({ application, onReupload, onCancel, comp
                 </p>
                 <p className="mt-0.5 text-xs text-[#53656c]">
                   {isStep3Done
-                    ? locale === "th" ? "อนุมัติคุณสมบัติเรียบร้อย" : "Approved as Interpreter"
+                    ? locale === "th" ? "อนุมัติคุณสมบัติเรียบร้อย" : locale === "zh" ? "资质已批准" : "Approved as Interpreter"
                     : isStep3Attention
-                      ? locale === "th" ? "ขอเอกสารเพิ่มเติม" : "Revision requested"
+                      ? locale === "th" ? "ขอเอกสารเพิ่มเติม" : locale === "zh" ? "需要补充材料" : "Revision requested"
                       : isStep3Rejected
-                        ? locale === "th" ? "ไม่อนุมัติใบสมัคร" : "Application rejected"
+                        ? locale === "th" ? "ไม่อนุมัติใบสมัคร" : locale === "zh" ? "申请未批准" : "Application rejected"
                         : isCancelled
-                          ? locale === "th" ? "ถอนใบสมัครแล้ว" : "Withdrawn"
-                          : locale === "th" ? "รอผลการพิจารณา" : "Awaiting decision"}
+                          ? locale === "th" ? "ถอนใบสมัครแล้ว" : locale === "zh" ? "已撤回" : "Withdrawn"
+                          : locale === "th" ? "รอผลการพิจารณา" : locale === "zh" ? "等待评审结果" : "Awaiting decision"}
                 </p>
               </div>
             </li>
@@ -173,9 +202,23 @@ export function ApplicationStatusPanel({ application, onReupload, onCancel, comp
             <h2 id="application-summary-title" className="text-lg font-extrabold text-[#10283a]">
               {locale === "th" ? "สรุปใบสมัคร" : locale === "zh" ? "申请摘要" : "Application summary"}
             </h2>
-            <p className="mt-1 text-xs text-[#64777e]">{locale === "th" ? `ส่งเมื่อ ${application.submittedAt}` : `Submitted ${application.submittedAt}`}</p>
+            <p className="mt-1 text-xs text-[#64777e]">
+              {locale === "th"
+                ? `ส่งเมื่อ ${application.submittedAt}`
+                : locale === "zh"
+                  ? `提交于 ${application.submittedAt}`
+                  : `Submitted ${application.submittedAt}`}
+            </p>
           </div>
-          {application.reviewedAt && <p className="text-xs text-[#64777e]">{locale === "th" ? `ตรวจล่าสุด ${application.reviewedAt}` : `Reviewed ${application.reviewedAt}`}</p>}
+          {application.reviewedAt && (
+            <p className="text-xs text-[#64777e]">
+              {locale === "th"
+                ? `ตรวจล่าสุด ${application.reviewedAt}`
+                : locale === "zh"
+                  ? `最近审核于 ${application.reviewedAt}`
+                  : `Reviewed ${application.reviewedAt}`}
+            </p>
+          )}
         </div>
 
         <p className="mt-4 rounded-lg bg-[#f7f9fa] p-4 text-sm leading-7 text-[#294554]">{detail}</p>
@@ -183,7 +226,9 @@ export function ApplicationStatusPanel({ application, onReupload, onCancel, comp
         {(application.status === "needs_revision" || application.status === "rejected") && onReupload && (
           <div className="mt-4 rounded-(--khvi-radius-sm) border border-[#d97706] bg-[#fffbeb] p-4">
             <p className="text-sm font-extrabold text-[#92400e]">
-              {application.status === "rejected" ? "เริ่มใบสมัครใหม่ด้วยข้อมูลที่แก้ไขแล้ว" : "อัปโหลดเอกสารใหม่เพื่อส่งตรวจอีกครั้ง"}
+              {application.status === "rejected"
+                ? locale === "th" ? "เริ่มใบสมัครใหม่ด้วยข้อมูลที่แก้ไขแล้ว" : locale === "zh" ? "用修改后的信息重新提交申请" : "Start a new application with updated details"
+                : locale === "th" ? "อัปโหลดเอกสารใหม่เพื่อส่งตรวจอีกครั้ง" : locale === "zh" ? "重新上传文件以再次审核" : "Upload new documents to request re-review"}
             </p>
             <input
               className="mt-3 block w-full text-xs text-[#526a74] file:mr-3 file:border-0 file:rounded-(--khvi-radius-sm) file:bg-[#b45309] file:px-3 file:py-2 file:font-bold file:text-white"
@@ -198,48 +243,279 @@ export function ApplicationStatusPanel({ application, onReupload, onCancel, comp
         )}
 
         {!compact && (
-          <>
-            <div className="mt-5 grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
-              <div><dt className="text-xs font-bold text-[#73848a]">Applicant</dt><dd className="mt-1 font-extrabold text-[#203d4d]">{application.applicantName}</dd></div>
-              <div><dt className="text-xs font-bold text-[#73848a]">Contact</dt><dd className="mt-1 font-extrabold text-[#203d4d]">{application.phone}</dd></div>
-              <div><dt className="text-xs font-bold text-[#73848a]">Languages</dt><dd className="mt-1 flex flex-wrap gap-1.5">{application.languages.map((language) => <span key={language.id} className="rounded-full border border-[#b9d9d6] bg-[#edf7f5] px-2.5 py-1 text-xs font-bold text-[#087557]">{language.name}</span>)}</dd></div>
-              <div><dt className="text-xs font-bold text-[#73848a]">Categories</dt><dd className="mt-1 flex flex-wrap gap-1.5">{application.categories.map((category) => <span key={category.id} className="rounded-full border border-[#d6e0e4] bg-[#f8fafb] px-2.5 py-1 text-xs font-bold text-[#39525d]">{category.icon} {category.name}</span>)}</dd></div>
+          <div className="mt-6 space-y-4">
+            <h3 className="text-xs font-black uppercase tracking-wider text-[#64777e] border-b border-[#edf2f4] pb-2">
+              {locale === "th"
+                ? "ข้อมูลที่ยื่นในใบสมัคร (Submitted Application Details)"
+                : locale === "zh"
+                  ? "申请提交详情"
+                  : "Submitted Application Details"}
+            </h3>
+
+            {/* 1. Personal & Contact Information */}
+            <div className="rounded-xl border border-[#e4edf0] bg-[#f8fbfc] p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black uppercase tracking-wider text-[#6b8593]">
+                  {locale === "th"
+                    ? "1. ข้อมูลส่วนตัวและการติดต่อ"
+                    : locale === "zh"
+                      ? "1. 个人与联络信息"
+                      : "1. Personal & Contact Information"}
+                </span>
+                <span className="rounded bg-white px-2 py-0.5 text-[10px] font-mono text-[#53656c] border border-[#d6e0e4]">
+                  BR-04 Shielded
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                <div>
+                  <dt className="text-[11px] font-bold text-[#73848a]">
+                    {locale === "th" ? "ชื่อ-นามสกุล:" : locale === "zh" ? "姓名:" : "Full Name:"}
+                  </dt>
+                  <dd className="mt-1 font-extrabold text-[#10283a]">{application.applicantName}</dd>
+                </div>
+
+                <div>
+                  <dt className="text-[11px] font-bold text-[#73848a]">
+                    {locale === "th" ? "อายุ:" : locale === "zh" ? "年龄:" : "Age:"}
+                  </dt>
+                  <dd className="mt-1 font-extrabold text-[#10283a]">
+                    {application.age > 0
+                      ? locale === "th"
+                        ? `${application.age} ปี`
+                        : locale === "zh"
+                          ? `${application.age} 岁`
+                          : `${application.age} yrs`
+                      : "—"}
+                  </dd>
+                </div>
+
+                <div>
+                  <dt className="text-[11px] font-bold text-[#73848a]">
+                    {locale === "th" ? "เบอร์โทรศัพท์หลัก:" : locale === "zh" ? "主要电话:" : "Phone:"}
+                  </dt>
+                  <dd className="mt-1 font-extrabold text-[#10283a]">{application.phone || "—"}</dd>
+                </div>
+
+                <div>
+                  <dt className="text-[11px] font-bold text-[#73848a]">
+                    {locale === "th" ? "อีเมลติดต่อ:" : locale === "zh" ? "电子邮件:" : "Email:"}
+                  </dt>
+                  <dd className="mt-1 font-extrabold text-[#10283a]">{application.email || "—"}</dd>
+                </div>
+
+                {application.extraContact && (
+                  <div className="sm:col-span-2 lg:col-span-4 pt-2 border-t border-[#e8eff1]">
+                    <dt className="text-[11px] font-bold text-[#73848a] mb-1">
+                      {locale === "th"
+                        ? "ช่องทางติดต่อเพิ่มเติม (extra_contact):"
+                        : locale === "zh"
+                          ? "其他联系渠道 (extra_contact):"
+                          : "Additional Contact Channel (extra_contact):"}
+                    </dt>
+                    <dd className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-1.5 rounded-md border border-[#cde0e2] bg-white px-2.5 py-1 text-xs font-semibold text-[#0c6b6c]">
+                        <span>{getExtraContactIcon(application.extraContact)}</span>
+                        <span className="font-mono font-bold text-[#10283a]">{application.extraContact}</span>
+                      </span>
+                      <span className="text-[10px] text-[#73848a]">
+                        {locale === "th"
+                          ? "(ระบบจะเปิดเผยเฉพาะเมื่อคุณ Claim งานแล้วเท่านั้น)"
+                          : locale === "zh"
+                            ? "（仅在接单后向求助者公开）"
+                            : "(Revealed only after you claim a mission)"}
+                      </span>
+                    </dd>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="mt-5 border-t border-[#e6eef0] pt-5">
-              <h3 className="text-sm font-extrabold text-[#203d4d]">Documents and review record</h3>
-              <ul className="mt-3 space-y-2 text-xs text-[#526a74]">
-                {application.documents.map((document) => <li key={document.name} className="flex items-center justify-between gap-3 rounded-(--khvi-radius-sm) border border-[#d6e0e4] bg-[#f8fafb] px-3 py-2.5"><span>📄 {document.name}</span><span>{document.size}</span></li>)}
-              </ul>
-              {application.reviewedByManagerName && <p className="mt-3 text-xs text-[#64777e]">Reviewed by <strong className="text-[#203d4d]">{application.reviewedByManagerName}</strong></p>}
+            {/* 2. Languages */}
+            <div className="rounded-xl border border-[#e4edf0] bg-[#f8fbfc] p-4 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black uppercase tracking-wider text-[#6b8593]">
+                  {locale === "th"
+                    ? `2. ภาษาที่เลือกให้บริการ (${application.languages.length} ภาษา)`
+                    : locale === "zh"
+                      ? `2. 所选服务语言 (${application.languages.length} 种)`
+                      : `2. Selected Languages (${application.languages.length})`}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {application.languages.map((language) => {
+                  const langLabel =
+                    locale === "th"
+                      ? language.nameTh ?? language.name
+                      : locale === "zh"
+                        ? language.nameZh ?? language.name
+                        : language.name;
+                  return (
+                    <span
+                      key={language.id}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-[#cbe3dd] bg-white px-3 py-1.5 text-xs font-bold text-[#087557]"
+                    >
+                      <span>✓ {langLabel}</span>
+                      {language.type && (
+                        <span className="rounded bg-[#edf7f5] px-1.5 py-0.5 text-[10px] font-semibold text-[#087f80]">
+                          {language.type}
+                        </span>
+                      )}
+                    </span>
+                  );
+                })}
+              </div>
             </div>
-          </>
+
+            {/* 3. Categories */}
+            <div className="rounded-xl border border-[#e4edf0] bg-[#f8fbfc] p-4 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black uppercase tracking-wider text-[#6b8593]">
+                  {locale === "th"
+                    ? `3. หมวดหมู่ภารกิจที่พร้อมช่วยเหลือ (${application.categories.length} หมวด)`
+                    : locale === "zh"
+                      ? `3. 任务类别 (${application.categories.length} 类)`
+                      : `3. Mission Categories (${application.categories.length})`}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {application.categories.map((category) => {
+                  const catLabel =
+                    locale === "th"
+                      ? category.nameTh ?? category.name
+                      : locale === "zh"
+                        ? category.nameZh ?? category.name
+                        : category.name;
+                  return (
+                    <div
+                      key={category.id}
+                      className="flex items-center gap-2 rounded-md border border-[#d6e0e4] bg-white px-3 py-2 text-xs font-bold text-[#10283a]"
+                    >
+                      <span className="text-base">{category.icon || "💬"}</span>
+                      <span>{catLabel}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 4. Credentials & Documents */}
+            <div className="rounded-xl border border-[#e4edf0] bg-[#f8fbfc] p-4 space-y-2.5">
+              <span className="text-[11px] font-black uppercase tracking-wider text-[#6b8593]">
+                {locale === "th"
+                  ? "4. เอกสารรับรองคุณวุฒิที่แนบ"
+                  : locale === "zh"
+                    ? "4. 所附资质文件"
+                    : "4. Attached Credential Documents"}
+              </span>
+              <ul className="space-y-2 text-xs text-[#526a74]">
+                {(application.documents.length > 0
+                  ? application.documents
+                  : [{ name: application.certificateFileName, type: "cert" as const, size: "", url: application.certificateUrl }]
+                ).filter((doc) => doc.name).map((document) => {
+                  const finalUrl = resolveDocUrl(document.url);
+                  return (
+                    <li
+                      key={document.name}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-[#d6e0e4] bg-white p-3"
+                    >
+                      <div className="flex items-center gap-2 font-bold text-[#10283a] min-w-0">
+                        <span className="shrink-0 text-base">📄</span>
+                        <span className="truncate">{document.name}</span>
+                      </div>
+                      {finalUrl && (
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setPreviewDoc({ name: document.name, url: finalUrl })}
+                            className="rounded border border-[#087f80] bg-[#edf7f5] px-2.5 py-1 text-[11px] font-bold text-[#087f80] hover:bg-[#d8efe9] transition-colors cursor-pointer"
+                          >
+                            {locale === "th" ? "ดูตัวอย่าง" : locale === "zh" ? "预览" : "Preview"}
+                          </button>
+                          <a
+                            href={finalUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded border border-[#c3d1d6] bg-[#f8fafb] px-2.5 py-1 text-[11px] font-bold text-[#203d4d] hover:bg-[#edf7f5] hover:text-[#087f80] transition-colors"
+                          >
+                            {locale === "th" ? "เปิดดูเอกสาร ↗" : locale === "zh" ? "查看文件 ↗" : "View document ↗"}
+                          </a>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+              {application.reviewedByManagerName && (
+                <p className="mt-3 text-xs text-[#64777e]">
+                  {locale === "th" ? "ตรวจสอบโดย " : locale === "zh" ? "审核人 " : "Reviewed by "}
+                  <strong className="text-[#203d4d]">{application.reviewedByManagerName}</strong>
+                </p>
+              )}
+            </div>
+          </div>
         )}
 
         {canCancel && (
           <div className="mt-6 border-t border-[#e6eef0] pt-5">
             {cancelOpen ? (
               <div className="rounded-(--khvi-radius-sm) border border-[#f8c5be] bg-[#fff8f7] p-4">
-                <p className="text-sm font-extrabold text-[#b8291b]">ยืนยันการยกเลิกสมัคร</p>
-                <p className="mt-1 text-xs leading-5 text-[#7c4a44]">หลังยกเลิก ใบสมัครนี้จะถูกถอนออกจากระบบ และนำคุณกลับสู่หน้าหลัก</p>
-                <label className="mt-3 block text-xs font-bold text-[#7c4a44]" htmlFor="application-cancel-reason">เหตุผล (ไม่บังคับ)</label>
+                <p className="text-sm font-extrabold text-[#b8291b]">
+                  {locale === "th" ? "ยืนยันการยกเลิกสมัคร" : locale === "zh" ? "确认取消申请" : "Confirm application cancellation"}
+                </p>
+                <p className="mt-1 text-xs leading-5 text-[#7c4a44]">
+                  {locale === "th"
+                    ? "หลังยกเลิก ใบสมัครนี้จะถูกถอนออกจากระบบ และนำคุณกลับสู่หน้าหลัก"
+                    : locale === "zh"
+                      ? "取消后，此申请将从系统中撤回，您将返回首页。"
+                      : "After cancellation, this application will be withdrawn from the system and you will be returned to the home page."}
+                </p>
+                <label className="mt-3 block text-xs font-bold text-[#7c4a44]" htmlFor="application-cancel-reason">
+                  {locale === "th" ? "เหตุผล (ไม่บังคับ)" : locale === "zh" ? "原因（选填）" : "Reason (optional)"}
+                </label>
                 <textarea
                   id="application-cancel-reason"
                   value={cancelReason}
                   onChange={(event) => setCancelReason(event.target.value)}
                   maxLength={300}
                   rows={2}
-                  placeholder="เช่น เปลี่ยนใจและยังไม่พร้อมรับงาน"
+                  placeholder={
+                    locale === "th"
+                      ? "เช่น เปลี่ยนใจและยังไม่พร้อมรับงาน"
+                      : locale === "zh"
+                        ? "例如：改变主意，暂未准备好接单"
+                        : "e.g. Changed my mind or not ready to take assignments yet"
+                  }
                   className="mt-1.5 w-full resize-y rounded-(--khvi-radius-sm) border border-[#e6b8b1] bg-white px-3 py-2 text-sm text-[#203d4d] focus:border-[#c33a2a] focus:outline-none"
                 />
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <button type="button" onClick={() => onCancel?.(cancelReason)} className="rounded-(--khvi-radius-sm) bg-[#c33a2a] px-4 py-2 text-xs font-extrabold text-white hover:bg-[#a92e22] cursor-pointer">ยืนยันยกเลิกสมัครและกลับสู่หน้าหลัก</button>
-                  <button type="button" onClick={() => setCancelOpen(false)} className="rounded-(--khvi-radius-sm) border border-[#cbd7dc] bg-white px-4 py-2 text-xs font-bold text-[#39525d] hover:bg-[#f8fafb] cursor-pointer">เก็บใบสมัครไว้</button>
+                  <button
+                    type="button"
+                    onClick={() => onCancel?.(cancelReason)}
+                    className="rounded-(--khvi-radius-sm) bg-[#c33a2a] px-4 py-2 text-xs font-extrabold text-white hover:bg-[#a92e22] cursor-pointer"
+                  >
+                    {locale === "th" ? "ยืนยันยกเลิกสมัครและกลับสู่หน้าหลัก" : locale === "zh" ? "确认取消并返回首页" : "Confirm cancel and return home"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCancelOpen(false)}
+                    className="rounded-(--khvi-radius-sm) border border-[#cbd7dc] bg-white px-4 py-2 text-xs font-bold text-[#39525d] hover:bg-[#f8fafb] cursor-pointer"
+                  >
+                    {locale === "th" ? "เก็บใบสมัครไว้" : locale === "zh" ? "保留申请" : "Keep application"}
+                  </button>
                 </div>
               </div>
             ) : (
-              <button type="button" onClick={() => setCancelOpen(true)} className="inline-flex min-h-10 items-center justify-center rounded-(--khvi-radius-sm) border border-[#e6b8b1] bg-white px-4 py-2 text-sm font-bold text-[#b8291b] hover:bg-[#fff1f2] cursor-pointer">
-                ยกเลิกสมัครเพื่อออกและกลับสู่หน้าหลัก
+              <button
+                type="button"
+                onClick={() => setCancelOpen(true)}
+                className="inline-flex min-h-10 items-center justify-center rounded-(--khvi-radius-sm) border border-[#e6b8b1] bg-white px-4 py-2 text-sm font-bold text-[#b8291b] hover:bg-[#fff1f2] cursor-pointer"
+              >
+                {locale === "th"
+                  ? "ยกเลิกสมัครเพื่อออกและกลับสู่หน้าหลัก"
+                  : locale === "zh"
+                    ? "取消申请并返回首页"
+                    : "Cancel application to exit and return home"}
               </button>
             )}
           </div>
@@ -247,9 +523,91 @@ export function ApplicationStatusPanel({ application, onReupload, onCancel, comp
       </section>
 
       <div className="flex flex-wrap gap-3">
-        <Link className="inline-flex min-h-11 items-center justify-center rounded-(--khvi-radius-sm) border border-[#087f80] px-4 py-2.5 text-sm font-bold text-[#087f80] hover:bg-[#edf7f5]" href="/welcome#welcome-user">กลับสู่หน้าหลัก</Link>
-        {(application.status === "needs_revision" || application.status === "rejected" || application.status === "cancelled") && <Link className="inline-flex min-h-11 items-center justify-center rounded-(--khvi-radius-sm) bg-[#092f45] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0c4960]" href="/volunteer/apply#main-content">{application.status === "cancelled" ? "สมัครใหม่" : "แก้ไขใบสมัคร"}</Link>}
+        <Link className="inline-flex min-h-11 items-center justify-center rounded-(--khvi-radius-sm) border border-[#087f80] px-4 py-2.5 text-sm font-bold text-[#087f80] hover:bg-[#edf7f5]" href="/user">
+          {locale === "th" ? "กลับสู่หน้าหลัก" : locale === "zh" ? "返回首页" : "Back to Home"}
+        </Link>
+        {!revoked && (application.status === "needs_revision" || application.status === "rejected" || application.status === "cancelled") && (
+          <Link className="inline-flex min-h-11 items-center justify-center rounded-(--khvi-radius-sm) bg-[#092f45] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0c4960]" href="/user/volunteer/apply#main-content">
+            {application.status === "cancelled"
+              ? locale === "th" ? "สมัครใหม่" : locale === "zh" ? "重新申请" : "Apply again"
+              : locale === "th" ? "แก้ไขใบสมัคร" : locale === "zh" ? "修改申请" : "Edit application"}
+          </Link>
+        )}
       </div>
+
+      {/* Document Preview Lightbox Modal */}
+      {previewDoc && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={locale === "th" ? "ดูตัวอย่างเอกสาร" : locale === "zh" ? "预览文件" : "Document Preview"}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => setPreviewDoc(null)}
+        >
+          <div
+            className="relative flex flex-col w-full max-w-3xl max-h-[90vh] rounded-xl border border-[#092f45] bg-white shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-[#e2ebee] bg-[#092f45] px-4 py-3 text-white">
+              <div className="flex items-center gap-2 text-sm font-bold truncate">
+                <span>📄</span>
+                <span className="truncate">{previewDoc.name}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewDoc(null)}
+                aria-label={locale === "th" ? "ปิดหน้าต่าง" : locale === "zh" ? "关闭" : "Close"}
+                className="flex h-7 w-7 items-center justify-center rounded-md border border-white/20 bg-white/10 text-xs font-bold text-white hover:bg-white/20 transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-auto bg-[#f8fafb] p-4 flex items-center justify-center min-h-[320px]">
+              {/\.(jpg|jpeg|png|webp|gif)$/i.test(previewDoc.name) ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={previewDoc.url}
+                  alt={previewDoc.name}
+                  className="max-h-[70vh] w-auto max-w-full rounded object-contain mx-auto shadow-sm"
+                />
+              ) : /\.pdf$/i.test(previewDoc.name) ? (
+                <iframe
+                  src={previewDoc.url}
+                  title={previewDoc.name}
+                  className="w-full h-[70vh] rounded border border-[#cbd7dc]"
+                />
+              ) : (
+                <div className="text-center p-8">
+                  <span className="text-5xl">📄</span>
+                  <p className="mt-3 font-bold text-[#10283a]">{previewDoc.name}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between border-t border-[#e2ebee] bg-white px-4 py-3">
+              <a
+                href={previewDoc.url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded border border-[#087f80] bg-[#edf7f5] px-3.5 py-1.5 text-xs font-bold text-[#087f80] hover:bg-[#d8efe9] transition-colors"
+              >
+                <span>{locale === "th" ? "เปิดในแท็บใหม่ ↗" : locale === "zh" ? "在新标签页打开 ↗" : "Open in new tab ↗"}</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => setPreviewDoc(null)}
+                className="rounded border border-[#cbd7dc] bg-white px-4 py-1.5 text-xs font-bold text-[#53656c] hover:bg-[#f4f7f8] cursor-pointer"
+              >
+                {locale === "th" ? "ปิด" : locale === "zh" ? "关闭" : "Close"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

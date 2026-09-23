@@ -9,6 +9,7 @@ import {
   type UserProfile,
 } from "@/app/lib/mock-auth";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
+import { authApi } from "@/app/lib/auth-client";
 import {
   getInterpreterWorkspaceMode,
   getWorkspaceRoleForMode,
@@ -23,9 +24,10 @@ function isWorkspaceUser(user: UserProfile | null): user is UserProfile & { role
   return user?.role === "User" || user?.role === "Interpreter";
 }
 
-export function WorkspaceShell({ children, requiredRole, alternatePath }: {
+export function WorkspaceShell({ children, requiredRole, requiredAccountRole, alternatePath }: {
   children: ReactNode;
   requiredRole?: WorkspaceRole;
+  requiredAccountRole?: WorkspaceRole;
   alternatePath?: string;
 }) {
   const router = useRouter();
@@ -35,12 +37,28 @@ export function WorkspaceShell({ children, requiredRole, alternatePath }: {
   useEffect(() => {
     const supabase = createClient();
     let disposed = false;
+    let refreshTimer: number | null = null;
+
+    const refreshBookingViews = () => {
+      if (disposed || document.visibilityState !== "visible") return;
+      if (refreshTimer !== null) window.clearTimeout(refreshTimer);
+      refreshTimer = window.setTimeout(() => {
+        refreshTimer = null;
+        router.refresh();
+      }, 200);
+    };
 
     const refreshSession = async () => {
       const result = await getCurrentUserProfile(supabase);
       if (disposed) return;
 
       if (isWorkspaceUser(result.profile)) {
+        if (requiredAccountRole && result.profile.role !== requiredAccountRole) {
+          setUser(null);
+          router.replace(getRedirectPathByRole(result.profile.role));
+          return;
+        }
+
         const nextMode = getInterpreterWorkspaceMode(result.profile);
         const activeRole = getWorkspaceRoleForMode(result.profile, nextMode);
         setInterpreterMode(nextMode);
@@ -70,16 +88,36 @@ export function WorkspaceShell({ children, requiredRole, alternatePath }: {
     const unsubscribeWorkspaceMode = subscribeInterpreterWorkspaceMode(() => {
       window.setTimeout(() => void refreshSession(), 0);
     });
-    const onWindowFocus = () => void refreshSession();
+    const bookingChannel = supabase
+      .channel(`workspace-bookings-${crypto.randomUUID()}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "bookings" },
+        refreshBookingViews,
+      )
+      .subscribe();
+    const bookingPoll = window.setInterval(refreshBookingViews, 10_000);
+    const onWindowFocus = () => {
+      void refreshSession();
+      refreshBookingViews();
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") refreshBookingViews();
+    };
     window.addEventListener("focus", onWindowFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
       disposed = true;
+      if (refreshTimer !== null) window.clearTimeout(refreshTimer);
+      window.clearInterval(bookingPoll);
+      void supabase.removeChannel(bookingChannel);
       authListener.subscription.unsubscribe();
       unsubscribeWorkspaceMode();
       window.removeEventListener("focus", onWindowFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [alternatePath, requiredRole, router]);
+  }, [alternatePath, requiredAccountRole, requiredRole, router]);
 
   if (!user) {
     return (
@@ -95,11 +133,12 @@ export function WorkspaceShell({ children, requiredRole, alternatePath }: {
     <div className="min-h-screen bg-(--khvi-paper) text-(--khvi-ink)">
       <AppShell
         welcomeRole={role}
+        accountRole={user.role}
         accountActions={
           <WorkspaceAccountActions
             user={user}
-            onSignOut={() => {
-              void createClient().auth.signOut();
+            onSignOut={async () => {
+              await authApi.logout();
               setUser(null);
               router.replace("/#top");
             }}

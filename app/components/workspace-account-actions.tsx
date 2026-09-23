@@ -3,7 +3,7 @@
 import { ArrowRightOnRectangleIcon, ChevronDownIcon, IdentificationIcon, UserCircleIcon } from "@heroicons/react/24/outline";
 import { useEffect, useRef, useState } from "react";
 import { getDisplayName, type UserProfile } from "@/app/lib/mock-auth";
-import { useUiLocale } from "./app-shell";
+import { useInterpreterAccess, useUiLocale } from "./app-shell";
 import { UserAvatar } from "./user-avatar";
 
 const accountCopy = {
@@ -14,8 +14,9 @@ const accountCopy = {
   ar: { menu: "فتح قائمة الملف الشخصي", profileSettings: "الملฟ الشخصي والإعدادات", volunteerApply: "طلب التطوع كمترجم", signOut: "تسجيل الخروج" },
 } as const;
 
-export function WorkspaceAccountActions({ user, onSignOut }: { user: UserProfile; onSignOut: () => void }) {
+export function WorkspaceAccountActions({ user, onSignOut }: { user: UserProfile; onSignOut: () => void | Promise<void> }) {
   const locale = useUiLocale();
+  const interpreterAccess = useInterpreterAccess();
   const copy = accountCopy[locale];
   const displayName = getDisplayName(user.name);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -85,9 +86,9 @@ export function WorkspaceAccountActions({ user, onSignOut }: { user: UserProfile
               <UserCircleIcon className="h-4 w-4" aria-hidden="true" />
               {copy.profileSettings}
             </a>
-            {user.role === "User" && (
+            {user.role === "User" && interpreterAccess.verified && !interpreterAccess.applicationStatus && (
               <a
-                href="/volunteer/apply#main-content"
+                href="/user/volunteer/apply#main-content"
                 role="menuitem"
                 onClick={() => setProfileMenuOpen(false)}
                 className="flex w-full items-center gap-2.5 rounded-(--khvi-radius-sm) px-3 py-2 text-xs font-bold text-(--khvi-ink)/80 transition-colors hover:bg-(--khvi-paper) hover:text-(--khvi-teal) focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--khvi-sun)"
@@ -103,7 +104,7 @@ export function WorkspaceAccountActions({ user, onSignOut }: { user: UserProfile
               role="menuitem"
               onClick={() => {
                 setProfileMenuOpen(false);
-                onSignOut();
+                void onSignOut();
               }}
               className="flex w-full items-center gap-2.5 rounded-(--khvi-radius-sm) px-3 py-2 text-left text-xs font-bold text-(--khvi-coral) transition-colors hover:bg-(--khvi-coral)/10 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--khvi-sun)"
             >

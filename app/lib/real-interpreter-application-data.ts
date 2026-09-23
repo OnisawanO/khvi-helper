@@ -8,7 +8,7 @@ import type {
   InterpreterApplication,
   WorkHistoryEntry,
 } from "@/app/lib/interpreter-application";
-import type { InterpreterApplicant } from "@/app/(manager)/manager/types";
+import type { InterpreterApplicant } from "@/app/manager/types";
 
 type ApplicationRow = {
   application_id: number;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { AdminIncidentReport, AdminUserRecord, AuditLogEntry } from "../(admin)/admin/types";
+import { AdminIncidentReport, AdminUserRecord, AuditLogEntry } from "../admin/types";
 
 // This store is only an in-memory projection of records loaded from Supabase.
 // It intentionally has no seed data and no localStorage fallback.

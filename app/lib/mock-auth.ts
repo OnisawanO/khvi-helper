@@ -50,6 +50,12 @@ export function getDisplayName(name: string): string {
   return displayName || name;
 }
 
+export function splitDisplayName(name: string): { firstName: string; lastName: string } {
+  const cleanName = getDisplayName(name).replace(/\s+\([^)]*\)$/, "").trim();
+  const [firstName = "", ...lastNameParts] = cleanName.split(/\s+/);
+  return { firstName, lastName: lastNameParts.join(" ") };
+}
+
 export function calculateAge(dateOfBirthString: string): number | null {
   if (!dateOfBirthString) return null;
 
@@ -254,9 +260,9 @@ export const DEFAULT_MOCK_USERS: Record<UserRole, UserProfile & { password: stri
 export function getRedirectPathByRole(role: UserRole): string {
   switch (role) {
     case "User":
-      return "/welcome#welcome-user";
+      return "/user";
     case "Interpreter":
-      return "/welcome#welcome-Interpreter";
+      return "/interpreter";
     case "Manager":
       return "/manager";
     case "Admin":
