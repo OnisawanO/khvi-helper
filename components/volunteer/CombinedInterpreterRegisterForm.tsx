@@ -986,27 +986,6 @@ export function CombinedInterpreterRegisterForm({
             </div>
           </div>
 
-          {/* Profile Verification & Privacy Shield Callout */}
-          <div className="rounded-(--khvi-radius-sm) border border-[#b9d9d6] bg-[#edf7f5] p-5 text-xs text-[#10283a] shadow-sm flex items-start gap-3">
-            <span className="text-base font-bold text-[#087557] shrink-0">✓</span>
-            <div className="space-y-1">
-              <h4 className="font-extrabold text-sm text-[#087557]">
-                {locale === "th"
-                  ? "มาตรฐานความปลอดภัยและสิทธิ์การรับงาน (BR-02, BR-03, BR-04)"
-                  : locale === "zh"
-                    ? "安全标准与接单资格 (BR-02, BR-03, BR-04)"
-                    : "Safety Standards & Assignment Eligibility (BR-02, BR-03, BR-04)"}
-              </h4>
-              <p className="leading-relaxed text-[#53656c]">
-                {locale === "th"
-                  ? "แบบฟอร์มนี้ตรงตาม Data Dictionary 100% ข้อมูลการติดต่อและพิกัดละเอียดจะถูกปกปิดไว้จนกว่าคุณจะกด Claim งานสำเร็จ"
-                  : locale === "zh"
-                    ? "此表单 100% 符合数据字典规范，联络信息与精确位置将保持隐藏，直到成功接单 (Claim)"
-                    : "This form complies 100% with the Data Dictionary. Contact details remain shielded until an assignment is claimed."}
-              </p>
-            </div>
-          </div>
-
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
             <Link
