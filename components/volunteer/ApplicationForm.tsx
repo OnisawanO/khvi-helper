@@ -437,7 +437,7 @@ export function ApplicationForm({
             {/* 5 ภาษาหลักตามโจทย์: ไทย, อังกฤษ, จีน, สเปน, อาหรับ */}
             <div className="mb-4">
               <span className="block text-xs font-bold text-[#10283a] mb-2 uppercase tracking-wide">
-                {locale === "th" ? "ภาษาหลัก (Core Languages):" : locale === "zh" ? "核心语言 (Core Languages):" : "Core Languages:"}
+                {locale === "th" ? "ภาษาหลัก:" : locale === "zh" ? "核心语言:" : "Core Languages:"}
               </span>
               <div className="flex flex-wrap gap-2">
                 {coreLanguages.map((lang) => {
@@ -611,10 +611,10 @@ export function ApplicationForm({
               <div className="mt-4 border-t border-[#edf2f4] pt-3 text-xs text-[#64777e] flex items-center justify-between">
                 <span>
                   {locale === "th"
-                    ? "ภาษาหลักของระบบ (primary_language_id): "
+                    ? "ภาษาหลักของระบบ: "
                     : locale === "zh"
-                      ? "系统主要语言 (primary_language_id): "
-                      : "System primary language (primary_language_id): "}
+                      ? "系统主要语言: "
+                      : "System primary language: "}
                   <strong className="text-[#10283a]">
                     {locale === "th" ? "ไทย (Thai)" : locale === "zh" ? "泰语 (Thai)" : "Thai"}
                   </strong>
@@ -683,9 +683,9 @@ export function ApplicationForm({
             <div className="flex items-center justify-between gap-2 mb-1">
               <label className="block text-sm font-extrabold text-[#10283a]">
                 {locale === "th"
-                  ? "3. ข้อมูลการติดต่อสำหรับการประสานงาน (Contact Details)"
+                  ? "3. ข้อมูลการติดต่อสำหรับการประสานงาน"
                   : locale === "zh"
-                    ? "3. 协调联络信息 (Contact Details)"
+                    ? "3. 协调联络信息"
                     : "3. Contact Details for Coordination"}
               </label>
               {hasPrefilled && (
@@ -795,15 +795,15 @@ export function ApplicationForm({
           </div>
 
 
-          {/* 4. Certificate & Verification (INTERPRETER_APPLICATIONS: certificate_url) */}
+          {/* 4. Certificate & Verification */}
           <div className="rounded-(--khvi-radius-md) border border-[#d6e0e4] bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between gap-2 mb-1">
               <label className="block text-sm font-extrabold text-[#10283a]">
                 {locale === "th"
-                  ? "4. เอกสารรับรองคุณวุฒิหรือทักษะทางภาษา (INTERPRETER_APPLICATIONS.certificate_url)"
+                  ? "4. เอกสารรับรองคุณวุฒิหรือทักษะทางภาษา"
                   : locale === "zh"
-                    ? "4. 资质或语言能力证明 (INTERPRETER_APPLICATIONS.certificate_url)"
-                    : "4. Credential or Language Certificate (INTERPRETER_APPLICATIONS.certificate_url)"}
+                    ? "4. 资质或语言能力证明"
+                    : "4. Credential or Language Certificate"}
               </label>
               <span className="rounded-(--khvi-radius-sm) border border-[#b9d9d6] bg-[#edf7f5] px-2.5 py-0.5 text-[11px] font-extrabold text-[#087f80]">
                 {locale === "th" ? "ต้องผ่านการตรวจสอบโดย Manager" : locale === "zh" ? "需管理员审核" : "Manager Review Required"}
