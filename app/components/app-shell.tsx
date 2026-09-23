@@ -286,7 +286,7 @@ export function AppShell({ children, accountActions, welcomeRole, accountRole, h
         hidePrimaryAction={hidePrimaryAction}
       />
       {children}
-      <SiteFooter copy={t.footer} brandSubtitle={t.header.brandSubtitle} workspace={Boolean(welcomeRole)} />
+      <SiteFooter copy={t.footer} brandSubtitle={t.header.brandSubtitle} locale={locale} workspace={Boolean(welcomeRole)} />
     </InterpreterAccessContext.Provider></CopyLocaleContext.Provider></UiLocaleContext.Provider>
   );
 }

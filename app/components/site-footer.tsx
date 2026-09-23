@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BrandMark } from "./brand-mark";
+import type { Locale } from "./site-header";
 
 type FooterCopy = {
   description: string;
@@ -23,14 +24,25 @@ type FooterCopy = {
 type SiteFooterProps = {
   copy: FooterCopy;
   brandSubtitle: string;
+  locale?: Locale;
   workspace?: boolean;
 };
 
-export function SiteFooter({ copy, brandSubtitle, workspace = false }: SiteFooterProps) {
+const footerBrandLabels: Record<Locale, string> = {
+  en: "KHVI home",
+  th: "หน้าหลัก KHVI",
+  zh: "KHVI 首页",
+  es: "Página principal de KHVI",
+  ar: "الصفحة الرئيسية لـ KHVI",
+};
+
+export function SiteFooter({ copy, brandSubtitle, locale = "en", workspace = false }: SiteFooterProps) {
+  const brandAriaLabel = footerBrandLabels[locale];
+
   if (workspace) return (
     <footer className="border-t border-(--khvi-teal)/20 bg-(--khvi-surface) px-5 py-7 sm:px-8 lg:px-12">
       <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-6">
-        <BrandMark subtitle={brandSubtitle} />
+        <BrandMark subtitle={brandSubtitle} ariaLabel={brandAriaLabel} />
       </div>
     </footer>
   );
@@ -39,7 +51,7 @@ export function SiteFooter({ copy, brandSubtitle, workspace = false }: SiteFoote
       <div className="mx-auto max-w-[1480px]">
         <div className="grid gap-10 md:grid-cols-[1.5fr_0.75fr_0.75fr_1.1fr]">
           <div>
-            <BrandMark light subtitle={brandSubtitle} />
+            <BrandMark light subtitle={brandSubtitle} ariaLabel={brandAriaLabel} />
             <p className="mt-5 max-w-xs text-sm leading-6 text-white/60">{copy.description}</p>
             <p className="mt-4 text-xs font-bold text-[#8ed5c4]">{copy.note}</p>
           </div>
