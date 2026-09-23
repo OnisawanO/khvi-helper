@@ -654,7 +654,7 @@ export function CombinedInterpreterRegisterForm({
             {/* Core Languages */}
             <div className="mb-4">
               <span className="block text-xs font-bold text-[#10283a] mb-2 uppercase tracking-wide">
-                {locale === "th" ? "ภาษาหลัก (Core Languages):" : locale === "zh" ? "核心语言 (Core Languages):" : "Core Languages:"}
+                {locale === "th" ? "ภาษาหลัก:" : locale === "zh" ? "核心语言:" : "Core Languages:"}
               </span>
               <div className="flex flex-wrap gap-2">
                 {coreLanguages.map((lang) => {
@@ -828,10 +828,10 @@ export function CombinedInterpreterRegisterForm({
               <div className="mt-4 border-t border-[#edf2f4] pt-3 text-xs text-[#64777e] flex items-center justify-between">
                 <span>
                   {locale === "th"
-                    ? "ภาษาหลักของระบบ (primary_language_id): "
+                    ? "ภาษาหลักของระบบ: "
                     : locale === "zh"
-                      ? "系统主要语言 (primary_language_id): "
-                      : "System primary language (primary_language_id): "}
+                      ? "系统主要语言: "
+                      : "System primary language: "}
                   <strong className="text-[#10283a]">
                     {locale === "th" ? "ไทย (Thai)" : locale === "zh" ? "泰语 (Thai)" : "Thai"}
                   </strong>
