@@ -286,7 +286,7 @@ where u.id = p.user_id
 
 - `/admin` ยังใช้ mock dashboard data ในส่วน reports, audit และ response-time; rating/completed missions ของล่ามอ่านจากฐานข้อมูลแล้ว
 - Manager tickets, reports และ activity บางส่วนยังใช้ mock data
-- คะแนนรีวิวเฉลี่ยของล่ามบน `/interpreter#welcome-Interpreter` อ่านจาก RPC `get_interpreter_rating(p_interpreter_id)` ของ Supabase ที่เชื่อมอยู่จริง และแสดง “ยังไม่มีรีวิว” เมื่อ RPC คืนรายการว่างหรือนับรีวิวได้ 0
+- คะแนนรีวิวเฉลี่ยของล่ามบน `/interpreter` อ่านจาก RPC `get_interpreter_rating(p_interpreter_id)` ของ Supabase ที่เชื่อมอยู่จริง และแสดง “ยังไม่มีรีวิว” เมื่อ RPC คืนรายการว่างหรือนับรีวิวได้ 0
 - ตาราง `reviews` และ RPC `get_interpreter_rating` อยู่ใน migration `20260922091315_add_reviews_and_rating_summary.sql`
 - Notification, audit log และ report ยังไม่อยู่ใน migration ชุดนี้
 - Realtime config เปิดอยู่ แต่ application ยังใช้ request/response และ cache revalidation แทน realtime subscription

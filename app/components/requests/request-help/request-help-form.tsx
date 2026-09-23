@@ -744,7 +744,7 @@ export function RequestHelpForm({
         <WorkspaceBreadcrumbs
           ariaLabel={t.breadcrumb}
           currentLabel={t.title}
-          homeHref={`${workspaceBase}#welcome-user`}
+          homeHref={workspaceBase}
           homeLabel={t.main}
         />
 

@@ -545,7 +545,7 @@ export function RequestDetail({
           items={[
             {
               label: t.main,
-              href: isInterpreter ? "/interpreter#welcome-Interpreter" : `${accountBase}#welcome-user`,
+              href: accountBase,
             },
             {
               label: isInterpreter ? t.assignmentsLabel : t.requestsLabel,

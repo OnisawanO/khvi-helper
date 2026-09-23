@@ -39,7 +39,7 @@
 
 # Welcome workspace (task scope)
 
-`/user#welcome-user` is the signed-in starting view for User and `/interpreter#welcome-Interpreter` is the signed-in starting view for Interpreter. Both views share the same header. The header shows the signed-in profile; its dropdown contains Profile & Settings and sign-out actions. Manager and Admin continue to their existing consoles. Visitors return to `/#top`. This describes the current implementation paths; server and client authorization still enforce the signed-in role.
+`/user` is the signed-in starting view for a User account. `/interpreter` is the signed-in starting view for an approved Interpreter and supports helper and requester modes. Both views share the same header. The header shows the signed-in profile; its dropdown contains Profile & Settings and sign-out actions. Manager and Admin continue to their existing consoles. Visitors return to `/#top`.
 
 ## Consistency review
 

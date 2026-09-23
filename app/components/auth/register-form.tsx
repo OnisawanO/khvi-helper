@@ -139,7 +139,7 @@ export function RegisterForm({
         if (onSuccess) {
           onSuccess();
         } else {
-          router.push("/user#welcome-user");
+          router.push("/user");
         }
       }, 1000);
     } catch {

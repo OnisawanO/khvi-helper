@@ -44,6 +44,8 @@ import { persistPreferredUiLanguage, useStoredLocale } from "@/app/lib/locale";
 import { getProfileCopy, type ProfileCopy } from "@/app/lib/profile-copy";
 import { loadMyInterpreterApplicationAction } from "@/app/actions/interpreter-application-actions";
 import type { InterpreterApplication } from "@/app/lib/interpreter-application";
+import { INTERPRETER_MATCHING_RADIUS_KM } from "@/app/lib/matching-settings";
+import { loadMyInterpreterRating, type InterpreterRating } from "@/app/lib/real-interpreter-rating";
 import { EditInterpreterProfileModal } from "@/components/volunteer/EditInterpreterProfileModal";
 import { createClient } from "@/utils/supabase/client";
 
@@ -105,6 +107,7 @@ function ProfileLoading({ copy }: { copy: ProfileCopy }) {
 export function ProfileSettings({ accountDeletionConfigured }: { accountDeletionConfigured: boolean }) {
   const router = useRouter();
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [interpreterRating, setInterpreterRating] = useState<InterpreterRating | null>(null);
   const [canDeleteAccount, setCanDeleteAccount] = useState(false);
   const [ready, setReady] = useState(false);
   const [locale] = useStoredLocale();
@@ -126,9 +129,16 @@ export function ProfileSettings({ accountDeletionConfigured }: { accountDeletion
       if (disposed) return;
 
       if (supabaseResult?.profile) {
+        const rating = supabaseResult.profile.role === "Interpreter"
+          ? await loadMyInterpreterRating(supabase, supabaseResult.profile.userId).catch(() => null)
+          : null;
+
+        if (disposed) return;
+
         const previewSession = getMockUserSession();
         const sameAccountPreview = previewSession?.userId === supabaseResult.profile.userId ? previewSession : null;
         setUser(sameAccountPreview ? { ...supabaseResult.profile, ...sameAccountPreview } : supabaseResult.profile);
+        setInterpreterRating(rating);
         setCanDeleteAccount(accountDeletionConfigured && supabaseResult.accountDeletionAvailable !== false);
         setReady(true);
         return;
@@ -138,6 +148,7 @@ export function ProfileSettings({ accountDeletionConfigured }: { accountDeletion
       // user without a valid profile or with a locked account.
       if (supabaseResult?.authenticated) {
         setUser(null);
+        setInterpreterRating(null);
         setCanDeleteAccount(false);
         setReady(true);
         router.replace("/#top");
@@ -147,12 +158,14 @@ export function ProfileSettings({ accountDeletionConfigured }: { accountDeletion
       const session = getMockUserSession();
       if (session && ["User", "Interpreter", "Manager", "Admin"].includes(session.role) && !session.isLocked) {
         setUser(session);
+        setInterpreterRating(null);
         setCanDeleteAccount(false);
         setReady(true);
         return;
       }
 
       setUser(null);
+      setInterpreterRating(null);
       setCanDeleteAccount(false);
       setReady(true);
       router.replace("/#top");
@@ -201,6 +214,7 @@ export function ProfileSettings({ accountDeletionConfigured }: { accountDeletion
       >
         <ProfileContent
           user={user}
+          interpreterRating={interpreterRating}
           onUserChange={setUser}
           canDeleteAccount={canDeleteAccount}
           onAccountDeleted={async () => {
@@ -220,6 +234,7 @@ export function ProfileSettings({ accountDeletionConfigured }: { accountDeletion
 
 function ProfileContent({
   user,
+  interpreterRating,
   onUserChange,
   canDeleteAccount,
   onAccountDeleted,
@@ -227,6 +242,7 @@ function ProfileContent({
   locale,
 }: {
   user: UserProfile;
+  interpreterRating: InterpreterRating | null;
   onUserChange: (user: UserProfile) => void;
   canDeleteAccount: boolean;
   onAccountDeleted: () => void | Promise<void>;
@@ -270,8 +286,8 @@ function ProfileContent({
         <ProfileRail user={user} config={config} copy={copy} />
         <div className="min-w-0 space-y-6">
           <PersonalDetailsCard key={user.userId} user={user} onUserChange={onUserChange} copy={copy} />
+          <RoleSettings user={user} interpreterRating={interpreterRating} onUserChange={onUserChange} copy={copy} locale={locale} />
           <AccountDeletionCard canDeleteAccount={canDeleteAccount} onDeleted={onAccountDeleted} copy={copy} />
-          <RoleSettings user={user} onUserChange={onUserChange} copy={copy} locale={locale} />
         </div>
       </div>
     </main>
@@ -851,11 +867,13 @@ function inputClass(error?: string) {
 
 function RoleSettings({
   user,
+  interpreterRating,
   onUserChange,
   copy,
   locale,
 }: {
   user: UserProfile;
+  interpreterRating: InterpreterRating | null;
   onUserChange: (user: UserProfile) => void;
   copy: ProfileCopy;
   locale: Locale;
@@ -869,7 +887,7 @@ function RoleSettings({
       </div>
       <div className="px-5 py-6 sm:px-7">
         {user.role === "User" && <UserRoleSettings copy={copy} />}
-        {user.role === "Interpreter" && <InterpreterRoleSettings user={user} onUserChange={onUserChange} copy={copy} locale={locale} />}
+        {user.role === "Interpreter" && <InterpreterRoleSettings user={user} interpreterRating={interpreterRating} onUserChange={onUserChange} copy={copy} locale={locale} />}
         {user.role === "Manager" && <ManagerRoleSettings copy={copy} />}
         {user.role === "Admin" && <AdminRoleSettings copy={copy} />}
       </div>
@@ -903,10 +921,12 @@ function UserRoleSettings({ copy }: { copy: ProfileCopy }) {
 
 function InterpreterRoleSettings({
   user,
+  interpreterRating,
   copy,
   locale,
 }: {
   user: UserProfile;
+  interpreterRating: InterpreterRating | null;
   onUserChange: (user: UserProfile) => void;
   copy: ProfileCopy;
   locale: Locale;
@@ -976,6 +996,17 @@ function InterpreterRoleSettings({
 
   const isPendingReview = application?.status === "pending" || application?.status === "under_review";
   const needsRevision = application?.status === "needs_revision";
+  const approvalStatus = application?.status ?? "approved";
+  const ratingValue = interpreterRating?.average === null
+    ? "—"
+    : interpreterRating?.average !== undefined
+      ? `${interpreterRating.average.toFixed(1)} / 5`
+      : "—";
+  const reviewCaption = interpreterRating
+    ? interpreterRating.reviewCount === 0
+      ? locale === "th" ? "ยังไม่มีรีวิว" : locale === "zh" ? "暂无评价" : "No reviews yet"
+      : locale === "th" ? `${interpreterRating.reviewCount} รีวิว` : locale === "zh" ? `${interpreterRating.reviewCount} 条评价` : `${interpreterRating.reviewCount} reviews`
+    : locale === "th" ? "ไม่พบข้อมูลรีวิว" : locale === "zh" ? "暂无评价数据" : "Review data unavailable";
 
   return (
     <div className="space-y-5">
@@ -1108,16 +1139,12 @@ function InterpreterRoleSettings({
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Metric
           label={copy.roleSettings.interpreter.metricApproval}
-          value={
-            isPendingReview
-              ? locale === "th" ? "รออนุมัติ" : "Pending"
-              : copy.roleSettings.statusApproved
-          }
-          tone={isPendingReview ? undefined : "sage"}
+          value={getInterpreterApprovalLabel(approvalStatus, locale, copy)}
+          tone={approvalStatus === "approved" ? "sage" : undefined}
         />
-        <Metric label={copy.roleSettings.interpreter.metricRadius} value="25 km" />
-        <Metric label={copy.roleSettings.interpreter.metricMissions} value="18" />
-        <Metric label={copy.roleSettings.interpreter.metricScore} value="4.9 / 5" />
+        <Metric label={copy.roleSettings.interpreter.metricRadius} value={`${INTERPRETER_MATCHING_RADIUS_KM} km`} />
+        <Metric label={copy.roleSettings.interpreter.metricMissions} value={interpreterRating ? String(interpreterRating.completedJobCount) : "—"} />
+        <Metric label={copy.roleSettings.interpreter.metricScore} value={ratingValue} caption={reviewCaption} />
       </div>
 
       {/* Edit Profile Action Bar */}
@@ -1353,11 +1380,39 @@ function RoleCard({
   );
 }
 
-function Metric({ label, value, tone }: { label: string; value: string; tone?: "sage" }) {
+function getInterpreterApprovalLabel(
+  status: InterpreterApplication["status"],
+  locale: Locale,
+  copy: ProfileCopy,
+): string {
+  if (status === "approved") return copy.roleSettings.statusApproved;
+  if (locale === "th") {
+    if (status === "needs_revision") return "ต้องแก้ไขข้อมูล";
+    if (status === "rejected") return "ไม่อนุมัติ";
+    if (status === "cancelled") return "ยกเลิกแล้ว";
+    if (status === "under_review") return "กำลังตรวจสอบ";
+    return "รออนุมัติ";
+  }
+  if (locale === "zh") {
+    if (status === "needs_revision") return "需要修改";
+    if (status === "rejected") return "未通过";
+    if (status === "cancelled") return "已取消";
+    if (status === "under_review") return "审核中";
+    return "待审核";
+  }
+  if (status === "needs_revision") return "Needs revision";
+  if (status === "rejected") return "Rejected";
+  if (status === "cancelled") return "Cancelled";
+  if (status === "under_review") return "Under review";
+  return "Pending";
+}
+
+function Metric({ label, value, tone, caption }: { label: string; value: string; tone?: "sage"; caption?: string }) {
   return (
     <div className="rounded-xl border border-(--khvi-teal)/15 bg-[#f7fbfa] p-4">
       <p className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-(--khvi-ink)/50">{label}</p>
       <p className={`mt-2 text-xl font-black ${tone === "sage" ? "text-(--khvi-sage)" : "text-(--khvi-navy)"}`}>{value}</p>
+      {caption && <p className="mt-1 text-[11px] font-semibold text-(--khvi-ink)/55">{caption}</p>}
     </div>
   );
 }

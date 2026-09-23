@@ -58,7 +58,7 @@ export default function VolunteerStatusPage() {
         <WorkspaceBreadcrumbs
           ariaLabel="แถบนำทางระบบล่ามอาสา"
           items={[
-            { label: "หน้าหลัก", href: "/user#welcome-user" },
+            { label: "หน้าหลัก", href: "/user" },
             { label: "สถานะใบสมัครล่ามอาสา" },
           ]}
           className="mb-6"

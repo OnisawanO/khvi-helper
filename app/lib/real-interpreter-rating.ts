@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export type InterpreterRating = {
   average: number | null;
   reviewCount: number;
+  completedJobCount: number;
 };
 
 export async function loadMyInterpreterRating(supabase: SupabaseClient, interpreterId: string): Promise<InterpreterRating> {
@@ -11,15 +12,26 @@ export async function loadMyInterpreterRating(supabase: SupabaseClient, interpre
   });
   if (error) throw error;
 
-  const row = Array.isArray(data) ? data[0] : null;
+  const row = Array.isArray(data) ? data[0] : data;
   // The deployed RPC returns no row when the interpreter has no reviews.
-  if (!row) return { average: null, reviewCount: 0 };
+  if (!row) return { average: null, reviewCount: 0, completedJobCount: 0 };
   const reviewCount = Number(row?.review_count);
   const average = row?.average_rating == null ? null : Number(row.average_rating);
+  const completedJobCount = Number(row?.completed_job_count ?? 0);
 
-  if (!Number.isSafeInteger(reviewCount) || reviewCount < 0 || (reviewCount > 0 && (average === null || !Number.isFinite(average) || average < 1 || average > 5))) {
+  if (
+    !Number.isSafeInteger(reviewCount) ||
+    reviewCount < 0 ||
+    !Number.isSafeInteger(completedJobCount) ||
+    completedJobCount < 0 ||
+    (reviewCount > 0 && (average === null || !Number.isFinite(average) || average < 1 || average > 5))
+  ) {
     throw new Error("Invalid interpreter rating summary");
   }
 
-  return { average: reviewCount === 0 ? null : average, reviewCount };
+  return {
+    average: reviewCount === 0 ? null : average,
+    reviewCount,
+    completedJobCount,
+  };
 }

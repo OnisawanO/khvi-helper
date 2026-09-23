@@ -24,7 +24,7 @@ import {
   type StatusFilterId,
 } from "@/app/lib/mock-requests";
 
-const ASSIGNMENT_FILTERS = ["all", "claimed", "in-progress", "completed"] as const;
+const ASSIGNMENT_FILTERS = ["completed", "in-progress", "open", "claimed", "closed", "all"] as const;
 type AssignmentFilterId = (typeof ASSIGNMENT_FILTERS)[number];
 
 const copy = {
@@ -57,7 +57,7 @@ const copy = {
     viewApplicationStatus: "View application status",
     assignmentsTitle: "Your assignments",
     filterLabel: "Filter assignments by status",
-    filters: { all: "All", claimed: "Claimed", "in-progress": "In progress", completed: "Completed" },
+    filters: { completed: "Completed", "in-progress": "In progress", open: "Open", claimed: "Claimed", closed: "Cancelled or expired", all: "All" },
     created: "Created",
     scheduled: "Appointment",
     area: "Area",
@@ -104,7 +104,7 @@ const copy = {
     viewApplicationStatus: "查看申请状态",
     assignmentsTitle: "你的任务",
     filterLabel: "按状态筛选任务",
-    filters: { all: "全部", claimed: "已接取", "in-progress": "进行中", completed: "已完成" },
+    filters: { completed: "已完成", "in-progress": "进行中", open: "开放中", claimed: "已接取", closed: "已取消或过期", all: "全部" },
     created: "创建时间",
     scheduled: "预约时间",
     area: "区域",
@@ -124,10 +124,12 @@ const copy = {
   },
 } as const;
 
-function assignmentStatus(filterId: AssignmentFilterId): HelpRequest["status"] | null {
-  if (filterId === "claimed") return "Claimed";
-  if (filterId === "in-progress") return "InProgress";
-  if (filterId === "completed") return "Completed";
+function assignmentStatuses(filterId: AssignmentFilterId): readonly HelpRequest["status"][] | null {
+  if (filterId === "completed") return ["Completed"];
+  if (filterId === "in-progress") return ["InProgress"];
+  if (filterId === "open") return ["Open"];
+  if (filterId === "claimed") return ["Claimed"];
+  if (filterId === "closed") return ["Cancelled", "Expired"];
   return null;
 }
 
@@ -162,10 +164,10 @@ export function MyAssignmentsList({
   const [cancelDraft, setCancelDraft] = useState("");
   const [cancelError, setCancelError] = useState<string | null>(null);
   const cancelReasonRef = useRef<HTMLTextAreaElement>(null);
-  const allAssignments = allRequests.filter((request) => ["Claimed", "InProgress", "Completed"].includes(request.status));
+  const allAssignments = allRequests;
   const matching = (filterId: AssignmentFilterId) => {
-    const status = assignmentStatus(filterId);
-    return allAssignments.filter((request) => status === null || request.status === status);
+    const statuses = assignmentStatuses(filterId);
+    return allAssignments.filter((request) => statuses === null || statuses.includes(request.status));
   };
   const assignments = matching(selectedFilter);
   const cancelRequest = allAssignments.find((request) => request.requestId === cancelRequestId) ?? null;
@@ -263,7 +265,7 @@ export function MyAssignmentsList({
         <WorkspaceBreadcrumbs
           ariaLabel={t.breadcrumb}
           currentLabel={t.title}
-          homeHref="/interpreter#welcome-Interpreter"
+          homeHref="/interpreter"
           homeLabel={t.main}
         />
 
@@ -403,7 +405,7 @@ export function MyAssignmentsList({
         <div role="group" aria-label={t.filterLabel} className="mt-3 flex flex-wrap gap-2">
           {ASSIGNMENT_FILTERS.map((filterId) => {
             const isActive = filterId === selectedFilter;
-            const href = filterId === "all" ? "/interpreter/my-assignments#main-content" : `/interpreter/my-assignments?status=${filterId}#main-content`;
+            const href = `/interpreter/my-assignments?status=${filterId}#main-content`;
 
             return (
               <button

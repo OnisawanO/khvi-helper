@@ -257,9 +257,9 @@ export const DEFAULT_MOCK_USERS: Record<UserRole, UserProfile & { password: stri
 export function getRedirectPathByRole(role: UserRole): string {
   switch (role) {
     case "User":
-      return "/user#welcome-user";
+      return "/user";
     case "Interpreter":
-      return "/interpreter#welcome-Interpreter";
+      return "/interpreter";
     case "Manager":
       return "/manager";
     case "Admin":

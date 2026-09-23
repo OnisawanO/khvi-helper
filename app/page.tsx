@@ -340,7 +340,7 @@ function TrustItem({ icon: IconComponent, title, detail }: { icon: Icon; title: 
   );
 }
 
-export default function Home() {
+export default function LandingPage() {
   const router = useRouter();
   const [intent, setIntent] = useState<"request" | "volunteer" | null>(null);
   const [locale, setLocale] = useStoredLocale();

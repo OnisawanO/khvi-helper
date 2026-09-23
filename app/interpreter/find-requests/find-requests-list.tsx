@@ -21,6 +21,7 @@ import { ExpiryCountdown } from "@/app/components/expiry-countdown";
 import { StatusBadge, UrgencyBadge } from "@/app/components/request-badges";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
 import { claimBookingAction } from "@/app/actions/booking-actions";
+import { INTERPRETER_MATCHING_RADIUS_KM } from "@/app/lib/matching-settings";
 import type { OpenRequestsDiagnostic } from "@/app/lib/real-request-data";
 import {
   CATEGORIES,
@@ -46,7 +47,7 @@ const DISTANCE_FILTERS = [
   { id: "all", value: null },
   { id: "5", value: 5 },
   { id: "10", value: 10 },
-  { id: "25", value: 25 },
+  { id: String(INTERPRETER_MATCHING_RADIUS_KM), value: INTERPRETER_MATCHING_RADIUS_KM },
 ] as const;
 
 type RequestFilterId = (typeof REQUEST_FILTERS)[number]["id"];
@@ -391,7 +392,7 @@ export function FindRequestsList({
         <WorkspaceBreadcrumbs
           ariaLabel={t.breadcrumb}
           currentLabel={t.title}
-          homeHref="/interpreter#welcome-Interpreter"
+          homeHref="/interpreter"
           homeLabel={t.main}
         />
 
@@ -501,7 +502,7 @@ export function FindRequestsList({
                   <option value="all">{t.anyDistance}</option>
                   <option value="5">5 km</option>
                   <option value="10">10 km</option>
-                  <option value="25">25 km</option>
+                  <option value={String(INTERPRETER_MATCHING_RADIUS_KM)}>{INTERPRETER_MATCHING_RADIUS_KM} km</option>
                 </select>
               </label>
             </div>

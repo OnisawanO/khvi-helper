@@ -19,10 +19,10 @@
 
 **ขอบเขต UI**
 
-- `/login` หรือ `app/(auth)/login/page.tsx`
-- `/register` หรือ `app/(auth)/register/page.tsx`
-- `/sign-in` หรือ `app/(auth)/sign-in/page.tsx`
-- `/profile` หรือ `app/(auth)/profile/page.tsx` ในอนาคต
+- `/login` หรือ `app/login/page.tsx`
+- `/register` หรือ `app/register/page.tsx`
+- `/sign-in` หรือ `app/sign-in/page.tsx`
+- `/profile` หรือ `app/profile/page.tsx`
 - Language Switcher ใน header/layout
 - หน้า redirect หลัง login ตาม role
 
@@ -228,10 +228,10 @@
 
 **ขอบเขต UI**
 
-- `/manager` หรือ `app/(manager)/manager/page.tsx`
-- `/manager/verify-volunteers` หรือ `app/(manager)/manager/verify-volunteers/page.tsx` ในอนาคต
-- `/admin` หรือ `app/(admin)/admin/page.tsx`
-- `/admin/users` หรือ `app/(admin)/admin/users/page.tsx` ในอนาคต
+- `/manager` หรือ `app/manager/page.tsx`
+- `/manager/verify-volunteers` หรือ `app/manager/verify-volunteers/page.tsx` ในอนาคต
+- `/admin` หรือ `app/admin/page.tsx`
+- `/admin/users` หรือ `app/admin/users/page.tsx` ในอนาคต
 - Review modal หรือหน้า review หลัง mission completed
 - หน้า report/help request เมื่อเริ่มทำฟีเจอร์ support
 

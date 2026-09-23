@@ -1,8 +1,8 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { AdminIncidentReport, AdminUserRecord, AuditLogEntry } from "../(admin)/admin/types";
-import { initialUsers, initialAuditLogs, initialEscalatedReports } from "../(admin)/admin/mock-data";
+import { AdminIncidentReport, AdminUserRecord, AuditLogEntry } from "../admin/types";
+import { initialUsers, initialAuditLogs, initialEscalatedReports } from "../admin/mock-data";
 
 const USERS_KEY = "khvi_governance_users";
 const REPORTS_KEY = "khvi_governance_reports";

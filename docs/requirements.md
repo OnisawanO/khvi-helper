@@ -182,10 +182,14 @@ open -> claimed -> in_progress -> completed
 
 **รายละเอียด:**
 
-- `User` ไปยังหน้า Welcome สำหรับสร้างและติดตามคำขอ
-- `Interpreter` ที่ Approved ไปยัง workspace สำหรับดูงานที่ตรงความสามารถและติดตามงานที่รับ
-- `Manager` ไปยัง Manager Console
-- `Admin` ไปยัง Admin Dashboard
+- `User` ไปยังหน้า Welcome ที่ `/user` สำหรับสร้างและติดตามคำขอ
+- `Interpreter` ที่ Approved ไปยัง workspace ที่ `/interpreter` สำหรับดูงานที่ตรงความสามารถและติดตามงานที่รับ
+- บัญชี `Interpreter` สลับโหมดช่วยเหลือและขอความช่วยเหลือภายในหน้า `/interpreter` เดียว โดยไม่เปลี่ยน role ของบัญชี
+- Route เฉพาะ User ใช้ `/user/request-help` และ `/user/my-requests`; route เฉพาะ Interpreter ใช้ `/interpreter/find-requests` และ `/interpreter/my-assignments`
+- `Manager` ไปยัง Manager Console ที่ `/manager`
+- `Admin` ไปยัง Admin Dashboard ที่ `/admin`
+- `/welcome` ต้องทำหน้าที่เป็น compatibility redirect ตาม role และไม่มี UI ของตนเอง
+- Path เดิมที่ไม่มี role prefix ต้อง redirect ไป canonical role path เพื่อรองรับลิงก์เดิม
 - ระบบต้องตรวจ role ฝั่ง server ก่อน render ข้อมูล private ไม่พึ่ง client redirect อย่างเดียว
 - ผู้ใช้ที่ role ไม่ตรงกับ route ต้องได้รับ redirect หรือ `403` ตาม route policy
 
@@ -208,6 +212,7 @@ open -> claimed -> in_progress -> completed
 **รายละเอียด:**
 
 - หน้า Welcome ต้องอธิบายว่า KHVI ใช้ระบบ Job Pool และล่ามที่ตรงเงื่อนไขเป็นผู้ Claim งาน
+- หน้า Welcome ของ User ใช้ canonical route `/user` และ implementation ที่ `app/user/page.tsx`
 - หน้า Welcome ต้องมีปุ่มหลักไปหน้าสร้างคำขอ และมีทางไปดูคำขอของ User
 - หน้า Welcome ต้องอธิบาย Immediate, Scheduled, ขั้นตอนหลังสร้างคำขอ และข้อควรระวังด้านความเป็นส่วนตัว
 - หากมีคำขอเดิม ระบบควรแสดงรายการล่าสุดหรือทางกลับไปติดตามคำขอ
