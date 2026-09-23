@@ -61,7 +61,6 @@
 **ขอบเขต UI**
 
 - `/user` หรือ `app/user/page.tsx`
-- `/welcome` หรือ `app/welcome/page.tsx` สำหรับ compatibility redirect
 - `/user/request-help` หรือ `app/user/request-help/page.tsx`
 - `/user/my-requests` หรือ `app/user/my-requests/page.tsx`
 - `/user/my-requests/[requestId]` หรือ `app/user/my-requests/[requestId]/page.tsx`
@@ -70,7 +69,7 @@
 
 **Component ที่ต้องทำ**
 
-- `app/user/request-help/request-help-form.tsx`
+- `app/components/requests/request-help/request-help-form.tsx`
 - `components/pin-request/PinForm.tsx` ในอนาคตเมื่อแยก component กลาง
 - `components/pin-request/SOSButton.tsx`
 - `components/pin-request/LocationPicker.tsx`
@@ -103,7 +102,6 @@
 
 **ขอบเขต UI**
 
-- `/interpreter` หรือ `app/interpreter/page.tsx`
 - `/interpreter/find-requests` หรือ `app/interpreter/find-requests/page.tsx` ใน preview ปัจจุบัน
 - `/interpreter/map` หรือ `app/interpreter/map/page.tsx` ในอนาคตเมื่อเพิ่ม Leaflet เต็มรูปแบบ
 - แผนที่ Leaflet สำหรับล่ามที่ได้รับอนุมัติ
@@ -137,7 +135,7 @@
 
 - รับ interpreter profile และ skill set จากคนที่ 4
 - ส่ง `booking_id` ที่เลือกให้คนที่ 4 ทำ claim
-- เมื่อ claim สำเร็จ ให้พาไป `/user/my-requests/[requestId]` ของคนที่ 5
+- เมื่อ claim สำเร็จ ให้พาไป `/interpreter/my-assignments/[requestId]` ของคนที่ 5
 
 ---
 
@@ -145,10 +143,10 @@
 
 **ขอบเขต UI**
 
-- `/interpreter/my-assignments` หรือ `app/interpreter/my-assignments/page.tsx` ใน preview ปัจจุบัน
-- `/volunteer/apply` หรือ `app/volunteer/apply/page.tsx`
-- `/volunteer/status` หรือ `app/volunteer/status/page.tsx`
-- `/volunteer/dashboard` หรือ `app/volunteer/dashboard/page.tsx`
+- `/interpreter/my-assignments` หรือ `app/interpreter/my-assignments/page.tsx`
+- `/user/volunteer/apply` หรือ `app/user/volunteer/apply/page.tsx`
+- `/user/volunteer/status` หรือ `app/user/volunteer/status/page.tsx`
+- `/user/volunteer/dashboard` หรือ `app/user/volunteer/dashboard/page.tsx`
 - ส่วนแสดงงานที่ตรงความสามารถ
 - ปุ่ม claim งาน
 
@@ -189,7 +187,7 @@
 
 **ขอบเขต UI**
 
-- `/user/my-requests/[requestId]` หรือ `app/user/my-requests/[requestId]/page.tsx` เป็น canonical route
+- Detail route ใช้ `app/user/my-requests/[requestId]/page.tsx`, `app/interpreter/my-requests/[requestId]/page.tsx` และ `app/interpreter/my-assignments/[requestId]/page.tsx` ร่วมกับ mission component กลาง
 - หน้ารายละเอียดคำขอและภารกิจที่ใช้ร่วมกันระหว่าง User และ Interpreter ตามสิทธิ์
 - Timeline สถานะงาน
 - ข้อมูลติดต่อหลัง claim

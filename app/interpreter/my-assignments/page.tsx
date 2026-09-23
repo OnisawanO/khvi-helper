@@ -4,7 +4,7 @@ import type { ApplicationStatus } from "@/app/lib/interpreter-application";
 import { loadMyInterpreterApplication } from "@/app/lib/real-interpreter-application-data";
 import { loadInterpreterAssignments, loadOpenInterpreterRequests, loadWorkspaceActivity } from "@/app/lib/real-request-data";
 import { resolveStatusFilter } from "@/app/lib/mock-requests";
-import { createClient } from "@/utils/supabase/server";
+import { requireWorkspaceAccountRole } from "@/app/lib/workspace-auth";
 import { MyAssignmentsList } from "./my-assignments-list";
 
 export const metadata: Metadata = {
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default async function MyAssignmentsPage(props: PageProps<"/interpreter/my-assignments">) {
   const { status } = await props.searchParams;
   const activeFilter = resolveStatusFilter(status ?? "completed");
-  const supabase = await createClient();
+  const { supabase } = await requireWorkspaceAccountRole("Interpreter");
   const [assignments, openRequestsResult, application, activity] = await Promise.all([
     loadInterpreterAssignments(supabase),
     loadOpenInterpreterRequests(supabase),
@@ -26,7 +26,7 @@ export default async function MyAssignmentsPage(props: PageProps<"/interpreter/m
   const applicationStatus: ApplicationStatus | null = application?.status ?? null;
 
   return (
-    <WorkspaceShell requiredRole="Interpreter" alternatePath="/user/my-requests#main-content">
+    <WorkspaceShell requiredRole="Interpreter" requiredAccountRole="Interpreter" alternatePath="/interpreter/my-requests#main-content">
       <MyAssignmentsList
         activeFilter={activeFilter}
         applicationStatus={applicationStatus}

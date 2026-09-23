@@ -52,7 +52,7 @@ export default function VolunteerStatusPage() {
   };
 
   return (
-    <WorkspaceShell>
+    <WorkspaceShell requiredAccountRole="User">
       <main id="main-content" className="mx-auto w-full max-w-[1400px] px-5 py-8 sm:px-8 lg:px-10">
         {/* Navigation Breadcrumb */}
         <WorkspaceBreadcrumbs
@@ -88,7 +88,7 @@ export default function VolunteerStatusPage() {
                 {locale === "th" ? "กลับสู่หน้าหลัก" : locale === "zh" ? "返回首页" : "Back to Home"}
               </a>
               <a
-                href="/volunteer/apply#main-content"
+                href="/user/volunteer/apply#main-content"
                 className="inline-flex min-h-11 items-center justify-center rounded-(--khvi-radius-sm) bg-[#092f45] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#0c4960]"
               >
                 {locale === "th" ? "ไปหน้าใบสมัคร" : locale === "zh" ? "前往申请页面" : "Go to application form"}

@@ -365,7 +365,7 @@ export function FindRequestsList({
       setClaimedRequestId(requestId);
       setClaimRequest(null);
       setSelectedRequest(null);
-      router.push(`/user/my-requests/${requestId}`);
+      router.push(`/interpreter/my-assignments/${requestId}`);
     } else {
       if (
         result.code === "active_workspace_task_exists" ||
@@ -438,7 +438,7 @@ export function FindRequestsList({
             <div>
               <h3 className="text-sm font-extrabold text-amber-950">{t.diagnosticNotApprovedTitle}</h3>
               <p className="mt-1 text-xs leading-5 text-amber-800">{t.diagnosticNotApprovedBody(diagnostic.applicationStatus)}</p>
-              <Link href="/volunteer/status" className="mt-2 inline-flex items-center text-xs font-extrabold text-amber-950 underline hover:no-underline">
+              <Link href="/user/volunteer/status" className="mt-2 inline-flex items-center text-xs font-extrabold text-amber-950 underline hover:no-underline">
                 {t.checkApplicationStatus}
               </Link>
             </div>

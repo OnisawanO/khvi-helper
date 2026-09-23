@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
 import { createBookingAction } from "@/app/actions/booking-actions";
@@ -529,6 +529,8 @@ export function RequestHelpForm({
   const successDialogRef = useRef<HTMLDialogElement>(null);
   const blockedDialogRef = useRef<HTMLDialogElement>(null);
   const router = useRouter();
+  const pathname = usePathname();
+  const workspaceBase = pathname.startsWith("/interpreter") ? "/interpreter" : "/user";
   const locale = useUiLocale();
   const copyLocale = useCopyLocale();
   const t = copy[copyLocale];
@@ -709,7 +711,7 @@ export function RequestHelpForm({
           aria-labelledby="request-success-title"
           aria-describedby="request-success-body request-success-next"
           className={styles.dialog}
-          onClose={() => router.push(`/user/my-requests/${createdRequestId}`)}
+          onClose={() => router.push(`${workspaceBase}/my-requests/${createdRequestId}`)}
         >
           <div aria-hidden="true" className={styles.illustration}>
             <SparklesIcon className={styles.sparkles} />
@@ -742,7 +744,7 @@ export function RequestHelpForm({
         <WorkspaceBreadcrumbs
           ariaLabel={t.breadcrumb}
           currentLabel={t.title}
-          homeHref="/user"
+          homeHref={workspaceBase}
           homeLabel={t.main}
         />
 
@@ -979,7 +981,7 @@ export function RequestHelpForm({
                 <MapPinIcon aria-hidden="true" className="h-5 w-5" />
                 {isSubmitting ? successCopy.saving : createdRequestId ? successCopy.title : t.submit}
               </button>
-              {createdRequestId && <Link href={`/user/my-requests/${createdRequestId}`} className="mt-3 inline-flex min-h-11 items-center rounded-(--khvi-radius-sm) text-sm font-bold text-(--khvi-navy) underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-teal)">{successCopy.track}</Link>}
+              {createdRequestId && <Link href={`${workspaceBase}/my-requests/${createdRequestId}`} className="mt-3 inline-flex min-h-11 items-center rounded-(--khvi-radius-sm) text-sm font-bold text-(--khvi-navy) underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-teal)">{successCopy.track}</Link>}
             </form>
 
             <aside className="border border-[#d6e0e4] bg-white p-5 lg:sticky lg:top-28">

@@ -24,9 +24,10 @@ function isWorkspaceUser(user: UserProfile | null): user is UserProfile & { role
   return user?.role === "User" || user?.role === "Interpreter";
 }
 
-export function WorkspaceShell({ children, requiredRole, alternatePath }: {
+export function WorkspaceShell({ children, requiredRole, requiredAccountRole, alternatePath }: {
   children: ReactNode;
   requiredRole?: WorkspaceRole;
+  requiredAccountRole?: WorkspaceRole;
   alternatePath?: string;
 }) {
   const router = useRouter();
@@ -52,6 +53,12 @@ export function WorkspaceShell({ children, requiredRole, alternatePath }: {
       if (disposed) return;
 
       if (isWorkspaceUser(result.profile)) {
+        if (requiredAccountRole && result.profile.role !== requiredAccountRole) {
+          setUser(null);
+          router.replace(getRedirectPathByRole(result.profile.role));
+          return;
+        }
+
         const nextMode = getInterpreterWorkspaceMode(result.profile);
         const activeRole = getWorkspaceRoleForMode(result.profile, nextMode);
         setInterpreterMode(nextMode);
@@ -110,7 +117,7 @@ export function WorkspaceShell({ children, requiredRole, alternatePath }: {
       window.removeEventListener("focus", onWindowFocus);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [alternatePath, requiredRole, router]);
+  }, [alternatePath, requiredAccountRole, requiredRole, router]);
 
   if (!user) {
     return (

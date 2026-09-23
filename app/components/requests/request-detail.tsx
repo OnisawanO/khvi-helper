@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   cancelBookingAction,
   confirmBookingCompletionAction,
@@ -298,9 +298,13 @@ export function RequestDetail({
   initialMissionLocations = {},
 }: { request: HelpRequest; viewer: UserProfile; initialMissionLocations?: RealMissionLocations }) {
   const router = useRouter();
+  const pathname = usePathname();
   const copyLocale = useCopyLocale();
   const t = copy[copyLocale];
   const isInterpreter = viewer.role === "Interpreter";
+  const accountBase = pathname.startsWith("/interpreter") ? "/interpreter" : "/user";
+  const assignmentBase = "/interpreter/my-assignments";
+  const requesterBase = `${accountBase}/my-requests`;
 
   const { status, cancelledBy, cancelReason } = request;
   const [cancelDraft, setCancelDraft] = useState("");
@@ -541,11 +545,11 @@ export function RequestDetail({
           items={[
             {
               label: t.main,
-              href: isInterpreter ? "/interpreter" : "/user",
+              href: accountBase,
             },
             {
               label: isInterpreter ? t.assignmentsLabel : t.requestsLabel,
-              href: isInterpreter ? "/interpreter/my-assignments#main-content" : "/user/my-requests#main-content",
+              href: isInterpreter ? `${assignmentBase}#main-content` : `${requesterBase}#main-content`,
             },
             { label: t.detailsTitle },
           ]}
@@ -587,7 +591,7 @@ export function RequestDetail({
             )}
             <Link
               className="mt-4 inline-flex h-11 items-center gap-2 rounded-lg border-2 border-[#087f80] bg-white px-4 text-sm font-extrabold text-[#087f80] transition-colors hover:bg-[#edf7f5]"
-              href="/user/request-help#main-content"
+              href={`${accountBase}/request-help#main-content`}
             >
               <PlusIcon aria-hidden="true" className="h-5 w-5" />
               {t.newRequest}

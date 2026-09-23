@@ -252,6 +252,7 @@ export function AppShell({ children, accountActions, welcomeRole, accountRole, h
   } : shellCopy[locale];
   const navLabel = (th: string, en: string, zh: string, es: string, ar: string) => locale === "th" ? th : locale === "zh" ? zh : locale === "es" ? es : locale === "ar" ? ar : en;
   const isInterpreterAccount = accountRole === "Interpreter" || welcomeRole === "Interpreter";
+  const workspaceBase = isInterpreterAccount ? "/interpreter" : "/user";
   const welcomeNav = welcomeRole === "Interpreter"
     ? [[navLabel("ค้นหางาน", "Find requests", "寻找求助", "Buscar solicitudes", "البحث عن الطلبات"), "/interpreter/find-requests#main-content"], [navLabel("งานของฉัน", "My assignments", "我的任务", "Mis asignaciones", "مهامي"), "/interpreter/my-assignments#main-content"]] as const
     : welcomeRole === "Manager"
@@ -259,11 +260,11 @@ export function AppShell({ children, accountActions, welcomeRole, accountRole, h
       : welcomeRole === "Admin"
         ? [[navLabel("แดชบอร์ดผู้ดูแล", "Admin dashboard", "管理员面板", "Panel de administración", "لوحة المسؤول"), "/admin#main-content"], [navLabel("โปรไฟล์และการตั้งค่า", "Profile & Settings", "个人资料与设置", "Perfil y configuración", "الملف الشخصي والإعدادات"), "/profile#main-content"]] as const
         : isInterpreterAccount
-          ? [[navLabel("สร้างคำขอ", "New request", "新建求助", "Nueva solicitud", "طلب جديد"), "/user/request-help#main-content"], [navLabel("คำขอทั้งหมด", "All requests", "全部求助", "Todas las solicitudes", "كل الطلبات"), "/user/my-requests#main-content"]] as const
+          ? [[navLabel("สร้างคำขอ", "New request", "新建求助", "Nueva solicitud", "طلب جديد"), "/interpreter/request-help#main-content"], [navLabel("คำขอทั้งหมด", "All requests", "全部求助", "Todas las solicitudes", "كل الطلبات"), "/interpreter/my-requests#main-content"]] as const
           : [
               [navLabel("สร้างคำขอ", "New request", "新建求助", "Nueva solicitud", "طلب جديد"), "/user/request-help#main-content"],
               [navLabel("คำขอทั้งหมด", "All requests", "全部求助", "Todas las solicitudes", "كل الطلبات"), "/user/my-requests#main-content"],
-              ...(applicationAccess.verified && !applicationAccess.applicationStatus ? [[navLabel("สมัครล่ามอาสา", "Volunteer apply", "申请志愿口译员", "Solicitud de voluntariado", "طلب التطوع"), "/volunteer/apply#main-content"]] as const : []),
+              ...(applicationAccess.verified && !applicationAccess.applicationStatus ? [[navLabel("สมัครล่ามอาสา", "Volunteer apply", "申请志愿口译员", "Solicitud de voluntariado", "طلب التطوع"), "/user/volunteer/apply#main-content"]] as const : []),
             ] as const;
 
   return (
@@ -277,6 +278,8 @@ export function AppShell({ children, accountActions, welcomeRole, accountRole, h
         onLocaleChange={handleLocaleChange}
         accountActions={accountActions}
         workspaceRole={welcomeRole}
+        workspaceHomeHref={workspaceBase}
+        primaryActionHref={`${workspaceBase}/request-help#main-content`}
         hidePrimaryAction={hidePrimaryAction}
       />
       {children}

@@ -33,7 +33,7 @@ const landingCopy = {
       languageLabel: "ภาษาหน้าจอ",
       signIn: "เข้าสู่ระบบ",
       primaryAction: "ขอความช่วยเหลือ",
-      nav: [["เกี่ยวกับเรา", "#about"], ["สำหรับอาสาสมัคร", "/user#volunteer-application"], ["ข่าวสาร", "#community"]],
+      nav: [["เกี่ยวกับเรา", "#about"], ["สำหรับอาสาสมัคร", "/user/volunteer/apply#main-content"], ["ข่าวสาร", "#community"]],
     },
     hero: {
       lead: "สื่อสารได้",
@@ -94,7 +94,7 @@ const landingCopy = {
       languageLabel: "Language",
       signIn: "Sign in",
       primaryAction: "Get help",
-      nav: [["About us", "#about"], ["For volunteers", "/user#volunteer-application"], ["Community", "#community"]],
+      nav: [["About us", "#about"], ["For volunteers", "/user/volunteer/apply#main-content"], ["Community", "#community"]],
     },
     hero: {
       lead: "Communicate clearly.",
@@ -155,7 +155,7 @@ const landingCopy = {
       languageLabel: "语言",
       signIn: "登录",
       primaryAction: "获取帮助",
-      nav: [["关于我们", "#about"], ["志愿者专区", "/user#volunteer-application"], ["社区", "#community"]],
+      nav: [["关于我们", "#about"], ["志愿者专区", "/user/volunteer/apply#main-content"], ["社区", "#community"]],
     },
     hero: {
       lead: "沟通无碍",
@@ -221,7 +221,7 @@ const localizedLandingCopy = {
       languageLabel: "Idioma",
       signIn: "Iniciar sesión",
       primaryAction: "Obtener ayuda",
-      nav: [["Sobre nosotros", "#about"], ["Para voluntarios", "/user#volunteer-application"], ["Comunidad", "#community"]],
+      nav: [["Sobre nosotros", "#about"], ["Para voluntarios", "/user/volunteer/apply#main-content"], ["Comunidad", "#community"]],
     },
     hero: {
       ...landingCopy.en.hero,
@@ -275,7 +275,7 @@ const localizedLandingCopy = {
       languageLabel: "اللغة",
       signIn: "تسجيل الدخول",
       primaryAction: "الحصول على المساعدة",
-      nav: [["من نحن", "#about"], ["للمتطوعين", "/user#volunteer-application"], ["المجتمع", "#community"]],
+      nav: [["من نحن", "#about"], ["للمتطوعين", "/user/volunteer/apply#main-content"], ["المجتمع", "#community"]],
     },
     hero: {
       ...landingCopy.en.hero,
@@ -357,7 +357,7 @@ export default function LandingPage() {
     setIsRegisterOpen(false);
     setIsRoleModalOpen(false);
     router.push(user.role === "User" && intent
-      ? intent === "request" ? "/user/request-help#main-content" : "/user#volunteer-application"
+      ? intent === "request" ? "/user/request-help#main-content" : "/user/volunteer/apply#main-content"
       : getRedirectPathByRole(user.role));
   }
 
@@ -365,7 +365,7 @@ export default function LandingPage() {
     const user = currentUser;
     if (user) {
       router.push(user.role === "User"
-        ? nextIntent === "request" ? "/user/request-help#main-content" : "/user#volunteer-application"
+        ? nextIntent === "request" ? "/user/request-help#main-content" : "/user/volunteer/apply#main-content"
         : getRedirectPathByRole(user.role));
       return;
     }
@@ -424,9 +424,9 @@ export default function LandingPage() {
       onClick={(event) => {
         const anchor = (event.target as HTMLElement).closest("a");
         const href = anchor?.getAttribute("href");
-        if (href === "/user/request-help#main-content" || href === "/user#volunteer-application") {
+        if (href === "/user/request-help#main-content" || href === "/user/volunteer/apply#main-content") {
           event.preventDefault();
-          startIntent(href === "/user#volunteer-application" ? "volunteer" : "request");
+          startIntent(href === "/user/volunteer/apply#main-content" ? "volunteer" : "request");
         }
       }}
     >

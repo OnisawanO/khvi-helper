@@ -11,9 +11,6 @@ export default async function WelcomePage() {
   const profileResult = await getCurrentUserProfile(supabase);
   const profile = profileResult.profile;
 
-  if (!profile) {
-    redirect("/#top");
-  }
-
+  if (!profile) redirect("/#top");
   redirect(getRedirectPathByRole(profile.role));
 }

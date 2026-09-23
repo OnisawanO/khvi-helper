@@ -1,11 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { WorkspaceShell } from "@/app/components/workspace-shell";
-import type { UserRole } from "@/app/lib/mock-auth";
-import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
-import { loadBookingById } from "@/app/lib/real-request-data";
-import { createClient } from "@/utils/supabase/server";
-import { RequestDetail } from "./request-detail";
+import { RequestDetailPage } from "@/app/components/requests/request-detail-page";
 
 export async function generateMetadata(props: PageProps<"/user/my-requests/[requestId]">): Promise<Metadata> {
   const { requestId } = await props.params;
@@ -22,32 +16,5 @@ export async function generateMetadata(props: PageProps<"/user/my-requests/[requ
 
 export default async function RequestStatusPage(props: PageProps<"/user/my-requests/[requestId]">) {
   const { requestId } = await props.params;
-  if (!/^\d+$/.test(requestId)) {
-    notFound();
-  }
-  const supabase = await createClient();
-  const [viewerResult, loaded] = await Promise.all([
-    getCurrentUserProfile(supabase),
-    loadBookingById(requestId, supabase),
-  ]);
-
-  if (!viewerResult.profile || !loaded) {
-    notFound();
-  }
-
-  const viewerRole: UserRole = loaded.requesterId === viewerResult.profile.userId
-    ? "User"
-    : loaded.request.interpreterId === viewerResult.profile.userId
-      ? "Interpreter"
-      : viewerResult.profile.role;
-
-  return (
-    <WorkspaceShell>
-      <RequestDetail
-        request={loaded.request}
-        viewer={{ ...viewerResult.profile, role: viewerRole }}
-        initialMissionLocations={loaded.locations}
-      />
-    </WorkspaceShell>
-  );
+  return <RequestDetailPage requestId={requestId} withShell={false} />;
 }

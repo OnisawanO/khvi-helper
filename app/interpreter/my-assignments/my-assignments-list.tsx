@@ -318,7 +318,7 @@ export function MyAssignmentsList({
               </div>
               {applicationStatus !== null && (
                 <Link
-                  href="/volunteer/status#main-content"
+                  href="/user/volunteer/status#main-content"
                   className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg bg-(--khvi-navy) px-4 py-2 text-sm font-extrabold text-white transition-colors hover:bg-[#0c4960] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
                 >
                   {t.viewApplicationStatus}
@@ -393,7 +393,7 @@ export function MyAssignmentsList({
               </div>
             </div>
             <Link
-              href={`/user/my-requests/${claimSuccessId}#main-content`}
+              href={`/interpreter/my-assignments/${claimSuccessId}#main-content`}
               className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[#6aa99f] px-4 py-2 text-xs font-extrabold text-[#205f5a] transition-colors hover:bg-white focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
             >
               {t.openClaimedMission}
@@ -470,7 +470,7 @@ export function MyAssignmentsList({
                     <span className="text-xs font-extrabold text-[#425761]">{t.next[request.status as keyof typeof t.next]}</span>
                     <div className={`grid gap-2 ${request.status === "Claimed" || request.status === "InProgress" ? "grid-cols-2" : "grid-cols-1"}`}>
                       <Link
-                        href={`/user/my-requests/${request.requestId}`}
+                        href={`/interpreter/my-assignments/${request.requestId}`}
                         className="inline-flex min-h-11 items-center justify-center rounded-lg bg-(--khvi-navy) px-3 py-2 text-center text-sm font-extrabold text-white transition-colors hover:bg-[#0c4960] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
                       >
                         {t.openMission}

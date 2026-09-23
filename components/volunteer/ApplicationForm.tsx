@@ -350,7 +350,7 @@ export function ApplicationForm({
 
       setShowConfirmModal(false);
       // Redirect to volunteer application status page
-      router.push("/volunteer/status");
+      router.push("/user/volunteer/status");
     } catch (error) {
       setSubmitError(
         error instanceof Error

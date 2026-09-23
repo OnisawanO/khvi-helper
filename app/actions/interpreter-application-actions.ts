@@ -112,9 +112,9 @@ export async function submitInterpreterApplicationAction(input: {
   });
   if (error || data === null || data === undefined) return { ok: false, error: friendlyError(error) };
 
-  revalidatePath("/volunteer/apply");
-  revalidatePath("/volunteer/status");
-  revalidatePath("/volunteer/dashboard");
+  revalidatePath("/user/volunteer/apply");
+  revalidatePath("/user/volunteer/status");
+  revalidatePath("/user/volunteer/dashboard");
   revalidatePath("/manager");
   return { ok: true, data: { applicationId: String(data) } };
 }
@@ -126,7 +126,7 @@ export async function cancelInterpreterApplicationAction(applicationId: string, 
     p_reason: reason,
   });
   if (error) return { ok: false, error: friendlyError(error) };
-  revalidatePath("/volunteer/status");
+  revalidatePath("/user/volunteer/status");
   revalidatePath("/manager");
   return { ok: true, data: undefined };
 }
@@ -143,7 +143,7 @@ export async function reuploadInterpreterCertificateAction(input: {
     p_certificate_url: input.fileUrl,
   });
   if (error) return { ok: false, error: friendlyError(error) };
-  revalidatePath("/volunteer/status");
+  revalidatePath("/user/volunteer/status");
   revalidatePath("/manager");
   return { ok: true, data: undefined };
 }
@@ -161,7 +161,7 @@ export async function reviewInterpreterApplicationAction(input: {
   });
   if (error) return { ok: false, error: friendlyError(error) };
   revalidatePath("/manager");
-  revalidatePath("/volunteer/status");
+  revalidatePath("/user/volunteer/status");
   revalidatePath("/user");
   revalidatePath("/interpreter");
   revalidatePath("/interpreter/find-requests");
@@ -339,7 +339,7 @@ export async function updateInterpreterProfileAction(
   }
 
   revalidatePath("/profile");
-  revalidatePath("/volunteer/status");
+  revalidatePath("/user/volunteer/status");
   revalidatePath("/manager");
   return { ok: true, data: { applicationId: applicationId ?? "" } };
 }

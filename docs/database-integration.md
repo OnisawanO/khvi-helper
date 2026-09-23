@@ -270,16 +270,16 @@ where u.id = p.user_id
 
 เชื่อม database แล้ว:
 
-- `/user/request-help` สร้าง booking ผ่าน `create_booking`
-- `/user/my-requests`, `/interpreter/find-requests`, `/interpreter/my-assignments` อ่าน booking จริง
-- `/user/my-requests/[requestId]` อ่าน booking และข้อมูล private ผ่าน guarded RPC
+- `/user/request-help` และ `/interpreter/request-help` สร้าง booking ผ่าน `create_booking`
+- `/user/my-requests`, `/interpreter/my-requests`, `/interpreter/find-requests` และ `/interpreter/my-assignments` อ่าน booking จริง
+- Detail route ตาม role อ่าน booking และข้อมูล private ผ่าน guarded RPC
 - Claim, confirm, start, complete, cancel และ mission location ใช้ booking RPC
 - `/profile` เริ่มการลบผ่าน `begin_permanent_account_deletion`, ลบไฟล์ใบสมัครล่ามด้วย server-only Storage client แล้วลบ Supabase Auth user แบบถาวรผ่าน Admin API ระบบป้องกันการลบเมื่อมีงาน `open` ที่ยังไม่หมดอายุหรือมีงาน `claimed`, `in_progress`
-- `/volunteer/apply` อ่าน reference จริงและส่ง application จริง
-- `/volunteer/status` อ่านและจัดการ application จริง
+- `/user/volunteer/apply` อ่าน reference จริงและส่ง application จริง
+- `/user/volunteer/status` อ่านและจัดการ application จริง
 - Manager application queue อ่านข้อมูลจริงและ review ผ่าน RPC
-- `/user/my-requests/[requestId]` ส่ง review หลัง booking เป็น `completed` และแสดง review แบบ read-only หลังส่งสำเร็จ
-- `/user/my-requests` และ `/user` แสดงสถานะงานที่รอ review หรือ review แล้ว
+- Detail route ของ requester ส่ง review หลัง booking เป็น `completed` และแสดง review แบบ read-only หลังส่งสำเร็จ
+- Request list และหน้า workspace ตาม role แสดงสถานะงานที่รอ review หรือ review แล้ว
 - Admin และ Manager อ่าน rating, จำนวน review และจำนวนงาน completed ของล่ามจาก `get_interpreter_rating`
 
 ยังเป็น mock หรือยังไม่เชื่อมใน domain อื่น:
