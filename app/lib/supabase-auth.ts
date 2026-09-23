@@ -4,12 +4,13 @@ import type { Locale } from "@/app/components/site-header";
 import { getAuthCopy } from "@/app/lib/auth-copy";
 import {
   getRedirectPathByRole,
+  type AdminLevel,
   type UserProfile,
   type UserRole,
 } from "@/app/lib/mock-auth";
 
 export { getRedirectPathByRole };
-export type { UserProfile, UserRole };
+export type { AdminLevel, UserProfile, UserRole };
 
 export const PROFILE_COLUMNS = [
   "user_id",
@@ -19,6 +20,7 @@ export const PROFILE_COLUMNS = [
   "date_of_birth",
   "preferred_ui_language",
   "role",
+  "admin_level",
   "is_locked",
   "deleted_at",
   "created_at",
@@ -44,6 +46,7 @@ type ProfileRow = {
   date_of_birth: string | null;
   preferred_ui_language: string;
   role: string;
+  admin_level: string | null;
   is_locked: boolean;
   deleted_at: string | null;
   created_at: string;
@@ -77,6 +80,10 @@ export function profileRowToUserProfile(row: ProfileRow, authUser: Pick<User, "i
     phone: row.phone || "",
     dateOfBirth: row.date_of_birth || "",
     role: toRole(row.role),
+    adminLevel:
+      row.role === "Admin" && (row.admin_level === "primary" || row.admin_level === "delegated")
+        ? row.admin_level
+        : undefined,
     isLocked: row.is_locked,
     preferredUiLanguage: toLocale(row.preferred_ui_language),
     createdAt: row.created_at,

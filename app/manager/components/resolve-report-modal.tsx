@@ -64,7 +64,7 @@ function ResolveReportModalContent({
             </span>
             <div>
               <h2 id="resolve-modal-title" className="text-base font-extrabold text-[#092f45]">
-                Resolve Incident #{report.id}
+                Resolve System Report #{report.id}
               </h2>
               <p className="mt-0.5 text-xs text-[#527082]">
                 ปิดเคสหลังจาก Manager ไกล่เกลี่ยหรือแก้ไขปัญหาเรียบร้อย
@@ -86,7 +86,7 @@ function ResolveReportModalContent({
             <div className="flex items-center justify-between gap-3">
               <span className="font-semibold text-slate-600">คู่กรณี</span>
               <span className="text-right font-bold text-slate-800">
-                {report.reporterName} ↔ {report.reportedUserName}
+                {report.reporterName} ({report.reporterRole})
               </span>
             </div>
             <div className="border-t border-slate-200/60 pt-1 text-slate-700">

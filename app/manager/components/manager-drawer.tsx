@@ -5,15 +5,16 @@ import Link from "next/link";
 import {
   ArchiveBoxXMarkIcon,
   CheckCircleIcon,
-  ChatBubbleLeftRightIcon,
   ClockIcon,
   Cog6ToothIcon,
+  DocumentCheckIcon,
   InboxStackIcon,
   ShieldExclamationIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { ManagerNavSection } from "../types";
-import { formatBadgeCount } from "../mock-data";
+import { formatBadgeCount } from "../utils";
+import type { ManagerTranslation } from "../locales";
 
 interface ManagerDrawerProps {
   isOpen: boolean;
@@ -22,10 +23,11 @@ interface ManagerDrawerProps {
   setNavSection: (section: ManagerNavSection) => void;
   pendingCount: number;
   approvedCount: number;
+  pendingProfileChangeCount: number;
   rejectedCount: number;
-  openTicketCount: number;
   pendingReportCount: number;
   activitiesCount: number;
+  t: ManagerTranslation["navigation"];
 }
 
 export function ManagerDrawer({
@@ -35,10 +37,11 @@ export function ManagerDrawer({
   setNavSection,
   pendingCount,
   approvedCount,
+  pendingProfileChangeCount,
   rejectedCount,
-  openTicketCount,
   pendingReportCount,
   activitiesCount,
+  t,
 }: ManagerDrawerProps) {
   return (
     <div
@@ -102,6 +105,7 @@ export function ManagerDrawer({
           <div>
             <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Verification & Onboarding
+              {t.verificationGroup}
             </p>
             <nav className="mt-1 space-y-1">
               {/* Application Queue */}
@@ -119,6 +123,7 @@ export function ManagerDrawer({
                 <div className="flex items-center gap-2.5">
                   <InboxStackIcon className="h-5 w-5 text-slate-300" />
                   <span>Application Queue</span>
+                  <span>{t.queue}</span>
                 </div>
                 {pendingCount > 0 && (
                   <span
@@ -148,6 +153,7 @@ export function ManagerDrawer({
                 <div className="flex items-center gap-2.5">
                   <CheckCircleIcon className="h-5 w-5 text-slate-300" />
                   <span>Approved Volunteers</span>
+                  <span>{t.approved}</span>
                 </div>
                 <span
                   className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
@@ -157,6 +163,33 @@ export function ManagerDrawer({
                   }`}
                 >
                   {formatBadgeCount(approvedCount)}
+                </span>
+              </button>
+
+              {/* Profile Change Requests */}
+              <button
+                onClick={() => {
+                  setNavSection("change-requests");
+                  onClose();
+                }}
+                className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
+                  navSection === "change-requests"
+                    ? "bg-[#087f80] text-white shadow-md"
+                    : "text-slate-200 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <DocumentCheckIcon className="h-5 w-5 text-slate-300" />
+                  <span>Profile Change Requests</span>
+                </div>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                    navSection === "change-requests"
+                      ? "bg-white/20 text-white"
+                      : "bg-sky-900/60 text-sky-300 border border-sky-700/50"
+                  }`}
+                >
+                  {formatBadgeCount(pendingProfileChangeCount)}
                 </span>
               </button>
 
@@ -175,6 +208,7 @@ export function ManagerDrawer({
                 <div className="flex items-center gap-2.5">
                   <ArchiveBoxXMarkIcon className="h-5 w-5 text-slate-300" />
                   <span>Rejected Archive</span>
+                  <span>{t.rejected}</span>
                 </div>
                 <span
                   className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
@@ -192,39 +226,12 @@ export function ManagerDrawer({
           {/* Group 2: Escalation & Operations */}
           <div>
             <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Operations & Support Desk
+              Operations & Governance
+              {t.operationsGroup}
             </p>
             <nav className="mt-1 space-y-1">
-              {/* Help Tickets */}
-              <button
-                onClick={() => {
-                  setNavSection("tickets");
-                  onClose();
-                }}
-                className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
-                  navSection === "tickets"
-                    ? "bg-[#087f80] text-white shadow-md"
-                    : "text-slate-200 hover:bg-white/10 hover:text-white"
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <ChatBubbleLeftRightIcon className="h-5 w-5 text-slate-300" />
-                  <span>Live Help Requests</span>
-                </div>
-                {openTicketCount > 0 && (
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                      navSection === "tickets"
-                        ? "bg-white/20 text-white"
-                        : "bg-[#f04f3e] text-white animate-pulse"
-                    }`}
-                  >
-                    {formatBadgeCount(openTicketCount)}
-                  </span>
-                )}
-              </button>
 
-              {/* Incident Reports */}
+              {/* System Reports */}
               <button
                 onClick={() => {
                   setNavSection("reports");
@@ -238,7 +245,7 @@ export function ManagerDrawer({
               >
                 <div className="flex items-center gap-2.5">
                   <ShieldExclamationIcon className="h-5 w-5 text-slate-300" />
-                  <span>Incident Reports</span>
+                  <span>{t.reports}</span>
                 </div>
                 <span
                   className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
@@ -266,6 +273,7 @@ export function ManagerDrawer({
                 <div className="flex items-center gap-2.5">
                   <ClockIcon className="h-5 w-5 text-slate-300" />
                   <span>Operations History</span>
+                  <span>{t.history}</span>
                 </div>
                 <span
                   className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${

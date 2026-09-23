@@ -1,19 +1,55 @@
 export type SystemRole = "User" | "Interpreter" | "Manager" | "Admin";
+export type AdminLevel = "primary" | "delegated";
 
 export type AccountStatus = "Active" | "Locked" | "Banned";
+export type AccountRestrictionType = "none" | "soft" | "hard";
+export type InterpreterAccessStatus = "active" | "revoked";
 
-export type UserStatusFilter = "All" | "Active" | "Locked" | "AppealPending";
+export type UserStatusFilter =
+  | "Directory"
+  | "All"
+  | "Active"
+  | "SoftSuspended"
+  | "PermanentlyBanned"
+  | "AppealPending";
+
+export type InterpreterApplicationStatus =
+  | "Pending"
+  | "Under Review"
+  | "Needs Revision"
+  | "Approved"
+  | "Rejected"
+  | "Cancelled"
+  | "Suspended";
+
+export type InterpreterApplicationSummary = {
+  id: string;
+  status: InterpreterApplicationStatus;
+  submittedAt: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  languages: string[];
+  categories: string[];
+};
 
 export type AdminUserRecord = {
   id: string;
   name: string;
   email: string;
   phone: string;
+  dateOfBirth?: string;
+  preferredUiLanguage?: string;
   primaryLanguage: string;
   spokenLanguages: string[];
   role: SystemRole;
+  adminLevel?: AdminLevel;
   isLocked: boolean;
   lockReason?: string;
+  restrictionType?: AccountRestrictionType;
+  restrictionReason?: string;
+  restrictionAt?: string;
+  restrictionByUserId?: string;
+  interpreterAccessStatus?: InterpreterAccessStatus;
   accountStatus?: AccountStatus; // Active, Locked (Temporary), Banned (Permanent Hard Ban)
   // Appeal fields for soft-banned users
   hasPendingAppeal?: boolean;
@@ -22,15 +58,16 @@ export type AdminUserRecord = {
   appealCategory?: "Accidental" | "Device Issue" | "Misunderstanding" | "Other";
   registeredAt: string;
   lastActive: string;
-  // Interpreter specific fields if role === 'Interpreter'
+  applicationSummary?: InterpreterApplicationSummary;
+  // Interpreter-specific fields. Values are populated only from connected data.
   interpreterStats?: {
-    verificationStatus: "Approved" | "Pending" | "Under Review" | "Suspended";
+    verificationStatus: InterpreterApplicationStatus | "Not Available";
     completedMissions: number;
-    rating: number; // e.g. 4.9
+    rating?: number;
     reviewCount?: number;
     specialties: string[];
-    responseTimeAvg: string; // e.g. '2.4 mins'
-    feedbackHighlights: string[];
+    responseTimeAvg?: string;
+    feedbackHighlights?: string[];
   };
 };
 
@@ -38,16 +75,15 @@ export type AdminIncidentReport = {
   id: string;
   reporterName: string;
   reporterRole: "User" | "Interpreter";
-  reportedUserId: string;
-  reportedUserName: string;
-  reportedUserRole: "User" | "Interpreter";
-  bookingId: string;
+  bookingId?: string;
+  category?: string;
+  systemArea?: string;
   reason: string; // English translated reason for admin decision-making
   originalReason?: string; // Original reason in user's native language
   originalLanguage?: string; // e.g., "Spanish", "Thai", "Russian", "Japanese"
   severity: "high" | "critical" | "medium";
   createdAt: string;
-  status: "Escalated to Admin" | "Resolved (Locked)" | "Resolved (Hard Banned)" | "Resolved (Unlocked)" | "Dismissed";
+  status: "Escalated to Admin" | "Resolved" | "Dismissed";
   actionTaken?: string;
 };
 
@@ -61,7 +97,13 @@ export type AuditLogEntry = {
   details: string;
 };
 
-export type AdminActiveTab = "overview" | "users" | "reports" | "audit" | "policies";
+export type AdminActiveTab =
+  | "overview"
+  | "users"
+  | "reports"
+  | "audit"
+  | "policies"
+  | "manager-operations";
 
 export type SystemSettingsConfig = {
   // 1. Emergency Dispatch & SOS Policy

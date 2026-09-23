@@ -2,8 +2,8 @@
 
 import {
   CheckBadgeIcon,
-  KeyIcon,
   LockClosedIcon,
+  NoSymbolIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import { UserStatusFilter } from "../types";
@@ -12,7 +12,7 @@ interface AdminKpiCardsProps {
   totalUsersCount: number;
   totalInterpretersCount: number;
   lockedUsersCount: number;
-  totalAdminsCount: number;
+  hardBannedUsersCount: number;
   selectedStatusFilter: UserStatusFilter;
   setSelectedStatusFilter: (status: UserStatusFilter) => void;
   selectedRoles: string[];
@@ -24,7 +24,7 @@ export function AdminKpiCards({
   totalUsersCount,
   totalInterpretersCount,
   lockedUsersCount,
-  totalAdminsCount,
+  hardBannedUsersCount,
   selectedStatusFilter,
   setSelectedStatusFilter,
   selectedRoles,
@@ -35,11 +35,8 @@ export function AdminKpiCards({
     selectedStatusFilter === "All" && selectedRoles.length === 0;
   const isInterpretersActive =
     selectedRoles.length === 1 && selectedRoles.includes("Interpreter");
-  const isSuspendedActive = selectedStatusFilter === "Locked";
-  const isStaffActive =
-    selectedRoles.length === 2 &&
-    selectedRoles.includes("Admin") &&
-    selectedRoles.includes("Manager");
+  const isSuspendedActive = selectedStatusFilter === "SoftSuspended";
+  const isHardBannedActive = selectedStatusFilter === "PermanentlyBanned";
 
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-1 shadow-2xs">
@@ -124,7 +121,7 @@ export function AdminKpiCards({
           type="button"
           onClick={() => {
             resetRoles();
-            setSelectedStatusFilter("Locked");
+            setSelectedStatusFilter("SoftSuspended");
           }}
           className={`group text-left rounded-lg p-3.5 sm:p-4 transition-all cursor-pointer border ${
             isSuspendedActive
@@ -134,7 +131,7 @@ export function AdminKpiCards({
         >
           <div className="flex items-center justify-between gap-1">
             <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate">
-              Locked / Suspended
+              Soft Suspended
             </p>
             <div className={`flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-md ${
               isSuspendedActive ? "bg-red-100 text-[#f04f3e]" : "bg-red-50 text-[#f04f3e]"
@@ -159,46 +156,44 @@ export function AdminKpiCards({
                 lockedUsersCount > 0 ? "text-[#f04f3e]" : "text-slate-500"
               } ${isSuspendedActive ? "underline" : "group-hover:underline"}`}
             >
-              {lockedUsersCount > 0 ? "Filter Suspended" : "Healthy Base"}
+              {lockedUsersCount > 0 ? "Filter Soft Suspended" : "Healthy Base"}
             </span>
           </div>
         </button>
 
-        {/* 4. Staff & Administrators */}
+        {/* 4. Permanent Hard Bans */}
         <button
           type="button"
           onClick={() => {
-            setSelectedStatusFilter("All");
+            setSelectedStatusFilter("PermanentlyBanned");
             resetRoles();
-            toggleRoleFilter("Admin");
-            toggleRoleFilter("Manager");
           }}
           className={`group text-left rounded-lg p-3.5 sm:p-4 transition-all cursor-pointer border ${
-            isStaffActive
-              ? "bg-white border-purple-200 shadow-xs ring-1 ring-purple-500/20"
+            isHardBannedActive
+              ? "bg-white border-red-200 shadow-xs ring-1 ring-red-500/20"
               : "bg-white/60 hover:bg-white border-transparent hover:border-slate-200"
           }`}
         >
           <div className="flex items-center justify-between gap-1">
             <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate">
-              System Staff
+              Permanently Banned
             </p>
             <div className={`flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-md ${
-              isStaffActive ? "bg-purple-100 text-purple-700" : "bg-purple-50 text-purple-600"
+              isHardBannedActive ? "bg-red-100 text-red-700" : "bg-red-50 text-red-600"
             }`}>
-              <KeyIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <NoSymbolIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </div>
           </div>
           <div className="mt-1.5 flex items-baseline gap-2">
-            <p className="text-xl sm:text-2xl font-black text-purple-700">
-              {totalAdminsCount}
+            <p className={`text-xl sm:text-2xl font-black ${hardBannedUsersCount > 0 ? "text-red-700" : "text-slate-700"}`}>
+              {hardBannedUsersCount}
             </p>
-            <span className="text-[11px] font-semibold text-purple-600/70">members</span>
+            <span className="text-[11px] font-semibold text-red-600/70">restricted</span>
           </div>
           <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px] sm:text-xs text-slate-500">
-            <span className="text-slate-400">Governance Tier</span>
-            <span className={`font-bold ${isStaffActive ? "text-purple-900 underline" : "text-purple-700 group-hover:underline"}`}>
-              {isStaffActive ? "Active Filter" : "Filter Staff"}
+            <span className="text-slate-400">Security Actions</span>
+            <span className={`font-bold ${isHardBannedActive ? "text-red-900 underline" : "text-red-700 group-hover:underline"}`}>
+              {isHardBannedActive ? "Active Filter" : "Filter Hard Bans"}
             </span>
           </div>
         </button>

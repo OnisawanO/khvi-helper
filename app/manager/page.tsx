@@ -1,32 +1,27 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ShieldCheckIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
+import { ShieldCheckIcon, ArrowLeftIcon, ClockIcon } from "@heroicons/react/24/outline";
 
 import {
   InterpreterApplicant,
-  HelpTicket,
   IncidentReport,
   IncidentSeverity,
   ManagerNavSection,
   ManagerActivity,
+  ProfileChangeRequest,
 } from "./types";
-import {
-  initialApplicants,
-  initialTickets,
-  initialReports,
-  initialManagerActivities,
-} from "./mock-data";
 
 import { ManagerHeader } from "./components/manager-header";
 import { ManagerDrawer } from "./components/manager-drawer";
 import { ManagerRailBar } from "./components/manager-rail-bar";
+import { ManagerKpiCards } from "./components/manager-kpi-cards";
 import { ApplicantsTable } from "./components/applicants-table";
-import { HelpTicketsView } from "./components/help-tickets-view";
 import { IncidentReportsView } from "./components/incident-reports-view";
 import { OperationsHistoryView } from "./components/operations-history-view";
+import { ProfileChangeRequestsView } from "./components/profile-change-requests-view";
 import { ApplicantDetailModal } from "./components/applicant-detail-modal";
 import { LoginModal } from "@/app/components/auth/login-modal";
 
@@ -36,82 +31,114 @@ import {
 } from "@/app/lib/mock-auth";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { createClient } from "@/utils/supabase/client";
+import { useStoredLocale } from "@/app/lib/locale";
+import { getManagerTranslation } from "./locales";
+import { parseManagerTimestamp } from "./utils";
 import {
-  useInterpreterApplications,
-  reviewInterpreterApplication,
-  type InterpreterApplication as StoreApplication,
-} from "@/app/lib/interpreter-application";
-import {
-  loadManagerInterpreterApplicationsAction,
-  reviewInterpreterApplicationAction,
-} from "@/app/actions/interpreter-application-actions";
-import { governanceStore } from "@/app/lib/governance-store";
+  getManagerApplicationsAction,
+  getManagerProfileChangeRequestsAction,
+  getManagerReportsAction,
+  reviewApplicationAction,
+  reviewProfileChangeRequestAction,
+  updateManagerReportAction,
+} from "./actions/manager-actions";
 
-function toInterpreterApplicant(app: StoreApplication): InterpreterApplicant {
-  const primary = app.primaryLanguage || (app.languages[0]?.name ?? "ไทย (Thai)");
-  const spoken = app.languages.map((l) => l.name);
-  const categories = app.categories.map((c) => c.name);
-
-  let status: InterpreterApplicant["status"] = "Pending";
-  if (app.status === "approved") status = "Approved";
-  else if (app.status === "rejected") status = "Rejected";
-  else if (app.status === "under_review" || app.status === "needs_revision") status = "Under Review";
-
-  const firstDoc = app.documents[0];
-  const docName = firstDoc?.name || app.certificateFileName || "document.pdf";
-  const ext = docName.split(".").pop()?.toLowerCase();
-  const format = ext === "png" || ext === "jpg" ? ext : "pdf";
-
-  return {
-    id: app.id,
-    name: app.applicantName,
-    age: app.age || 25,
-    country: app.assignedArea || "Thailand",
-    primaryLanguage: primary,
-    spokenLanguages: spoken.length > 0 ? spoken : [primary],
-    specialtyCategories: categories.length > 0 ? categories : ["General Communication"],
-    experienceSummary: app.workHistory.map((w) => w.description).join("; ") || "ความพร้อมช่วยเหลือฉุกเฉินและประสานงานทั่วไป",
-    contactChannels: [app.phone, app.extraContact].filter(Boolean).join(" | ") || app.email,
-    appliedDate: app.submittedAt || "Recently",
-    status,
-    rejectionReason: app.rejectReason,
-    backgroundCheck: "Passed",
-    proficiencyScore: app.languages.map((l) => `${l.name} (${l.level || l.type || "Proficient"})`).join(", "),
-    document: {
-      name: docName,
-      type: firstDoc?.type || "cert",
-      format,
-      size: firstDoc?.size || "2.0 MB",
-      url: firstDoc?.url || app.certificateUrl,
-    },
-  };
+function profileChangeTypeLabel(requestType: ProfileChangeRequest["requestType"]) {
+  return requestType === "both" ? "language and category" : requestType;
 }
 
-export default function ManagerDashboard() {
+type ManagerDashboardProps = {
+  embedded?: boolean;
+  embeddedUser?: UserProfile | null;
+  embeddedNavSection?: ManagerNavSection;
+  onEmbeddedNavSectionChange?: (section: ManagerNavSection) => void;
+  onEmbeddedCountsChange?: (counts: {
+    pendingApplicantCount: number;
+    approvedApplicantCount: number;
+    pendingProfileChangeCount: number;
+    rejectedApplicantCount: number;
+    pendingManagerReportCount: number;
+    managerActivitiesCount: number;
+  }) => void;
+};
+
+export default function ManagerDashboard({
+  embedded = false,
+  embeddedUser = null,
+  embeddedNavSection,
+  onEmbeddedNavSectionChange,
+  onEmbeddedCountsChange,
+}: ManagerDashboardProps = {}) {
   const router = useRouter();
+  const [locale] = useStoredLocale();
+  const t = getManagerTranslation(locale);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [realApplicants, setRealApplicants] = useState<InterpreterApplicant[] | null>(null);
+  const [authChecked, setAuthChecked] = useState(Boolean(embedded && embeddedUser));
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(embeddedUser);
 
-  const { applications } = useInterpreterApplications();
+  const [applicants, setApplicants] = useState<InterpreterApplicant[]>([]);
+  const [applicantsLoadError, setApplicantsLoadError] = useState<string | null>(null);
+  const [reports, setReports] = useState<IncidentReport[]>([]);
+  const [reportsLoadError, setReportsLoadError] = useState<string | null>(null);
+  const [profileChangeRequests, setProfileChangeRequests] = useState<ProfileChangeRequest[]>([]);
+  const [profileChangeRequestsLoadError, setProfileChangeRequestsLoadError] = useState<string | null>(null);
+  const [loadingApplicants, setLoadingApplicants] = useState(false);
 
-  useEffect(() => {
-    if (!authChecked) return;
+  const loadApplications = async () => {
+    setLoadingApplicants(true);
+    try {
+      const res = await getManagerApplicationsAction();
+      if (res.success && res.data) {
+        setApplicants(res.data);
+        setApplicantsLoadError(null);
+      } else {
+        setApplicants([]);
+        setApplicantsLoadError(res.error || "Unable to load interpreter applications from Supabase.");
+      }
+    } catch (err) {
+      console.error("Failed to load applicants from Supabase:", err);
+      setApplicants([]);
+      setApplicantsLoadError("Unable to load interpreter applications from Supabase.");
+    } finally {
+      setLoadingApplicants(false);
+    }
+  };
 
-    let disposed = false;
-    const loadApplicants = async () => {
-      const result = await loadManagerInterpreterApplicationsAction();
-      if (disposed) return;
-      setRealApplicants(result.ok ? result.data : []);
-      if (!result.ok) console.error("Failed to load real interpreter applications:", result.error);
-    };
+  const loadReports = async () => {
+    try {
+      const res = await getManagerReportsAction();
+      if (res.success && res.data) {
+        setReports(res.data);
+        setReportsLoadError(null);
+      } else {
+        setReports([]);
+        setReportsLoadError(res.error || "Unable to load reports from Supabase.");
+      }
+    } catch (err) {
+      console.error("Failed to load reports from Supabase:", err);
+      setReports([]);
+      setReportsLoadError("Unable to load reports from Supabase.");
+    }
+  };
 
-    void loadApplicants();
-    return () => {
-      disposed = true;
-    };
-  }, [authChecked]);
+  const loadProfileChangeRequests = async () => {
+    try {
+      const res = await getManagerProfileChangeRequestsAction();
+      if (res.success && res.data) {
+        setProfileChangeRequests(res.data);
+        setProfileChangeRequestsLoadError(null);
+      } else {
+        setProfileChangeRequests([]);
+        setProfileChangeRequestsLoadError(
+          res.error || "Unable to load profile change requests from Supabase.",
+        );
+      }
+    } catch (err) {
+      console.error("Failed to load profile change requests from Supabase:", err);
+      setProfileChangeRequests([]);
+      setProfileChangeRequestsLoadError("Unable to load profile change requests from Supabase.");
+    }
+  };
 
   useEffect(() => {
     const supabase = createClient();
@@ -133,6 +160,9 @@ export default function ManagerDashboard() {
 
       setCurrentUser(result.profile);
       setAuthChecked(true);
+      void loadApplications();
+      void loadReports();
+      void loadProfileChangeRequests();
     };
 
     void checkManagerSession();
@@ -160,27 +190,16 @@ export default function ManagerDashboard() {
     }
   };
 
-  const localApplicants = useMemo<InterpreterApplicant[]>(() => {
-    if (applications && applications.length > 0) {
-      return applications.map(toInterpreterApplicant);
-    }
-    return initialApplicants;
-  }, [applications]);
-  const applicants = realApplicants ?? localApplicants;
-
-  const [tickets, setTickets] = useState<HelpTicket[]>(initialTickets);
-  const [reports, setReports] = useState<IncidentReport[]>(initialReports);
-  const [activities, setActivities] = useState<ManagerActivity[]>(initialManagerActivities);
+  const [currentTime] = useState(() => Date.now());
+  const decisionSequence = useRef(0);
+  const [statusDecisionOrder, setStatusDecisionOrder] = useState<Record<string, number>>({});
   const [selectedApplicantId, setSelectedApplicantId] = useState<string | null>(null);
 
   // Navigation & View State
   const [navSection, setNavSection] = useState<ManagerNavSection>("queue");
+  const visibleNavSection = embeddedNavSection ?? navSection;
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
-
-  // Response text for tickets
-  const [activeReplyingTicketId, setActiveReplyingTicketId] = useState<string | null>(null);
-  const [ticketReplyText, setTicketReplyText] = useState("");
 
   // Search & Multi-Select Filter State
   const [searchQuery, setSearchQuery] = useState("");
@@ -202,15 +221,15 @@ export default function ManagerDashboard() {
 
   // Filtered applicants based on current navSection + search query + languages + categories
   const displayedApplicants = useMemo(() => {
-    return applicants.filter((app) => {
+    const filtered = applicants.filter((app) => {
       // 1. Filter by navigation section
-      if (navSection === "queue" && app.status !== "Pending" && app.status !== "Under Review") {
+      if (visibleNavSection === "queue" && app.status !== "Pending" && app.status !== "Under Review") {
         return false;
       }
-      if (navSection === "approved" && app.status !== "Approved") {
+      if (visibleNavSection === "approved" && app.status !== "Approved") {
         return false;
       }
-      if (navSection === "rejected" && app.status !== "Rejected") {
+      if (visibleNavSection === "rejected" && app.status !== "Rejected") {
         return false;
       }
 
@@ -247,7 +266,67 @@ export default function ManagerDashboard() {
 
       return matchesSearch && matchesLanguage && matchesCategory;
     });
-  }, [applicants, navSection, searchQuery, selectedLanguages, selectedCategories]);
+
+    return filtered.sort((left, right) => {
+      const isDecisionList = visibleNavSection === "approved" || visibleNavSection === "rejected";
+      if (isDecisionList) {
+        const leftDecision = statusDecisionOrder[left.id];
+        const rightDecision = statusDecisionOrder[right.id];
+
+        if (leftDecision !== undefined || rightDecision !== undefined) {
+          if (leftDecision === undefined) return -1;
+          if (rightDecision === undefined) return 1;
+          return leftDecision - rightDecision;
+        }
+      }
+
+      return parseManagerTimestamp(right.appliedDate, currentTime) - parseManagerTimestamp(left.appliedDate, currentTime);
+    });
+  }, [applicants, visibleNavSection, searchQuery, selectedLanguages, selectedCategories, statusDecisionOrder, currentTime]);
+
+  const activities = useMemo<ManagerActivity[]>(() => {
+    const applicationActivities = applicants
+      .filter((applicant) => applicant.status === "Approved" || applicant.status === "Rejected")
+      .map((applicant): ManagerActivity => ({
+        id: `application-${applicant.id}-${applicant.status}`,
+        timestamp: applicant.reviewedAt || applicant.appliedDate,
+        type: applicant.status === "Approved" ? "approval" : "rejection",
+        targetName: applicant.name,
+        description: applicant.status === "Approved"
+          ? `Approved volunteer interpreter application (${applicant.primaryLanguage}, ${applicant.specialtyCategories.join(", ") || "No category recorded"}).`
+          : `Rejected application: ${applicant.rejectionReason || "No reason recorded."}`,
+      }));
+
+    const profileActivities = profileChangeRequests
+      .filter((request) => request.status !== "Pending Review")
+      .map((request): ManagerActivity => ({
+        id: `profile-change-${request.id}-${request.status}`,
+        timestamp: request.reviewedAt || request.submittedAt,
+        type: request.status === "Approved" ? "approval" : request.status === "Rejected" ? "rejection" : "change_request",
+        targetName: `${request.interpreterName} (${request.id})`,
+        description: request.status === "Approved"
+          ? `Approved ${profileChangeTypeLabel(request.requestType)} profile change request.`
+          : request.status === "Rejected"
+            ? `Rejected ${profileChangeTypeLabel(request.requestType)} profile change request: ${request.reviewNote || "No note recorded."}`
+            : `Requested changes for ${profileChangeTypeLabel(request.requestType)} profile change request: ${request.reviewNote || "No note recorded."}`,
+      }));
+
+    const reportActivities = reports
+      .filter((report) => report.status === "Escalated to Admin" || report.status === "Resolved")
+      .map((report): ManagerActivity => ({
+        id: `report-${report.id}-${report.status}`,
+        timestamp: report.updatedAt || report.createdAt,
+        type: report.status === "Resolved" ? "report_resolved" : "report_escalation",
+        targetName: `${report.systemArea || report.category || "System issue"} (${report.id})`,
+        description: report.status === "Resolved"
+          ? `Resolved system report: "${report.actionTaken || report.reason}"`
+          : `Escalated system report regarding "${report.reason}" to Admin.`,
+      }));
+
+    return [...applicationActivities, ...profileActivities, ...reportActivities].sort(
+      (left, right) => parseManagerTimestamp(right.timestamp, currentTime) - parseManagerTimestamp(left.timestamp, currentTime),
+    );
+  }, [applicants, currentTime, profileChangeRequests, reports]);
 
   // Selected applicant for the centered pop-up modal
   const selectedApplicant = useMemo(() => {
@@ -259,103 +338,109 @@ export default function ManagerDashboard() {
     setDetailModalOpen(true);
   };
 
+  const markStatusDecision = (id: string) => {
+    decisionSequence.current += 1;
+    setStatusDecisionOrder((current) => ({
+      ...current,
+      [id]: decisionSequence.current,
+    }));
+  };
+
   // Handle Approve (FR-43)
   const handleApprove = async (id: string) => {
-    const target = applicants.find((a) => a.id === id);
-    if (realApplicants !== null) {
-      const result = await reviewInterpreterApplicationAction({ applicationId: id, decision: "approved" });
-      if (!result.ok) {
-        console.error("Failed to persist approval:", result.error);
-        return;
+    markStatusDecision(id);
+    const reviewedAt = new Date().toISOString();
+    // Optimistic UI update
+    setApplicants((prev) =>
+      prev.map((app) =>
+        app.id === id
+          ? { ...app, status: "Approved", backgroundCheck: "Passed", reviewedAt }
+          : app,
+      ),
+    );
+
+    try {
+      const res = await reviewApplicationAction(id, "approved");
+      if (!res.success) {
+        console.error("Failed to approve in Supabase:", res.error);
       }
-      const refreshed = await loadManagerInterpreterApplicationsAction();
-      if (refreshed.ok) setRealApplicants(refreshed.data);
-    } else if (currentUser) {
-      try {
-        reviewInterpreterApplication(id, currentUser, { status: "approved" });
-      } catch (err) {
-        console.error("Failed to persist approval:", err);
-      }
+    } catch (err) {
+      console.error("Failed to persist approval:", err);
     }
-    if (target) {
-      setActivities((prev) => [
-        {
-          id: `ACT-APP-${id}-${prev.length + 1}`,
-          timestamp: "Just now",
-          type: "approval",
-          targetName: target.name,
-          description: `Approved volunteer interpreter application (${target.primaryLanguage}, ${target.specialtyCategories.join(", ")}).`,
-        },
-        ...prev,
-      ]);
-    }
+
   };
 
   // Handle Reject (FR-44, FR-45)
   const handleReject = async (id: string, reason: string) => {
-    const target = applicants.find((a) => a.id === id);
-    if (realApplicants !== null) {
-      const result = await reviewInterpreterApplicationAction({ applicationId: id, decision: "rejected", note: reason });
-      if (!result.ok) {
-        console.error("Failed to persist rejection:", result.error);
-        return;
+    markStatusDecision(id);
+    const reviewedAt = new Date().toISOString();
+    // Optimistic UI update
+    setApplicants((prev) =>
+      prev.map((app) =>
+        app.id === id ? { ...app, status: "Rejected", rejectionReason: reason, reviewedAt } : app,
+      ),
+    );
+
+    try {
+      const res = await reviewApplicationAction(id, "rejected", reason);
+      if (!res.success) {
+        console.error("Failed to reject in Supabase:", res.error);
       }
-      const refreshed = await loadManagerInterpreterApplicationsAction();
-      if (refreshed.ok) setRealApplicants(refreshed.data);
-    } else if (currentUser) {
-      try {
-        reviewInterpreterApplication(id, currentUser, { status: "rejected", reason });
-      } catch (err) {
-        console.error("Failed to persist rejection:", err);
-      }
+    } catch (err) {
+      console.error("Failed to persist rejection:", err);
     }
-    if (target) {
-      setActivities((prev) => [
-        {
-          id: `ACT-REJ-${id}-${prev.length + 1}`,
-          timestamp: "Just now",
-          type: "rejection",
-          targetName: target.name,
-          description: `Rejected application: ${reason}`,
-        },
-        ...prev,
-      ]);
-    }
+
   };
 
-  // Handle Help Request Response (FR-52)
-  const handleSendTicketReply = (ticketId: string) => {
-    if (!ticketReplyText.trim()) return;
-    const target = tickets.find((t) => t.id === ticketId);
-    setTickets((prev) =>
-      prev.map((t) =>
-        t.id === ticketId
-          ? {
-              ...t,
-              status: "Resolved",
-              response: ticketReplyText.trim(),
-            }
-          : t
-      )
+  const handleApproveProfileChange = async (requestId: string): Promise<void> => {
+    const result = await reviewProfileChangeRequestAction(requestId, "approved");
+    if (!result.success) throw new Error(result.error || "Failed to approve profile change request.");
+    const reviewerRole = currentUser?.role || "Manager";
+
+    markStatusDecision(requestId);
+    setProfileChangeRequests((current) =>
+      current.map((request) =>
+          request.id === requestId
+          ? { ...request, status: "Approved", reviewNote: `Approved by ${reviewerRole}.`, reviewedAt: new Date().toISOString() }
+          : request,
+      ),
     );
-    if (target) {
-      setActivities((prev) => [
-        {
-          id: `ACT-TCK-${ticketId}-${prev.length + 1}`,
-          timestamp: "Just now",
-          type: "ticket_reply",
-          targetName: `${target.requesterName} (${target.id})`,
-          description: `Replied & resolved help ticket: "${ticketReplyText.trim()}"`,
-        },
-        ...prev,
-      ]);
-    }
-    setActiveReplyingTicketId(null);
-    setTicketReplyText("");
+
+    void loadApplications();
+  };
+
+  const handleRequestProfileChange = async (requestId: string, note: string): Promise<void> => {
+    const result = await reviewProfileChangeRequestAction(requestId, "changes_requested", note);
+    if (!result.success) throw new Error(result.error || "Failed to request profile changes.");
+
+    markStatusDecision(requestId);
+    setProfileChangeRequests((current) =>
+      current.map((request) =>
+        request.id === requestId
+          ? { ...request, status: "Changes Requested", reviewNote: note, reviewedAt: new Date().toISOString() }
+          : request,
+      ),
+    );
+
+  };
+
+  const handleRejectProfileChange = async (requestId: string, note: string): Promise<void> => {
+    const result = await reviewProfileChangeRequestAction(requestId, "rejected", note);
+    if (!result.success) throw new Error(result.error || "Failed to reject profile change request.");
+
+    markStatusDecision(requestId);
+    setProfileChangeRequests((current) =>
+      current.map((request) =>
+        request.id === requestId
+          ? { ...request, status: "Rejected", reviewNote: note, reviewedAt: new Date().toISOString() }
+          : request,
+      ),
+    );
+
   };
 
   // Handle Incident Report Escalation to Admin (FR-53 -> FR-76)
-  const handleEscalateReport = (
+  const handleEscalateReport = async (
     reportId: string,
     severity: IncidentSeverity,
     assessmentNote: string
@@ -363,9 +448,10 @@ export default function ManagerDashboard() {
     const target = reports.find((r) => r.id === reportId);
     if (!target || target.status !== "Pending Investigation") return;
 
+    const actorRole = currentUser?.role || "Manager";
     const actionNote =
       assessmentNote.trim() ||
-      `Escalated by Manager (${severity.toUpperCase()}) to Admin Portal for user account lock evaluation (FR-78).`;
+      `Escalated by ${actorRole} (${severity.toUpperCase()}) to Admin Portal for user account lock evaluation (FR-78).`;
 
     setReports((prev) =>
       prev.map((r) =>
@@ -375,54 +461,27 @@ export default function ManagerDashboard() {
               severity,
               status: "Escalated to Admin",
               actionTaken: actionNote,
+              updatedAt: new Date().toISOString(),
             }
           : r
       )
     );
-    // Map reportedUserId for real-time link to Admin user directory.
-    const matchedUser = governanceStore
-      .getUsers()
-      .find((user) => user.name.toLowerCase() === target.reportedUserName.toLowerCase());
-    const reportedUserId =
-      matchedUser?.id || (target.reportedUserRole === "Interpreter" ? "USR-010" : "USR-009");
+    const persisted = await updateManagerReportAction(reportId, {
+      mode: "escalate",
+      severity,
+      note: actionNote,
+    });
+    if (!persisted.success && /^REP-\d+$/i.test(reportId)) {
+      console.error("Failed to persist report escalation:", persisted.error);
+    }
 
-    // Sync to shared governance store for Admin Portal real-time pickup.
-    governanceStore.escalateReportToAdmin(
-      {
-        id: target.id,
-        reporterName: target.reporterName,
-        reporterRole: target.reporterRole,
-        reportedUserId,
-        reportedUserName: target.reportedUserName,
-        reportedUserRole: target.reportedUserRole,
-        bookingId: target.bookingId,
-        reason: target.reason,
-        severity,
-        originalReason: target.originalReason,
-        originalLanguage: target.originalLanguage,
-        createdAt: target.createdAt,
-        status: "Escalated to Admin",
-        actionTaken: actionNote,
-      },
-      `${currentUser?.name || "Manager Coordinator"} (Manager)`
-    );
-
-    setActivities((prev) => [
-      {
-        id: `ACT-REP-${reportId}-${prev.length + 1}`,
-        timestamp: "Just now",
-        type: "report_escalation",
-        targetName: `${target.reportedUserName} (${target.id})`,
-        description: `Escalated [${severity.toUpperCase()}] incident report regarding "${target.reason}" to Super Admin.`,
-      },
-      ...prev,
-    ]);
   };
 
-  // Handle Self-Resolve of Incident Report by Manager (Dispute Mediation)
-  const handleResolveReport = (reportId: string, resolutionNote: string) => {
+  // Handle self-resolution of a system report by Manager
+  const handleResolveReport = async (reportId: string, resolutionNote: string) => {
     const target = reports.find((r) => r.id === reportId);
-    const actionNote = `Resolved by Manager: ${resolutionNote}`;
+    const actorRole = currentUser?.role || "Manager";
+    const actionNote = `Resolved by ${actorRole}: ${resolutionNote}`;
 
     setReports((prev) =>
       prev.map((r) =>
@@ -431,30 +490,21 @@ export default function ManagerDashboard() {
               ...r,
               status: "Resolved",
               actionTaken: actionNote,
+              updatedAt: new Date().toISOString(),
             }
           : r
       )
     );
 
     if (target) {
-      // If report was previously in governanceStore, update it as Resolved
-      governanceStore.resolveReport(
-        reportId,
-        "Dismissed",
-        actionNote,
-        `${currentUser?.name || "Manager Coordinator"} (Manager)`
-      );
+      const persisted = await updateManagerReportAction(reportId, {
+        mode: "resolve",
+        note: actionNote,
+      });
+      if (!persisted.success && /^REP-\d+$/i.test(reportId)) {
+        console.error("Failed to persist report resolution:", persisted.error);
+      }
 
-      setActivities((prev) => [
-        {
-          id: `ACT-RES-${reportId}-${prev.length + 1}`,
-          timestamp: "Just now",
-          type: "report_resolved",
-          targetName: `${target.reportedUserName} (${target.id})`,
-          description: `Resolved incident dispute: "${resolutionNote}"`,
-        },
-        ...prev,
-      ]);
     }
   };
 
@@ -462,8 +512,32 @@ export default function ManagerDashboard() {
   const pendingCount = applicants.filter((a) => a.status === "Pending" || a.status === "Under Review").length;
   const approvedCount = applicants.filter((a) => a.status === "Approved").length;
   const rejectedCount = applicants.filter((a) => a.status === "Rejected").length;
-  const openTicketCount = tickets.filter((t) => t.status === "Open" || t.status === "In Progress").length;
+  const pendingProfileChangeCount = profileChangeRequests.filter(
+    (request) => request.status === "Pending Review",
+  ).length;
   const pendingReportCount = reports.filter((r) => r.status === "Pending Investigation").length;
+
+  useEffect(() => {
+    if (!embedded || !onEmbeddedCountsChange) return;
+
+    onEmbeddedCountsChange({
+      pendingApplicantCount: pendingCount,
+      approvedApplicantCount: approvedCount,
+      pendingProfileChangeCount,
+      rejectedApplicantCount: rejectedCount,
+      pendingManagerReportCount: pendingReportCount,
+      managerActivitiesCount: activities.length,
+    });
+  }, [
+    activities.length,
+    approvedCount,
+    embedded,
+    onEmbeddedCountsChange,
+    pendingCount,
+    pendingProfileChangeCount,
+    pendingReportCount,
+    rejectedCount,
+  ]);
 
   if (!authChecked) {
     return (
@@ -473,69 +547,163 @@ export default function ManagerDashboard() {
     );
   }
 
+  const setManagerNavSection = (section: ManagerNavSection) => {
+    setNavSection(section);
+    onEmbeddedNavSectionChange?.(section);
+  };
+
   return (
-    <div className="flex h-screen w-full flex-row overflow-hidden bg-[#f7f9fa] text-[#092f45] antialiased">
+    <div
+      className={`${
+        embedded
+          ? "flex min-h-full w-full flex-col bg-[#f7f9fa]"
+          : "flex h-screen w-full flex-row overflow-hidden"
+      } text-[#092f45] antialiased`}
+    >
       {/* Universal Slide-out Pop-up Sidebar Drawer */}
-      <ManagerDrawer
-        isOpen={isMobileDrawerOpen}
-        onClose={() => setIsMobileDrawerOpen(false)}
-        navSection={navSection}
-        setNavSection={setNavSection}
-        pendingCount={pendingCount}
-        approvedCount={approvedCount}
-        rejectedCount={rejectedCount}
-        openTicketCount={openTicketCount}
-        pendingReportCount={pendingReportCount}
-        activitiesCount={activities.length}
-      />
+      {!embedded && (
+        <ManagerDrawer
+          isOpen={isMobileDrawerOpen}
+          onClose={() => setIsMobileDrawerOpen(false)}
+          navSection={navSection}
+          setNavSection={setManagerNavSection}
+          pendingCount={pendingCount}
+          approvedCount={approvedCount}
+          pendingProfileChangeCount={pendingProfileChangeCount}
+          rejectedCount={rejectedCount}
+          pendingReportCount={pendingReportCount}
+          activitiesCount={activities.length}
+          t={t.navigation}
+        />
+      )}
 
       {/* Compact Left Rail Bar (Single Source of Navigation - Rail Bar Only) */}
-      <ManagerRailBar
-        onMenuClick={() => setIsMobileDrawerOpen((prev) => !prev)}
-        navSection={navSection}
-        setNavSection={setNavSection}
-        pendingCount={pendingCount}
-        approvedCount={approvedCount}
-        rejectedCount={rejectedCount}
-        openTicketCount={openTicketCount}
-        pendingReportCount={pendingReportCount}
-      />
+      {!embedded && (
+        <ManagerRailBar
+          onMenuClick={() => setIsMobileDrawerOpen((prev) => !prev)}
+          navSection={navSection}
+          setNavSection={setManagerNavSection}
+          pendingCount={pendingCount}
+          approvedCount={approvedCount}
+          pendingProfileChangeCount={pendingProfileChangeCount}
+          rejectedCount={rejectedCount}
+          pendingReportCount={pendingReportCount}
+          t={t.navigation}
+        />
+      )}
 
       {/* Right Column: Top Header + Main Content Workspace */}
-      <div className="flex flex-1 flex-col h-full overflow-hidden min-w-0">
-        <ManagerHeader
-          onMenuClick={() => setIsMobileDrawerOpen((prev) => !prev)}
-          currentUser={currentUser}
-          onSignOut={handleSignOut}
-          onChangeAccount={() => setIsLoginModalOpen(true)}
-        />
+      <div className={`${embedded ? "flex min-h-full flex-col" : "flex h-full flex-1 flex-col overflow-hidden"} min-w-0`}>
+        {!embedded && (
+          <ManagerHeader
+            onMenuClick={() => setIsMobileDrawerOpen((prev) => !prev)}
+            currentUser={currentUser}
+            onSignOut={handleSignOut}
+          />
+        )}
 
         {/* Administrator Supervisory Override Banner */}
         {currentUser?.role === "Admin" && (
-          <div className="flex items-center justify-between border-b border-amber-300 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-900 shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-300 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-900 shadow-xs">
             <div className="flex items-center gap-2">
               <ShieldCheckIcon className="h-4 w-4 text-amber-700 shrink-0" />
               <span>
-                <strong>Administrator Mode:</strong> You have full supervisory override authority across all operational queues.
+                <strong>{embedded ? "Manager View:" : "Administrator Mode:"}</strong>{" "}
+                {embedded
+                  ? "Operations are available inside the Admin Console."
+                  : "You have full supervisory override authority across all operational queues."}
               </span>
             </div>
-            <Link
-              href="/admin"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-1 text-[11px] font-bold text-amber-800 shadow-2xs hover:bg-amber-100/50 transition-colors"
-            >
-              <ArrowLeftIcon className="h-3 w-3" />
-              <span>Return to Admin Console</span>
-            </Link>
+            {!embedded && (
+              <Link
+                href="/admin"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-1 text-[11px] font-bold text-amber-800 shadow-2xs hover:bg-amber-100/50 transition-colors"
+              >
+                <ArrowLeftIcon className="h-3 w-3" />
+                <span>Return to Admin Console</span>
+              </Link>
+            )}
           </div>
         )}
 
-        {/* Content Workspace */}
-        <div className="flex-1 overflow-y-auto min-w-0 flex flex-col">
-          <main className="flex-1 p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6">
+        {/* Content Workspace - Pure Clean White Canvas */}
+        <div
+          className={`${
+            embedded ? "overflow-visible" : "overflow-y-auto"
+          } flex-1 min-w-0 flex flex-col bg-white`}
+        >
+          <main
+            className={`${
+              embedded ? "p-0" : "p-4 sm:p-6 md:p-8"
+            } flex-1 space-y-5 sm:space-y-6`}
+            aria-busy={loadingApplicants}
+          >
+            {/* Top Page Heading with Hairline Divider (Admin Standard) */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-200">
+              <div>
+                <h2 className="text-lg sm:text-xl font-bold text-[#092f45]">
+                  {embedded && visibleNavSection === "queue"
+                    ? "Operations Console"
+                    : t.headings[visibleNavSection]?.title ??
+                      (visibleNavSection === "change-requests" ? "Profile Change Requests" : "Manager Dashboard")}
+                </h2>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  {embedded && visibleNavSection === "queue"
+                    ? "Manager operations inside the Admin Console."
+                    : t.headings[visibleNavSection]?.subtitle ??
+                    (visibleNavSection === "change-requests"
+                      ? "Review evidence before approving language and/or category changes for certified interpreters."
+                      : "")}
+                </p>
+              </div>
+              {visibleNavSection === "reports" && (
+                <span className="self-start sm:self-auto rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-xs font-bold text-amber-800">
+                  Pending: {pendingReportCount}
+                </span>
+              )}
+              {visibleNavSection === "history" && (
+                <span className="self-start sm:self-auto inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-700 border border-slate-200">
+                  <ClockIcon className="h-3.5 w-3.5 text-[#087f80]" />
+                  Total: {activities.length}
+                </span>
+              )}
+            </div>
+
+            {/* Interactive Segmented KPI Overview Cards */}
+            <ManagerKpiCards
+              navSection={visibleNavSection}
+              setNavSection={setManagerNavSection}
+              pendingCount={pendingCount}
+              approvedCount={approvedCount}
+              pendingProfileChangeCount={pendingProfileChangeCount}
+              rejectedCount={rejectedCount}
+              pendingReportCount={pendingReportCount}
+              t={t.kpi}
+            />
+
+            {visibleNavSection === "reports" && reportsLoadError && (
+              <div
+                role="alert"
+                className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-800"
+              >
+                <p className="font-bold">Reports could not be loaded from Supabase.</p>
+                <p className="mt-1 break-words">{reportsLoadError}</p>
+              </div>
+            )}
+
+            {(visibleNavSection === "queue" || visibleNavSection === "approved" || visibleNavSection === "rejected") && applicantsLoadError && (
+              <div
+                role="alert"
+                className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-800"
+              >
+                <p className="font-bold">Interpreter applications could not be loaded from Supabase.</p>
+                <p className="mt-1 break-words">{applicantsLoadError}</p>
+              </div>
+            )}
+
             {/* VIEW 1: Volunteer Applicants Table (Queue, Approved, Rejected) */}
-            {(navSection === "queue" || navSection === "approved" || navSection === "rejected") && (
+            {(visibleNavSection === "queue" || visibleNavSection === "approved" || visibleNavSection === "rejected") && (
               <ApplicantsTable
-                navSection={navSection}
                 applicants={displayedApplicants}
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
@@ -548,24 +716,30 @@ export default function ManagerDashboard() {
                 filterMenuOpen={filterMenuOpen}
                 setFilterMenuOpen={setFilterMenuOpen}
                 onSelectApplicant={handleOpenDetailModal}
-                onApprove={handleApprove}
+                t={t.table}
               />
             )}
 
-            {/* VIEW 2: Live Help Requests (FR-51, FR-52) */}
-            {navSection === "tickets" && (
-              <HelpTicketsView
-                tickets={tickets}
-                activeReplyingTicketId={activeReplyingTicketId}
-                setActiveReplyingTicketId={setActiveReplyingTicketId}
-                ticketReplyText={ticketReplyText}
-                setTicketReplyText={setTicketReplyText}
-                onSendReply={handleSendTicketReply}
-              />
+            {/* VIEW 2: Profile Change Requests */}
+            {visibleNavSection === "change-requests" && (
+              <>
+                {profileChangeRequestsLoadError && (
+                  <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-800">
+                    {profileChangeRequestsLoadError}
+                  </p>
+                )}
+                <ProfileChangeRequestsView
+                  requests={profileChangeRequests}
+                  statusDecisionOrder={statusDecisionOrder}
+                  onApprove={handleApproveProfileChange}
+                  onRequestChanges={handleRequestProfileChange}
+                  onReject={handleRejectProfileChange}
+                />
+              </>
             )}
 
-            {/* VIEW 3: Incident Reports & Disputes (FR-53) */}
-            {navSection === "reports" && (
+            {/* VIEW 3: System Reports */}
+            {visibleNavSection === "reports" && (
               <IncidentReportsView
                 reports={reports}
                 onEscalate={handleEscalateReport}
@@ -574,7 +748,8 @@ export default function ManagerDashboard() {
             )}
 
             {/* VIEW 4: Operations Activity History Timeline */}
-            {navSection === "history" && (
+            {/* VIEW 3: Operations Activity History Timeline */}
+            {visibleNavSection === "history" && (
               <OperationsHistoryView activities={activities} />
             )}
           </main>
@@ -591,11 +766,13 @@ export default function ManagerDashboard() {
       />
 
       {/* Login & Switch Account Modal */}
-      <LoginModal
-        isOpen={isLoginModalOpen}
-        onClose={() => setIsLoginModalOpen(false)}
-        onSuccess={handleLoginSuccess}
-      />
+      {!embedded && (
+        <LoginModal
+          isOpen={isLoginModalOpen}
+          onClose={() => setIsLoginModalOpen(false)}
+          onSuccess={handleLoginSuccess}
+        />
+      )}
     </div>
   );
 }

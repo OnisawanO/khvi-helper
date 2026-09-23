@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import {
   ArrowLeftOnRectangleIcon,
-  ArrowsRightLeftIcon,
   Bars3Icon,
   CheckBadgeIcon,
   ChevronDownIcon,
@@ -15,14 +14,12 @@ import { UserProfile } from "@/app/lib/mock-auth";
 interface AdminHeaderProps {
   onMenuClick?: () => void;
   onSignOut: () => void;
-  onChangeAccount: () => void;
   currentUser: UserProfile | null;
 }
 
 export function AdminHeader({
   onMenuClick,
   onSignOut,
-  onChangeAccount,
   currentUser,
 }: AdminHeaderProps) {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -82,7 +79,11 @@ export function AdminHeader({
                   {currentUser?.name || "Ilham Khamsikeaw"}
                 </p>
                 <p className="text-[11px] font-semibold text-[#087f80]">
-                  {currentUser?.role === "Admin" ? "Super Admin" : currentUser?.role || "Super Admin"}
+                  {currentUser?.role === "Admin"
+                    ? currentUser.adminLevel === "primary"
+                      ? "Primary Admin"
+                      : "Delegated Admin"
+                    : currentUser?.role || "Admin"}
                 </p>
               </div>
               <ChevronDownIcon
@@ -104,7 +105,7 @@ export function AdminHeader({
                   </p>
                   <span className="mt-2 inline-flex items-center gap-1 rounded-md bg-[#e6f4ef] px-2 py-0.5 text-[11px] font-bold text-[#087557]">
                     <CheckBadgeIcon className="h-3.5 w-3.5" />
-                    Authorized Root Admin
+                    {currentUser?.adminLevel === "primary" ? "Authorized Primary Admin" : "Authorized Delegated Admin"}
                   </span>
                 </div>
                 <div className="py-1 space-y-0.5">
@@ -116,18 +117,6 @@ export function AdminHeader({
                     <UserCircleIcon className="h-4 w-4" />
                     Profile
                   </a>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setProfileMenuOpen(false);
-                      onChangeAccount();
-                    }}
-                    role="menuitem"
-                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#2d4957] transition-colors hover:bg-[#f2f7f9] hover:text-[#087f80] cursor-pointer"
-                  >
-                    <ArrowsRightLeftIcon className="h-4 w-4" />
-                    Change account
-                  </button>
                 </div>
                 <div className="border-t border-[#eef3f5] pt-1">
                   <button

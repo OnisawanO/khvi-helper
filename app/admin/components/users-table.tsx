@@ -11,12 +11,12 @@ import {
   DocumentMagnifyingGlassIcon,
   LanguageIcon,
   LockClosedIcon,
+  NoSymbolIcon,
   StarIcon,
   UserCircleIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { AdminUserRecord, SystemRole } from "../types";
-import { AVAILABLE_LANGUAGES, AVAILABLE_CATEGORIES } from "../mock-data";
+import { AdminUserRecord, SystemRole, UserStatusFilter } from "../types";
 import { TablePagination } from "./table-pagination";
 
 interface UsersTableProps {
@@ -26,8 +26,8 @@ interface UsersTableProps {
   selectedRoles: SystemRole[];
   toggleRoleFilter: (role: SystemRole) => void;
   resetRoles: () => void;
-  selectedStatusFilter: "All" | "Active" | "Locked" | "AppealPending";
-  setSelectedStatusFilter: (status: "All" | "Active" | "Locked" | "AppealPending") => void;
+  selectedStatusFilter: UserStatusFilter;
+  setSelectedStatusFilter: (status: UserStatusFilter) => void;
   selectedVerificationStatuses: string[];
   toggleVerificationStatusFilter: (status: string) => void;
   resetVerificationStatuses: () => void;
@@ -92,6 +92,15 @@ export function UsersTable({
   const totalPages = Math.max(1, Math.ceil(users.length / pageSize));
   const validCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
 
+  const availableLanguages = useMemo(
+    () => Array.from(new Set(users.flatMap((user) => [user.primaryLanguage, ...user.spokenLanguages]).filter(Boolean))).sort(),
+    [users],
+  );
+  const availableCategories = useMemo(
+    () => Array.from(new Set(users.flatMap((user) => user.interpreterStats?.specialties || []).filter(Boolean))).sort(),
+    [users],
+  );
+
   const paginatedUsers = useMemo(() => {
     const start = (validCurrentPage - 1) * pageSize;
     return users.slice(start, start + pageSize);
@@ -127,12 +136,14 @@ export function UsersTable({
           <div className="flex items-center gap-1.5">
             <select
               value={selectedStatusFilter}
-              onChange={(e) => setSelectedStatusFilter(e.target.value as "All" | "Active" | "Locked" | "AppealPending")}
+              onChange={(e) => setSelectedStatusFilter(e.target.value as UserStatusFilter)}
               className="rounded-xl sm:rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 focus:border-[#087f80] focus:outline-none cursor-pointer"
             >
-              <option value="All">All Statuses</option>
+              <option value="Directory">Operational Directory</option>
+              <option value="All">All Accounts</option>
               <option value="Active">Active Only</option>
-              <option value="Locked">Locked Only</option>
+              <option value="SoftSuspended">Soft Suspended</option>
+              <option value="PermanentlyBanned">Permanently Banned</option>
               <option value="AppealPending">Appeal Pending ({users.filter(u => u.hasPendingAppeal).length})</option>
             </select>
           </div>
@@ -299,7 +310,7 @@ export function UsersTable({
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pr-1">
-                    {AVAILABLE_LANGUAGES.map((lang) => {
+                    {availableLanguages.map((lang) => {
                       const isChecked = selectedLanguages.includes(lang);
                       return (
                         <button
@@ -346,7 +357,7 @@ export function UsersTable({
                     )}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pr-1">
-                    {AVAILABLE_CATEGORIES.map((cat) => {
+                    {availableCategories.map((cat) => {
                       const isChecked = selectedCategories.includes(cat);
                       return (
                         <button
@@ -462,30 +473,37 @@ export function UsersTable({
 
                     {/* Rating / Review Stats */}
                     <td className="px-3.5 py-3.5 text-center">
-                      {u.role === "Interpreter" && u.interpreterStats ? (
+                      {typeof u.interpreterStats?.rating === "number" ? (
                         <div className="inline-flex items-center gap-1 text-amber-600 font-bold">
                           <StarIcon className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
                           <span>{u.interpreterStats.rating.toFixed(1)}</span>
                         </div>
                       ) : (
-                        <span className="text-slate-300 font-mono">-</span>
+                        <span className="text-slate-400 text-[10px]">Not recorded</span>
                       )}
                     </td>
 
-                    {/* Status & Accreditation */}
+                    {/* Account Status */}
                     <td className="px-3.5 py-3.5 text-center">
                       <div className="inline-flex flex-col items-center gap-1">
                         <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                            u.isLocked
-                              ? "bg-red-100 text-red-700 border border-red-200/80"
-                              : "bg-emerald-100 text-emerald-700 border border-emerald-200/80"
+                          className={`inline-flex max-w-[8rem] items-center justify-center gap-1 text-center text-[10px] font-bold leading-tight ${
+                            u.restrictionType === "hard" || u.accountStatus === "Banned"
+                              ? "text-red-700"
+                              : u.isLocked
+                              ? "text-amber-800"
+                              : "text-emerald-700"
                           }`}
                         >
-                          {u.isLocked ? (
+                          {u.restrictionType === "hard" || u.accountStatus === "Banned" ? (
+                            <>
+                              <NoSymbolIcon className="h-3 w-3" />
+                              <span>Permanently Banned</span>
+                            </>
+                          ) : u.isLocked ? (
                             <>
                               <LockClosedIcon className="h-3 w-3" />
-                              <span>Locked</span>
+                              <span>Soft Suspended</span>
                             </>
                           ) : (
                             <>
@@ -496,24 +514,11 @@ export function UsersTable({
                         </span>
                         {u.isLocked && u.hasPendingAppeal && (
                           <span
-                            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-300 shadow-2xs animate-pulse"
+                             className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-800 animate-pulse"
                             title={`Appeal submitted on ${u.appealSubmittedAt || "recently"}: ${u.appealReason || ""}`}
                           >
                             <ChatBubbleLeftEllipsisIcon className="h-2.5 w-2.5 text-amber-600" />
                             <span>Appeal Pending</span>
-                          </span>
-                        )}
-                        {u.role === "Interpreter" && u.interpreterStats && (
-                          <span
-                            className={`text-[9px] font-bold uppercase tracking-wider ${
-                              u.interpreterStats.verificationStatus === "Approved"
-                                ? "text-[#087f80]"
-                                : u.interpreterStats.verificationStatus === "Pending"
-                                ? "text-amber-600"
-                                : "text-slate-400"
-                            }`}
-                          >
-                            {u.interpreterStats.verificationStatus}
                           </span>
                         )}
                       </div>

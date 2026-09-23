@@ -3,22 +3,22 @@
 import { useState } from "react";
 import {
   KeyIcon,
-  LanguageIcon,
   LockClosedIcon,
   ShieldCheckIcon,
-  ShieldExclamationIcon,
   SparklesIcon,
   StarIcon,
   XMarkIcon,
   ExclamationTriangleIcon,
+  NoSymbolIcon,
   UserMinusIcon,
   EnvelopeIcon,
   PhoneIcon,
   CalendarDaysIcon,
+  ClockIcon,
   ChatBubbleLeftEllipsisIcon,
   CheckBadgeIcon,
 } from "@heroicons/react/24/outline";
-import { AdminIncidentReport, AdminUserRecord, SystemRole } from "../types";
+import { AdminUserRecord, SystemRole } from "../types";
 
 interface UserEditModalProps {
   isOpen: boolean;
@@ -31,7 +31,9 @@ interface UserEditModalProps {
   tempLockReason: string;
   setTempLockReason: (reason: string) => void;
   onSave: () => void;
-  incidentReports?: AdminIncidentReport[];
+  canManageSecurity?: boolean;
+  isPrimaryAdmin?: boolean;
+  onGrantAdminAccess?: (user: AdminUserRecord) => void;
   onRevokeInterpreter?: (user: AdminUserRecord, reason: string) => void;
   onDirectHardBan?: (user: AdminUserRecord) => void;
 }
@@ -40,14 +42,14 @@ export function UserEditModal({
   isOpen,
   onClose,
   user,
-  tempRole,
-  setTempRole,
   tempIsLocked,
   setTempIsLocked,
   tempLockReason,
   setTempLockReason,
   onSave,
-  incidentReports = [],
+  canManageSecurity = true,
+  isPrimaryAdmin = false,
+  onGrantAdminAccess,
   onRevokeInterpreter,
   onDirectHardBan,
 }: UserEditModalProps) {
@@ -57,14 +59,23 @@ export function UserEditModal({
 
   if (!isOpen || !user) return null;
 
-  const userIncidentReports = incidentReports.filter(
-    (r) =>
-      r.reportedUserId === user.id ||
-      (r.reportedUserName && r.reportedUserName.toLowerCase() === user.name.toLowerCase())
-  );
-
-  const hasCriticalIncident = userIncidentReports.some((r) => r.severity === "critical");
   const isHardBanned = user.accountStatus === "Banned" || user.lockReason?.includes("[PERMANENT BAN]");
+  const canEditTarget =
+    !isHardBanned &&
+    canManageSecurity &&
+    (isPrimaryAdmin || user.role === "User" || user.role === "Interpreter");
+  const applicationStatusClass = user.applicationSummary?.status === "Approved"
+    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+    : user.applicationSummary?.status === "Rejected"
+    ? "bg-red-50 text-red-700 border-red-200"
+    : "bg-amber-50 text-amber-700 border-amber-200";
+  const interpreterCategories = [...new Set(
+    user.applicationSummary?.categories.length
+      ? user.applicationSummary.categories
+      : user.interpreterStats?.specialties || []
+  )];
+  const hasInterpreterDetails = user.role === "Interpreter" || Boolean(user.interpreterStats || user.applicationSummary);
+  const isRestricted = isHardBanned || user.isLocked;
 
   // Dynamic Risk Level Calculation
   const riskAssessment = (() => {
@@ -84,27 +95,11 @@ export function UserEditModal({
         desc: "Account is currently under administrative suspension.",
       };
     }
-    if (hasCriticalIncident || userIncidentReports.length >= 2) {
-      return {
-        level: "Critical Safety Flag",
-        badgeColor: "bg-red-50 text-red-700 border-red-200",
-        dotColor: "bg-red-600",
-        desc: "Multiple or high-severity reports require immediate review.",
-      };
-    }
-    if (userIncidentReports.length === 1) {
-      return {
-        level: "Moderate Concern",
-        badgeColor: "bg-amber-50 text-amber-800 border-amber-200",
-        dotColor: "bg-amber-500",
-        desc: "Single incident report filed against this account.",
-      };
-    }
     return {
       level: "Clean & Operational",
       badgeColor: "bg-emerald-50 text-emerald-800 border-emerald-200",
       dotColor: "bg-emerald-500",
-      desc: "No negative reports or safety flags on record.",
+        desc: "No account security flags on record.",
     };
   })();
 
@@ -121,7 +116,7 @@ export function UserEditModal({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-bold text-[#092f45] leading-tight">
-                  User Account & Security Console
+                  {isRestricted ? "Restricted Account & Security Console" : "User Account & Security Console"}
                 </h3>
                 <span className="text-xs text-slate-400">•</span>
                 <span className="font-mono text-xs text-slate-500 font-medium">ID: {user.id}</span>
@@ -153,7 +148,9 @@ export function UserEditModal({
                 <h4 className="text-base font-bold text-[#092f45] truncate">{user.name}</h4>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="inline-flex items-center rounded-md bg-[#087f80]/10 px-2 py-0.5 text-xs font-bold text-[#087f80]">
-                    {user.role}
+                    {user.role === "Admin" && user.adminLevel
+                      ? `${user.role} · ${user.adminLevel}`
+                      : user.role}
                   </span>
                   <span
                     className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-bold ${
@@ -174,7 +171,7 @@ export function UserEditModal({
                       }`}
                     />
                     {isHardBanned
-                      ? "Banned"
+                      ? "Permanently Banned"
                       : user.isLocked
                       ? "Suspended"
                       : "Active"}
@@ -211,6 +208,22 @@ export function UserEditModal({
                   </span>
                   <span className="text-slate-600">{user.registeredAt}</span>
                 </div>
+                {user.dateOfBirth ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400 flex items-center gap-1.5 text-[11px]">
+                      <CalendarDaysIcon className="h-3.5 w-3.5 text-slate-400" />
+                      Date of Birth:
+                    </span>
+                    <span className="text-slate-600">{user.dateOfBirth}</span>
+                  </div>
+                ) : null}
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 flex items-center gap-1.5 text-[11px]">
+                    <ClockIcon className="h-3.5 w-3.5 text-slate-400" />
+                    Last Sign-in:
+                  </span>
+                  <span className="text-slate-600">{user.lastActive}</span>
+                </div>
               </div>
             </div>
 
@@ -225,33 +238,102 @@ export function UserEditModal({
                   <span className="font-semibold text-slate-800 mt-0.5 block">{user.primaryLanguage}</span>
                 </div>
                 <div>
-                  <span className="text-[11px] text-slate-400 block mb-1.5">Spoken & Additional:</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {user.spokenLanguages.map((l) => (
-                      <span
-                        key={l}
-                        className="rounded-md bg-white border border-slate-200 px-2 py-0.5 text-xs text-slate-700 font-medium"
-                      >
-                        {l}
-                      </span>
-                    ))}
-                  </div>
+                  <span className="text-[11px] text-slate-400 block">Preferred UI Language:</span>
+                  <span className="font-semibold text-slate-800 mt-0.5 block">{user.preferredUiLanguage || "Not available"}</span>
                 </div>
+                <div>
+                  <span className="text-[11px] text-slate-400 block mb-1.5">Spoken & Additional:</span>
+                  {user.spokenLanguages.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {user.spokenLanguages.map((l) => (
+                        <span
+                          key={l}
+                          className="rounded-md bg-white border border-slate-200 px-2 py-0.5 text-xs text-slate-700 font-medium"
+                        >
+                          {l}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-slate-500">Not recorded</span>
+                  )}
+                </div>
+                {hasInterpreterDetails ? (
+                  <div className="border-t border-slate-200/70 pt-3">
+                    <span className="text-[11px] text-slate-400 block mb-1.5">Service Categories:</span>
+                    {interpreterCategories.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {interpreterCategories.map((category) => (
+                          <span
+                            key={category}
+                            className="rounded-md bg-white border border-teal-200 px-2 py-0.5 text-xs text-teal-800 font-medium"
+                          >
+                            {category}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-slate-500">Not available</span>
+                    )}
+                  </div>
+                ) : null}
               </div>
             </div>
 
-            {/* Interpreter Metrics (if Interpreter) */}
+            {/* Connected interpreter application review */}
+            {user.applicationSummary ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h5 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    Interpreter Application
+                  </h5>
+                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${applicationStatusClass}`}>
+                    {user.applicationSummary.status}
+                  </span>
+                </div>
+                <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3.5 space-y-2 text-xs">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-slate-400">Application ID</span>
+                    <span className="font-mono font-semibold text-slate-700">#{user.applicationSummary.id}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-slate-400">Submitted</span>
+                    <span className="text-right text-slate-600">{user.applicationSummary.submittedAt}</span>
+                  </div>
+                  {user.applicationSummary.reviewedAt ? (
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-slate-400">Reviewed</span>
+                      <span className="text-right text-slate-600">{user.applicationSummary.reviewedAt}</span>
+                    </div>
+                  ) : null}
+                  {user.applicationSummary.reviewedBy ? (
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-slate-400">Reviewed by</span>
+                      <span className="text-right font-semibold text-slate-700">{user.applicationSummary.reviewedBy}</span>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+
+            {/* Connected interpreter metrics */}
             {user.interpreterStats ? (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h5 className="text-[11px] font-bold uppercase tracking-wider text-teal-800 flex items-center gap-1">
                     <SparklesIcon className="h-3.5 w-3.5 text-teal-600" />
-                    Interpreter Metrics
+                    Interpreter Record
                   </h5>
-                  <span className="inline-flex items-center gap-1 font-bold text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                    <StarIcon className="h-3 w-3 fill-amber-500 text-amber-500" />
-                    {user.interpreterStats.rating} / 5.0
-                  </span>
+                  {typeof user.interpreterStats.rating === "number" ? (
+                    <span className="inline-flex items-center gap-1 font-bold text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                      <StarIcon className="h-3 w-3 fill-amber-500 text-amber-500" />
+                      {user.interpreterStats.rating.toFixed(1)} / 5.0
+                    </span>
+                  ) : (
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
+                      No review data
+                    </span>
+                  )}
                 </div>
 
                 <div className="rounded-xl border border-teal-100 bg-teal-50/40 p-3.5 space-y-3 text-xs">
@@ -268,16 +350,14 @@ export function UserEditModal({
                     </div>
                   </div>
 
-                  {user.interpreterStats.feedbackHighlights && user.interpreterStats.feedbackHighlights.length > 0 && (
-                    <div className="space-y-1.5 pt-1">
-                      <span className="text-[10px] font-bold text-teal-900 uppercase">Recent Feedback</span>
-                      {user.interpreterStats.feedbackHighlights.slice(0, 2).map((fb, idx) => (
-                        <div key={idx} className="rounded-lg bg-white border border-teal-100/60 p-2 text-xs text-slate-600 italic">
-                          &ldquo;{fb}&rdquo;
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <div className="space-y-1.5 border-t border-teal-100/70 pt-2">
+                    <span className="text-[10px] font-bold text-teal-900 uppercase">Review data</span>
+                    <p className="rounded-lg bg-white border border-teal-100/60 p-2 text-xs text-slate-600">
+                      {typeof user.interpreterStats.reviewCount === "number"
+                        ? `${user.interpreterStats.reviewCount} user reviews recorded.`
+                        : "No connected review records are available yet."}
+                    </p>
+                  </div>
                 </div>
               </div>
             ) : null}
@@ -297,51 +377,65 @@ export function UserEditModal({
 
           {/* RIGHT COLUMN: Governance, Role Permissions & Incident History (64% Width) */}
           <div className="flex-1 p-6 space-y-5 bg-white">
-            
-            {/* Section 1: RBAC Role Assignment */}
-            <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-3">
+            {(user.role === "Manager" || user.role === "Admin") && (
+              <>
+                {/* Section 1: Role and access summary */}
+                <div className="space-y-3 border-b border-slate-200 pb-5">
               <div className="flex items-center gap-2">
                 <KeyIcon className="h-4 w-4 text-[#087f80]" />
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600">
-                  RBAC Role Assignment
+                  Role & Access
                 </h4>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-                {(["User", "Interpreter", "Manager", "Admin"] as SystemRole[]).map((r) => {
-                  const isSelected = tempRole === r;
-                  return (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => {
-                        setTempRole(r);
-                        if (r === "Admin") {
-                          setTempIsLocked(false);
-                          setTempLockReason("");
-                        }
-                      }}
-                      className={`rounded-xl border p-3 text-left transition-all cursor-pointer ${
-                        isSelected
-                          ? "border-[#087f80] bg-[#087f80]/10 text-[#087f80] ring-1 ring-[#087f80]"
-                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                      }`}
-                    >
-                      <p className="text-xs font-bold">{r}</p>
-                      <p className="mt-1 text-[10px] text-slate-500">
-                        {r === "Admin"
-                          ? "Super Backoffice"
-                          : r === "Manager"
-                          ? "Ops & Verifications"
-                          : r === "Interpreter"
-                          ? "Claim Missions"
-                          : "Standard Requester"}
-                      </p>
-                    </button>
-                  );
-                })}
+              <div className="flex items-center justify-between px-0 py-2">
+                <div>
+                  <p className="text-sm font-bold text-[#092f45]">{user.role}</p>
+                  <p className="mt-1 text-[11px] text-slate-600">
+                    Staff privileges are managed through dedicated governance actions.
+                  </p>
+                </div>
+                <span className="rounded-full border border-teal-200 bg-white px-2.5 py-1 text-[10px] font-bold text-teal-700">
+                  Read only
+                </span>
               </div>
-            </div>
+
+              {user.role === "Manager" && (
+                <div className="rounded-lg border border-blue-200 bg-blue-50/60 px-3 py-3 text-[11px] leading-relaxed text-blue-900">
+                  <p className="font-bold">Manager account</p>
+                  <p className="mt-1 text-blue-800/80">Manager accounts are provisioned as staff accounts and cannot be changed through the generic User Directory flow.</p>
+                  {isPrimaryAdmin && onGrantAdminAccess && (
+                    <div className="mt-3 flex flex-col gap-2 border-t border-blue-200/70 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                      <span className="text-[10px] font-semibold text-blue-800/75">
+                        {user.isLocked ? "Unlock this account before promotion." : "Promote this Manager to delegated Admin."}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={user.isLocked}
+                        onClick={() => onGrantAdminAccess(user)}
+                        className="inline-flex items-center justify-center rounded-lg border border-blue-300 bg-white px-3 py-2 text-[11px] font-bold text-blue-800 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Grant Admin Access
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!canManageSecurity && user.role !== "Admin" && user.role !== "Manager" && (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] leading-relaxed text-slate-600">
+                  This account is read-only for the current Admin level.
+                </div>
+              )}
+
+              {user.role === "Admin" && (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] leading-relaxed text-slate-600">
+                  Admin accounts are read-only in User Directory. Use the dedicated Admin Access flow to manage Admin privileges.
+                </div>
+              )}
+                </div>
+              </>
+            )}
 
             {/* APPEAL REVIEW CARD (If user has a pending appeal) */}
             {user.isLocked && user.hasPendingAppeal && !appealDismissed && (
@@ -379,6 +473,7 @@ export function UserEditModal({
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
+                      disabled={!canEditTarget}
                       onClick={() => {
                         // Reject appeal by dismissing prompt while staying locked
                         setTempIsLocked(true);
@@ -391,6 +486,7 @@ export function UserEditModal({
                     </button>
                     <button
                       type="button"
+                      disabled={!canEditTarget}
                       onClick={() => {
                         // Approve appeal: unlock user immediately and dismiss prompt
                         setTempIsLocked(false);
@@ -407,98 +503,115 @@ export function UserEditModal({
               </div>
             )}
 
-            {/* Section 2: Account Suspension & Lockout Control */}
-            <div
-              className={`rounded-xl border p-5 space-y-3 ${
-                tempRole === "Admin"
-                  ? "border-slate-200 bg-slate-50/70"
-                  : "border-slate-200 bg-white"
-              }`}
-            >
-              <div className="flex items-center justify-between">
+            {/* Section 2: Account Enforcement */}
+            <div className="space-y-4 border-b border-slate-200 pb-5">
+              <div className="flex items-center gap-2">
                 <div className="flex items-center gap-2">
-                  <LockClosedIcon
-                    className={`h-4 w-4 ${
-                      tempRole === "Admin" ? "text-slate-400" : "text-[#f04f3e]"
-                    }`}
-                  />
+                  <LockClosedIcon className="h-4 w-4 text-[#f04f3e]" />
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600">
-                    Account Suspension & Lockout
+                    Account Enforcement
                   </h4>
                 </div>
-
-                {tempRole === "Admin" ? (
-                  <span className="rounded-full bg-slate-200/80 px-2.5 py-1 text-[11px] font-bold text-slate-600">
-                    Admin Protected
-                  </span>
-                ) : (
-                  <label className="relative inline-flex cursor-pointer items-center">
-                    <input
-                      type="checkbox"
-                      checked={tempIsLocked}
-                      onChange={(e) => setTempIsLocked(e.target.checked)}
-                      className="peer sr-only"
-                    />
-                    <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-[#f04f3e] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-                  </label>
-                )}
               </div>
 
-              {tempRole === "Admin" ? (
+              {user.role === "Admin" ? (
                 <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600">
                   <p className="font-semibold text-[#092f45]">
                     🛡️ System Policy: Admin accounts cannot be suspended
                   </p>
                   <p className="mt-0.5 text-[11px] text-slate-500">
-                    To preserve governance continuity, administrator accounts cannot be locked.
-                    Reassign to User or Manager first if offboarding is necessary.
+                    Staff security changes require the dedicated governance flow and Primary Admin authorization.
                   </p>
+                </div>
+              ) : isHardBanned ? (
+                <div className="rounded-lg border border-red-200 bg-red-50/60 p-3 text-xs text-red-800">
+                  <p className="font-semibold text-red-900">
+                    Permanent ban is active
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-red-700/80">
+                    This account cannot be edited through the standard User Directory flow. A Primary Admin must review any change.
+                  </p>
+                </div>
+              ) : !canEditTarget ? (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                  Account enforcement is read-only for the current Admin level.
                 </div>
               ) : (
                 <p className="text-xs text-slate-500">
-                  Suspended users are blocked from logging in, accepting interpreter calls, or generating SOS requests.
+                  Soft ban blocks sign-in, interpreter calls, and SOS requests. Changes are recorded in the System Audit Trail.
                 </p>
               )}
 
-              {tempRole !== "Admin" && tempIsLocked && (
-                <div className="space-y-3 pt-1 animate-in fade-in">
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-[#f04f3e]">
-                      Reason for Suspension (Audit Requirement):
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={tempLockReason}
-                      onChange={(e) => setTempLockReason(e.target.value)}
-                      placeholder="e.g. Terms violation, severe conduct breach, or pending safety investigation..."
-                      className="w-full rounded-lg border border-red-300 bg-red-50/20 p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:border-[#f04f3e] focus:outline-none"
-                    />
-                  </div>
-
-                  {/* Permanent Hard Ban Escalation */}
-                  {user.accountStatus !== "Banned" && onDirectHardBan && (
-                    <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50/40 p-3">
-                      <div>
-                        <p className="text-xs font-bold text-red-900">Permanent Hard Ban</p>
-                        <p className="text-[11px] text-red-700/80">
-                          Irrevocably disables credentials and blacklists device identity
-                        </p>
+              {user.role !== "Admin" && user.role !== "Manager" && !isHardBanned && canEditTarget && (
+                <>
+                  {tempIsLocked ? (
+                    <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50/40 p-3 animate-in fade-in">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-bold text-amber-900">Soft ban is selected</p>
+                          <p className="mt-0.5 text-[11px] text-amber-800/80">Save to keep the suspension, or unlock this account.</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTempIsLocked(false);
+                            setTempLockReason("");
+                          }}
+                          className="rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-[11px] font-bold text-emerald-700 transition hover:bg-emerald-50"
+                        >
+                          Unlock Account
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => onDirectHardBan(user)}
-                        className="rounded-lg border border-red-300 bg-white px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 transition-colors cursor-pointer shrink-0"
-                      >
-                        Hard Ban Account
-                      </button>
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-bold text-[#f04f3e]">
+                          Reason for Soft Ban (Audit Requirement):
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={tempLockReason}
+                          onChange={(e) => setTempLockReason(e.target.value)}
+                          placeholder="e.g. Terms violation, severe conduct breach, or pending safety investigation..."
+                          className="w-full rounded-lg border border-red-300 bg-white p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:border-[#f04f3e] focus:outline-none"
+                        />
+                      </div>
                     </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setTempIsLocked(true)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-bold text-amber-700 transition hover:bg-amber-50"
+                    >
+                      <LockClosedIcon className="h-3.5 w-3.5" />
+                      Suspend Account
+                    </button>
                   )}
+                </>
+              )}
+
+              {isPrimaryAdmin && user.role !== "Admin" && !isHardBanned && onDirectHardBan && (
+                <div className="space-y-3 border-t border-red-100 pt-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-bold text-red-900">Permanent hard ban</p>
+                      <p className="mt-1 text-[11px] leading-relaxed text-red-700/80">
+                        Irreversible enforcement. Blocks new sign-ins and token refreshes through Supabase Auth and permanently restricts the account in KHVI.
+                      </p>
+                    </div>
+                    <NoSymbolIcon className="h-5 w-5 shrink-0 text-red-600" />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onDirectHardBan(user)}
+                    className="rounded-lg border border-red-300 bg-white px-3 py-2 text-xs font-bold text-red-700 transition-colors hover:bg-red-50"
+                  >
+                    Review Permanent Hard Ban
+                  </button>
                 </div>
               )}
             </div>
 
             {/* Section 2.5: Interpreter Accreditation Revocation */}
-            {(user.role === "Interpreter" || tempRole === "Interpreter") && (
+            {isPrimaryAdmin && user.role === "Interpreter" && (
               <div className="rounded-xl border border-amber-200 bg-amber-50/30 p-5 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -566,8 +679,9 @@ export function UserEditModal({
                     </span>
                     <button
                       type="button"
+                      disabled={!canEditTarget}
                       onClick={() => setIsRevoking(true)}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-bold text-amber-700 hover:bg-amber-50 cursor-pointer transition-colors"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-bold text-amber-700 hover:bg-amber-50 cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <UserMinusIcon className="h-4 w-4" />
                       Revoke Accreditation
@@ -577,111 +691,6 @@ export function UserEditModal({
               </div>
             )}
 
-            {/* Section 3: Escalated Incident Reports History */}
-            <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <ShieldExclamationIcon className="h-4 w-4 text-slate-600" />
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600">
-                    Incident Reports History
-                  </h4>
-                </div>
-                <span
-                  className={`inline-flex items-center gap-1 font-bold text-xs px-2.5 py-0.5 rounded-full ${
-                    userIncidentReports.length > 0
-                      ? "text-red-700 bg-red-50 border border-red-200"
-                      : "text-emerald-700 bg-emerald-50 border border-emerald-200"
-                  }`}
-                >
-                  {userIncidentReports.length > 0
-                    ? `${userIncidentReports.length} Active Flag${userIncidentReports.length > 1 ? "s" : ""}`
-                    : "Clean Record"}
-                </span>
-              </div>
-
-              {userIncidentReports.length > 0 ? (
-                <div className="space-y-2.5 pt-1">
-                  {userIncidentReports.map((rep) => (
-                    <div
-                      key={rep.id}
-                      className="rounded-xl border border-slate-200 bg-slate-50/50 p-3.5 space-y-2"
-                    >
-                      <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-bold text-[#092f45]">
-                            {rep.id}
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-mono">
-                            Booking: {rep.bookingId}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-black uppercase ${
-                              rep.severity === "critical"
-                                ? "bg-red-100 text-red-700 border border-red-200"
-                                : rep.severity === "high"
-                                ? "bg-amber-100 text-amber-800 border border-amber-200"
-                                : "bg-blue-100 text-blue-700 border border-blue-200"
-                            }`}
-                          >
-                            {rep.severity}
-                          </span>
-                          <span
-                            className={`inline-flex rounded-md px-1.5 py-0.5 text-[9px] font-bold ${
-                              rep.status === "Escalated to Admin"
-                                ? "bg-red-50 text-red-600 border border-red-200"
-                                : rep.status === "Resolved (Hard Banned)"
-                                ? "bg-slate-900 text-red-300 border border-slate-700"
-                                : rep.status === "Resolved (Locked)"
-                                ? "bg-amber-50 text-amber-800 border border-amber-200"
-                                : "bg-slate-100 text-slate-600 border border-slate-200"
-                            }`}
-                          >
-                            {rep.status}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <p className="text-xs text-slate-800 font-medium leading-relaxed">
-                          {rep.reason}
-                        </p>
-                        {rep.originalReason && rep.originalLanguage && (
-                          <div className="flex items-center gap-1 text-[11px] text-slate-500 italic bg-white p-2 rounded-lg border border-slate-200">
-                            <LanguageIcon className="h-3.5 w-3.5 text-blue-600 shrink-0 not-italic" />
-                            <span>
-                              Original ({rep.originalLanguage}): &ldquo;{rep.originalReason}&rdquo;
-                            </span>
-                          </div>
-                        )}
-                        {rep.actionTaken && (
-                          <p className="text-[10px] text-slate-500 bg-white px-2 py-1 rounded border border-slate-200">
-                            <strong className="text-slate-700">Enforcement Log:</strong>{" "}
-                            {rep.actionTaken}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="flex items-center justify-between pt-1 text-[10px] text-slate-400 border-t border-slate-200/60">
-                        <span>
-                          Reported by:{" "}
-                          <strong className="text-slate-600">{rep.reporterName}</strong> (
-                          {rep.reporterRole})
-                        </span>
-                        <span>Date: {rep.createdAt}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-lg bg-slate-50 border border-dashed border-slate-200 p-4 text-center">
-                  <p className="text-xs text-slate-500">
-                    No active misconduct incident reports or safety escalations on file.
-                  </p>
-                </div>
-              )}
-            </div>
           </div>
           </div>
         </div>
@@ -697,15 +706,18 @@ export function UserEditModal({
               onClick={onClose}
               className="w-full sm:w-auto rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
             >
-              Cancel
+              {isHardBanned ? "Close" : "Cancel"}
             </button>
-            <button
-              type="button"
-              onClick={onSave}
-              className="w-full sm:w-auto rounded-lg bg-[#087f80] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#087f80]/90 transition-all cursor-pointer"
-            >
-              Save Security Changes
-            </button>
+            {!isHardBanned && (
+              <button
+                type="button"
+                onClick={onSave}
+                disabled={!canEditTarget}
+                className="w-full sm:w-auto rounded-lg bg-[#087f80] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#087f80]/90 transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Save Security Changes
+              </button>
+            )}
           </div>
         </div>
       </div>

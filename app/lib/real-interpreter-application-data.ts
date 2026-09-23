@@ -1,12 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/utils/supabase/server";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
-import type { InterpreterApplicationReference } from "@/app/lib/interpreter-reference-catalog";
-import {
-  DEFAULT_INTERPRETER_LANGUAGES,
-  DEFAULT_INTERPRETER_CATEGORIES,
-  sortCategoriesByPriority,
-} from "@/app/lib/interpreter-reference-catalog";
 import type {
   ApplicationCategory,
   ApplicationDocument,
@@ -15,12 +9,6 @@ import type {
   WorkHistoryEntry,
 } from "@/app/lib/interpreter-application";
 import type { InterpreterApplicant } from "@/app/manager/types";
-
-export type { InterpreterApplicationReference };
-export {
-  DEFAULT_INTERPRETER_LANGUAGES,
-  DEFAULT_INTERPRETER_CATEGORIES,
-};
 
 type ApplicationRow = {
   application_id: number;
@@ -44,7 +32,6 @@ type ApplicationRow = {
   reviewed_by_user_id: string | null;
   cancelled_at: string | null;
   cancelled_by_user_id: string | null;
-  is_profile_update?: boolean | null;
 };
 
 type LanguageLink = {
@@ -72,6 +59,14 @@ type CategoryReferenceRow = {
   icon: string | null;
 };
 
+export type InterpreterApplicationReference = {
+  id: string;
+  name: string;
+  nameTh: string;
+  nameZh: string;
+  icon?: string;
+};
+
 const APPLICATION_COLUMNS = [
   "application_id",
   "user_id",
@@ -94,17 +89,10 @@ const APPLICATION_COLUMNS = [
   "reviewed_by_user_id",
   "cancelled_at",
   "cancelled_by_user_id",
-  "is_profile_update",
 ].join(",");
 
-const LEGACY_APPLICATION_COLUMNS = APPLICATION_COLUMNS
-  .split(",")
-  .filter((column) => column !== "is_profile_update")
-  .join(",");
-
-function isMissingProfileUpdateColumn(error: { code?: string; message?: string } | null): boolean {
-  return error?.code === "42703" && Boolean(error.message?.includes("is_profile_update"));
-}
+const CERTIFICATE_BUCKET = "interpreter-certificates";
+const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24;
 
 function formatTimestamp(value: string | null): string {
   if (!value) return "";
@@ -131,6 +119,96 @@ function fileFormat(fileName: string): "pdf" | "png" | "jpg" {
   return "pdf";
 }
 
+function documentType(value: unknown): ApplicationDocument["type"] {
+  return value === "id" || value === "cv" || value === "police" ? value : "cert";
+}
+
+function asApplicationDocuments(
+  value: unknown,
+  fallbackName: string,
+  fallbackUrl?: string,
+): ApplicationDocument[] {
+  if (!Array.isArray(value)) {
+    return [{ name: fallbackName, type: "cert", size: "", url: fallbackUrl }];
+  }
+
+  const documents = value.flatMap((item): ApplicationDocument[] => {
+    if (!item || typeof item !== "object") return [];
+    const raw = item as Record<string, unknown>;
+    if (typeof raw.name !== "string" || !raw.name.trim()) return [];
+
+    return [{
+      name: raw.name,
+      type: documentType(raw.type),
+      size: typeof raw.size === "string" ? raw.size : "",
+      url: typeof raw.url === "string" && raw.url.trim() ? raw.url.trim() : undefined,
+    }];
+  });
+
+  return documents.length > 0
+    ? documents
+    : [{ name: fallbackName, type: "cert", size: "", url: fallbackUrl }];
+}
+
+function isDirectDocumentUrl(value: string) {
+  return /^(https?|data|blob):/i.test(value);
+}
+
+async function resolveCertificateUrl(client: SupabaseClient, row: ApplicationRow) {
+  const storage = client.storage.from(CERTIFICATE_BUCKET);
+  const storedDocuments = asApplicationDocuments(row.documents, row.certificate_file_name, row.certificate_url ?? undefined);
+  const rawValues = [
+    row.certificate_url?.trim() ?? "",
+    ...storedDocuments.map((document) => document.url?.trim() ?? ""),
+  ].filter(Boolean);
+
+  const signPath = async (path: string) => {
+    if (!path) return null;
+    const { data } = await storage.createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
+    return data?.signedUrl ?? null;
+  };
+
+  for (const rawValue of [...new Set(rawValues)]) {
+    if (isDirectDocumentUrl(rawValue)) return rawValue;
+
+    const directSignedUrl = await signPath(rawValue);
+    if (directSignedUrl) return directSignedUrl;
+
+    const bucketPrefix = `${CERTIFICATE_BUCKET}/`;
+    if (rawValue.startsWith(bucketPrefix)) {
+      const prefixedPathUrl = await signPath(rawValue.slice(bucketPrefix.length));
+      if (prefixedPathUrl) return prefixedPathUrl;
+    }
+  }
+
+  // Older application rows may have the file name but no storage path. Uploads
+  // are stored as <user_id>/<uuid>-<original-file-name>, so resolve that path
+  // from the interpreter's private folder before returning the application.
+  if (!row.user_id || !row.certificate_file_name) return null;
+
+  const expectedName = row.certificate_file_name.trim().toLowerCase();
+  const matchesExpectedName = (objectName: string) => {
+    const normalizedName = objectName.trim().toLowerCase();
+    return normalizedName === expectedName || normalizedName.endsWith(`-${expectedName}`);
+  };
+
+  const { data: userObjects } = await storage.list(row.user_id, {
+    limit: 100,
+    search: row.certificate_file_name,
+  });
+  const userObject = (userObjects ?? []).find((object) => matchesExpectedName(object.name));
+  if (userObject) return signPath(`${row.user_id}/${userObject.name}`);
+
+  // Keep compatibility with older test records that stored the object at the
+  // bucket root instead of under the interpreter's user folder.
+  const { data: rootObjects } = await storage.list("", {
+    limit: 100,
+    search: row.certificate_file_name,
+  });
+  const rootObject = (rootObjects ?? []).find((object) => matchesExpectedName(object.name));
+  return rootObject ? signPath(rootObject.name) : null;
+}
+
 function asWorkHistory(value: unknown): WorkHistoryEntry[] {
   if (!Array.isArray(value)) return [];
   return value.filter((entry): entry is WorkHistoryEntry => {
@@ -144,68 +222,42 @@ function asWorkHistory(value: unknown): WorkHistoryEntry[] {
 }
 
 async function references(supabase: SupabaseClient) {
-  try {
-    const [{ data: languageData, error: languageError }, { data: categoryData, error: categoryError }] = await Promise.all([
-      supabase.from("languages").select("language_id, language_code, language_name, language_name_th, language_name_zh").eq("is_active", true),
-      supabase.from("categories").select("category_id, category_code, category_name, category_name_th, category_name_zh, icon").eq("is_active", true),
-    ]);
+  const [{ data: languageData, error: languageError }, { data: categoryData, error: categoryError }] = await Promise.all([
+    supabase.from("languages").select("language_id, language_code, language_name, language_name_th, language_name_zh").eq("is_active", true),
+    supabase.from("categories").select("category_id, category_code, category_name, category_name_th, category_name_zh, icon").eq("is_active", true),
+  ]);
 
-    if (languageError) throw languageError;
-    if (categoryError) throw categoryError;
+  if (languageError) throw languageError;
+  if (categoryError) throw categoryError;
 
-    return {
-      languages: new Map((languageData ?? []).map((row) => [Number(row.language_id), row as ReferenceRow])),
-      categories: new Map((categoryData ?? []).map((row) => [Number(row.category_id), row as CategoryReferenceRow])),
-    };
-  } catch {
-    return {
-      languages: new Map(DEFAULT_INTERPRETER_LANGUAGES.map((l, i) => [i + 1, {
-        language_id: i + 1,
-        language_code: l.id,
-        language_name: l.name,
-        language_name_th: l.nameTh ?? l.name,
-        language_name_zh: l.nameZh ?? l.name,
-      } as ReferenceRow])),
-      categories: new Map(DEFAULT_INTERPRETER_CATEGORIES.map((c, i) => [i + 1, {
-        category_id: i + 1,
-        category_code: c.id,
-        category_name: c.name,
-        category_name_th: c.nameTh ?? c.name,
-        category_name_zh: c.nameZh ?? c.name,
-        icon: c.icon,
-      } as CategoryReferenceRow])),
-    };
-  }
+  return {
+    languages: new Map((languageData ?? []).map((row) => [Number(row.language_id), row as ReferenceRow])),
+    categories: new Map((categoryData ?? []).map((row) => [Number(row.category_id), row as CategoryReferenceRow])),
+  };
 }
 
 export async function loadInterpreterApplicationReferences(supabase?: SupabaseClient) {
-  try {
-    const client = supabase ?? await createClient();
-    const reference = await references(client);
-    const languages = [...reference.languages.values()].map((item) => ({
+  const client = supabase ?? await createClient();
+  const profileResult = await getCurrentUserProfile(client);
+  if (!profileResult.profile) {
+    return { languages: [], categories: [] };
+  }
+  const reference = await references(client);
+  return {
+    languages: [...reference.languages.values()].map((item) => ({
       id: item.language_code,
       name: item.language_name,
       nameTh: item.language_name_th ?? item.language_name,
       nameZh: item.language_name_zh ?? item.language_name,
-    } satisfies InterpreterApplicationReference));
-    const categories = sortCategoriesByPriority([...reference.categories.values()].map((item) => ({
+    } satisfies InterpreterApplicationReference)),
+    categories: [...reference.categories.values()].map((item) => ({
       id: item.category_code,
       name: item.category_name,
       nameTh: item.category_name_th ?? item.category_name,
       nameZh: item.category_name_zh ?? item.category_name,
       icon: item.icon ?? undefined,
-    } satisfies InterpreterApplicationReference)));
-
-    return {
-      languages: languages.length > 0 ? languages : DEFAULT_INTERPRETER_LANGUAGES,
-      categories: categories.length > 0 ? categories : DEFAULT_INTERPRETER_CATEGORIES,
-    };
-  } catch {
-    return {
-      languages: DEFAULT_INTERPRETER_LANGUAGES,
-      categories: DEFAULT_INTERPRETER_CATEGORIES,
-    };
-  }
+    } satisfies InterpreterApplicationReference)),
+  };
 }
 
 async function links(supabase: SupabaseClient, applicationId: number) {
@@ -232,28 +284,19 @@ function toApplication(
       return [{
         id: item.language_code,
         name: item.language_name,
-        nameTh: item.language_name_th ?? item.language_name,
-        nameZh: item.language_name_zh ?? item.language_name,
         type: link.is_primary ? "Primary" : "Fluent",
         level: link.language_level ?? undefined,
       }];
     });
   const categories: ApplicationCategory[] = relation.categories.flatMap((link) => {
       const item = reference.categories.get(Number(link.category_id));
-      return item ? [{
-        id: Number(item.category_id),
-        name: item.category_name,
-        nameTh: item.category_name_th ?? item.category_name,
-        nameZh: item.category_name_zh ?? item.category_name,
-        icon: item.icon ?? undefined,
-      }] : [];
+      return item ? [{ id: Number(item.category_id), name: item.category_name, icon: item.icon ?? undefined }] : [];
     });
-  const document: ApplicationDocument = {
-    name: row.certificate_file_name,
-    type: "cert",
-    size: "",
-    url: row.certificate_url ?? undefined,
-  };
+  const documents = asApplicationDocuments(
+    row.documents,
+    row.certificate_file_name,
+    row.certificate_url ?? undefined,
+  );
 
   return {
     id: String(row.application_id),
@@ -269,7 +312,7 @@ function toApplication(
     workHistory: asWorkHistory(row.work_history),
     certificateFileName: row.certificate_file_name,
     certificateUrl: row.certificate_url ?? "",
-    documents: [document],
+    documents,
     submittedAt: formatTimestamp(row.submitted_at),
     reviewedAt: row.reviewed_at ? formatTimestamp(row.reviewed_at) : undefined,
     reviewedByManagerId: row.reviewed_by_user_id ?? undefined,
@@ -281,26 +324,7 @@ function toApplication(
     cancelledByUserId: row.cancelled_by_user_id ?? undefined,
     assignedArea: row.assigned_area ?? "",
     isAvailable: row.status === "approved",
-    isProfileUpdate: Boolean(row.is_profile_update),
   };
-}
-
-async function resolveCertificateUrl(client: SupabaseClient, certPath: string | null | undefined): Promise<string> {
-  if (!certPath || typeof certPath !== "string") return "";
-  if (certPath.startsWith("http://") || certPath.startsWith("https://") || certPath.startsWith("data:")) {
-    return certPath;
-  }
-  try {
-    const { data: signed } = await client.storage
-      .from("interpreter-certificates")
-      .createSignedUrl(certPath, 60 * 60 * 24 * 7);
-    if (signed?.signedUrl) {
-      return signed.signedUrl;
-    }
-  } catch {
-    // signed url failed, fallback to API route
-  }
-  return `/api/interpreter-certificate?path=${encodeURIComponent(certPath)}`;
 }
 
 export async function loadMyInterpreterApplication(supabase?: SupabaseClient) {
@@ -308,51 +332,20 @@ export async function loadMyInterpreterApplication(supabase?: SupabaseClient) {
   const profileResult = await getCurrentUserProfile(client);
   if (!profileResult.profile) return null;
 
-  let { data, error } = await client
+  const { data, error } = await client
     .from("interpreter_applications")
     .select(APPLICATION_COLUMNS)
     .eq("user_id", profileResult.profile.userId)
+    .neq("status", "cancelled")
     .order("application_id", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (isMissingProfileUpdateColumn(error)) {
-    const legacyResult = await client
-      .from("interpreter_applications")
-      .select(LEGACY_APPLICATION_COLUMNS)
-      .eq("user_id", profileResult.profile.userId)
-      .order("application_id", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    data = legacyResult.data;
-    error = legacyResult.error;
-  }
   if (error) throw error;
   if (!data) return null;
 
   const reference = await references(client);
   const relation = await links(client, Number((data as unknown as ApplicationRow).application_id));
-  const app = toApplication(data as unknown as ApplicationRow, relation, reference);
-  const certPath = (data as unknown as ApplicationRow).certificate_url;
-  if (certPath) {
-    const resolved = await resolveCertificateUrl(client, certPath);
-    if (resolved) {
-      app.certificateUrl = resolved;
-      if (app.documents && app.documents.length > 0) {
-        app.documents = app.documents.map((doc) => ({
-          ...doc,
-          url: resolved,
-        }));
-      } else if (app.certificateFileName) {
-        app.documents = [{
-          name: app.certificateFileName,
-          type: "cert",
-          size: "",
-          url: resolved,
-        }];
-      }
-    }
-  }
-  return app;
+  return toApplication(data as unknown as ApplicationRow, relation, reference);
 }
 
 function toManagerApplicant(application: InterpreterApplication): InterpreterApplicant {
@@ -373,81 +366,60 @@ function toManagerApplicant(application: InterpreterApplication): InterpreterApp
     specialtyCategories: application.categories.map((category) => category.name),
     experienceSummary: application.workHistory.map((entry) => entry.organization ? `${entry.description} (${entry.organization})` : entry.description).join("; ") || "No experience history submitted.",
     contactChannels: [application.phone, application.email, application.extraContact].filter(Boolean).join(" · "),
+    phone: application.phone,
+    email: application.email,
+    extraContact: application.extraContact,
     appliedDate: application.submittedAt,
+    reviewedAt: application.reviewedAt,
     status: application.status === "approved" ? "Approved" : application.status === "rejected" ? "Rejected" : application.status === "under_review" ? "Under Review" : "Pending",
     rejectionReason: application.rejectReason,
     document: {
       name: document.name,
       type: document.type,
       format: fileFormat(document.name),
-      size: document.size || "Unknown",
+      size: document.size,
       url: document.url,
     },
     documents: application.documents.map((item) => ({
       name: item.name,
       type: item.type,
       format: fileFormat(item.name),
-      size: item.size || "Unknown",
+      size: item.size,
       url: item.url,
     })),
-    backgroundCheck: application.status === "approved" ? "Passed" : "Pending",
-    proficiencyScore: application.languages.map((language) => language.level).filter(Boolean).join(", ") || (application.languages.length > 1 ? "CEFR C1" : "CEFR B2"),
-    rating: 0,
-    reviewCount: 0,
-    completedMissions: 0,
-    isProfileUpdate: Boolean(application.isProfileUpdate),
+    backgroundCheck: "Pending",
+    proficiencyScore: application.languages.map((language) => language.level).filter(Boolean).join(", "),
   };
 }
 
-export async function loadManagerInterpreterApplications(supabase?: SupabaseClient): Promise<InterpreterApplicant[]> {
+export async function loadManagerInterpreterApplications(supabase?: SupabaseClient) {
   const client = supabase ?? await createClient();
   const profileResult = await getCurrentUserProfile(client);
   if (!profileResult.profile || !["Manager", "Admin"].includes(profileResult.profile.role)) return [];
 
-  let { data, error } = await client
+  const { data, error } = await client
     .from("interpreter_applications")
     .select(APPLICATION_COLUMNS)
     .neq("status", "cancelled")
     .order("submitted_at", { ascending: false });
-  if (isMissingProfileUpdateColumn(error)) {
-    const legacyResult = await client
-      .from("interpreter_applications")
-      .select(LEGACY_APPLICATION_COLUMNS)
-      .neq("status", "cancelled")
-      .order("submitted_at", { ascending: false });
-    data = legacyResult.data;
-    error = legacyResult.error;
-  }
   if (error) throw error;
 
   const reference = await references(client);
   return Promise.all((data ?? []).map(async (row) => {
     const relation = await links(client, Number((row as unknown as ApplicationRow).application_id));
     const app = toApplication(row as unknown as ApplicationRow, relation, reference);
-    const certPath = (row as unknown as ApplicationRow).certificate_url;
-    if (certPath) {
-      const resolved = await resolveCertificateUrl(client, certPath);
-      if (resolved) {
-        app.certificateUrl = resolved;
-        if (app.documents && app.documents.length > 0) {
-          app.documents = app.documents.map((doc) => ({ ...doc, url: resolved }));
-        }
-      }
-    }
     const managerApp = toManagerApplicant(app);
 
-    const { data: ratingData, error: ratingError } = await client.rpc("get_interpreter_rating", {
-      p_interpreter_id: app.userId,
-    });
-    if (!ratingError) {
-      const rating = (Array.isArray(ratingData) ? ratingData[0] : ratingData) as {
-        average_rating?: number | string;
-        review_count?: number;
-        completed_job_count?: number;
-      } | undefined;
-      managerApp.rating = Number(rating?.average_rating ?? 0);
-      managerApp.reviewCount = Number(rating?.review_count ?? 0);
-      managerApp.completedMissions = Number(rating?.completed_job_count ?? 0);
+    try {
+      const signedUrl = await resolveCertificateUrl(client, row as unknown as ApplicationRow);
+      if (signedUrl) {
+        managerApp.document.url = signedUrl;
+        if (managerApp.documents && managerApp.documents[0]) {
+          managerApp.documents[0].url = signedUrl;
+        }
+      }
+    } catch {
+      // The dossier can still render the file metadata when storage is unavailable.
     }
 
     return managerApp;

@@ -2,20 +2,21 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import {
-  CheckCircleIcon,
-  ChatBubbleLeftRightIcon,
-  ClockIcon,
-  ShieldExclamationIcon,
-  XMarkIcon,
-  MagnifyingGlassIcon,
   AdjustmentsHorizontalIcon,
+  ArrowPathIcon,
+  CheckCircleIcon,
+  CheckIcon,
   ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  CheckIcon,
+  ClockIcon,
+  DocumentMagnifyingGlassIcon,
+  ShieldExclamationIcon,
   TagIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { ManagerActivity } from "../types";
+import { parseManagerTimestamp } from "../utils";
 
 interface OperationsHistoryViewProps {
   activities: ManagerActivity[];
@@ -27,6 +28,7 @@ export function OperationsHistoryView({
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [currentTime] = useState(() => Date.now());
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const filterMenuRef = useRef<HTMLDivElement>(null);
 
@@ -59,35 +61,49 @@ export function OperationsHistoryView({
   const resetAllFilters = () => {
     setSelectedTypes([]);
     setSearchQuery("");
+    setCurrentPage(1);
   };
 
   const activeFilterCount = selectedTypes.length;
 
-  // Filtered Activities
+  const activityTypeOptions = [
+    { id: "approval", label: "Approvals" },
+    { id: "rejection", label: "Rejections" },
+    { id: "change_request", label: "Requested Changes" },
+    { id: "report_escalation", label: "Admin Escalations" },
+    { id: "report_resolved", label: "Resolved Incidents" },
+  ];
+
   const filteredActivities = useMemo(() => {
-    return activities.filter((act) => {
+    const filtered = activities.filter((act) => {
       // 1. Search Query
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
+        const q = searchQuery.toLowerCase().trim();
         const matchesTarget = act.targetName.toLowerCase().includes(q);
         const matchesDesc = act.description.toLowerCase().includes(q);
         const matchesType = act.type.toLowerCase().includes(q);
         const matchesTime = act.timestamp.toLowerCase().includes(q);
+
         if (!matchesTarget && !matchesDesc && !matchesType && !matchesTime) {
           return false;
         }
       }
 
-      // 2. Action Type Filter
+      // 2. Type Filter
       if (selectedTypes.length > 0 && !selectedTypes.includes(act.type)) {
         return false;
       }
 
       return true;
     });
-  }, [activities, searchQuery, selectedTypes]);
 
-  // Pagination Calculation
+    return filtered.sort(
+      (left, right) =>
+        parseManagerTimestamp(right.timestamp, currentTime) -
+        parseManagerTimestamp(left.timestamp, currentTime),
+    );
+  }, [activities, searchQuery, selectedTypes, currentTime]);
+
   const totalPages = Math.max(1, Math.ceil(filteredActivities.length / pageSize));
   const validCurrentPage = Math.min(currentPage, totalPages);
 
@@ -98,143 +114,148 @@ export function OperationsHistoryView({
 
   return (
     <div className="space-y-4">
-      {/* View Header with Search & Filter Box */}
-      <div className="rounded-2xl border border-[#d8e3e7] bg-white p-5 shadow-xs">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-lg font-extrabold text-[#112d3f] sm:text-xl">
-              Operations Activity History
-            </h1>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f1f5f8] px-2.5 py-0.5 text-xs font-bold text-[#2d4b5b] border border-[#dce6ed]">
-              <ClockIcon className="h-3.5 w-3.5 text-[#087f80]" />
-              Total: {activities.length}
-            </span>
-          </div>
+      {/* Flat Canvas Search & Filter Controls Bar (Admin Style) */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between py-1">
+        {/* Search Bar */}
+        <div className="relative flex-1">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
+            placeholder="Search activity by target, action or description..."
+            className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-10 pr-4 text-xs text-slate-800 placeholder-slate-400 focus:border-[#087f80] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#087f80]"
+          />
+          <DocumentMagnifyingGlassIcon className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          {searchQuery && (
+            <button
+              onClick={() => {
+                setSearchQuery("");
+                setCurrentPage(1);
+              }}
+              className="absolute right-3 top-2 text-slate-400 hover:text-slate-600"
+            >
+              <XMarkIcon className="h-4 w-4" />
+            </button>
+          )}
+        </div>
 
-          {/* Search & Filter Toolbar */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Search Input */}
-            <div className="relative">
-              <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#7e97a3]" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
-                placeholder="Search target, action, timestamp..."
-                className="w-48 sm:w-60 rounded-xl border border-[#ccdbe1] bg-[#f9fbfb] py-1.5 pl-8 pr-3 text-xs text-[#143141] placeholder-[#7d95a2] focus:border-[#087f80] focus:bg-white focus:outline-none shadow-xs"
-              />
-            </div>
-
-            {/* Filter Popover Button */}
-            <div className="relative" ref={filterMenuRef}>
-              <button
-                type="button"
-                onClick={() => setFilterMenuOpen(!filterMenuOpen)}
-                className={`inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors cursor-pointer shadow-xs ${
-                  activeFilterCount > 0
-                    ? "border-[#087f80] bg-[#edf7f5] text-[#087f80]"
-                    : "border-[#ccdbe1] bg-white text-[#254454] hover:bg-[#f7fafb]"
+        {/* Filter Controls: Unified Multi-Select Filter Button */}
+        <div className="flex items-center gap-2">
+          <div className="relative" ref={filterMenuRef}>
+            <button
+              type="button"
+              onClick={() => setFilterMenuOpen(!filterMenuOpen)}
+              className={`flex items-center justify-center gap-2 rounded-xl sm:rounded-lg border px-3 py-2 text-xs font-bold transition-all shadow-2xs cursor-pointer ${
+                activeFilterCount > 0
+                  ? "border-[#087f80] bg-[#edf7f5] text-[#087f80]"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+              }`}
+            >
+              <AdjustmentsHorizontalIcon className="h-4 w-4 text-[#087f80]" />
+              <span>Filter</span>
+              {activeFilterCount > 0 && (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#087f80] text-[9px] font-black text-white">
+                  {activeFilterCount}
+                </span>
+              )}
+              <ChevronDownIcon
+                className={`h-3 w-3 text-[#5e7783] transition-transform ${
+                  filterMenuOpen ? "rotate-180" : ""
                 }`}
-              >
-                <AdjustmentsHorizontalIcon className="h-4 w-4" />
-                <span>Filter</span>
-                {activeFilterCount > 0 && (
-                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#087f80] text-[9px] font-black text-white">
-                    {activeFilterCount}
+              />
+            </button>
+
+            {/* Filter Popover Dropdown */}
+            {filterMenuOpen && (
+              <div className="fixed inset-x-4 top-28 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 z-50 sm:w-80 rounded-2xl border border-[#d3dfe3] bg-white p-4 shadow-[0_16px_40px_rgba(9,47,69,0.18)] space-y-4 animate-in fade-in zoom-in-95">
+                <div className="flex items-center justify-between border-b border-[#edf2f5] pb-2.5">
+                  <span className="text-xs font-black text-[#112d3f] flex items-center gap-1.5">
+                    <AdjustmentsHorizontalIcon className="h-4 w-4 text-[#087f80]" />
+                    Filter Activity History
                   </span>
-                )}
-                <ChevronDownIcon
-                  className={`h-3 w-3 transition-transform ${
-                    filterMenuOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
+                  {activeFilterCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        resetAllFilters();
+                        setCurrentPage(1);
+                      }}
+                      className="text-[11px] font-bold text-[#f04f3e] hover:underline cursor-pointer"
+                    >
+                      Clear all ({activeFilterCount})
+                    </button>
+                  )}
+                </div>
 
-              {/* Filter Popover Dropdown */}
-              {filterMenuOpen && (
-                <div className="absolute right-0 top-full mt-2 z-40 w-72 sm:w-80 rounded-2xl border border-[#d3dfe3] bg-white p-4 shadow-[0_16px_40px_rgba(9,47,69,0.14)] space-y-4 animate-in fade-in">
-                  <div className="flex items-center justify-between border-b border-[#edf2f5] pb-2.5">
-                    <span className="text-xs font-black text-[#112d3f] flex items-center gap-1.5">
-                      <AdjustmentsHorizontalIcon className="h-4 w-4 text-[#087f80]" />
-                      Filter Activity History
-                    </span>
-                    {activeFilterCount > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          resetAllFilters();
-                          setCurrentPage(1);
-                        }}
-                        className="text-[11px] font-bold text-[#f04f3e] hover:underline cursor-pointer"
-                      >
-                        Clear all ({activeFilterCount})
-                      </button>
-                    )}
-                  </div>
-
-                  {/* 1. Action Type */}
-                  <div>
-                    <label className="text-[11px] font-bold text-[#557180] flex items-center gap-1 mb-2">
-                      <TagIcon className="h-3.5 w-3.5 text-[#087f80]" />
-                      Operational Action Type
-                    </label>
-                    <div className="space-y-1.5">
-                      {[
-                        { id: "approval", label: "Interpreter Approval" },
-                        { id: "rejection", label: "Interpreter Rejection" },
-                        { id: "ticket_reply", label: "Ticket Reply" },
-                        { id: "report_escalation", label: "Admin Escalation" },
-                        { id: "report_resolved", label: "Incident Resolved" },
-                      ].map((t) => {
-                        const isChecked = selectedTypes.includes(t.id);
-                        return (
-                          <label
-                            key={t.id}
-                            onClick={() => {
-                              toggleType(t.id);
-                              setCurrentPage(1);
-                            }}
-                            className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs font-semibold cursor-pointer transition-colors ${
+                {/* Action Type */}
+                <div>
+                  <label className="text-[11px] font-bold text-[#557180] flex items-center gap-1 mb-2">
+                    <TagIcon className="h-3.5 w-3.5 text-[#087f80]" />
+                    Action Type
+                  </label>
+                  <div className="grid grid-cols-1 gap-1.5">
+                    {activityTypeOptions.map((t) => {
+                      const isChecked = selectedTypes.includes(t.id);
+                      return (
+                        <button
+                          type="button"
+                          key={t.id}
+                          onClick={() => {
+                            toggleType(t.id);
+                            setCurrentPage(1);
+                          }}
+                          className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs font-semibold cursor-pointer transition-colors text-left ${
+                            isChecked
+                              ? "border-[#087f80] bg-[#edf7f5] text-[#087f80]"
+                              : "border-[#e0eaee] bg-[#f9fbfb] text-[#244253] hover:bg-white"
+                          }`}
+                        >
+                          <span
+                            className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border ${
                               isChecked
-                                ? "border-[#087f80] bg-[#edf7f5] text-[#087f80]"
-                                : "border-[#e0eaee] bg-[#f9fbfb] text-[#244253] hover:bg-white"
+                                ? "border-[#087f80] bg-[#087f80] text-white"
+                                : "border-[#b8cbd2] bg-white"
                             }`}
                           >
-                            <span
-                              className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border ${
-                                isChecked
-                                  ? "border-[#087f80] bg-[#087f80] text-white"
-                                  : "border-[#b8cbd2] bg-white"
-                              }`}
-                            >
-                              {isChecked && <CheckIcon className="h-2.5 w-2.5 stroke-[3]" />}
-                            </span>
-                            <span className="truncate">{t.label}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
+                            {isChecked && <CheckIcon className="h-2.5 w-2.5 stroke-[3]" />}
+                          </span>
+                          <span className="truncate">{t.label}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
+
+          {/* Reset All Filters Button */}
+          {(searchQuery || activeFilterCount > 0) && (
+            <button
+              type="button"
+              onClick={resetAllFilters}
+              className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-[#f04f3e] hover:bg-red-50 hover:border-red-200 transition-all cursor-pointer shadow-2xs"
+            >
+              <ArrowPathIcon className="h-3.5 w-3.5" />
+              <span>Reset</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Activity Table Container */}
-      <div className="min-h-[480px] rounded-2xl border border-slate-200 bg-white shadow-sm flex flex-col justify-between overflow-hidden">
+      {/* 3. Flat Canvas Activity Table (Admin Style) */}
+      <div className="border-y border-slate-200">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-600">
-            <thead className="bg-[#f8fafc] text-[11px] font-bold uppercase tracking-wider text-[#516f80] border-b border-slate-200">
+          <table className="w-full text-left text-xs text-slate-600 border-collapse">
+            <thead className="bg-slate-50/75 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
               <tr>
-                <th className="py-3.5 pl-5 pr-3">Target & Timestamp</th>
-                <th className="py-3.5 px-3">Action Type</th>
-                <th className="py-3.5 px-3">Operational Description</th>
-                <th className="py-3.5 pr-5 pl-3 text-center">Status</th>
+                <th className="py-3.5 pl-3 pr-3 w-[25%]">Target & Timestamp</th>
+                <th className="py-3.5 px-3 w-[18%]">Action Type</th>
+                <th className="py-3.5 px-3 w-[45%]">Operational Description</th>
+                <th className="py-3.5 pr-3 pl-3 text-center w-[12%]">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
@@ -248,10 +269,10 @@ export function OperationsHistoryView({
                     badgeBg = "bg-[#fff1ef] text-[#d93829] border-[#fecac6]";
                     typeLabel = "Rejection";
                     IconComponent = XMarkIcon;
-                  } else if (act.type === "ticket_reply") {
-                    badgeBg = "bg-[#f0f7ff] text-[#0284c7] border-[#bae6fd]";
-                    typeLabel = "Ticket Reply";
-                    IconComponent = ChatBubbleLeftRightIcon;
+                  } else if (act.type === "change_request") {
+                    badgeBg = "bg-[#fff8e8] text-[#b56e18] border-[#f5d89a]";
+                    typeLabel = "Changes Requested";
+                    IconComponent = ArrowPathIcon;
                   } else if (act.type === "report_escalation") {
                     badgeBg = "bg-[#fffbeb] text-[#d97706] border-[#fde68a]";
                     typeLabel = "Escalated to Admin";
@@ -263,9 +284,9 @@ export function OperationsHistoryView({
                   }
 
                   return (
-                    <tr key={act.id} className="hover:bg-[#fbfcfd] transition-colors">
+                    <tr key={act.id} className="hover:bg-slate-50/70 transition-colors">
                       {/* Target & Timestamp */}
-                      <td className="py-3.5 pl-5 pr-3">
+                      <td className="py-3.5 pl-3 pr-3">
                         <div className="flex items-center gap-2.5">
                           <span
                             className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${badgeBg}`}
@@ -273,12 +294,11 @@ export function OperationsHistoryView({
                             <IconComponent className="h-4 w-4" />
                           </span>
                           <div>
-                            <div className="font-extrabold text-xs text-[#092f45]">
-                              {act.targetName}
-                            </div>
-                            <div className="text-[10px] text-slate-400 mt-0.5">
+                            <p className="font-bold text-slate-900">{act.targetName}</p>
+                            <p className="text-[11px] text-slate-500 font-mono flex items-center gap-1">
+                              <ClockIcon className="h-3 w-3" />
                               {act.timestamp}
-                            </div>
+                            </p>
                           </div>
                         </div>
                       </td>
@@ -286,23 +306,23 @@ export function OperationsHistoryView({
                       {/* Action Type */}
                       <td className="py-3.5 px-3">
                         <span
-                          className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-black ${badgeBg}`}
+                          className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${badgeBg}`}
                         >
                           {typeLabel}
                         </span>
                       </td>
 
                       {/* Description */}
-                      <td className="py-3.5 px-3 max-w-md">
-                        <p className="text-xs text-[#3b5463] leading-relaxed line-clamp-2">
+                      <td className="py-3.5 px-3">
+                        <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
                           {act.description}
                         </p>
                       </td>
 
-                      {/* Logged Status */}
-                      <td className="py-3.5 pr-5 pl-3 text-center">
-                        <span className="inline-flex items-center gap-1 rounded-md bg-[#edf7f5] px-2 py-0.5 text-[10px] font-bold text-[#087f80]">
-                          <CheckCircleIcon className="h-3 w-3" />
+                      {/* Status */}
+                      <td className="py-3.5 pr-3 pl-3 text-center">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-600">
+                          <CheckCircleIcon className="h-3 w-3 text-emerald-600" />
                           Recorded
                         </span>
                       </td>
@@ -328,9 +348,9 @@ export function OperationsHistoryView({
           </table>
         </div>
 
-        {/* Pagination Footer */}
+        {/* 4. Table Pagination Footer (Admin Standard) */}
         {filteredActivities.length > 0 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200 p-4 text-xs text-slate-500 select-none">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/70 px-4 py-3 text-xs text-slate-500 select-none">
             <div>
               Showing{" "}
               <strong className="text-[#092f45]">
@@ -340,9 +360,9 @@ export function OperationsHistoryView({
               <strong className="text-[#092f45]">
                 {Math.min(validCurrentPage * pageSize, filteredActivities.length)}
               </strong>{" "}
-              of <strong className="text-[#092f45]">{filteredActivities.length}</strong> activity actions
+              of <strong className="text-[#092f45]">{filteredActivities.length}</strong> activity action(s)
               {filteredActivities.length !== activities.length && (
-                <span className="text-[#647f8d] ml-1">
+                <span className="text-slate-400 ml-1">
                   (filtered from {activities.length})
                 </span>
               )}

@@ -21,10 +21,9 @@ Environment ที่ต้องมีใน `.env.local`:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
-SUPABASE_SECRET_KEY=your_supabase_secret_key
 ```
 
-`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` ใช้ได้ทั้ง browser และ server เพราะเป็น publishable key ตามชื่อ environment ส่วน `SUPABASE_SECRET_KEY` ใช้เฉพาะ Server Action สำหรับลบบัญชีถาวร ห้ามเติม prefix `NEXT_PUBLIC_`, นำไปใช้ใน client code หรือ commit ค่าจริงลง repository ระบบยังรองรับชื่อ legacy `SUPABASE_SERVICE_ROLE_KEY` สำหรับ environment เดิม
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` ใช้ได้ทั้ง browser และ server เพราะเป็น publishable key ตามชื่อ environment ห้ามนำ `service_role` key หรือ secret key มาใส่ใน client code หรือ commit ลง repository
 
 ใช้ client ตาม execution boundary:
 
@@ -48,6 +47,10 @@ Role ที่ระบบรองรับ:
 User | Interpreter | Manager | Admin
 ```
 
+บัญชี `Admin` แยกระดับสิทธิ์ด้วย `profiles.admin_level` ซึ่งมีค่า `primary` หรือ
+`delegated` โดยมี Admin หลักได้เพียงหนึ่งบัญชี ส่วนบัญชี role อื่นต้องมีค่าเป็น `null`.
+เฉพาะ Admin หลักเท่านั้นที่เปลี่ยน role หรือจัดการสิทธิ์ของ Admin ได้
+
 `profiles` เปิด RLS และให้ผู้ใช้ที่ login แล้วอ่านหรือแก้ไขเฉพาะ profile ของตนเอง ฟิลด์ role, lock status และ `is_super_interpreter` ต้องเปลี่ยนผ่าน server-side authorization เท่านั้น อย่าใช้ `user_metadata` เป็นแหล่งตัดสินสิทธิ์
 
 Fast Login ใช้เฉพาะ development ผ่าน `FAST_LOGIN_*` server environment variables และ `/api/auth/fast-login` ไม่ควรนำไปใช้เป็น production login flow
@@ -64,8 +67,7 @@ auth.users
              │       └──< public.interpreter_application_categories >── public.categories
              └──< public.bookings
                      ├── 1 public.booking_private_details
-                     ├──< public.mission_locations >── public.profiles
-                     └──< public.reviews >── public.profiles (reviewer/reviewee)
+                     └──< public.mission_locations >── public.profiles
 ```
 
 ตารางหลัก:
@@ -81,7 +83,6 @@ auth.users
 | `public.bookings` | คำขอและสถานะภารกิจ | เก็บพิกัดพื้นที่แบบหยาบเท่านั้น |
 | `public.booking_private_details` | ที่อยู่และพิกัดจริง | เปิดผ่าน guarded RPC ตามสิทธิ์ |
 | `public.mission_locations` | ตำแหน่งล่าสุดของแต่ละ actor | ห้ามอ่านหรือเขียน table โดยตรงจาก client |
-| `public.reviews` | คะแนนและความคิดเห็นของ User ต่อ Interpreter หลังงานเสร็จ | หนึ่ง review ต่อ booking ต่อ reviewer; เขียนผ่าน `create_review` เท่านั้น |
 
 `public.bookings.area_latitude` และ `area_longitude` ถูกปัดเหลือ 2 ตำแหน่งตอนสร้างงาน ส่วนพิกัดจริงอยู่ใน `booking_private_details` และเปิดให้ interpreter หลัง requester ยืนยัน interpreter แล้ว
 
@@ -144,17 +145,6 @@ Entry point อยู่ที่ `app/actions/booking-actions.ts`
 
 Entry point อยู่ที่ `app/actions/interpreter-application-actions.ts`
 
-### Review RPC
-
-| RPC | หน้าที่ | Result |
-|---|---|---|
-| `create_review` | สร้าง review ของ requester สำหรับ booking ที่ `completed` โดย derive reviewer/reviewee จาก booking | `review_id` |
-| `get_booking_review` | อ่าน review ของ booking ที่ผู้ขอ ล่าม หรือ Manager/Admin เกี่ยวข้อง | review row |
-| `get_interpreter_rating` | อ่านค่าเฉลี่ย จำนวน review และจำนวนงานที่ completed ของล่าม | rating summary |
-| `get_interpreter_reviews` | อ่านรายการ review ของล่ามสำหรับเจ้าตัวหรือ Manager/Admin | review rows |
-
-Entry point อยู่ที่ `app/actions/review-actions.ts` และ form อยู่ที่ `app/components/review-form.tsx`
-
 ตัวอย่าง mutation:
 
 ```ts
@@ -182,7 +172,7 @@ open -> claimed -> in_progress -> completed
 
 - User ห้าม claim booking ของตนเอง
 - Claim ได้เฉพาะ profile ที่ role เป็น `Interpreter`, ไม่ locked และมี application `approved`; ล่ามทั่วไปต้องตรงทั้งภาษาและหมวดหมู่ ส่วนบัญชีที่มี `is_super_interpreter = true` ใช้ทดสอบได้กับคำขอเปิดทุกภาษาและหมวดหมู่
-- หนึ่งบัญชีมีงานที่ยังค้างได้ไม่เกินหนึ่งรายการข้ามทั้งสองโหมด: หากมีคำขอฝั่งผู้ขอเป็น `open`, `claimed` หรือ `in_progress` (ยกเว้น `open` ที่หมดอายุแล้ว) หรือมีงานฝั่งล่ามเป็น `claimed` หรือ `in_progress` จะสร้างคำขอหรือ claim งานใหม่ไม่ได้
+- Interpreter ที่มีงาน `claimed` หรือ `in_progress` อยู่แล้วห้าม claim งานใหม่
 - `start_booking` ต้องเกิดหลัง requester ยืนยัน interpreter
 - `completed` จะเกิดเมื่อ requester และ interpreter ยืนยันจบงานครบทั้งสองฝ่าย
 - การถอนตัวจาก `claimed` จะคืนงานเป็น `open` หากยังไม่พ้น deadline
@@ -203,10 +193,11 @@ pending | under_review | needs_revision | approved | rejected | cancelled
 - ตารางที่อยู่ใน `public` schema เปิด RLS ใน migration
 - `anon` ไม่มีสิทธิ์อ่านหรือเขียนข้อมูล domain
 - `authenticated` เข้าถึงตาม policy ที่ผูกกับ `auth.uid()` และ role ใน `profiles`
-- Application mutation revoke direct table write ใน migration ล่าสุดแล้ว รวมถึง `bookings` และ `booking_private_details`; application code ต้องใช้ RPC เพื่อรักษา validation, expiry, private details และ atomic flow
+- Application mutation revoke direct table write ใน migration ล่าสุดแล้ว ส่วน `bookings` และ `booking_private_details` ยังมีสิทธิ์ insert สำหรับ `authenticated` ตาม policy เดิม แต่ application code ต้องใช้ RPC เพื่อรักษา validation, expiry, private details และ atomic flow
 - RPC ที่อยู่ใน `public` ต้อง `revoke all ... from public` และ grant เฉพาะ role ที่ต้องใช้
-- `SECURITY DEFINER` ที่มีอยู่ต้องคง `auth.uid()` check และกำหนด `search_path`; function ใหม่ควรใช้ `set search_path = ''` พร้อมระบุ schema ของ relation ทุกจุด
-- ห้ามใช้ `service_role` หรือ secret key ใน browser โดยเด็ดขาด Server Action ใช้ได้เฉพาะ operation ระดับระบบที่ต้องใช้ Admin API เช่นการลบบัญชีถาวร โดยต้องตรวจ Supabase session ก่อนและห้ามรับ target user ID จาก client
+- `SECURITY DEFINER` ที่มีอยู่ต้องคง `auth.uid()` check และ `set search_path = public, pg_temp` ไว้
+- ห้ามใช้ `service_role` key ใน browser หรือ Server Action ของ user-facing flow
+- Staff account provisioning ใช้ `service_role` ได้เฉพาะภายใน Supabase Edge Function `create-manager-account` ซึ่งตรวจ JWT และ `admin_level = primary` ก่อนเรียก Auth Admin API; ห้ามส่ง key เข้า Next.js หรือ client
 
 Certificate upload ใช้ bucket private:
 
@@ -229,10 +220,7 @@ Project นี้ใช้ imperative migration ใน `supabase/migrations/` �
 5. `20260917094342_real_interpreter_application_flow.sql`
 6. `20260917095513_real_interpreter_certificate_storage.sql`
 7. `20260917100148_complete_interpreter_reference_catalog.sql`
-8. `20260921000100_add_self_account_deletion.sql`
-9. `20260921000200_admin_profiles_policy.sql`
-10. `20260921085918_create_super_interpreter_test_access.sql`
-11. `20260922091315_add_reviews_and_rating_summary.sql`
+8. `20260921085918_create_super_interpreter_test_access.sql`
 
 เมื่อต้องเปลี่ยน schema, policy, RPC หรือ Storage ให้เพิ่ม migration ใหม่ตามลำดับ ห้ามแก้ migration ที่เคย apply ไปแล้วใน shared project
 
@@ -270,25 +258,20 @@ where u.id = p.user_id
 
 เชื่อม database แล้ว:
 
-- `/user/request-help` และ `/interpreter/request-help` สร้าง booking ผ่าน `create_booking`
-- `/user/my-requests`, `/interpreter/my-requests`, `/interpreter/find-requests` และ `/interpreter/my-assignments` อ่าน booking จริง
-- Detail route ตาม role อ่าน booking และข้อมูล private ผ่าน guarded RPC
+- `/request-help` สร้าง booking ผ่าน `create_booking`
+- `/my-requests`, `/find-requests`, `/my-assignments` อ่าน booking จริง
+- `/my-requests/[requestId]` อ่าน booking และข้อมูล private ผ่าน guarded RPC
 - Claim, confirm, start, complete, cancel และ mission location ใช้ booking RPC
-- `/profile` เริ่มการลบผ่าน `begin_permanent_account_deletion`, ลบไฟล์ใบสมัครล่ามด้วย server-only Storage client แล้วลบ Supabase Auth user แบบถาวรผ่าน Admin API ระบบป้องกันการลบเมื่อมีงาน `open` ที่ยังไม่หมดอายุหรือมีงาน `claimed`, `in_progress`
-- `/user/volunteer/apply` อ่าน reference จริงและส่ง application จริง
-- `/user/volunteer/status` อ่านและจัดการ application จริง
+- `/profile` ปิดบัญชีตนเองผ่าน `delete_my_account` แบบ soft delete โดยป้องกันการลบเมื่อมีงาน `open`, `claimed` หรือ `in_progress`
+- `/volunteer/apply` อ่าน reference จริงและส่ง application จริง
+- `/volunteer/status` อ่านและจัดการ application จริง
 - Manager application queue อ่านข้อมูลจริงและ review ผ่าน RPC
-- Detail route ของ requester ส่ง review หลัง booking เป็น `completed` และแสดง review แบบ read-only หลังส่งสำเร็จ
-- Request list และหน้า workspace ตาม role แสดงสถานะงานที่รอ review หรือ review แล้ว
-- Admin และ Manager อ่าน rating, จำนวน review และจำนวนงาน completed ของล่ามจาก `get_interpreter_rating`
 
 ยังเป็น mock หรือยังไม่เชื่อมใน domain อื่น:
 
-- `/admin` ยังใช้ mock dashboard data ในส่วน reports, audit และ response-time; rating/completed missions ของล่ามอ่านจากฐานข้อมูลแล้ว
+- `/admin` ยังใช้ mock dashboard data
 - Manager tickets, reports และ activity บางส่วนยังใช้ mock data
-- คะแนนรีวิวเฉลี่ยของล่ามบน `/interpreter` อ่านจาก RPC `get_interpreter_rating(p_interpreter_id)` ของ Supabase ที่เชื่อมอยู่จริง และแสดง “ยังไม่มีรีวิว” เมื่อ RPC คืนรายการว่างหรือนับรีวิวได้ 0
-- ตาราง `reviews` และ RPC `get_interpreter_rating` อยู่ใน migration `20260922091315_add_reviews_and_rating_summary.sql`
-- Notification, audit log และ report ยังไม่อยู่ใน migration ชุดนี้
+- Review, notification, audit log และ report ยังไม่อยู่ใน migration ชุดนี้
 - Realtime config เปิดอยู่ แต่ application ยังใช้ request/response และ cache revalidation แทน realtime subscription
 
 `docs/route-inventory.md`, `detail.md` และ role documents บางส่วนยังมีข้อความที่อธิบาย route หรือ status เป็น mock/planned จากช่วงก่อนเชื่อม database เอกสารนี้บันทึก implementation ปัจจุบันจาก source code และ migration หากจะขยาย feature ให้ผ่าน Requirement Consistency Gate และอัปเดตเอกสารที่เกี่ยวข้องใน PR เดียวกัน
@@ -306,5 +289,19 @@ where u.id = p.user_id
 - `app/actions/booking-actions.ts`
 - `app/actions/interpreter-application-actions.ts`
 - `.env.example`
+
+Account suspension and hard-ban enforcement use `supabase/functions/manage-account-security`.
+The function validates the caller's active Admin level, updates Supabase Auth `ban_duration`,
+and persists `profiles.restriction_type` as `none`, `soft`, or `hard`. Deploy the function only
+after applying migrations `20260923000900_add_account_restrictions.sql`,
+`20260923001000_add_interpreter_access_status.sql`, and
+`20260923001100_reset_interpreter_access_on_reapproval.sql`.
+
+## Current Admin and Manager database status
+
+- Admin user directory, account restrictions, reports, staff provisioning, and delegated Admin access use Supabase-backed Server Actions or the trusted Edge Function. Empty database results are shown as empty states; they are never replaced with seed data.
+- Manager applications, profile change requests, reports, and operations history use Supabase-backed data. Operations history is derived from persisted application, profile-change, and report timestamps.
+- Admin audit records and platform policies are persisted by `system_audit_logs` and `platform_settings` from migration `20260923001200_create_admin_governance_data.sql`.
+- The migration must be applied to the linked Supabase project before the Audit Trail and Platform Policies tabs can load data.
 
 ก่อนแก้ database contract ให้ตรวจ source files และ migration เหล่านี้พร้อมกัน แล้วรัน `npm run lint` และ `npm run build`
