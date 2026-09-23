@@ -97,6 +97,15 @@ const APPLICATION_COLUMNS = [
   "is_profile_update",
 ].join(",");
 
+const LEGACY_APPLICATION_COLUMNS = APPLICATION_COLUMNS
+  .split(",")
+  .filter((column) => column !== "is_profile_update")
+  .join(",");
+
+function isMissingProfileUpdateColumn(error: { code?: string; message?: string } | null): boolean {
+  return error?.code === "42703" && Boolean(error.message?.includes("is_profile_update"));
+}
+
 function formatTimestamp(value: string | null): string {
   if (!value) return "";
   const timestamp = new Date(value);
@@ -299,13 +308,24 @@ export async function loadMyInterpreterApplication(supabase?: SupabaseClient) {
   const profileResult = await getCurrentUserProfile(client);
   if (!profileResult.profile) return null;
 
-  const { data, error } = await client
+  let { data, error } = await client
     .from("interpreter_applications")
     .select(APPLICATION_COLUMNS)
     .eq("user_id", profileResult.profile.userId)
     .order("application_id", { ascending: false })
     .limit(1)
     .maybeSingle();
+  if (isMissingProfileUpdateColumn(error)) {
+    const legacyResult = await client
+      .from("interpreter_applications")
+      .select(LEGACY_APPLICATION_COLUMNS)
+      .eq("user_id", profileResult.profile.userId)
+      .order("application_id", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    data = legacyResult.data;
+    error = legacyResult.error;
+  }
   if (error) throw error;
   if (!data) return null;
 
@@ -384,11 +404,20 @@ export async function loadManagerInterpreterApplications(supabase?: SupabaseClie
   const profileResult = await getCurrentUserProfile(client);
   if (!profileResult.profile || !["Manager", "Admin"].includes(profileResult.profile.role)) return [];
 
-  const { data, error } = await client
+  let { data, error } = await client
     .from("interpreter_applications")
     .select(APPLICATION_COLUMNS)
     .neq("status", "cancelled")
     .order("submitted_at", { ascending: false });
+  if (isMissingProfileUpdateColumn(error)) {
+    const legacyResult = await client
+      .from("interpreter_applications")
+      .select(LEGACY_APPLICATION_COLUMNS)
+      .neq("status", "cancelled")
+      .order("submitted_at", { ascending: false });
+    data = legacyResult.data;
+    error = legacyResult.error;
+  }
   if (error) throw error;
 
   const reference = await references(client);
