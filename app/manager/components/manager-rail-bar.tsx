@@ -46,8 +46,8 @@ export function ManagerRailBar({
             type="button"
             onClick={onMenuClick}
             className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-white shadow-xs hover:bg-[#087f80] hover:border-[#087f80] transition-all focus:outline-none focus:ring-2 focus:ring-[#087f80]/40 cursor-pointer"
-            aria-label="Toggle Navigation Drawer"
-            title="Toggle Navigation Menu"
+            aria-label={t.toggleMenu}
+            title={t.toggleMenu}
           >
             <Bars3Icon className="h-5 w-5" />
           </button>
@@ -106,8 +106,8 @@ export function ManagerRailBar({
                 ? "bg-[#087f80] text-white shadow-md ring-2 ring-[#087f80]/30"
                 : "text-slate-300 hover:bg-white/10 hover:text-white"
             }`}
-            title="Profile Change Requests"
-            aria-label="Profile Change Requests"
+            title={t.changeRequests}
+            aria-label={t.changeRequests}
           >
             <DocumentCheckIcon className="h-5 w-5" />
             {pendingProfileChangeCount > 0 && (

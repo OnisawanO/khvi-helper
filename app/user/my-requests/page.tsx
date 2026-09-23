@@ -85,6 +85,44 @@ const copy = {
   },
 } as const;
 
+const localizedCopy = {
+  en: copy.en,
+  zh: copy.zh,
+  th: {
+    ...copy.en,
+    breadcrumb: "เส้นทางนำทาง", main: "หน้าหลัก", label: "ศูนย์รวมคำขอ", title: "คำขอของฉัน",
+    intro: "คำขอทั้งหมดที่คุณสร้าง เรียงจากใหม่ไปเก่า เปิดรายการเพื่อดูสถานะและข้อมูลติดต่อล่าม",
+    newRequest: "สร้างคำขอ", filterLabel: "กรองตามสถานะ",
+    filters: { all: "ทั้งหมด", open: "รอรับงาน", claimed: "รับงานแล้ว", "in-progress": "กำลังดำเนินการ", completed: "เสร็จสิ้น", closed: "ยกเลิกหรือหมดอายุ" },
+    created: "สร้างเมื่อ", scheduled: "เวลานัดหมาย", area: "พื้นที่", waiting: "กำลังรอล่ามรับงาน",
+    closedBy: { User: "คุณยกเลิก", Interpreter: "ล่ามยกเลิก", Manager: "Manager ยกเลิก", System: "หมดอายุโดยไม่มีผู้รับงาน" },
+    view: "เปิดคำขอ", reviewPending: "รอรีวิว", reviewed: "รีวิวแล้ว", emptyTitle: "ยังไม่มีข้อมูล",
+    emptyBody: "ไม่มีคำขอที่ตรงกับตัวกรองนี้ สร้างหมุดเมื่อคุณต้องการความช่วยเหลือด้านภาษา",
+  },
+  es: {
+    ...copy.en,
+    breadcrumb: "Migas de pan", main: "Inicio", label: "Centro de solicitudes", title: "Mis solicitudes",
+    intro: "Todas las solicitudes que has creado, de la más reciente a la más antigua. Ábrelas para ver el estado y los contactos.",
+    newRequest: "Nueva solicitud", filterLabel: "Filtrar por estado",
+    filters: { all: "Todas", open: "Abiertas", claimed: "Aceptadas", "in-progress": "En curso", completed: "Completadas", closed: "Canceladas o expiradas" },
+    created: "Creada", scheduled: "Cita", area: "Zona", waiting: "Esperando a un intérprete",
+    closedBy: { User: "Cancelada por ti", Interpreter: "Cancelada por el intérprete", Manager: "Cancelada por el gestor", System: "Expirada sin aceptación" },
+    view: "Abrir solicitud", reviewPending: "Evaluación pendiente", reviewed: "Evaluada", emptyTitle: "Todavía no hay nada",
+    emptyBody: "Ninguna solicitud coincide con este filtro. Crea una cuando necesites ayuda lingüística.",
+  },
+  ar: {
+    ...copy.en,
+    breadcrumb: "مسار التنقل", main: "الرئيسية", label: "مركز الطلبات", title: "طلباتي",
+    intro: "كل الطلبات التي أنشأتها مرتبة من الأحدث. افتح الطلب لمتابعة حالته ورؤية بيانات الاتصال.",
+    newRequest: "طلب جديد", filterLabel: "تصفية حسب الحالة",
+    filters: { all: "الكل", open: "مفتوحة", claimed: "مستلمة", "in-progress": "قيد التنفيذ", completed: "مكتملة", closed: "ملغاة أو منتهية" },
+    created: "أُنشئ في", scheduled: "الموعد", area: "المنطقة", waiting: "بانتظار مترجم",
+    closedBy: { User: "ألغيتها أنت", Interpreter: "ألغاه المترجم", Manager: "ألغاه المدير", System: "انتهى دون استلام" },
+    view: "فتح الطلب", reviewPending: "بانتظار التقييم", reviewed: "تم التقييم", emptyTitle: "لا توجد بيانات بعد",
+    emptyBody: "لا يوجد طلب يطابق هذا الفلتر. أنشئ طلبًا عند حاجتك إلى مساعدة لغوية.",
+  },
+} as const;
+
 export default function MyRequestsPage({ searchParams }: { searchParams: Promise<{ status?: string | string[] }> }) {
   const { status } = use(searchParams);
   const activeFilter = resolveStatusFilter(status ?? "completed");
@@ -97,7 +135,7 @@ export default function MyRequestsPage({ searchParams }: { searchParams: Promise
   const requests = matching(selectedFilter);
   const counts = Object.fromEntries(STATUS_FILTERS.map((f) => [f.id, matching(f.id).length]));
   const copyLocale = useCopyLocale();
-  const t = copy[copyLocale];
+  const t = localizedCopy[copyLocale];
   const pathname = usePathname();
   const workspaceBase = pathname.startsWith("/interpreter") ? "/interpreter" : "/user";
 

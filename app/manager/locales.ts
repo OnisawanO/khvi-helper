@@ -14,6 +14,7 @@ export type ManagerTranslation = {
     approved: { label: string; countSuffix: string; footLabel: string; action: string; activeAction: string };
     rejected: { label: string; countSuffix: string; footLabel: string; action: string; activeAction: string };
     reports: { label: string; countSuffix: string; footLabel: string; action: string; activeAction: string };
+    changeRequests: { label: string; countSuffix: string; footLabel: string; action: string; activeAction: string };
   };
   navigation: {
     toggleMenu: string;
@@ -22,6 +23,7 @@ export type ManagerTranslation = {
     rejected: string;
     reports: string;
     history: string;
+    changeRequests: string;
     verificationGroup: string;
     operationsGroup: string;
   };
@@ -57,6 +59,7 @@ export type ManagerTranslation = {
   };
   header: {
     hubSubtitle: string;
+    toggleMenu: string;
     profile: string;
     signOut: string;
     verifiedManager: string;
@@ -94,6 +97,7 @@ export const managerTranslations: Record<Locale, ManagerTranslation> = {
       approved: { label: "Approved Volunteers", countSuffix: "certified", footLabel: "Live Ready", action: "Browse Certified", activeAction: "Active Filter" },
       rejected: { label: "Rejected Archive", countSuffix: "archived", footLabel: "Disqualified Records", action: "View History", activeAction: "Active Filter" },
       reports: { label: "System Reports", countSuffix: "unresolved", footLabel: "Needs Attention", action: "Handle Reports", activeAction: "Active Filter" },
+      changeRequests: { label: "Profile Change Requests", countSuffix: "pending", footLabel: "Language / Category", action: "Review Requests", activeAction: "Active Filter" },
     },
     navigation: {
       toggleMenu: "Toggle Navigation Menu",
@@ -102,6 +106,7 @@ export const managerTranslations: Record<Locale, ManagerTranslation> = {
       rejected: "Rejected Archive",
       reports: "System Reports",
       history: "Operations History",
+      changeRequests: "Profile Change Requests",
       verificationGroup: "Verification & Onboarding",
       operationsGroup: "Live Operations & Support",
     },
@@ -137,6 +142,7 @@ export const managerTranslations: Record<Locale, ManagerTranslation> = {
     },
     header: {
       hubSubtitle: "Interpreter Operations Hub",
+      toggleMenu: "Toggle Navigation Menu",
       profile: "Profile",
       signOut: "Sign Out",
       verifiedManager: "Verified Regional Manager",
@@ -172,6 +178,7 @@ export const managerTranslations: Record<Locale, ManagerTranslation> = {
       approved: { label: "ล่ามที่ผ่านการอนุมัติ", countSuffix: "คนที่รับรองแล้ว", footLabel: "พร้อมรับงานทันที", action: "ดูรายชื่อล่าม", activeAction: "กำลังดูรายชื่อ" },
       rejected: { label: "คลังไม่ผ่านการอนุมัติ", countSuffix: "ประวัติที่บันทึก", footLabel: "ใบสมัครที่ไม่ผ่านเกณฑ์", action: "ดูประวัติเดิม", activeAction: "กำลังดูประวัติ" },
       reports: { label: "รายงานปัญหาระบบ", countSuffix: "รายงานคงค้าง", footLabel: "ต้องติดตาม", action: "จัดการรายงาน", activeAction: "กำลังดูรายงาน" },
+      changeRequests: { label: "คำขอเปลี่ยนโปรไฟล์", countSuffix: "รอดำเนินการ", footLabel: "ภาษา / หมวดหมู่", action: "ตรวจสอบคำขอ", activeAction: "กำลังดูคำขอ" },
     },
     navigation: {
       toggleMenu: "เปิด/ปิดแถบเมนูนำทาง",
@@ -180,6 +187,7 @@ export const managerTranslations: Record<Locale, ManagerTranslation> = {
       rejected: "คลังประวัติปฏิเสธ",
       reports: "รายงานปัญหาระบบ",
       history: "ประวัติดำเนินงาน",
+      changeRequests: "คำขอเปลี่ยนโปรไฟล์",
       verificationGroup: "การตรวจสอบและรับรองล่าม",
       operationsGroup: "การปฏิบัติงานและการสนับสนุน",
     },
@@ -215,6 +223,7 @@ export const managerTranslations: Record<Locale, ManagerTranslation> = {
     },
     header: {
       hubSubtitle: "ศูนย์ควบคุมและประสานงานล่าม",
+      toggleMenu: "เปิด/ปิดเมนูนำทาง",
       profile: "โปรไฟล์ส่วนตัว",
       signOut: "ออกจากระบบ",
       verifiedManager: "ผู้ประสานงานประจำภูมิภาค",
@@ -250,6 +259,7 @@ export const managerTranslations: Record<Locale, ManagerTranslation> = {
       approved: { label: "已认证口译员", countSuffix: "位已通过", footLabel: "可即时出勤", action: "浏览名单", activeAction: "当前筛选" },
       rejected: { label: "未通过档案", countSuffix: "条记录", footLabel: "不合规档案", action: "查看历史", activeAction: "当前筛选" },
       reports: { label: "待决争议报告", countSuffix: "起待处理", footLabel: "需协调介入", action: "处理报告", activeAction: "当前筛选" },
+      changeRequests: { label: "资料变更请求", countSuffix: "待处理", footLabel: "语言 / 类别", action: "查看请求", activeAction: "当前筛选" },
     },
     navigation: {
       toggleMenu: "切换导航菜单",
@@ -258,6 +268,7 @@ export const managerTranslations: Record<Locale, ManagerTranslation> = {
       rejected: "未通过档案",
       reports: "事件报告",
       history: "操作历史",
+      changeRequests: "资料变更请求",
       verificationGroup: "志愿者审核与认证",
       operationsGroup: "日常运营与纠纷",
     },
@@ -293,6 +304,7 @@ export const managerTranslations: Record<Locale, ManagerTranslation> = {
     },
     header: {
       hubSubtitle: "口译调度运营中心",
+      toggleMenu: "切换导航菜单",
       profile: "个人资料",
       signOut: "退出登录",
       verifiedManager: "认证区域调度主管",
@@ -328,6 +340,7 @@ export const managerTranslations: Record<Locale, ManagerTranslation> = {
       approved: { label: "Aprobados", countSuffix: "certificados", footLabel: "Listos para Misión", action: "Ver Lista", activeAction: "Filtro Activo" },
       rejected: { label: "Archivados", countSuffix: "rechazados", footLabel: "No Calificados", action: "Ver Historial", activeAction: "Filtro Activo" },
       reports: { label: "Disputas Abiertas", countSuffix: "pendientes", footLabel: "Mediación Requerida", action: "Gestionar", activeAction: "Filtro Activo" },
+      changeRequests: { label: "Cambios de Perfil", countSuffix: "pendientes", footLabel: "Idioma / Categoría", action: "Revisar solicitudes", activeAction: "Filtro activo" },
     },
     navigation: {
       toggleMenu: "Alternar menú de navegación",
@@ -336,6 +349,7 @@ export const managerTranslations: Record<Locale, ManagerTranslation> = {
       rejected: "Archivo de Rechazos",
       reports: "Reportes de Incidentes",
       history: "Historial Operativo",
+      changeRequests: "Cambios de Perfil",
       verificationGroup: "Verificación y Admisión",
       operationsGroup: "Operaciones y Disputas",
     },
@@ -371,6 +385,7 @@ export const managerTranslations: Record<Locale, ManagerTranslation> = {
     },
     header: {
       hubSubtitle: "Centro de Operaciones de Intérpretes",
+      toggleMenu: "Alternar menú de navegación",
       profile: "Perfil",
       signOut: "Cerrar Sesión",
       verifiedManager: "Coordinador Regional Verificado",
@@ -406,6 +421,7 @@ export const managerTranslations: Record<Locale, ManagerTranslation> = {
       approved: { label: "المعتمدون", countSuffix: "مترجمين معتمدين", footLabel: "جاهزون للخدمة", action: "تصفح القائمة", activeAction: "عرض نشط" },
       rejected: { label: "المرفوضون", countSuffix: "سجلات مؤرشفة", footLabel: "طلبات غير مؤهلة", action: "عرض السجل", activeAction: "عرض نشط" },
       reports: { label: "نزاعات مفتوحة", countSuffix: "تقارير معلقة", footLabel: "تتطلب وساطة", action: "معالجة التقارير", activeAction: "عرض نشط" },
+      changeRequests: { label: "طلبات تغيير الملف", countSuffix: "معلقة", footLabel: "اللغة / الفئة", action: "مراجعة الطلبات", activeAction: "التصفية النشطة" },
     },
     navigation: {
       toggleMenu: "تبديل القائمة",
@@ -414,6 +430,7 @@ export const managerTranslations: Record<Locale, ManagerTranslation> = {
       rejected: "الأرشيف المرفوض",
       reports: "تقارير الحوادث",
       history: "سجل العمليات",
+      changeRequests: "طلبات تغيير الملف",
       verificationGroup: "التحقق والاعتماد",
       operationsGroup: "العمليات والنزاعات",
     },
@@ -449,6 +466,7 @@ export const managerTranslations: Record<Locale, ManagerTranslation> = {
     },
     header: {
       hubSubtitle: "مركز عمليات الترجمة الفورية",
+      toggleMenu: "تبديل قائمة التنقل",
       profile: "الملف الشخصي",
       signOut: "تسجيل الخروج",
       verifiedManager: "منسق إقليمي معتمد",

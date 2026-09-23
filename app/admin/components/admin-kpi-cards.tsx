@@ -7,6 +7,8 @@ import {
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import { UserStatusFilter } from "../types";
+import { useStoredLocale } from "@/app/lib/locale";
+import { getAdminTranslation } from "../locales";
 
 interface AdminKpiCardsProps {
   totalUsersCount: number;
@@ -31,6 +33,8 @@ export function AdminKpiCards({
   toggleRoleFilter,
   resetRoles,
 }: AdminKpiCardsProps) {
+  const [locale] = useStoredLocale();
+  const t = getAdminTranslation(locale).kpi;
   const isAllUsersActive =
     selectedStatusFilter === "All" && selectedRoles.length === 0;
   const isInterpretersActive =
@@ -68,12 +72,12 @@ export function AdminKpiCards({
             <p className="text-xl sm:text-2xl font-black text-[#092f45]">
               {totalUsersCount}
             </p>
-            <span className="text-[11px] font-semibold text-slate-400">users</span>
+            <span className="text-[11px] font-semibold text-slate-400">{t.users}</span>
           </div>
           <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px] sm:text-xs text-slate-500">
             <span className="text-slate-400">Global Directory</span>
             <span className={`font-bold ${isAllUsersActive ? "text-blue-700 underline" : "text-blue-600 group-hover:underline"}`}>
-              {isAllUsersActive ? "Active Filter" : "Filter All"}
+              {isAllUsersActive ? t.activeFilter : t.filterAll}
             </span>
           </div>
         </button>
@@ -106,12 +110,12 @@ export function AdminKpiCards({
             <p className="text-xl sm:text-2xl font-black text-[#087f80]">
               {totalInterpretersCount}
             </p>
-            <span className="text-[11px] font-semibold text-teal-600/70">registered</span>
+            <span className="text-[11px] font-semibold text-teal-600/70">{t.interpreters}</span>
           </div>
           <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px] sm:text-xs text-slate-500">
             <span className="text-slate-400">Field Capacity</span>
             <span className={`font-bold ${isInterpretersActive ? "text-teal-800 underline" : "text-[#087f80] group-hover:underline"}`}>
-              {isInterpretersActive ? "Active Filter" : "Filter Interpreters"}
+              {isInterpretersActive ? t.activeFilter : t.filterInterpreters}
             </span>
           </div>
         </button>
@@ -147,7 +151,7 @@ export function AdminKpiCards({
             >
               {lockedUsersCount}
             </p>
-            <span className="text-[11px] font-semibold text-slate-400">restricted</span>
+            <span className="text-[11px] font-semibold text-slate-400">{t.softSuspended}</span>
           </div>
           <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px] sm:text-xs text-slate-500">
             <span className="text-slate-400">Security Actions</span>
@@ -156,7 +160,7 @@ export function AdminKpiCards({
                 lockedUsersCount > 0 ? "text-[#f04f3e]" : "text-slate-500"
               } ${isSuspendedActive ? "underline" : "group-hover:underline"}`}
             >
-              {lockedUsersCount > 0 ? "Filter Soft Suspended" : "Healthy Base"}
+              {lockedUsersCount > 0 ? t.filterSoftSuspended : t.healthyBase}
             </span>
           </div>
         </button>
@@ -188,12 +192,12 @@ export function AdminKpiCards({
             <p className={`text-xl sm:text-2xl font-black ${hardBannedUsersCount > 0 ? "text-red-700" : "text-slate-700"}`}>
               {hardBannedUsersCount}
             </p>
-            <span className="text-[11px] font-semibold text-red-600/70">restricted</span>
+            <span className="text-[11px] font-semibold text-red-600/70">{t.hardBanned}</span>
           </div>
           <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px] sm:text-xs text-slate-500">
             <span className="text-slate-400">Security Actions</span>
             <span className={`font-bold ${isHardBannedActive ? "text-red-900 underline" : "text-red-700 group-hover:underline"}`}>
-              {isHardBannedActive ? "Active Filter" : "Filter Hard Bans"}
+              {isHardBannedActive ? t.activeFilter : t.filterHardBans}
             </span>
           </div>
         </button>

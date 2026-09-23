@@ -12,13 +12,13 @@ type ApplicationStatusPanelProps = {
   compact?: boolean;
 };
 
-const statusCopy: Record<ApplicationStatus, { th: string; en: string; zh: string; className: string }> = {
-  pending: { th: "รอตรวจสอบ", en: "Pending review", zh: "等待审核", className: "border-[#d97706] bg-[#fffbeb] text-[#92400e]" },
-  under_review: { th: "กำลังตรวจสอบ", en: "Under review", zh: "审核中", className: "border-[#087f80] bg-[#edf7f5] text-[#087557]" },
-  needs_revision: { th: "ขอเอกสารเพิ่มเติม", en: "Needs revision", zh: "需要补充材料", className: "border-[#d97706] bg-[#fffbeb] text-[#92400e]" },
-  approved: { th: "อนุมัติแล้ว", en: "Approved", zh: "已批准", className: "border-[#087557] bg-[#edf7f5] text-[#087557]" },
-  rejected: { th: "ไม่อนุมัติ", en: "Rejected", zh: "未批准", className: "border-[#f04f3e] bg-[#fff1f2] text-[#b8291b]" },
-  cancelled: { th: "ถอนใบสมัครแล้ว", en: "Withdrawn", zh: "已撤回", className: "border-[#cbd7dc] bg-[#f3f6f7] text-[#53656c]" },
+const statusCopy: Record<ApplicationStatus, { th: string; en: string; zh: string; es: string; ar: string; className: string }> = {
+  pending: { th: "รอตรวจสอบ", en: "Pending review", zh: "等待审核", es: "Pendiente de revisión", ar: "بانتظار المراجعة", className: "border-[#d97706] bg-[#fffbeb] text-[#92400e]" },
+  under_review: { th: "กำลังตรวจสอบ", en: "Under review", zh: "审核中", es: "En revisión", ar: "قيد المراجعة", className: "border-[#087f80] bg-[#edf7f5] text-[#087557]" },
+  needs_revision: { th: "ขอเอกสารเพิ่มเติม", en: "Needs revision", zh: "需要补充材料", es: "Requiere cambios", ar: "تحتاج إلى تعديل", className: "border-[#d97706] bg-[#fffbeb] text-[#92400e]" },
+  approved: { th: "อนุมัติแล้ว", en: "Approved", zh: "已批准", es: "Aprobada", ar: "معتمدة", className: "border-[#087557] bg-[#edf7f5] text-[#087557]" },
+  rejected: { th: "ไม่อนุมัติ", en: "Rejected", zh: "未批准", es: "Rechazada", ar: "مرفوضة", className: "border-[#f04f3e] bg-[#fff1f2] text-[#b8291b]" },
+  cancelled: { th: "ถอนใบสมัครแล้ว", en: "Withdrawn", zh: "已撤回", es: "Retirada", ar: "مسحوبة", className: "border-[#cbd7dc] bg-[#f3f6f7] text-[#53656c]" },
 };
 
 function getExtraContactIcon(extraContact: string): string {
@@ -45,7 +45,7 @@ export function ApplicationStatusPanel({ application, onReupload, onCancel, comp
     return `/api/interpreter-certificate?path=${encodeURIComponent(rawUrl)}`;
   };
   const status = statusCopy[application.status];
-  const label = revoked ? locale === "th" ? "ถูกยกเลิกสถานะล่าม" : locale === "zh" ? "口译员资格已撤销" : "Accreditation revoked" : locale === "th" ? status.th : locale === "zh" ? status.zh : status.en;
+  const label = revoked ? locale === "th" ? "ถูกยกเลิกสถานะล่าม" : locale === "zh" ? "口译员资格已撤销" : locale === "es" ? "Acreditación revocada" : locale === "ar" ? "تم إلغاء الاعتماد" : "Accreditation revoked" : locale === "th" ? status.th : locale === "zh" ? status.zh : locale === "es" ? status.es : locale === "ar" ? status.ar : status.en;
   const detail = revoked
     ? locale === "th" ? "สถานะล่ามอาสาของคุณถูกยกเลิกแล้ว" : locale === "zh" ? "你的志愿口译员资格已被撤销" : "Your interpreter accreditation has been revoked."
     : application.status === "needs_revision"
@@ -71,9 +71,9 @@ export function ApplicationStatusPanel({ application, onReupload, onCancel, comp
       <section className="rounded-(--khvi-radius-md) border border-[#143748] bg-[#092f45] p-5 text-white shadow-sm sm:p-7" aria-labelledby="application-status-title">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-wider text-[#8ed5c4]">Volunteer application</p>
+            <p className="text-xs font-extrabold uppercase tracking-wider text-[#8ed5c4]">{locale === "th" ? "ใบสมัครล่ามอาสา" : locale === "zh" ? "志愿口译员申请" : locale === "es" ? "Solicitud de intérprete voluntario" : locale === "ar" ? "طلب المترجم المتطوع" : "Volunteer application"}</p>
             <h1 id="application-status-title" className="mt-2 text-xl font-extrabold sm:text-2xl">
-              {locale === "th" ? "ติดตามสถานะใบสมัครล่ามอาสา" : locale === "zh" ? "查看志愿口译员申请状态" : "Track your interpreter application"}
+              {locale === "th" ? "ติดตามสถานะใบสมัครล่ามอาสา" : locale === "zh" ? "查看志愿口译员申请状态" : locale === "es" ? "Consulta el estado de tu solicitud" : locale === "ar" ? "تابع حالة طلبك كمترجم" : "Track your interpreter application"}
             </h1>
             <p className="mt-2 text-xs text-white/75">{application.id} · {application.applicantName}</p>
           </div>

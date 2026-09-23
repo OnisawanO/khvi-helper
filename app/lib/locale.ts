@@ -22,11 +22,11 @@ export function isLocale(value: string | null): value is Locale {
   return value === "en" || value === "th" || value === "zh" || value === "es" || value === "ar";
 }
 
-/** Legacy data-flow copy currently has English and Chinese variants. */
-export type CopyLocale = "en" | "zh";
+/** Localized UI copy follows the selected interface locale. */
+export type CopyLocale = Locale;
 
 export function resolveCopyLocale(locale: Locale): CopyLocale {
-  return locale === "zh" ? "zh" : "en";
+  return locale;
 }
 
 function applyLocaleToDocument(locale: Locale) {

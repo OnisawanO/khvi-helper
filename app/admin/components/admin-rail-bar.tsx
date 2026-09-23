@@ -16,6 +16,8 @@ import {
 import { AdminActiveTab } from "../types";
 import type { ManagerNavSection } from "@/app/manager/types";
 import { formatBadgeCount } from "@/app/manager/utils";
+import { useStoredLocale } from "@/app/lib/locale";
+import { getAdminTranslation } from "../locales";
 
 interface AdminRailBarProps {
   onMenuClick: () => void;
@@ -50,6 +52,8 @@ export function AdminRailBar({
   pendingManagerReportCount,
   managerActivitiesCount,
 }: AdminRailBarProps) {
+  const [locale] = useStoredLocale();
+  const t = getAdminTranslation(locale);
   const openManagerSection = (section: ManagerNavSection) => {
     setManagerSection(section);
     setActiveTab("manager-operations");
@@ -73,7 +77,7 @@ export function AdminRailBar({
             onClick={onMenuClick}
             className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-white shadow-xs hover:bg-[#087f80] hover:border-[#087f80] transition-all focus:outline-none focus:ring-2 focus:ring-[#087f80]/40 cursor-pointer"
             aria-label="Toggle Navigation Drawer"
-            title="Toggle Navigation Menu (เปิด/ปิด เมนูด้านข้าง)"
+            title={t.header.menu}
           >
             <Bars3Icon className="h-5 w-5" />
           </button>
@@ -92,8 +96,8 @@ export function AdminRailBar({
                 ? "bg-[#087f80] text-white shadow-md"
                 : "text-slate-300 hover:bg-white/10 hover:text-white"
             }`}
-            title="System Overview & Analytics (ภาพรวมและสถิติระบบ)"
-            aria-label="System Overview"
+            title={t.navigation.overview}
+            aria-label={t.navigation.overview}
             aria-pressed={activeTab === "overview"}
           >
             <ChartBarSquareIcon className="h-5 w-5" />
@@ -110,8 +114,8 @@ export function AdminRailBar({
                 ? "bg-[#087f80] text-white shadow-md"
                 : "text-slate-300 hover:bg-white/10 hover:text-white"
             }`}
-            title="User Management (จัดการผู้ใช้ทั้งหมด)"
-            aria-label="User Management"
+            title={t.navigation.users}
+            aria-label={t.navigation.users}
             aria-pressed={activeTab === "users"}
           >
             <UserGroupIcon className="h-5 w-5" />
@@ -131,8 +135,8 @@ export function AdminRailBar({
                 ? "bg-red-600 text-white shadow-md shadow-red-900/40"
                 : "text-slate-300 hover:bg-white/10 hover:text-white"
             }`}
-            title="System Reports"
-            aria-label="System Reports"
+            title={t.navigation.reports}
+            aria-label={t.navigation.reports}
             aria-pressed={activeTab === "reports"}
           >
             <ShieldExclamationIcon className="h-5 w-5" />
@@ -152,8 +156,8 @@ export function AdminRailBar({
                 ? "bg-[#087f80] text-white shadow-md"
                 : "text-slate-300 hover:bg-white/10 hover:text-white"
             }`}
-            title="System Audit Trail (บันทึกความปลอดภัยและประวัติ)"
-            aria-label="System Audit Trail"
+            title={t.navigation.audit}
+            aria-label={t.navigation.audit}
             aria-pressed={activeTab === "audit"}
           >
             <DocumentMagnifyingGlassIcon className="h-5 w-5" />
@@ -173,8 +177,8 @@ export function AdminRailBar({
                 ? "bg-[#087f80] text-white shadow-md"
                 : "text-slate-300 hover:bg-white/10 hover:text-white"
             }`}
-            title="Platform Governance Policies (นโยบายและข้อกำหนดแพลตฟอร์ม)"
-            aria-label="Platform Governance Policies"
+            title={t.navigation.policies}
+            aria-label={t.navigation.policies}
             aria-pressed={activeTab === "policies"}
           >
             <Cog6ToothIcon className="h-5 w-5" />
@@ -189,8 +193,8 @@ export function AdminRailBar({
             type="button"
             onClick={() => openManagerSection("queue")}
             className={managerButtonClass("queue")}
-            title="Application Queue"
-            aria-label="Application Queue"
+            title={t.navigation.queue}
+            aria-label={t.navigation.queue}
             aria-pressed={activeTab === "manager-operations" && managerSection === "queue"}
           >
             <InboxStackIcon className="h-5 w-5" />
@@ -205,8 +209,8 @@ export function AdminRailBar({
             type="button"
             onClick={() => openManagerSection("approved")}
             className={managerButtonClass("approved")}
-            title="Approved Volunteer Interpreters"
-            aria-label="Approved Volunteer Interpreters"
+            title={t.navigation.approved}
+            aria-label={t.navigation.approved}
             aria-pressed={activeTab === "manager-operations" && managerSection === "approved"}
           >
             <CheckCircleIcon className="h-5 w-5" />
@@ -221,8 +225,8 @@ export function AdminRailBar({
             type="button"
             onClick={() => openManagerSection("change-requests")}
             className={managerButtonClass("change-requests")}
-            title="Profile Change Requests"
-            aria-label="Profile Change Requests"
+            title={t.navigation.changeRequests}
+            aria-label={t.navigation.changeRequests}
             aria-pressed={activeTab === "manager-operations" && managerSection === "change-requests"}
           >
             <DocumentCheckIcon className="h-5 w-5" />
@@ -237,8 +241,8 @@ export function AdminRailBar({
             type="button"
             onClick={() => openManagerSection("rejected")}
             className={managerButtonClass("rejected")}
-            title="Rejected Applicant Archive"
-            aria-label="Rejected Applicant Archive"
+            title={t.navigation.rejected}
+            aria-label={t.navigation.rejected}
             aria-pressed={activeTab === "manager-operations" && managerSection === "rejected"}
           >
             <ArchiveBoxXMarkIcon className="h-5 w-5" />
@@ -253,8 +257,8 @@ export function AdminRailBar({
             type="button"
             onClick={() => openManagerSection("reports")}
             className={managerButtonClass("reports")}
-            title="Manager System Reports"
-            aria-label="Manager System Reports"
+            title={t.navigation.reports}
+            aria-label={t.navigation.reports}
             aria-pressed={activeTab === "manager-operations" && managerSection === "reports"}
           >
             <ShieldExclamationIcon className="h-5 w-5" />
@@ -269,8 +273,8 @@ export function AdminRailBar({
             type="button"
             onClick={() => openManagerSection("history")}
             className={managerButtonClass("history")}
-            title="Operations History"
-            aria-label="Operations History"
+            title={t.navigation.history}
+            aria-label={t.navigation.history}
             aria-pressed={activeTab === "manager-operations" && managerSection === "history"}
           >
             <ClockIcon className="h-5 w-5" />

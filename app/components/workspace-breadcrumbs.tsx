@@ -10,18 +10,18 @@ export type BreadcrumbItem = {
   href?: string;
 };
 
-const breadcrumbTranslations: Record<string, { en: string; zh: string }> = {
-  "หน้าหลัก": { en: "Home", zh: "首页" },
-  "ระบบล่ามจิตอาสา": { en: "Volunteer system", zh: "志愿口译系统" },
-  "สถานะใบสมัครล่ามอาสา": { en: "Volunteer application status", zh: "志愿口译员申请状态" },
-  "สมัครล่ามจิตอาสา": { en: "Volunteer application", zh: "申请志愿口译员" },
-  "สมัครล่ามอาสา": { en: "Volunteer application", zh: "申请志愿口译员" },
-  "ลงทะเบียนล่ามจิตอาสา": { en: "Volunteer interpreter registration", zh: "注册志愿口译员" },
-  "แดชบอร์ด": { en: "Dashboard", zh: "控制台" },
-  "จัดการล่าม": { en: "Manage interpreters", zh: "管理口译员" },
-  "แถบนำทางสถานะใบสมัคร": { en: "Application status navigation", zh: "申请状态导航" },
-  "แถบนำทางระบบล่ามอาสา": { en: "Volunteer system navigation", zh: "志愿口译系统导航" },
-  "แถบนำทางลงทะเบียนล่ามอาสา": { en: "Volunteer registration navigation", zh: "志愿口译员注册导航" },
+const breadcrumbTranslations: Record<string, { en: string; th: string; zh: string; es: string; ar: string }> = {
+  "หน้าหลัก": { en: "Home", th: "หน้าหลัก", zh: "首页", es: "Inicio", ar: "الرئيسية" },
+  "ระบบล่ามจิตอาสา": { en: "Volunteer system", th: "ระบบล่ามจิตอาสา", zh: "志愿口译系统", es: "Sistema de voluntariado", ar: "نظام المترجمين المتطوعين" },
+  "สถานะใบสมัครล่ามอาสา": { en: "Volunteer application status", th: "สถานะใบสมัครล่ามอาสา", zh: "志愿口译员申请状态", es: "Estado de la solicitud", ar: "حالة طلب التطوع" },
+  "สมัครล่ามจิตอาสา": { en: "Volunteer application", th: "สมัครล่ามจิตอาสา", zh: "申请志愿口译员", es: "Solicitud de voluntariado", ar: "طلب التطوع" },
+  "สมัครล่ามอาสา": { en: "Volunteer application", th: "สมัครล่ามอาสา", zh: "申请志愿口译员", es: "Solicitud de voluntariado", ar: "طلب التطوع" },
+  "ลงทะเบียนล่ามจิตอาสา": { en: "Volunteer interpreter registration", th: "ลงทะเบียนล่ามจิตอาสา", zh: "注册志愿口译员", es: "Registro de intérprete voluntario", ar: "تسجيل المترجم المتطوع" },
+  "แดชบอร์ด": { en: "Dashboard", th: "แดชบอร์ด", zh: "控制台", es: "Panel", ar: "لوحة التحكم" },
+  "จัดการล่าม": { en: "Manage interpreters", th: "จัดการล่าม", zh: "管理口译员", es: "Gestionar intérpretes", ar: "إدارة المترجمين" },
+  "แถบนำทางสถานะใบสมัคร": { en: "Application status navigation", th: "แถบนำทางสถานะใบสมัคร", zh: "申请状态导航", es: "Navegación del estado", ar: "تنقل حالة الطلب" },
+  "แถบนำทางระบบล่ามอาสา": { en: "Volunteer system navigation", th: "แถบนำทางระบบล่ามอาสา", zh: "志愿口译系统导航", es: "Navegación del sistema", ar: "تنقل نظام المتطوعين" },
+  "แถบนำทางลงทะเบียนล่ามอาสา": { en: "Volunteer registration navigation", th: "แถบนำทางลงทะเบียนล่ามอาสา", zh: "志愿口译员注册导航", es: "Navegación del registro", ar: "تنقل التسجيل" },
 };
 
 export function WorkspaceBreadcrumbs({
@@ -41,8 +41,7 @@ export function WorkspaceBreadcrumbs({
 }) {
   const locale = useUiLocale();
   const translate = (text: string) => {
-    if (locale === "th" || !breadcrumbTranslations[text]) return text;
-    return locale === "zh" ? breadcrumbTranslations[text].zh : breadcrumbTranslations[text].en;
+    return breadcrumbTranslations[text]?.[locale] ?? text;
   };
 
   const breadcrumbItems: BreadcrumbItem[] =

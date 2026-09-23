@@ -265,6 +265,47 @@ const copy = {
   },
 } as const;
 
+const localizedCopy = {
+  en: copy.en,
+  zh: copy.zh,
+  th: {
+    ...copy.en,
+    breadcrumb: "เส้นทางนำทาง", main: "หน้าหลัก", requestsLabel: "คำขอของฉัน", assignmentsLabel: "งานของฉัน",
+    requesterView: "ห้องภารกิจของผู้ขอ", interpreterView: "ห้องภารกิจของล่าม", created: "สร้างเมื่อ", scheduled: "เวลานัดหมาย",
+    timelineTitle: "ความคืบหน้า", detailsTitle: "รายละเอียดคำขอ", locationTitle: "สถานที่", actionsTitle: "การดำเนินการ",
+    newRequest: "คำขอใหม่", cancel: "ยกเลิก", withdraw: "ถอนตัว", startWork: "เริ่มงาน", confirmDone: "ยืนยันว่าเสร็จสิ้น",
+    saveDetails: "บันทึกรายละเอียด", discardDetails: "ยกเลิกการแก้ไข", editDetails: "แก้ไขรายละเอียด",
+    languageLabel: "ภาษา", categoryLabel: "หมวดหมู่", descriptionLabel: "รายละเอียด", meetingPointLabel: "จุดนัดพบ",
+    mapTitle: "แผนที่ภารกิจ", contactLockedTitle: "ข้อมูลติดต่อยังไม่เปิดเผย", requesterContactTitle: "ข้อมูลติดต่อผู้ขอ",
+    locationDenied: "ไม่ได้รับอนุญาตให้เข้าถึงตำแหน่ง", locationUnavailable: "ไม่พบตำแหน่ง", completedTitle: "ภารกิจเสร็จสิ้น",
+    noActions: "ขณะนี้ไม่มีการดำเนินการที่ต้องทำ", reviewTitle: "รีวิวภารกิจ", reviewCta: "ให้คะแนนและรีวิว",
+  },
+  es: {
+    ...copy.en,
+    breadcrumb: "Migas de pan", main: "Inicio", requestsLabel: "Mis solicitudes", assignmentsLabel: "Mis asignaciones",
+    requesterView: "Sala de misión del solicitante", interpreterView: "Sala de misión del intérprete", created: "Creada", scheduled: "Cita",
+    timelineTitle: "Progreso", detailsTitle: "Detalles de la solicitud", locationTitle: "Ubicación", actionsTitle: "Acciones",
+    newRequest: "Nueva solicitud", cancel: "Cancelar", withdraw: "Retirarme", startWork: "Iniciar trabajo", confirmDone: "Confirmar finalización",
+    saveDetails: "Guardar detalles", discardDetails: "Descartar cambios", editDetails: "Editar detalles",
+    languageLabel: "Idioma", categoryLabel: "Categoría", descriptionLabel: "Descripción", meetingPointLabel: "Punto de encuentro",
+    mapTitle: "Mapa de la misión", contactLockedTitle: "Datos de contacto ocultos", requesterContactTitle: "Contacto del solicitante",
+    locationDenied: "Se denegó el permiso de ubicación", locationUnavailable: "Ubicación no disponible", completedTitle: "Misión completada",
+    noActions: "No hay acciones pendientes", reviewTitle: "Evaluar la misión", reviewCta: "Calificar y evaluar",
+  },
+  ar: {
+    ...copy.en,
+    breadcrumb: "مسار التنقل", main: "الرئيسية", requestsLabel: "طلباتي", assignmentsLabel: "مهامي",
+    requesterView: "غرفة مهمة صاحب الطلب", interpreterView: "غرفة مهمة المترجم", created: "أُنشئ في", scheduled: "الموعد",
+    timelineTitle: "التقدم", detailsTitle: "تفاصيل الطلب", locationTitle: "الموقع", actionsTitle: "الإجراءات",
+    newRequest: "طلب جديد", cancel: "إلغاء", withdraw: "الانسحاب", startWork: "بدء العمل", confirmDone: "تأكيد الإكمال",
+    saveDetails: "حفظ التفاصيل", discardDetails: "تجاهل التغييرات", editDetails: "تعديل التفاصيل",
+    languageLabel: "اللغة", categoryLabel: "الفئة", descriptionLabel: "الوصف", meetingPointLabel: "نقطة اللقاء",
+    mapTitle: "خريطة المهمة", contactLockedTitle: "بيانات الاتصال مخفية", requesterContactTitle: "بيانات صاحب الطلب",
+    locationDenied: "تم رفض إذن الموقع", locationUnavailable: "الموقع غير متاح", completedTitle: "اكتملت المهمة",
+    noActions: "لا توجد إجراءات مطلوبة", reviewTitle: "تقييم المهمة", reviewCta: "التقييم والمراجعة",
+  },
+} as const;
+
 type StepState = "done" | "current" | "upcoming" | "stopped";
 
 function stepStates(status: RequestStatus): Record<(typeof TIMELINE_STEPS)[number], StepState> {
@@ -300,7 +341,7 @@ export function RequestDetail({
   const router = useRouter();
   const pathname = usePathname();
   const copyLocale = useCopyLocale();
-  const t = copy[copyLocale];
+  const t = localizedCopy[copyLocale];
   const isInterpreter = viewer.role === "Interpreter";
   const accountBase = pathname.startsWith("/interpreter") ? "/interpreter" : "/user";
   const assignmentBase = "/interpreter/my-assignments";
@@ -687,7 +728,7 @@ export function RequestDetail({
                         onChange={(event) => setEditLanguageId(event.target.value as LanguageId)}
                       >
                         {LANGUAGES.map((language) => (
-                          <option key={language.id} value={language.id}>{language[copyLocale]}</option>
+                          <option key={language.id} value={language.id}>{languageLabel(language.id, copyLocale)}</option>
                         ))}
                       </select>
                     </div>
@@ -702,7 +743,7 @@ export function RequestDetail({
                         onChange={(event) => setEditCategoryId(event.target.value as CategoryId)}
                       >
                         {CATEGORIES.map((category) => (
-                          <option key={category.id} value={category.id}>{category[copyLocale]}</option>
+                          <option key={category.id} value={category.id}>{categoryLabel(category.id, copyLocale)}</option>
                         ))}
                       </select>
                     </div>

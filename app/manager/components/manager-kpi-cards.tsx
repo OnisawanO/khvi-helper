@@ -123,11 +123,11 @@ export function ManagerKpiCards({
               ? "bg-white border-sky-200 shadow-xs ring-1 ring-sky-500/20"
               : "bg-white/60 hover:bg-white border-transparent hover:border-slate-200"
           }`}
-          title="Profile Change Requests"
+          title={t.changeRequests.label}
         >
           <div className="flex items-center justify-between gap-1">
             <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate">
-              Profile Change Requests
+              {t.changeRequests.label}
             </p>
             <div
               className={`flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-md ${
@@ -141,12 +141,12 @@ export function ManagerKpiCards({
             <p className={`text-xl sm:text-2xl font-black ${pendingProfileChangeCount > 0 ? "text-sky-700" : "text-[#092f45]"}`}>
               {pendingProfileChangeCount}
             </p>
-            <span className="text-[11px] font-semibold text-slate-400">pending</span>
+            <span className="text-[11px] font-semibold text-slate-400">{t.changeRequests.countSuffix}</span>
           </div>
           <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px] sm:text-xs text-slate-500">
-            <span className="text-slate-400">Language / Category</span>
+            <span className="text-slate-400">{t.changeRequests.footLabel}</span>
             <span className={`font-bold ${isChangeRequestsActive ? "text-sky-700 underline" : "text-sky-700 group-hover:underline"}`}>
-              {isChangeRequestsActive ? "Active Filter" : "Review Requests"}
+              {isChangeRequestsActive ? t.changeRequests.activeAction : t.changeRequests.action}
             </span>
           </div>
         </button>

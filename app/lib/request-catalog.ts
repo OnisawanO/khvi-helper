@@ -1,4 +1,5 @@
 import type { CopyLocale } from "./locale";
+import type { Locale } from "@/app/components/site-header";
 import type { CategoryId, LanguageId } from "./request-types";
 
 /**
@@ -46,14 +47,44 @@ export const CATEGORIES = [
   { id: "school", en: "School", zh: "学校", th: "โรงเรียนและการศึกษา" },
 ] as const;
 
-export function languageLabel(languageId: LanguageId, copyLocale: CopyLocale | "th"): string {
+const spanishLanguageLabels: Record<string, string> = {
+  burmese: "Birmano", chinese: "Chino", english: "Inglés", vietnamese: "Vietnamita", sign: "Lengua de signos tailandesa",
+  thai: "Tailandés", spanish: "Español", arabic: "Árabe", japanese: "Japonés", korean: "Coreano", french: "Francés",
+  german: "Alemán", russian: "Ruso", hindi: "Hindi", indonesian: "Indonesio", malay: "Malayo", tagalog: "Tagalo / Filipino",
+  khmer: "Jemer", lao: "Laosiano", portuguese: "Portugués", italian: "Italiano", turkish: "Turco", persian: "Persa / Farsi",
+  urdu: "Urdu", bengali: "Bengalí", asl: "Lengua de signos americana",
+};
+
+const arabicLanguageLabels: Record<string, string> = {
+  burmese: "البورمية", chinese: "الصينية", english: "الإنجليزية", vietnamese: "الفيتنامية", sign: "لغة الإشارة التايلاندية",
+  thai: "التايلاندية", spanish: "الإسبانية", arabic: "العربية", japanese: "اليابانية", korean: "الكورية", french: "الفرنسية",
+  german: "الألمانية", russian: "الروسية", hindi: "الهندية", indonesian: "الإندونيسية", malay: "الملايوية", tagalog: "التاغالوغية / الفلبينية",
+  khmer: "الخميرية", lao: "اللاوية", portuguese: "البرتغالية", italian: "الإيطالية", turkish: "التركية", persian: "الفارسية",
+  urdu: "الأردية", bengali: "البنغالية", asl: "لغة الإشارة الأمريكية",
+};
+
+const spanishCategoryLabels: Record<string, string> = {
+  general: "Vida diaria y comunicación general", accident: "Escena de accidente", medical: "Atención médica",
+  disaster: "Ayuda y respuesta ante desastres", police: "Comisaría y asuntos legales", government: "Oficina gubernamental",
+  tourism: "Turismo y transporte", labour: "Trabajo y derechos laborales", school: "Escuela y educación",
+};
+
+const arabicCategoryLabels: Record<string, string> = {
+  general: "الحياة اليومية والتواصل العام", accident: "موقع الحادث", medical: "الطب والرعاية الصحية",
+  disaster: "الإغاثة والمساعدة في الكوارث", police: "مركز الشرطة والمسائل القانونية", government: "الجهات الحكومية",
+  tourism: "السياحة والنقل", labour: "العمل وحقوق الموظفين", school: "المدرسة والتعليم",
+};
+
+export function languageLabel(languageId: LanguageId, copyLocale: CopyLocale): string {
   const item = LANGUAGES.find((language) => language.id === languageId);
   if (!item) return languageId;
-  return item[copyLocale === "zh" ? "zh" : copyLocale] ?? item.en ?? languageId;
+  const extraLabels: Partial<Record<Locale, Record<string, string>>> = { es: spanishLanguageLabels, ar: arabicLanguageLabels };
+  return extraLabels[copyLocale]?.[languageId] ?? item[copyLocale === "zh" ? "zh" : copyLocale === "th" ? "th" : "en"] ?? languageId;
 }
 
-export function categoryLabel(categoryId: CategoryId, copyLocale: CopyLocale | "th"): string {
+export function categoryLabel(categoryId: CategoryId, copyLocale: CopyLocale): string {
   const item = CATEGORIES.find((category) => category.id === categoryId);
   if (!item) return categoryId;
-  return item[copyLocale === "zh" ? "zh" : copyLocale] ?? item.en ?? categoryId;
+  const extraLabels: Partial<Record<Locale, Record<string, string>>> = { es: spanishCategoryLabels, ar: arabicCategoryLabels };
+  return extraLabels[copyLocale]?.[categoryId] ?? item[copyLocale === "zh" ? "zh" : copyLocale === "th" ? "th" : "en"] ?? categoryId;
 }
