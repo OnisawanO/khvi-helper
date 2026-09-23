@@ -87,7 +87,7 @@ const copy = {
 
 export default function MyRequestsPage({ searchParams }: { searchParams: Promise<{ status?: string | string[] }> }) {
   const { status } = use(searchParams);
-  const activeFilter = resolveStatusFilter(status);
+  const activeFilter = resolveStatusFilter(status ?? "completed");
   const allRequests = useRequesterRequests();
   const [selectedFilter, setSelectedFilter] = useState(activeFilter);
   const matching = (id: StatusFilterId) => {
@@ -128,7 +128,7 @@ export default function MyRequestsPage({ searchParams }: { searchParams: Promise
         <div role="group" aria-label={t.filterLabel} className="mt-7 flex flex-wrap gap-2">
           {STATUS_FILTERS.map((filter) => {
             const isActive = filter.id === selectedFilter;
-            const href = filter.id === "all" ? `${workspaceBase}/my-requests#main-content` : `${workspaceBase}/my-requests?status=${filter.id}#main-content`;
+            const href = `${workspaceBase}/my-requests?status=${filter.id}#main-content`;
 
             return (
               <button

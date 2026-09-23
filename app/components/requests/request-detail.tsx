@@ -895,9 +895,9 @@ export function RequestDetail({
             </section>
           </div>
 
-          <aside className="grid gap-5 sm:grid-cols-2">
+          <aside className="grid gap-5 sm:grid-cols-2 sm:items-stretch">
             {!isInterpreter && request.interpreter ? (
-              <section className="border border-[#b6ddcd] bg-[#f3faf6] p-5 sm:p-6">
+              <section className="h-full border border-[#b6ddcd] bg-[#f3faf6] p-5 sm:p-6">
                 <h2 className="flex items-center gap-2 text-base font-extrabold text-[#0f3a2c]">
                   {contactUnlocked
                     ? <LockOpenIcon aria-hidden="true" className="h-5 w-5" />
@@ -953,7 +953,7 @@ export function RequestDetail({
                 )}
               </section>
             ) : isInterpreter && contactUnlocked && request.requester ? (
-              <section className="border border-[#b6ddcd] bg-[#f3faf6] p-5 sm:p-6">
+              <section className="h-full border border-[#b6ddcd] bg-[#f3faf6] p-5 sm:p-6">
                 <h2 className="flex items-center gap-2 text-base font-extrabold text-[#0f3a2c]">
                   <LockOpenIcon aria-hidden="true" className="h-5 w-5" />
                   {t.requesterContactTitle}
@@ -1002,7 +1002,7 @@ export function RequestDetail({
                 </div>
               </section>
             ) : status === "Open" || isInterpreter ? (
-              <section className={sectionClass}>
+              <section className={`${sectionClass} h-full`}>
                 <h2 className="flex items-center gap-2 text-base font-extrabold text-[#173646]">
                   <LockClosedIcon aria-hidden="true" className="h-5 w-5 text-[#b5680b]" />
                   {isInterpreter ? t.contactLockedTitle : t.lockedTitle}
@@ -1013,7 +1013,7 @@ export function RequestDetail({
               </section>
             ) : null}
 
-            <section className={sectionClass}>
+            <section className={`${sectionClass} h-full`}>
               <h2 className="flex items-center gap-2 text-base font-extrabold text-[#173646]">
                 <CheckCircleIcon aria-hidden="true" className="h-5 w-5" />
                 {t.actionsTitle}
@@ -1062,18 +1062,23 @@ export function RequestDetail({
               {status === "InProgress" && (
                 <div>
                   {viewerConfirmedAt ? (
-                    <div className="border border-[#b6ddcd] bg-[#f3faf6] p-4">
-                      <p className="flex items-center gap-2 text-sm font-extrabold text-[#087557]">
-                        <CheckCircleIcon aria-hidden="true" className="h-5 w-5" />
-                        {t.yourConfirmation}: {viewerConfirmedAt}
-                      </p>
-                      <p className="mt-2 text-xs leading-5 text-[#3f6357]">{t.waitingOtherSide}</p>
+                    <div className="flex items-start gap-3 border border-[#b6ddcd] bg-[#f3faf6] p-4">
+                      <CheckCircleIcon aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-[#087557]" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-extrabold leading-6 text-[#087557]">
+                          {t.yourConfirmation}
+                        </p>
+                        <p className="mt-0.5 break-words text-xs font-bold leading-5 text-[#3f6357]">
+                          {viewerConfirmedAt}
+                        </p>
+                        <p className="mt-2 text-xs leading-5 text-[#3f6357]">{t.waitingOtherSide}</p>
+                      </div>
                     </div>
                   ) : (
                     <>
                       <button
                         type="button"
-                        className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#087f80] px-4 text-sm font-extrabold text-white transition-colors hover:bg-[#096f70]"
+                        className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#087f80] px-4 text-sm font-extrabold text-white transition-colors hover:bg-[#096f70] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
                         onClick={confirmDone}
                       >
                         <CheckCircleIcon aria-hidden="true" className="h-5 w-5" />
@@ -1114,7 +1119,7 @@ export function RequestDetail({
                       <div className="mt-4 grid gap-2">
                         <button
                           type="button"
-                          className="flex h-12 items-center justify-center gap-2 rounded-lg bg-(--khvi-coral) px-4 text-sm font-extrabold text-white transition-colors hover:bg-[#d94334]"
+                          className="flex h-12 items-center justify-center gap-2 rounded-lg bg-(--khvi-coral) px-4 text-sm font-extrabold text-white transition-colors hover:bg-[#d94334] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
                           onClick={confirmCancellation}
                         >
                           <XCircleIcon aria-hidden="true" className="h-5 w-5" />
@@ -1122,7 +1127,7 @@ export function RequestDetail({
                         </button>
                         <button
                           type="button"
-                          className="flex h-12 items-center justify-center rounded-lg border border-[#cbd7dc] bg-white px-4 text-sm font-extrabold text-[#173646] transition-colors hover:border-[#087f80] hover:text-[#087f80]"
+                          className="flex h-12 items-center justify-center rounded-lg border border-[#cbd7dc] bg-white px-4 text-sm font-extrabold text-[#173646] transition-colors hover:border-[#087f80] hover:text-[#087f80] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
                           onClick={() => {
                             setCancelFormOpen(false);
                             setCancelError(null);
@@ -1135,7 +1140,7 @@ export function RequestDetail({
                   ) : (
                     <button
                       type="button"
-                      className="flex h-12 w-full items-center justify-center gap-2 rounded-lg border-2 border-[#f6b8ae] bg-white px-4 text-sm font-extrabold text-[#c33a2a] transition-colors hover:bg-[#fff6f4]"
+                      className="flex h-12 w-full items-center justify-center gap-2 rounded-lg border-2 border-[#f6b8ae] bg-white px-4 text-sm font-extrabold text-[#c33a2a] transition-colors hover:bg-[#fff6f4] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
                       onClick={() => setCancelFormOpen(true)}
                     >
                       <XCircleIcon aria-hidden="true" className="h-5 w-5" />
