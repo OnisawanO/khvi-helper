@@ -416,7 +416,10 @@ function PersonalDetailsCard({
                   updateField("preferredUiLanguage", nextLocale);
                   setStoredLocale(nextLocale);
                   void persistPreferredUiLanguage(nextLocale).catch((error: unknown) => {
-                    console.error("Unable to persist preferred UI language", error);
+                    console.error(
+                      "Unable to persist preferred UI language:",
+                      error instanceof Error ? error.message : error,
+                    );
                   });
                 }}
                 className={`${inputClass()} pl-9`}

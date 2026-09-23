@@ -45,7 +45,15 @@ export async function persistPreferredUiLanguage(locale: Locale): Promise<void> 
     .update({ preferred_ui_language: locale })
     .eq("user_id", userData.user.id);
 
-  if (error) throw error;
+  if (error) {
+    const details = [
+      typeof error.code === "string" ? `code=${error.code}` : null,
+      typeof error.message === "string" ? error.message : null,
+      typeof error.details === "string" ? error.details : null,
+      typeof error.hint === "string" ? `hint=${error.hint}` : null,
+    ].filter(Boolean).join("; ");
+    throw new Error(details || "Supabase rejected the preferred UI language update.");
+  }
 }
 
 /** Locale picked in the header, persisted so it survives navigation between routes. */

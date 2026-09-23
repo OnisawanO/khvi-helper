@@ -235,7 +235,10 @@ export function AppShell({ children, accountActions, welcomeRole, accountRole, h
   const handleLocaleChange = (nextLocale: Locale) => {
     setLocale(nextLocale);
     void persistPreferredUiLanguage(nextLocale).catch((error: unknown) => {
-      console.error("Unable to persist preferred UI language", error);
+      console.error(
+        "Unable to persist preferred UI language:",
+        error instanceof Error ? error.message : error,
+      );
     });
   };
   const copyLocale = resolveCopyLocale(locale);
