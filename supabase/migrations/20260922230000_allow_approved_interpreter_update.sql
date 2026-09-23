@@ -95,7 +95,6 @@ begin
   if application_id_value is null then
     insert into public.interpreter_applications (
       user_id, applicant_name, phone, email, age, extra_contact, assigned_area,
-      certificate_file_name, certificate_url, status, submitted_at
       certificate_file_name, certificate_url, status, submitted_at, is_profile_update
     )
     values (
@@ -109,7 +108,6 @@ begin
       trim(p_certificate_file_name),
       nullif(trim(coalesce(p_certificate_url, '')), ''),
       'pending',
-      timezone('utc', now())
       timezone('utc', now()),
       false
     )
