@@ -25,6 +25,10 @@ export type InterpreterApplicant = {
   documents?: ApplicantDocument[]; // Optional backwards compatibility
   backgroundCheck: "Passed" | "Pending" | "Requires Review";
   proficiencyScore?: string;
+  rating?: number;
+  reviewCount?: number;
+  completedMissions?: number;
+  isProfileUpdate?: boolean;
 };
 
 export type HelpTicket = {
@@ -41,6 +45,8 @@ export type HelpTicket = {
   response?: string;
 };
 
+export type IncidentSeverity = "critical" | "high" | "medium";
+
 export type IncidentReport = {
   id: string;
   reporterName: string;
@@ -49,6 +55,9 @@ export type IncidentReport = {
   reportedUserRole: "User" | "Interpreter";
   bookingId: string;
   reason: string;
+  originalReason?: string;
+  originalLanguage?: string;
+  severity?: IncidentSeverity;
   createdAt: string;
   status: "Pending Investigation" | "Escalated to Admin" | "Resolved";
   actionTaken?: string;
@@ -59,7 +68,7 @@ export type ManagerNavSection = "queue" | "approved" | "rejected" | "tickets" | 
 export type ManagerActivity = {
   id: string;
   timestamp: string;
-  type: "approval" | "rejection" | "ticket_reply" | "report_escalation";
+  type: "approval" | "rejection" | "ticket_reply" | "report_escalation" | "report_resolved";
   targetName: string;
   description: string;
 };

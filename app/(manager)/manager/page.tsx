@@ -9,6 +9,7 @@ import {
   InterpreterApplicant,
   HelpTicket,
   IncidentReport,
+  IncidentSeverity,
   ManagerNavSection,
   ManagerActivity,
 } from "./types";
@@ -40,6 +41,10 @@ import {
   reviewInterpreterApplication,
   type InterpreterApplication as StoreApplication,
 } from "@/app/lib/interpreter-application";
+import {
+  loadManagerInterpreterApplicationsAction,
+  reviewInterpreterApplicationAction,
+} from "@/app/actions/interpreter-application-actions";
 import { governanceStore } from "@/app/lib/governance-store";
 
 function toInterpreterApplicant(app: StoreApplication): InterpreterApplicant {
@@ -87,8 +92,26 @@ export default function ManagerDashboard() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [realApplicants, setRealApplicants] = useState<InterpreterApplicant[] | null>(null);
 
   const { applications } = useInterpreterApplications();
+
+  useEffect(() => {
+    if (!authChecked) return;
+
+    let disposed = false;
+    const loadApplicants = async () => {
+      const result = await loadManagerInterpreterApplicationsAction();
+      if (disposed) return;
+      setRealApplicants(result.ok ? result.data : []);
+      if (!result.ok) console.error("Failed to load real interpreter applications:", result.error);
+    };
+
+    void loadApplicants();
+    return () => {
+      disposed = true;
+    };
+  }, [authChecked]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -137,12 +160,13 @@ export default function ManagerDashboard() {
     }
   };
 
-  const applicants = useMemo<InterpreterApplicant[]>(() => {
+  const localApplicants = useMemo<InterpreterApplicant[]>(() => {
     if (applications && applications.length > 0) {
       return applications.map(toInterpreterApplicant);
     }
     return initialApplicants;
   }, [applications]);
+  const applicants = realApplicants ?? localApplicants;
 
   const [tickets, setTickets] = useState<HelpTicket[]>(initialTickets);
   const [reports, setReports] = useState<IncidentReport[]>(initialReports);
@@ -236,9 +260,17 @@ export default function ManagerDashboard() {
   };
 
   // Handle Approve (FR-43)
-  const handleApprove = (id: string) => {
+  const handleApprove = async (id: string) => {
     const target = applicants.find((a) => a.id === id);
-    if (currentUser) {
+    if (realApplicants !== null) {
+      const result = await reviewInterpreterApplicationAction({ applicationId: id, decision: "approved" });
+      if (!result.ok) {
+        console.error("Failed to persist approval:", result.error);
+        return;
+      }
+      const refreshed = await loadManagerInterpreterApplicationsAction();
+      if (refreshed.ok) setRealApplicants(refreshed.data);
+    } else if (currentUser) {
       try {
         reviewInterpreterApplication(id, currentUser, { status: "approved" });
       } catch (err) {
@@ -260,9 +292,17 @@ export default function ManagerDashboard() {
   };
 
   // Handle Reject (FR-44, FR-45)
-  const handleReject = (id: string, reason: string) => {
+  const handleReject = async (id: string, reason: string) => {
     const target = applicants.find((a) => a.id === id);
-    if (currentUser) {
+    if (realApplicants !== null) {
+      const result = await reviewInterpreterApplicationAction({ applicationId: id, decision: "rejected", note: reason });
+      if (!result.ok) {
+        console.error("Failed to persist rejection:", result.error);
+        return;
+      }
+      const refreshed = await loadManagerInterpreterApplicationsAction();
+      if (refreshed.ok) setRealApplicants(refreshed.data);
+    } else if (currentUser) {
       try {
         reviewInterpreterApplication(id, currentUser, { status: "rejected", reason });
       } catch (err) {
@@ -315,46 +355,103 @@ export default function ManagerDashboard() {
   };
 
   // Handle Incident Report Escalation to Admin (FR-53 -> FR-76)
-  const handleEscalateReport = (reportId: string) => {
+  const handleEscalateReport = (
+    reportId: string,
+    severity: IncidentSeverity,
+    assessmentNote: string
+  ) => {
     const target = reports.find((r) => r.id === reportId);
+    if (!target || target.status !== "Pending Investigation") return;
+
+    const actionNote =
+      assessmentNote.trim() ||
+      `Escalated by Manager (${severity.toUpperCase()}) to Admin Portal for user account lock evaluation (FR-78).`;
+
     setReports((prev) =>
       prev.map((r) =>
         r.id === reportId
           ? {
               ...r,
+              severity,
               status: "Escalated to Admin",
-              actionTaken: "Escalated by Manager to Admin Portal for user account lock evaluation (FR-78).",
+              actionTaken: actionNote,
             }
           : r
       )
     );
+    // Map reportedUserId for real-time link to Admin user directory.
+    const matchedUser = governanceStore
+      .getUsers()
+      .find((user) => user.name.toLowerCase() === target.reportedUserName.toLowerCase());
+    const reportedUserId =
+      matchedUser?.id || (target.reportedUserRole === "Interpreter" ? "USR-010" : "USR-009");
+
+    // Sync to shared governance store for Admin Portal real-time pickup.
+    governanceStore.escalateReportToAdmin(
+      {
+        id: target.id,
+        reporterName: target.reporterName,
+        reporterRole: target.reporterRole,
+        reportedUserId,
+        reportedUserName: target.reportedUserName,
+        reportedUserRole: target.reportedUserRole,
+        bookingId: target.bookingId,
+        reason: target.reason,
+        severity,
+        originalReason: target.originalReason,
+        originalLanguage: target.originalLanguage,
+        createdAt: target.createdAt,
+        status: "Escalated to Admin",
+        actionTaken: actionNote,
+      },
+      `${currentUser?.name || "Manager Coordinator"} (Manager)`
+    );
+
+    setActivities((prev) => [
+      {
+        id: `ACT-REP-${reportId}-${prev.length + 1}`,
+        timestamp: "Just now",
+        type: "report_escalation",
+        targetName: `${target.reportedUserName} (${target.id})`,
+        description: `Escalated [${severity.toUpperCase()}] incident report regarding "${target.reason}" to Super Admin.`,
+      },
+      ...prev,
+    ]);
+  };
+
+  // Handle Self-Resolve of Incident Report by Manager (Dispute Mediation)
+  const handleResolveReport = (reportId: string, resolutionNote: string) => {
+    const target = reports.find((r) => r.id === reportId);
+    const actionNote = `Resolved by Manager: ${resolutionNote}`;
+
+    setReports((prev) =>
+      prev.map((r) =>
+        r.id === reportId
+          ? {
+              ...r,
+              status: "Resolved",
+              actionTaken: actionNote,
+            }
+          : r
+      )
+    );
+
     if (target) {
-      // Sync to shared governance store for Admin Portal real-time pickup
-      governanceStore.escalateReportToAdmin(
-        {
-          id: target.id,
-          reporterName: target.reporterName,
-          reporterRole: target.reporterRole,
-          reportedUserId: target.reportedUserRole === "Interpreter" ? "USR-005" : "USR-006",
-          reportedUserName: target.reportedUserName,
-          reportedUserRole: target.reportedUserRole,
-          bookingId: target.bookingId,
-          reason: target.reason,
-          severity: "high",
-          createdAt: target.createdAt,
-          status: "Escalated to Admin",
-          actionTaken: "Escalated by Manager for Super Admin review and account restriction.",
-        },
+      // If report was previously in governanceStore, update it as Resolved
+      governanceStore.resolveReport(
+        reportId,
+        "Dismissed",
+        actionNote,
         `${currentUser?.name || "Manager Coordinator"} (Manager)`
       );
 
       setActivities((prev) => [
         {
-          id: `ACT-REP-${reportId}-${prev.length + 1}`,
+          id: `ACT-RES-${reportId}-${prev.length + 1}`,
           timestamp: "Just now",
-          type: "report_escalation",
+          type: "report_resolved",
           targetName: `${target.reportedUserName} (${target.id})`,
-          description: `Escalated incident report regarding "${target.reason}" to Super Admin for account lock review.`,
+          description: `Resolved incident dispute: "${resolutionNote}"`,
         },
         ...prev,
       ]);
@@ -472,6 +569,7 @@ export default function ManagerDashboard() {
               <IncidentReportsView
                 reports={reports}
                 onEscalate={handleEscalateReport}
+                onResolve={handleResolveReport}
               />
             )}
 

@@ -71,11 +71,18 @@ const copy = {
     gpsUnavailable: "This browser cannot share a location. The place description will be used instead.",
     gpsMissing: "No coordinates attached. You can save a meeting point, but this preview will not place it on a map.",
     submit: "Create request pin",
-    privacyTitle: "What interpreters can see",
-    beforeClaim: "Before a claim",
+    privacyTitle: "What a matching interpreter can see",
+    beforeClaim: "Before you confirm an interpreter",
     afterClaim: "After you confirm the interpreter",
-    beforeItems: ["Language and category", "Approximate area", "How urgent the request is"],
-    afterItems: ["Exact coordinates, if provided", "Full place description"],
+    beforeItems: [
+      "Requested language and help category",
+      "Your request description — avoid including private contact details",
+      "Approximate area, urgency, and appointment time if scheduled",
+    ],
+    afterItems: [
+      "Exact meeting address and coordinates, if provided",
+      "Your name and phone number for coordinating the meeting",
+    ],
     errors: {
       language: "Select the language you need.",
       category: "Select one category.",
@@ -132,11 +139,11 @@ const copy = {
     gpsUnavailable: "此浏览器无法共享位置，将改用地点描述。",
     gpsMissing: "尚未附加坐标，口译员只会看到地点描述。",
     submit: "创建求助点",
-    privacyTitle: "口译员能看到什么",
-    beforeClaim: "接取之前",
-    afterClaim: "确认口译员后解锁",
-    beforeItems: ["语言和类别", "大致区域", "紧急程度"],
-    afterItems: ["准确坐标", "完整地点描述", "你的电话号码"],
+    privacyTitle: "匹配的口译员可以看到什么",
+    beforeClaim: "确认口译员之前",
+    afterClaim: "你确认口译员后",
+    beforeItems: ["所需语言和求助类别", "你填写的求助说明，请勿包含私人联系方式", "大致区域、紧急程度及预约时间（如有）"],
+    afterItems: ["准确的见面地址和坐标（如已提供）", "用于协调见面的姓名和电话号码"],
     errors: {
       language: "请选择需要的语言。",
       category: "请选择一个类别。",
@@ -512,21 +519,45 @@ function TimeWheel({ id, label, value, max, onChange }: TimeWheelProps) {
 export function RequestHelpForm({
   languageOptions,
   categoryOptions,
+  blockingTask,
 }: {
   languageOptions: ReferenceOption[];
   categoryOptions: ReferenceOption[];
+  blockingTask: { requestId: string; kind: "request" | "assignment" } | null;
 }) {
   const saving = useRef(false);
   const successDialogRef = useRef<HTMLDialogElement>(null);
+  const blockedDialogRef = useRef<HTMLDialogElement>(null);
   const router = useRouter();
   const locale = useUiLocale();
   const copyLocale = useCopyLocale();
   const t = copy[copyLocale];
+  const privacyCopy = locale === "th"
+    ? {
+        privacyTitle: "สิ่งที่ล่ามสามารถมองเห็นได้",
+        beforeClaim: "ก่อนที่คุณจะยืนยันล่าม",
+        afterClaim: "หลังจากคุณยืนยันล่ามแล้ว",
+        beforeItems: [
+          "ภาษาที่ต้องการและประเภทความช่วยเหลือ",
+          "รายละเอียดคำขอที่คุณกรอก ควรหลีกเลี่ยงข้อมูลติดต่อส่วนตัว",
+          "พื้นที่โดยประมาณ ความเร่งด่วน และวันเวลานัดหมาย (ถ้ามี)",
+        ],
+        afterItems: [
+          "สถานที่นัดหมายและพิกัดจริง (หากระบุไว้)",
+          "ชื่อและเบอร์โทรศัพท์ของคุณ เพื่อใช้ประสานงานนัดหมาย",
+        ],
+      }
+    : t;
   const successCopy = locale === "th"
     ? { title: "สร้างคำขอสำเร็จแล้ว!", body: "ส่งคำขอของคุณแล้ว รอล่ามอาสาเข้ามาช่วยนะ", next: "กำลังพาไปติดตามคำขอ…", track: "ดูคำขอของฉัน", saving: "กำลังส่งคำขอ…", error: "ส่งคำขอไม่สำเร็จ กรุณาลองอีกครั้ง" }
     : locale === "zh"
       ? { title: "求助已创建！", body: "您的求助已发布，请等待志愿口译员接单。", next: "即将打开求助详情…", track: "查看我的求助", saving: "正在提交…", error: "提交失败，请重试。" }
       : { title: "Your request is ready!", body: "Your request is posted. A volunteer interpreter can now pick it up.", next: "Taking you to your request…", track: "View my request", saving: "Sending request…", error: "Could not send your request. Please try again." };
+  const blockedCopy = locale === "th"
+    ? { title: "ยังมีงานที่กำลังดำเนินการอยู่", body: blockingTask?.kind === "assignment" ? "คุณกำลังรับงานล่ามอยู่ จึงยังสร้างคำขอใหม่ไม่ได้" : "คุณมีคำขอความช่วยเหลือที่ยังไม่เสร็จ จึงยังสร้างคำขอใหม่ไม่ได้", detail: "กรุณาดำเนินงานเดิมให้เสร็จหรือยกเลิกก่อน แล้วจึงสร้างคำขอใหม่ได้", close: "ปิด" }
+    : locale === "zh"
+      ? { title: "已有进行中的任务", body: blockingTask?.kind === "assignment" ? "您正在处理一个口译任务，暂时无法创建新的求助。" : "您已有一个未完成的求助，暂时无法创建新的求助。", detail: "请先完成或取消当前任务，然后再创建新的求助。", close: "关闭" }
+      : { title: "You already have an active task", body: blockingTask?.kind === "assignment" ? "You are currently handling an interpreter assignment, so you cannot create a new request." : "You already have an unfinished help request, so you cannot create a new one.", detail: "Finish or cancel the current task before creating another request.", close: "Close" };
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdRequestId, setCreatedRequestId] = useState<string | null>(null);
 
@@ -596,6 +627,10 @@ export function RequestHelpForm({
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saving.current) return;
+    if (blockingTask) {
+      if (!blockedDialogRef.current?.open) blockedDialogRef.current?.showModal();
+      return;
+    }
 
     const nextErrors: Errors = {};
 
@@ -651,6 +686,9 @@ export function RequestHelpForm({
           setCreatedRequestId(result.data.requestId);
         } else {
           saving.current = false;
+          if (result.code === "active_workspace_task_exists" || result.code === "active_assignment_exists") {
+            if (!blockedDialogRef.current?.open) blockedDialogRef.current?.showModal();
+          }
           setSaveError(result.error);
         }
       } catch {
@@ -685,6 +723,21 @@ export function RequestHelpForm({
           <div aria-hidden="true" className={styles.progress}><span /></div>
         </dialog>
       )}
+      <dialog
+        ref={blockedDialogRef}
+        aria-labelledby="active-task-title"
+        aria-describedby="active-task-body active-task-detail"
+        className={styles.dialog}
+        onCancel={(event) => event.preventDefault()}
+      >
+        <div aria-hidden="true" className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-(--khvi-coral)/10">
+          <ExclamationTriangleIcon className="h-10 w-10 text-(--khvi-coral)" />
+        </div>
+        <h2 id="active-task-title" className="mt-5 text-2xl font-extrabold text-(--khvi-navy)">{blockedCopy.title}</h2>
+        <p id="active-task-body" className="mt-3 text-sm leading-7 text-(--khvi-ink)/80">{blockedCopy.body}</p>
+        <p id="active-task-detail" className="mt-3 text-xs leading-5 text-(--khvi-ink)/70">{blockedCopy.detail}</p>
+        <button type="button" onClick={() => blockedDialogRef.current?.close()} className="mt-5 min-h-11 rounded-(--khvi-radius-sm) bg-(--khvi-navy) px-5 text-sm font-bold text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-teal)">{blockedCopy.close}</button>
+      </dialog>
       <div className="mx-auto max-w-[1180px]">
         <WorkspaceBreadcrumbs
           ariaLabel={t.breadcrumb}
@@ -932,12 +985,12 @@ export function RequestHelpForm({
             <aside className="border border-[#d6e0e4] bg-white p-5 lg:sticky lg:top-28">
               <h2 className="flex items-center gap-2 text-base font-extrabold text-[#173646]">
                 <LockClosedIcon aria-hidden="true" className="h-5 w-5 text-[#087f80]" />
-                {t.privacyTitle}
+                {privacyCopy.privacyTitle}
               </h2>
 
-              <p className="mt-5 text-xs font-extrabold text-[#087f80]">{t.beforeClaim}</p>
+              <p className="mt-5 text-xs font-extrabold text-[#087f80]">{privacyCopy.beforeClaim}</p>
               <ul className="mt-2.5 space-y-2 text-sm leading-6 text-[#52676f]">
-                {t.beforeItems.map((item) => (
+                {privacyCopy.beforeItems.map((item) => (
                   <li key={item} className="flex items-start gap-2">
                     <CheckCircleIcon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-[#087557]" />
                     {item}
@@ -945,9 +998,9 @@ export function RequestHelpForm({
                 ))}
               </ul>
 
-              <p className="mt-5 border-t border-[#e3ebef] pt-4 text-xs font-extrabold text-[#b5680b]">{t.afterClaim}</p>
+              <p className="mt-5 border-t border-[#e3ebef] pt-4 text-xs font-extrabold text-[#b5680b]">{privacyCopy.afterClaim}</p>
               <ul className="mt-2.5 space-y-2 text-sm leading-6 text-[#52676f]">
-                {t.afterItems.map((item) => (
+                {privacyCopy.afterItems.map((item) => (
                   <li key={item} className="flex items-start gap-2">
                     <EyeSlashIcon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-[#b5680b]" />
                     {item}

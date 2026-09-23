@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { CheckCircleIcon, StarIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { submitReviewAction } from "@/app/actions/review-actions";
 import { useUiLocale } from "@/app/components/app-shell";
+import type { Review } from "@/app/lib/mock-requests";
 
 export type SubmittedReview = {
   rating: number;
@@ -11,9 +13,11 @@ export type SubmittedReview = {
 
 type ReviewModalProps = {
   open: boolean;
+  bookingId: string;
   interpreterName: string;
   interpreterLanguage: string;
   completedAt: string | null;
+  existingReview?: Review | null;
   onClose: () => void;
   onSubmitted: (review: SubmittedReview) => void;
 };
@@ -28,6 +32,7 @@ const copy = {
     commentLabel: "Share a note (optional)",
     commentHint: "Tell us what helped you most during this session.",
     submit: "Submit review",
+    saving: "Saving…",
     cancel: "Not now",
     close: "Close review dialog",
     completed: "Completed",
@@ -45,6 +50,7 @@ const copy = {
     commentLabel: "เขียนความคิดเห็นเพิ่มเติม (ไม่บังคับ)",
     commentHint: "บอกสิ่งที่ช่วยให้การสื่อสารครั้งนี้ราบรื่นขึ้น",
     submit: "ส่งรีวิว",
+    saving: "กำลังบันทึก…",
     cancel: "ไว้ทีหลัง",
     close: "ปิดหน้าต่างรีวิว",
     completed: "เสร็จสิ้น",
@@ -62,6 +68,7 @@ const copy = {
     commentLabel: "补充说明（可选）",
     commentHint: "告诉我们这次服务中最有帮助的部分。",
     submit: "提交评价",
+    saving: "正在保存…",
     cancel: "稍后再说",
     close: "关闭评价窗口",
     completed: "已完成",
@@ -78,20 +85,23 @@ function getCopy(locale: ReturnType<typeof useUiLocale>) {
 
 export function ReviewModal({
   open,
+  bookingId,
   interpreterName,
   interpreterLanguage,
   completedAt,
+  existingReview,
   onClose,
   onSubmitted,
 }: ReviewModalProps) {
   const locale = useUiLocale();
   const t = getCopy(locale);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const [rating, setRating] = useState(0);
+  const [rating, setRating] = useState(existingReview?.rating ?? 0);
   const [hoveredRating, setHoveredRating] = useState(0);
-  const [comment, setComment] = useState("");
+  const [comment, setComment] = useState(existingReview?.comment ?? "");
   const [error, setError] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
+  const [submitted, setSubmitted] = useState(Boolean(existingReview));
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     if (!open) return;
@@ -114,10 +124,18 @@ export function ReviewModal({
       return;
     }
 
-    const review = { rating, comment: comment.trim() };
     setError(null);
-    setSubmitted(true);
-    onSubmitted(review);
+    startTransition(async () => {
+      const result = await submitReviewAction({ bookingId, rating, comment });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+
+      const review = { rating, comment: comment.trim() };
+      setSubmitted(true);
+      onSubmitted(review);
+    });
   }
 
   const visibleRating = hoveredRating || rating;
@@ -227,14 +245,14 @@ export function ReviewModal({
                   id="review-comment"
                   aria-describedby="review-comment-hint review-comment-count"
                   className="mt-2 min-h-32 w-full resize-y rounded-xl border border-[#cbd7dc] bg-white px-4 py-3 text-sm font-semibold text-(--khvi-ink) placeholder:text-[#8a9aa0] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
-                  maxLength={500}
+                  maxLength={1000}
                   placeholder={t.commentHint}
                   value={comment}
                   onChange={(event) => setComment(event.target.value)}
                 />
                 <div className="mt-1.5 flex items-start justify-between gap-4 text-xs leading-5 text-[#73848a]">
                   <span id="review-comment-hint">{t.commentHint}</span>
-                  <span id="review-comment-count" className="shrink-0">{comment.length}/500</span>
+                  <span id="review-comment-count" className="shrink-0">{comment.length}/1000</span>
                 </div>
               </div>
 
@@ -243,10 +261,10 @@ export function ReviewModal({
               <div className="mt-7 grid gap-2 sm:grid-cols-[1fr_auto] sm:flex-row-reverse">
                 <button
                   className="inline-flex min-h-12 items-center justify-center rounded-lg bg-(--khvi-navy) px-5 text-sm font-extrabold text-white transition-colors hover:bg-[#0c4960] disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
-                  disabled={rating === 0}
+                  disabled={rating === 0 || isPending}
                   type="submit"
                 >
-                  {t.submit}
+                  {isPending ? t.saving : t.submit}
                 </button>
                 <button
                   className="inline-flex min-h-12 items-center justify-center rounded-lg border border-[#cbd7dc] bg-white px-5 text-sm font-extrabold text-[#315363] transition-colors hover:border-[#087f80] hover:text-[#087f80] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"

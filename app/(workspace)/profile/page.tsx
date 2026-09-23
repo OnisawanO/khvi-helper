@@ -7,5 +7,9 @@ export const metadata: Metadata = {
 };
 
 export default function ProfilePage() {
-  return <ProfileSettings />;
+  const accountDeletionConfigured = Boolean(
+    process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
+  );
+
+  return <ProfileSettings accountDeletionConfigured={accountDeletionConfigured} />;
 }

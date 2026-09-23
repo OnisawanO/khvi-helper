@@ -166,6 +166,20 @@ export function ApplicantDetailModal({
                   </div>
                 </div>
 
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#8198a4]">
+                    Rating Summary
+                  </span>
+                  <p className="font-extrabold text-[#b36916]">
+                    {applicant.reviewCount
+                      ? `★ ${applicant.rating?.toFixed(1)} (${applicant.reviewCount} review${applicant.reviewCount === 1 ? "" : "s"})`
+                      : "No reviews yet"}
+                  </p>
+                  <p className="text-[11px] text-[#637d8a]">
+                    {applicant.completedMissions ?? 0} completed missions
+                  </p>
+                </div>
+
                 {/* Direct Contact Channels */}
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[#8198a4]">
