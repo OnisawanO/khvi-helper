@@ -895,9 +895,9 @@ export function RequestDetail({
             </section>
           </div>
 
-          <aside className="grid items-start gap-5 sm:grid-cols-2">
+          <aside className="grid gap-5 sm:grid-cols-2 sm:items-stretch">
             {!isInterpreter && request.interpreter ? (
-              <section className="border border-[#b6ddcd] bg-[#f3faf6] p-5 sm:p-6">
+              <section className="h-full border border-[#b6ddcd] bg-[#f3faf6] p-5 sm:p-6">
                 <h2 className="flex items-center gap-2 text-base font-extrabold text-[#0f3a2c]">
                   {contactUnlocked
                     ? <LockOpenIcon aria-hidden="true" className="h-5 w-5" />
@@ -953,7 +953,7 @@ export function RequestDetail({
                 )}
               </section>
             ) : isInterpreter && contactUnlocked && request.requester ? (
-              <section className="border border-[#b6ddcd] bg-[#f3faf6] p-5 sm:p-6">
+              <section className="h-full border border-[#b6ddcd] bg-[#f3faf6] p-5 sm:p-6">
                 <h2 className="flex items-center gap-2 text-base font-extrabold text-[#0f3a2c]">
                   <LockOpenIcon aria-hidden="true" className="h-5 w-5" />
                   {t.requesterContactTitle}
@@ -1002,7 +1002,7 @@ export function RequestDetail({
                 </div>
               </section>
             ) : status === "Open" || isInterpreter ? (
-              <section className={sectionClass}>
+              <section className={`${sectionClass} h-full`}>
                 <h2 className="flex items-center gap-2 text-base font-extrabold text-[#173646]">
                   <LockClosedIcon aria-hidden="true" className="h-5 w-5 text-[#b5680b]" />
                   {isInterpreter ? t.contactLockedTitle : t.lockedTitle}
@@ -1013,7 +1013,7 @@ export function RequestDetail({
               </section>
             ) : null}
 
-            <section className={sectionClass}>
+            <section className={`${sectionClass} h-full`}>
               <h2 className="flex items-center gap-2 text-base font-extrabold text-[#173646]">
                 <CheckCircleIcon aria-hidden="true" className="h-5 w-5" />
                 {t.actionsTitle}
