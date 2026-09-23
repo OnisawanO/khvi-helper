@@ -7,7 +7,7 @@ The global UI language switcher supports English (en), Chinese (zh), Thai (th), 
 ## Role-specific request workspaces
 
 - Source routes use explicit role namespaces for signed-in workspaces: `app/user` maps to `/user` and `app/interpreter` maps to `/interpreter`. Other page routes use direct folders under `app/`; `app/api/**/route.ts` remains the HTTP Route Handler convention.
-- Compatibility policy: the role-prefixed paths are canonical. The legacy unprefixed paths `/welcome`, `/request-help`, `/my-requests`, `/find-requests` and `/my-assignments` remain thin server-side redirects so existing bookmarks and external links continue to work. Redirects preserve query parameters where applicable and contain no UI or business logic.
+- Role-specific paths are the only supported entry points. The application no longer provides redirects for `/welcome`, `/request-help`, `/my-requests`, `/find-requests`, or `/my-assignments`.
 - `User` uses `/user/request-help` to create a request and `/user/my-requests` to track requests owned by the signed-in Supabase account.
 - `Interpreter` uses `/interpreter/find-requests` to review open request summaries and `/interpreter/my-assignments` to claim matching open requests or track claimed, in-progress and completed assignments.
 - An Interpreter account in requester mode uses `/interpreter/request-help` and `/interpreter/my-requests` without changing its stored account role.
@@ -60,7 +60,8 @@ This update supersedes the older mock-source and state-only behavior notes below
 | `/` | Static | Public | None | Not applicable | Implemented at `app/page.tsx` |
 | `/_not-found` | Framework fallback | Public | None | Framework fallback | Implemented at `app/not-found.tsx` |
 | `/profile` | Static private route | Authenticated User, Interpreter, Manager, Admin | Supabase Auth `profiles`; server-only Admin API for permanent deletion; browser mock session fallback | Redirect to `/#top` when session is missing or locked | Implemented at `app/profile/page.tsx`; permanent self-service deletion requires no active booking and a server secret key |
-| `/manager` | Static Mockup | Manager Role (Supabase session) | Mock data (FR-14–18) | Redirect unauthenticated or wrong role to public/role route | Implemented at `app/manager/page.tsx` |
+| `/manager` | Compatibility redirect | Public | None | Redirects to `/manager/dashboard` | Implemented at `app/manager/page.tsx` |
+| `/manager/dashboard` | Static Mockup | Manager Role (Supabase session) | Mock data (FR-14–18) | Redirect unauthenticated or wrong role to public/role route | Implemented at `app/manager/dashboard/page.tsx` |
 | `/admin` | Static Mockup | Admin Role (Supabase session) | Mock data | Redirect unauthenticated or wrong role to public/role route | Implemented at `app/admin/page.tsx` |
 | `/user` | Static private workspace | Authenticated User | Supabase Auth session + User-owned `bookings` through RLS | Redirect unauthenticated to public page and other roles to their workspace | Implemented at `app/user/page.tsx` |
 | `/user/request-help` | Resource create route | Authenticated User | Supabase `create_booking` RPC | Redirect Interpreter to `/interpreter/find-requests` | Implemented at `app/user/request-help/page.tsx` |
@@ -81,12 +82,6 @@ This update supersedes the older mock-source and state-only behavior notes below
 | `/login` | Static auth route | Public | Supabase Auth + `public.profiles`; development-only Fast Login uses server credentials | Not applicable | Implemented at `app/login/page.tsx` |
 | `/forgot-password` | Password recovery request page | Public | Supabase Auth password-reset email | Field validation and API error state | Implemented at `app/forgot-password/page.tsx` |
 | `/reset-password` | Password reset page | Authenticated recovery session | Supabase Auth recovery session | Missing or invalid recovery session is handled by the reset form | Implemented at `app/reset-password/page.tsx` |
-| `/welcome` | Compatibility redirect | Authenticated session | None | Redirects by active role to `/user` or `/interpreter` | Implemented at `app/welcome/page.tsx` |
-| `/request-help` | Compatibility redirect | Authenticated User or Interpreter requester | None | Redirects to the role-specific request form and preserves query parameters | Implemented at `app/request-help/page.tsx` |
-| `/my-requests` | Compatibility redirect | Authenticated User or Interpreter requester | None | Redirects to the role-specific request list and preserves query parameters | Implemented at `app/my-requests/page.tsx` |
-| `/my-requests/[requestId]` | Compatibility redirect | Authenticated requester | None | URL-encodes `requestId` and redirects to the User requester detail route | Implemented at `app/my-requests/[requestId]/page.tsx` |
-| `/find-requests` | Compatibility redirect | Authenticated Interpreter | None | Redirects to `/interpreter/find-requests` and preserves query parameters | Implemented at `app/find-requests/page.tsx` |
-| `/my-assignments` | Compatibility redirect | Authenticated Interpreter | None | Redirects to `/interpreter/my-assignments` and preserves query parameters | Implemented at `app/my-assignments/page.tsx` |
 | `/api/auth/fast-login` | Auth action route | Development only; disabled in production | Supabase Auth accounts configured by `FAST_LOGIN_*` server environment variables | `400` invalid role; `503` missing dev account; `401` Auth failure | Implemented at `app/api/auth/fast-login/route.ts` |
 | `/api/auth/login` | Auth action route | Public | Supabase Auth password login and `public.profiles` | 400 validation; 401 invalid credentials; 403 missing or locked profile | Implemented at `app/api/auth/login/route.ts` |
 | `/api/auth/register` | Auth action route | Public | Supabase Auth sign-up and `public.profiles` trigger | 400 validation or unsupported locale | Implemented at `app/api/auth/register/route.ts` |
@@ -100,8 +95,6 @@ This update supersedes the older mock-source and state-only behavior notes below
 
 `/interpreter/my-assignments` แสดงงานเปิดที่ตรงความสามารถแยกจากงานที่รับแล้ว และรับ `status` เฉพาะ `claimed`, `in-progress` และ `completed` สำหรับกรองงานที่รับแล้ว ค่าอื่นจะถูกลดรูปเป็น `all`
 ส่วน `/interpreter/find-requests` ใช้ตัวกรอง `All`, `Urgent` และ `Scheduled` ใน client โดยไม่เปลี่ยน URL เมื่อ Claim สำเร็จจะไป `/interpreter/my-assignments/[requestId]`
-
-Compatibility redirects preserve the original query string for list and form routes. The legacy dynamic request route URL-encodes `requestId` before redirecting to the canonical User detail route.
 
 ทุก detail route ตรวจ `requestId` เป็นตัวเลขล้วนให้ตรงกับ `bookings.booking_id`
 parameter ที่ผิดรูปแบบหรือไม่พบข้อมูลจะเรียก `notFound()` ทั้งสองกรณี เพื่อไม่เปิดเผยว่ามี id นั้นอยู่จริงหรือไม่

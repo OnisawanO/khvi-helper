@@ -27,7 +27,7 @@ import {
   type ContactChannelType,
   CHANNEL_DEFS,
   formatContactChannelValue,
-} from "@/components/volunteer/ApplicationForm";
+} from "@/app/components/volunteer/ApplicationForm";
 import { calculateAge } from "@/app/lib/mock-auth";
 import { authApi } from "@/app/lib/auth-client";
 

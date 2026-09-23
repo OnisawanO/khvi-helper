@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { AppShell } from "@/app/components/app-shell";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
-import { CombinedInterpreterRegisterForm } from "@/components/volunteer/CombinedInterpreterRegisterForm";
+import { CombinedInterpreterRegisterForm } from "@/app/components/volunteer/CombinedInterpreterRegisterForm";
 import { loadInterpreterApplicationReferences } from "@/app/lib/real-interpreter-application-data";
-import { VolunteerApplyHeader } from "@/components/volunteer/VolunteerApplyHeader";
+import { VolunteerApplyHeader } from "@/app/components/volunteer/VolunteerApplyHeader";
 
 export const metadata: Metadata = {
   title: "ลงทะเบียนล่ามจิตอาสา · KHVI Helper",

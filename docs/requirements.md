@@ -186,10 +186,9 @@ open -> claimed -> in_progress -> completed
 - `Interpreter` ที่ Approved ไปยัง workspace ที่ `/interpreter` สำหรับดูงานที่ตรงความสามารถและติดตามงานที่รับ
 - บัญชี `Interpreter` สลับโหมดช่วยเหลือและขอความช่วยเหลือภายในหน้า `/interpreter` เดียว โดยไม่เปลี่ยน role ของบัญชี
 - Route เฉพาะ User ใช้ `/user/request-help` และ `/user/my-requests`; route เฉพาะ Interpreter ใช้ `/interpreter/find-requests` และ `/interpreter/my-assignments`
-- `Manager` ไปยัง Manager Console ที่ `/manager`
+- `Manager` ไปยัง Manager Console ที่ `/manager/dashboard`
 - `Admin` ไปยัง Admin Dashboard ที่ `/admin`
-- `/welcome` ต้องทำหน้าที่เป็น compatibility redirect ตาม role และไม่มี UI ของตนเอง
-- Path เดิมที่ไม่มี role prefix ต้อง redirect ไป canonical role path เพื่อรองรับลิงก์เดิม
+- ระบบไม่รองรับ `/welcome` และ path เดิมที่ไม่มี role prefix; ผู้ใช้ต้องเข้าผ่าน role-specific path ที่ระบุข้างต้น
 - ระบบต้องตรวจ role ฝั่ง server ก่อน render ข้อมูล private ไม่พึ่ง client redirect อย่างเดียว
 - ผู้ใช้ที่ role ไม่ตรงกับ route ต้องได้รับ redirect หรือ `403` ตาม route policy
 

@@ -1,5 +1,5 @@
-import { ApplicationForm, type InitialProfile } from "@/components/volunteer/ApplicationForm";
-import { VolunteerApplyHeader } from "@/components/volunteer/VolunteerApplyHeader";
+import { ApplicationForm, type InitialProfile } from "@/app/components/volunteer/ApplicationForm";
+import { VolunteerApplyHeader } from "@/app/components/volunteer/VolunteerApplyHeader";
 import { WorkspaceShell } from "@/app/components/workspace-shell";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
 import { loadInterpreterApplicationReferences } from "@/app/lib/real-interpreter-application-data";

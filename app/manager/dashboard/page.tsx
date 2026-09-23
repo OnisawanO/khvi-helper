@@ -9,12 +9,12 @@ import { persistPreferredUiLanguage, useStoredLocale } from "@/app/lib/locale";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { getRedirectPathByRole } from "@/app/lib/mock-auth";
 import { createClient } from "@/utils/supabase/client";
-import { ManagerMetrics } from "@/components/manager/ManagerMetrics";
+import { ManagerMetrics } from "./components/ManagerMetrics";
 import {
   ApplicationDetailModal,
   type InterpreterApplication,
   type ApplicationStatus,
-} from "@/components/manager/ApplicationDetailModal";
+} from "./components/ApplicationDetailModal";
 
 const headerCopy = {
   brandSubtitle: "Community interpreter map",

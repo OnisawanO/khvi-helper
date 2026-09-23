@@ -261,7 +261,7 @@ export function getRedirectPathByRole(role: UserRole): string {
     case "Interpreter":
       return "/interpreter";
     case "Manager":
-      return "/manager";
+      return "/manager/dashboard";
     case "Admin":
       return "/admin";
     default:

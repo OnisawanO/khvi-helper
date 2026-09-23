@@ -12,7 +12,7 @@ import {
   uploadInterpreterCertificateAction,
 } from "@/app/actions/interpreter-application-actions";
 import type { InterpreterApplication } from "@/app/lib/interpreter-application";
-import { ApplicationStatusPanel } from "@/components/volunteer/ApplicationStatusPanel";
+import { ApplicationStatusPanel } from "@/app/components/volunteer/ApplicationStatusPanel";
 
 export default function VolunteerStatusPage() {
   const locale = useUiLocale();

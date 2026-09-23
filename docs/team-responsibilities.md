@@ -153,11 +153,9 @@
 **Component ที่ต้องทำ**
 
 - `app/interpreter/my-assignments/my-assignments-list.tsx`
-- `components/volunteer/ApplicationForm.tsx` ในอนาคต
-- `components/volunteer/ApplicationStatus.tsx`
-- `components/volunteer/VolunteerDashboard.tsx`
-- `components/volunteer/SkillSelector.tsx`
-- `components/volunteer/ClaimButton.tsx`
+- `app/components/volunteer/ApplicationForm.tsx`
+- `app/components/volunteer/ApplicationStatusPanel.tsx`
+- `app/components/volunteer/ApplicationStatusCard.tsx`
 
 **Logic ที่เกี่ยวข้อง**
 
@@ -228,7 +226,7 @@
 
 **ขอบเขต UI**
 
-- `/manager` หรือ `app/manager/page.tsx`
+- `/manager/dashboard` หรือ `app/manager/dashboard/page.tsx`
 - `/manager/verify-volunteers` หรือ `app/manager/verify-volunteers/page.tsx` ในอนาคต
 - `/admin` หรือ `app/admin/page.tsx`
 - `/admin/users` หรือ `app/admin/users/page.tsx` ในอนาคต
@@ -237,13 +235,10 @@
 
 **Component ที่ต้องทำ**
 
-- `components/manager/VolunteerVerifyCard.tsx`
-- `components/manager/ApplicationDetailPanel.tsx`
-- `components/manager/HelpRequestList.tsx`
-- `components/admin/UserTable.tsx`
-- `components/admin/RoleEditor.tsx`
-- `components/review/ReviewModal.tsx`
-- `components/review/StarRating.tsx`
+- `app/manager/dashboard/components/ApplicationDetailModal.tsx`
+- `app/manager/dashboard/components/ManagerMetrics.tsx`
+- `app/admin/components/users-table.tsx`
+- `app/components/review/review-modal.tsx`
 
 **Logic ที่เกี่ยวข้อง**
 

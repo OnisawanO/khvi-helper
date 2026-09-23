@@ -46,7 +46,7 @@ import { loadMyInterpreterApplicationAction } from "@/app/actions/interpreter-ap
 import type { InterpreterApplication } from "@/app/lib/interpreter-application";
 import { INTERPRETER_MATCHING_RADIUS_KM } from "@/app/lib/matching-settings";
 import { loadMyInterpreterRating, type InterpreterRating } from "@/app/lib/real-interpreter-rating";
-import { EditInterpreterProfileModal } from "@/components/volunteer/EditInterpreterProfileModal";
+import { EditInterpreterProfileModal } from "@/app/components/volunteer/EditInterpreterProfileModal";
 import { createClient } from "@/utils/supabase/client";
 
 type FormState = {

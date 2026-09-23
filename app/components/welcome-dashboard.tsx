@@ -13,7 +13,7 @@ import type { HelpRequest, RequestStatus } from "@/app/lib/mock-requests";
 import type { UserProfile } from "@/app/lib/mock-auth";
 import type { InterpreterApplication } from "@/app/lib/interpreter-application";
 import { loadMyInterpreterApplicationAction } from "@/app/actions/interpreter-application-actions";
-import { ApplicationStatusCard } from "@/components/volunteer/ApplicationStatusCard";
+import { ApplicationStatusCard } from "@/app/components/volunteer/ApplicationStatusCard";
 import type { InterpreterWorkspaceMode } from "@/app/lib/workspace-mode";
 import type { OpenRequestsDiagnostic } from "@/app/lib/real-request-data";
 import { referenceLabel, type ReferenceCatalog } from "@/app/lib/reference-catalog";

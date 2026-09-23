@@ -16,10 +16,10 @@ Requirement → User → Use Case → User Flow → UI → Web Component → Des
 
 | สถานะ | ความหมาย | หลักฐานใน repository |
 |---|---|---|
-| Implemented mockup | มีหน้าและ interaction จำลองให้ทดลองได้ แต่ยังใช้ข้อมูลใน memory | `/manager`, `app/manager/page.tsx` |
+| Implemented mockup | มีหน้าและ interaction จำลองให้ทดลองได้ แต่ยังใช้ข้อมูลใน memory | `/manager/dashboard`, `app/manager/dashboard/page.tsx` |
 | Planned production behavior | เป็นพฤติกรรมเป้าหมายที่ต้องเชื่อม Auth, database, Server Action และ authorization | `docs/requirements.md`, `detail.md`, `docs/route-inventory.md` |
 
-ปัจจุบัน `/manager` เป็น Static Mockup ที่ใช้ mock data ตาม `route-inventory.md` ส่วน `/manager/verify-volunteers` ยังเป็น route ที่วางแผนไว้ เอกสารนี้จึงใช้ UI ใน `app/manager/page.tsx` เป็นตัวอย่างหน้าจอ และใช้ requirements กับ business rules เป็นเงื่อนไขของระบบจริง
+ปัจจุบัน `/manager/dashboard` เป็น Static Mockup ที่ใช้ mock data ตาม `route-inventory.md`; `/manager` ส่งต่อมาที่ path นี้ ส่วน `/manager/verify-volunteers` ยังเป็น route ที่วางแผนไว้ เอกสารนี้จึงใช้ UI ใน `app/manager/dashboard/page.tsx` เป็นตัวอย่างหน้าจอ และใช้ requirements กับ business rules เป็นเงื่อนไขของระบบจริง
 
 ### หลักฐานที่ใช้ตรวจตามเกณฑ์ในภาพ
 

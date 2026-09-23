@@ -14,7 +14,40 @@ import type {
   InterpreterApplication,
   WorkHistoryEntry,
 } from "@/app/lib/interpreter-application";
-import type { InterpreterApplicant } from "@/app/manager/types";
+type InterpreterApplicant = {
+  id: string;
+  name: string;
+  age: number;
+  country: string;
+  primaryLanguage: string;
+  spokenLanguages: string[];
+  specialtyCategories: string[];
+  experienceSummary: string;
+  contactChannels: string;
+  appliedDate: string;
+  status: "Pending" | "Under Review" | "Approved" | "Rejected";
+  rejectionReason?: string;
+  document: {
+    name: string;
+    type: "id" | "cert" | "cv" | "police";
+    format: "pdf" | "png" | "jpg";
+    size: string;
+    url?: string;
+  };
+  documents?: Array<{
+    name: string;
+    type: "id" | "cert" | "cv" | "police";
+    format: "pdf" | "png" | "jpg";
+    size: string;
+    url?: string;
+  }>;
+  backgroundCheck: "Passed" | "Pending" | "Requires Review";
+  proficiencyScore?: string;
+  rating?: number;
+  reviewCount?: number;
+  completedMissions?: number;
+  isProfileUpdate?: boolean;
+};
 
 export type { InterpreterApplicationReference };
 export {
