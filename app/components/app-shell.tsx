@@ -1,11 +1,21 @@
 "use client";
 
-import { createContext, useContext, useEffect, type ReactNode } from "react";
-import { isLocale, persistPreferredUiLanguage, resolveCopyLocale, useStoredLocale, type CopyLocale } from "@/app/lib/locale";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  isLocale,
+  persistPreferredUiLanguage,
+  resolveCopyLocale,
+  useStoredLocale,
+  LOCALE_STORAGE_KEY,
+  LOCALE_USER_SELECTED_KEY,
+  type CopyLocale,
+} from "@/app/lib/locale";
 import { SiteFooter } from "./site-footer";
 import { SiteHeader } from "./site-header";
 import type { Locale } from "./site-header";
 import { createClient } from "@/utils/supabase/client";
+import { loadMyInterpreterApplicationAction } from "@/app/actions/interpreter-application-actions";
+import type { ApplicationStatus } from "@/app/lib/interpreter-application";
 
 export type WorkspaceRole = "User" | "Interpreter" | "Manager" | "Admin";
 
@@ -132,6 +142,9 @@ const shellCopy = {
 
 const CopyLocaleContext = createContext<CopyLocale>("en");
 const UiLocaleContext = createContext<Locale>("en");
+type InterpreterAccess = { loading: boolean; revoked: boolean; verified: boolean; applicationStatus: ApplicationStatus | null };
+const InterpreterAccessContext = createContext<InterpreterAccess>({ loading: false, revoked: false, verified: true, applicationStatus: null });
+export function useInterpreterAccess() { return useContext(InterpreterAccessContext); }
 export function useUiLocale() { return useContext(UiLocaleContext); }
 
 /** Read the header locale from inside any client component rendered under AppShell. */
@@ -144,13 +157,46 @@ export function useCopyLocale(): CopyLocale {
  * language switcher, and the site footer. Pages render their own `<main>` so the
  * skip link keeps working.
  */
-export function AppShell({ children, accountActions, welcomeRole, accountRole }: {
+export function AppShell({ children, accountActions, welcomeRole, accountRole, hidePrimaryAction }: {
   children: ReactNode;
   accountActions?: ReactNode;
   welcomeRole?: WorkspaceRole;
   accountRole?: WorkspaceRole;
+  hidePrimaryAction?: boolean;
 }) {
   const [locale, setLocale] = useStoredLocale();
+  const [applicationAccessState, setApplicationAccessState] = useState<{ role: typeof accountRole; value: InterpreterAccess }>({
+    role: accountRole,
+    value: { loading: accountRole === "User", revoked: false, verified: accountRole !== "User", applicationStatus: null },
+  });
+  const applicationAccess = applicationAccessState.role === accountRole
+    ? applicationAccessState.value
+    : { loading: accountRole === "User", revoked: false, verified: accountRole !== "User", applicationStatus: null };
+
+  useEffect(() => {
+    if (accountRole !== "User") return;
+    let disposed = false;
+    let requestId = 0;
+    const refreshApplicationAccess = async () => {
+      const currentRequest = ++requestId;
+      const result = await loadMyInterpreterApplicationAction();
+      if (!disposed && currentRequest === requestId) setApplicationAccessState({
+        role: accountRole,
+        value: {
+          loading: false,
+          revoked: result.ok && result.data?.status === "approved",
+          verified: result.ok,
+          applicationStatus: result.ok ? result.data?.status ?? null : null,
+        },
+      });
+    };
+    void refreshApplicationAccess();
+    window.addEventListener("focus", refreshApplicationAccess);
+    return () => {
+      disposed = true;
+      window.removeEventListener("focus", refreshApplicationAccess);
+    };
+  }, [accountRole]);
 
   useEffect(() => {
     let disposed = false;
@@ -159,6 +205,14 @@ export function AppShell({ children, accountActions, welcomeRole, accountRole }:
     const syncProfileLocale = async () => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return;
+
+      const userSelected = typeof window !== "undefined" && window.localStorage.getItem(LOCALE_USER_SELECTED_KEY) === "true";
+      const activeLocale = typeof window !== "undefined" ? window.localStorage.getItem(LOCALE_STORAGE_KEY) : null;
+
+      if (userSelected && isLocale(activeLocale)) {
+        void persistPreferredUiLanguage(activeLocale).catch(() => {});
+        return;
+      }
 
       const { data } = await supabase
         .from("profiles")
@@ -209,11 +263,11 @@ export function AppShell({ children, accountActions, welcomeRole, accountRole }:
           : [
               [navLabel("สร้างคำขอ", "New request", "新建求助", "Nueva solicitud", "طلب جديد"), "/request-help#main-content"],
               [navLabel("คำขอทั้งหมด", "All requests", "全部求助", "Todas las solicitudes", "كل الطلبات"), "/my-requests#main-content"],
-              [navLabel("สมัครล่ามอาสา", "Volunteer apply", "申请志愿口译员", "Solicitud de voluntariado", "طلب التطوع"), "/volunteer/apply#main-content"],
+              ...(applicationAccess.verified && !applicationAccess.applicationStatus ? [[navLabel("สมัครล่ามอาสา", "Volunteer apply", "申请志愿口译员", "Solicitud de voluntariado", "طلب التطوع"), "/volunteer/apply#main-content"]] as const : []),
             ] as const;
 
   return (
-    <UiLocaleContext.Provider value={locale}><CopyLocaleContext.Provider value={copyLocale}>
+    <UiLocaleContext.Provider value={locale}><CopyLocaleContext.Provider value={copyLocale}><InterpreterAccessContext.Provider value={applicationAccess}>
       <a className="skip-link" href="#main-content">
         {t.skip}
       </a>
@@ -223,9 +277,10 @@ export function AppShell({ children, accountActions, welcomeRole, accountRole }:
         onLocaleChange={handleLocaleChange}
         accountActions={accountActions}
         workspaceRole={welcomeRole}
+        hidePrimaryAction={hidePrimaryAction}
       />
       {children}
       <SiteFooter copy={t.footer} brandSubtitle={t.header.brandSubtitle} workspace={Boolean(welcomeRole)} />
-    </CopyLocaleContext.Provider></UiLocaleContext.Provider>
+    </InterpreterAccessContext.Provider></CopyLocaleContext.Provider></UiLocaleContext.Provider>
   );
 }

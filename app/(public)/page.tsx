@@ -16,6 +16,7 @@ import { SiteFooter } from "@/app/components/site-footer";
 import { SiteHeader } from "@/app/components/site-header";
 import { ResponsiveHeroImage } from "@/app/components/responsive-hero-image";
 import { RegisterModal } from "@/app/components/auth/register-modal";
+import { RegisterRoleModal } from "@/app/components/auth/register-role-modal";
 import { LoginModal } from "@/app/components/auth/login-modal";
 import { useStoredLocale } from "@/app/lib/locale";
 import { getRedirectPathByRole, type UserProfile } from "@/app/lib/mock-auth";
@@ -346,6 +347,7 @@ export default function Home() {
   const t = locale === "th" ? localizedLandingCopy.th : localizedLandingCopy[locale];
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
 
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
 
@@ -353,6 +355,7 @@ export default function Home() {
     if (!user) return;
     setIsSignInOpen(false);
     setIsRegisterOpen(false);
+    setIsRoleModalOpen(false);
     router.push(user.role === "User" && intent
       ? intent === "request" ? "/request-help#main-content" : "/welcome#volunteer-application"
       : getRedirectPathByRole(user.role));
@@ -369,6 +372,7 @@ export default function Home() {
     setIntent(nextIntent);
     setIsSignInOpen(true);
     setIsRegisterOpen(false);
+    setIsRoleModalOpen(false);
   }
 
   useEffect(() => {
@@ -396,6 +400,7 @@ export default function Home() {
       const params = new URLSearchParams(window.location.search);
       if (params.get("register") === "true" || window.location.hash === "#register") {
         queueMicrotask(() => { setIsRegisterOpen(true); setIsSignInOpen(false); });
+        queueMicrotask(() => { setIsRoleModalOpen(true); setIsSignInOpen(false); setIsRegisterOpen(false); });
       } else if (
         params.get("signin") === "true"
         || params.get("login") === "true"
@@ -403,6 +408,7 @@ export default function Home() {
         || window.location.hash === "#login"
       ) {
         queueMicrotask(() => { setIsSignInOpen(true); setIsRegisterOpen(false); });
+        queueMicrotask(() => { setIsSignInOpen(true); setIsRegisterOpen(false); setIsRoleModalOpen(false); });
       }
     };
 
@@ -429,8 +435,8 @@ export default function Home() {
         copy={t.header}
         locale={locale}
         onLocaleChange={setLocale}
-        onOpenRegister={() => { setIntent(null); setIsRegisterOpen(true); setIsSignInOpen(false); }}
-        onOpenSignIn={() => { setIntent(null); setIsSignInOpen(true); setIsRegisterOpen(false); }}
+        onOpenRegister={() => { setIntent(null); setIsRoleModalOpen(true); setIsSignInOpen(false); setIsRegisterOpen(false); }}
+        onOpenSignIn={() => { setIntent(null); setIsSignInOpen(true); setIsRegisterOpen(false); setIsRoleModalOpen(false); }}
       />
 
       <section id="main-content" className="mx-auto max-w-[1480px] scroll-mt-24 px-4 pt-4 sm:px-8 sm:pt-6 lg:px-8 lg:pt-8">
@@ -522,6 +528,18 @@ export default function Home() {
         </div>
       </section>
 
+      <RegisterRoleModal
+        isOpen={isRoleModalOpen}
+        onClose={() => setIsRoleModalOpen(false)}
+        onSelectUser={() => {
+          setIsRoleModalOpen(false);
+          setIsRegisterOpen(true);
+        }}
+        onSelectInterpreter={() => {
+          setIsRoleModalOpen(false);
+          router.push("/register/interpreter");
+        }}
+      />
       <RegisterModal
         onSuccess={() => continueAfterLogin()}
         intentLabel={intent ? locale === "th" ? intent === "request" ? "สมัครเพื่อขอความช่วยเหลือ" : "สมัครเพื่อดูขั้นตอนอาสาสมัคร" : locale === "zh" ? intent === "request" ? "注册以获取帮助" : "注册以查看志愿者流程" : locale === "es" ? intent === "request" ? "Regístrate para obtener ayuda" : "Regístrate para conocer el voluntariado" : locale === "ar" ? intent === "request" ? "أنشئ حسابًا للحصول على المساعدة" : "أنشئ حسابًا للتعرف على التطوع" : intent === "request" ? "Register to get help" : "Register to explore volunteering" : undefined}
@@ -534,7 +552,7 @@ export default function Home() {
         intentLabel={intent ? locale === "th" ? intent === "request" ? "เข้าสู่ระบบเพื่อขอความช่วยเหลือ" : "เข้าสู่ระบบเพื่อดูขั้นตอนอาสาสมัคร" : locale === "zh" ? intent === "request" ? "登录以获取帮助" : "登录以查看志愿者流程" : locale === "es" ? intent === "request" ? "Inicia sesión para obtener ayuda" : "Inicia sesión para conocer el voluntariado" : locale === "ar" ? intent === "request" ? "سجّل الدخول للحصول على المساعدة" : "سجّل الدخول للتعرف على التطوع" : intent === "request" ? "Sign in to get help" : "Sign in to explore volunteering" : undefined}
         isOpen={isSignInOpen}
         onClose={() => { setIsSignInOpen(false); setIntent(null); }}
-        onSwitchToRegister={() => { setIsSignInOpen(false); setIsRegisterOpen(true); }}
+        onSwitchToRegister={() => { setIsSignInOpen(false); setIsRoleModalOpen(true); }}
       />
       <SiteFooter copy={t.footer} brandSubtitle={t.header.brandSubtitle} />
     </main>

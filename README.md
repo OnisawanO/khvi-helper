@@ -79,7 +79,8 @@ npm ci
 
 # 3. ตั้งค่า Environment Variables (.env.local)
 cp .env.example .env.local
-# ใส่ NEXT_PUBLIC_SUPABASE_URL และ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+# ใส่ NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+# และ SUPABASE_SECRET_KEY สำหรับการลบบัญชีถาวรฝั่ง server
 
 # 4. รัน Development Server
 npm run dev
@@ -144,6 +145,7 @@ npm ci
 # Add your Supabase credentials:
 # NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 # NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+# SUPABASE_SECRET_KEY=your_supabase_secret_key
 
 # 4. Run the local development server
 npm run dev

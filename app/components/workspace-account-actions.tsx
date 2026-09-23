@@ -3,7 +3,7 @@
 import { ArrowRightOnRectangleIcon, ChevronDownIcon, IdentificationIcon, UserCircleIcon } from "@heroicons/react/24/outline";
 import { useEffect, useRef, useState } from "react";
 import { getDisplayName, type UserProfile } from "@/app/lib/mock-auth";
-import { useUiLocale } from "./app-shell";
+import { useInterpreterAccess, useUiLocale } from "./app-shell";
 import { UserAvatar } from "./user-avatar";
 
 const accountCopy = {
@@ -16,6 +16,7 @@ const accountCopy = {
 
 export function WorkspaceAccountActions({ user, onSignOut }: { user: UserProfile; onSignOut: () => void | Promise<void> }) {
   const locale = useUiLocale();
+  const interpreterAccess = useInterpreterAccess();
   const copy = accountCopy[locale];
   const displayName = getDisplayName(user.name);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -85,7 +86,7 @@ export function WorkspaceAccountActions({ user, onSignOut }: { user: UserProfile
               <UserCircleIcon className="h-4 w-4" aria-hidden="true" />
               {copy.profileSettings}
             </a>
-            {user.role === "User" && (
+            {user.role === "User" && interpreterAccess.verified && !interpreterAccess.applicationStatus && (
               <a
                 href="/volunteer/apply#main-content"
                 role="menuitem"
