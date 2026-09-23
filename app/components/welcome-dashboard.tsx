@@ -19,7 +19,7 @@ import type { OpenRequestsDiagnostic } from "@/app/lib/real-request-data";
 import { referenceLabel, type ReferenceCatalog } from "@/app/lib/reference-catalog";
 import type { InterpreterRating } from "@/app/lib/real-interpreter-rating";
 const RequestMap = dynamic(
-  () => import("@/app/(interpreter)/find-requests/request-map").then((module) => module.RequestMap),
+  () => import("@/app/interpreter/find-requests/request-map").then((module) => module.RequestMap),
   { ssr: false },
 );
 
@@ -102,6 +102,7 @@ export function WelcomeDashboard({
   const tr = (th: string, en: string, zh: string) => locale === "th" ? th : locale === "zh" ? zh : en;
   const interpreterAccount = user.role === "Interpreter";
   const interpreter = interpreterAccount && interpreterMode === "helper";
+  const workspaceBase = interpreterAccount ? "/interpreter" : "/user";
   const [applicationResult, setApplicationResult] = useState<{
     userId: string;
     application: InterpreterApplication | null;
@@ -187,7 +188,7 @@ export function WelcomeDashboard({
     .slice(0, 12);
   const lang = (r: HelpRequest) => referenceLabel(referenceCatalog.languages, r.languageId, locale);
   const cat = (r: HelpRequest) => referenceLabel(referenceCatalog.categories, r.categoryId, locale);
-  const listPath = interpreter ? "/my-assignments#main-content" : "/my-requests#main-content";
+  const listPath = interpreter ? "/interpreter/my-assignments#main-content" : `${workspaceBase}/my-requests#main-content`;
   const nextAction = current?.status === "Open"
     ? tr("กำลังรอล่ามรับคำขอ เปิดรายละเอียดเพื่อติดตามเวลาหมดอายุ", "Waiting for an interpreter. Open the request to track its deadline.", "正在等待口译员接单。打开请求查看截止时间。")
     : current?.status === "Claimed"
@@ -206,7 +207,7 @@ export function WelcomeDashboard({
   function requestRow(r: HelpRequest, discovery = false) {
     return <li key={r.requestId} className="flex min-w-0 flex-wrap items-center justify-between gap-4 py-5">
       <div className="min-w-0 flex-1"><h3 className="break-words font-bold">{lang(r)} · {cat(r)}</h3><p className={muted}>{discovery ? r.areaName : r.scheduledAtLabel ?? r.createdAtLabel}</p></div>
-      <div className="flex w-full min-w-0 flex-wrap items-center gap-3 sm:w-auto sm:justify-end"><UrgencyBadge urgency={r.urgency} copyLocale={locale === "th" ? "th" : copyLocale} /><StatusBadge status={r.status} copyLocale={locale === "th" ? "th" : copyLocale} /><Link className={`${button} min-h-10 max-w-full shrink-0 px-4 py-2 text-xs whitespace-nowrap`} href={discovery ? "/find-requests#main-content" : `/my-requests/${r.requestId}#main-content`}>{tr("ดูรายละเอียด", "View details", "查看详情")}<ArrowRightIcon aria-hidden="true" className="h-4 w-4 shrink-0" /></Link></div>
+      <div className="flex w-full min-w-0 flex-wrap items-center gap-3 sm:w-auto sm:justify-end"><UrgencyBadge urgency={r.urgency} copyLocale={locale === "th" ? "th" : copyLocale} /><StatusBadge status={r.status} copyLocale={locale === "th" ? "th" : copyLocale} /><Link className={`${button} min-h-10 max-w-full shrink-0 px-4 py-2 text-xs whitespace-nowrap`} href={discovery ? "/interpreter/find-requests#main-content" : `${interpreter ? "/interpreter/my-assignments" : `${workspaceBase}/my-requests`}/${r.requestId}#main-content`}>{tr("ดูรายละเอียด", "View details", "查看详情")}<ArrowRightIcon aria-hidden="true" className="h-4 w-4 shrink-0" /></Link></div>
     </li>;
   }
   return <main id="main-content" className="mx-auto max-w-[1480px] px-5 py-8 sm:px-8 lg:px-8 lg:py-10">
@@ -238,14 +239,14 @@ export function WelcomeDashboard({
           {applicationStatus && applicationStatus !== "approved" && !interpreterAccess.revoked ? (
             <Link
               className="inline-flex min-h-10 items-center justify-center rounded-full bg-(--khvi-navy) px-4 py-2 text-sm font-bold text-white shadow-sm hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
-              href="/volunteer/status#main-content"
+              href="/user/volunteer/status#main-content"
             >
               {tr("ดูสถานะการสมัคร", "View application status", "查看申请状态")}
             </Link>
           ) : !applicationStatus && interpreterAccess.verified && !interpreterAccess.revoked ? (
             <Link
               className="inline-flex min-h-10 items-center justify-center rounded-full bg-(--khvi-navy) px-4 py-2 text-sm font-bold text-white shadow-sm hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--khvi-sun)"
-              href="/volunteer/apply#main-content"
+              href="/user/volunteer/apply#main-content"
             >
               {tr("สมัครล่ามอาสา", "Volunteer apply", "申请志愿口译员")}
             </Link>
@@ -271,7 +272,7 @@ export function WelcomeDashboard({
           <div className="mt-5 max-w-lg border-l-2 border-white/45 pl-4">
             <p className="leading-8 text-white/85">{interpreter ? tr("ค้นหาคำขอตามภาษา หมวดหมู่ และระยะทาง ตรวจสอบก่อนรับงาน และรับผิดชอบครั้งละหนึ่งภารกิจ", "Explore requests by language, category and distance. Review each request and take one assignment at a time.", "按语言、类别和距离查找请求。确认详情后接单，一次只接受一个任务。") : tr("เลือกภาษา หมวดหมู่ และจุดนัดพบ ล่ามที่ตรงเงื่อนไขจะเป็นผู้เลือกกดรับคำขอของคุณ", "Choose a language, category and meeting point. A suitable interpreter chooses to claim your request.", "选择语言、类别和见面地点，符合条件的口译员会自行接单。")}</p>
           </div>
-          {!interpreter && <Link className={`${heroButton} mt-7`} href="/request-help#main-content">{tr("ต้องการขอความช่วยเหลือ", "Create a help request", "创建求助请求")}</Link>}
+          {!interpreter && <Link className={`${heroButton} mt-7`} href={`${workspaceBase}/request-help#main-content`}>{tr("ต้องการขอความช่วยเหลือ", "Create a help request", "创建求助请求")}</Link>}
         </div>
       </section>
       {!interpreter && (
@@ -291,7 +292,7 @@ export function WelcomeDashboard({
             {current.status !== "Open" && <p className="my-4 break-words rounded-lg bg-(--khvi-teal)/10 px-4 py-3 text-sm leading-6" role="status">{nextAction}</p>}
             {current.interpreter && <div className="mb-4 flex items-center gap-3"><LanguageIcon className="h-6 w-6 shrink-0 text-(--khvi-teal)" aria-hidden="true" /><div><p className="text-xs font-bold text-(--khvi-ink)/60">{tr("ล่ามที่รับงาน", "Assigned interpreter", "接单口译员")}</p><p className="font-bold">{current.interpreter.name}</p><p className="text-sm text-(--khvi-ink)/70">{current.interpreter.primaryLanguage}</p></div></div>}
             <div className="mt-auto pt-7">
-              <Link className={`${button} w-full text-center leading-6`} href={`/my-requests/${current.requestId}#main-content`}>{tr("ดูรายละเอียดทั้งหมด", "View all details", "查看全部详情")}<ArrowRightIcon className="h-4 w-4 shrink-0" aria-hidden="true" /></Link>
+              <Link className={`${button} w-full text-center leading-6`} href={`${interpreter ? "/interpreter/my-assignments" : `${workspaceBase}/my-requests`}/${current.requestId}#main-content`}>{tr("ดูรายละเอียดทั้งหมด", "View all details", "查看全部详情")}<ArrowRightIcon className="h-4 w-4 shrink-0" aria-hidden="true" /></Link>
               {active.length > 1 && <p className={muted}>{tr("คุณมีหลายรายการที่กำลังดำเนินการ สามารถเปิดดูรายการทั้งหมดได้", "You have multiple active records. Open the full list to view them all.", "您有多个进行中的记录，请在完整列表中查看。")}</p>}
             </div>
           </div> : <div className="mt-5 flex flex-1 flex-col items-center justify-center border-t border-(--khvi-teal)/15 py-6 text-center sm:py-8">
@@ -320,7 +321,7 @@ export function WelcomeDashboard({
         </dl>
         <p className="my-4 rounded-lg bg-(--khvi-teal)/10 px-4 py-3 text-sm leading-6" role="status">{nextAction}</p>
         {current.requester && <div className="mb-4 flex items-center gap-3"><LanguageIcon className="h-6 w-6 shrink-0 text-(--khvi-teal)" aria-hidden="true" /><div><p className="text-xs font-bold text-(--khvi-ink)/60">{tr("ผู้ขอความช่วยเหลือ", "Requester", "求助者")}</p><p className="font-bold">{current.requester.name}</p></div></div>}
-        <Link className={`${button} mt-6 w-full shrink-0`} href={`/my-requests/${current.requestId}#main-content`}>{tr("ดูรายละเอียดทั้งหมด", "View all details", "查看全部详情")}<ArrowRightIcon className="h-4 w-4 shrink-0" aria-hidden="true" /></Link>
+        <Link className={`${button} mt-6 w-full shrink-0`} href={`${interpreter ? "/interpreter/my-assignments" : `${workspaceBase}/my-requests`}/${current.requestId}#main-content`}>{tr("ดูรายละเอียดทั้งหมด", "View all details", "查看全部详情")}<ArrowRightIcon className="h-4 w-4 shrink-0" aria-hidden="true" /></Link>
         {active.length > 1 && <p className={muted}>{tr("คุณมีหลายงานที่กำลังดำเนินการ สามารถเปิดดูงานทั้งหมดได้", "You have multiple active assignments. Open your assignments to view them all.", "您有多个进行中的任务，请打开任务列表查看全部内容。")}</p>}
       </aside> : <aside className={`${panel} order-1 flex min-h-0 h-fit flex-col self-start md:order-2 md:h-full md:self-stretch`} aria-labelledby="nearby-title">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -344,11 +345,11 @@ export function WelcomeDashboard({
             radiusKm={5}
           />
         </div>
-        <Link className={`${button} mt-auto min-h-10 w-full shrink-0 px-4 py-2 text-xs`} href="/find-requests#main-content">{tr("เปิดแผนที่เต็ม", "Open full map", "打开完整地图")}</Link>
+        <Link className={`${button} mt-auto min-h-10 w-full shrink-0 px-4 py-2 text-xs`} href="/interpreter/find-requests#main-content">{tr("เปิดแผนที่เต็ม", "Open full map", "打开完整地图")}</Link>
       </aside>)}
     </div>
-    {interpreter && <section className={`${panel} mt-7 flex flex-col`} aria-labelledby="discover-title"><h2 id="discover-title" className="flex items-center gap-2 text-xl font-bold"><MagnifyingGlassIcon className="h-6 w-6 shrink-0 text-(--khvi-teal)" aria-hidden="true" />{tr("ค้นหาคำขอที่เหมาะกับคุณ", "Explore suitable requests", "查找合适的请求")}</h2><p className={muted}>{tr("ค้นหาและกรองคำขอที่ตรงกับความสามารถของคุณ", "Filter open requests that match your skills.", "按技能筛选符合您能力的求助任务。")}</p><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold">{tr("ภาษา", "Language", "语言")}<select className="mt-2 min-h-12 w-full rounded-lg border border-(--khvi-teal)/30 bg-white px-3" value={language} onChange={e => setLanguage(e.target.value)}><option value="all">{tr("ทุกภาษา", "All languages", "全部语言")}</option>{referenceCatalog.languages.map(option => <option key={option.id} value={option.id}>{referenceLabel([option], option.id, locale)}</option>)}</select></label><label className="text-sm font-bold">{tr("หมวดหมู่", "Category", "类别")}<select className="mt-2 min-h-12 w-full rounded-lg border border-(--khvi-teal)/30 bg-white px-3" value={category} onChange={e => setCategory(e.target.value)}><option value="all">{tr("ทุกหมวดหมู่", "All categories", "全部类别")}</option>{referenceCatalog.categories.map(option => <option key={option.id} value={option.id}>{referenceLabel([option], option.id, locale)}</option>)}</select></label></div>{open.length ? <ul className="mt-3 divide-y divide-(--khvi-teal)/20">{open.map(r => requestRow(r, true))}</ul> : <p role="status" className="my-6 rounded-lg bg-(--khvi-paper) p-5 text-sm leading-7">{diagnostic?.status === "application_not_approved" ? tr("ใบสมัครล่ามของคุณยังไม่ได้รับการอนุมัติ จึงยังไม่สามารถดูคำขอเปิดได้", "Your interpreter application is pending approval.", "您的口译员申请正在审核中，暂无法查看开放任务。") : diagnostic?.status === "no_matching_skills" ? tr("ยังไม่มีคำขอเปิดที่ตรงกับภาษาหรือหมวดหมู่ที่คุณได้รับอนุมัติ", "No open requests currently match your approved skills.", "当前暂无符合您获批技能的求助任务。") : tr("ยังไม่มีคำขอเปิดที่ตรงกับเงื่อนไขการค้นหา ลองเปลี่ยนภาษา หมวดหมู่ หรือระยะค้นหา", "No open requests match these filters. Try another language, category or distance.", "没有符合筛选条件的开放求助，请调整语言、类别或距离。")}</p>}<Link className={`${button} mt-4 min-h-10 shrink-0 self-start px-4 py-2 text-xs`} href="/find-requests#main-content">{tr("เปิดแผนที่", "Open the map", "打开地图")}</Link></section>}
-    <section className={`${panel} mt-7 flex flex-col`}><div className="flex min-w-0 flex-wrap items-center justify-between gap-3"><h2 className="flex min-w-0 items-center gap-2 text-xl font-bold">{interpreter && <ClockIcon className="h-6 w-6 shrink-0 text-(--khvi-teal)" aria-hidden="true" />}{interpreter ? tr("งานที่ผ่านมาของคุณ", "Your past work", "您的历史工作") : tr("คำขอล่าสุด", "Recent requests", "最近的请求")}</h2><Link className={`${button} min-h-10 shrink-0 px-4 py-2 text-xs`} href={listPath}>{tr("ดูทั้งหมด", "View all", "查看全部")}</Link></div>{recent.length ? <ul className="min-w-0 divide-y divide-(--khvi-teal)/20">{recent.map(r => requestRow(r, false))}</ul> : <div className="flex items-start gap-4 py-6"><ClipboardDocumentListIcon className="h-8 w-8 shrink-0 text-(--khvi-teal)" aria-hidden="true" /><div><p className="text-sm leading-7">{interpreter ? tr("ยังไม่มีงานที่ผ่านมา เมื่อล่ามรับงาน รายการจะแสดงที่นี่", "You have no past assignments yet. Claimed assignments will appear here.", "您还没有历史任务，接取任务后会显示在这里。") : tr("ยังไม่มีคำขอล่าสุด เมื่อคุณส่งคำขอความช่วยเหลือ รายการจะแสดงที่นี่", "You have no recent requests yet. Requests you submit will appear here.", "您还没有最近的求助，提交求助后会显示在这里。")}</p><Link className={`${button} mt-3 min-h-10 px-4 py-2 text-xs`} href={interpreter ? "/find-requests#main-content" : "/request-help#main-content"}>{interpreter ? tr("ค้นหาคำขอ", "Find requests", "查找求助") : tr("ขอความช่วยเหลือ", "Request help", "请求帮助")}</Link></div></div>}</section>
+    {interpreter && <section className={`${panel} mt-7 flex flex-col`} aria-labelledby="discover-title"><h2 id="discover-title" className="flex items-center gap-2 text-xl font-bold"><MagnifyingGlassIcon className="h-6 w-6 shrink-0 text-(--khvi-teal)" aria-hidden="true" />{tr("ค้นหาคำขอที่เหมาะกับคุณ", "Explore suitable requests", "查找合适的请求")}</h2><p className={muted}>{tr("ค้นหาและกรองคำขอที่ตรงกับความสามารถของคุณ", "Filter open requests that match your skills.", "按技能筛选符合您能力的求助任务。")}</p><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold">{tr("ภาษา", "Language", "语言")}<select className="mt-2 min-h-12 w-full rounded-lg border border-(--khvi-teal)/30 bg-white px-3" value={language} onChange={e => setLanguage(e.target.value)}><option value="all">{tr("ทุกภาษา", "All languages", "全部语言")}</option>{referenceCatalog.languages.map(option => <option key={option.id} value={option.id}>{referenceLabel([option], option.id, locale)}</option>)}</select></label><label className="text-sm font-bold">{tr("หมวดหมู่", "Category", "类别")}<select className="mt-2 min-h-12 w-full rounded-lg border border-(--khvi-teal)/30 bg-white px-3" value={category} onChange={e => setCategory(e.target.value)}><option value="all">{tr("ทุกหมวดหมู่", "All categories", "全部类别")}</option>{referenceCatalog.categories.map(option => <option key={option.id} value={option.id}>{referenceLabel([option], option.id, locale)}</option>)}</select></label></div>{open.length ? <ul className="mt-3 divide-y divide-(--khvi-teal)/20">{open.map(r => requestRow(r, true))}</ul> : <p role="status" className="my-6 rounded-lg bg-(--khvi-paper) p-5 text-sm leading-7">{diagnostic?.status === "application_not_approved" ? tr("ใบสมัครล่ามของคุณยังไม่ได้รับการอนุมัติ จึงยังไม่สามารถดูคำขอเปิดได้", "Your interpreter application is pending approval.", "您的口译员申请正在审核中，暂无法查看开放任务。") : diagnostic?.status === "no_matching_skills" ? tr("ยังไม่มีคำขอเปิดที่ตรงกับภาษาหรือหมวดหมู่ที่คุณได้รับอนุมัติ", "No open requests currently match your approved skills.", "当前暂无符合您获批技能的求助任务。") : tr("ยังไม่มีคำขอเปิดที่ตรงกับเงื่อนไขการค้นหา ลองเปลี่ยนภาษา หมวดหมู่ หรือระยะค้นหา", "No open requests match these filters. Try another language, category or distance.", "没有符合筛选条件的开放求助，请调整语言、类别或距离。")}</p>}<Link className={`${button} mt-4 min-h-10 shrink-0 self-start px-4 py-2 text-xs`} href="/interpreter/find-requests#main-content">{tr("เปิดแผนที่", "Open the map", "打开地图")}</Link></section>}
+    <section className={`${panel} mt-7 flex flex-col`}><div className="flex min-w-0 flex-wrap items-center justify-between gap-3"><h2 className="flex min-w-0 items-center gap-2 text-xl font-bold">{interpreter && <ClockIcon className="h-6 w-6 shrink-0 text-(--khvi-teal)" aria-hidden="true" />}{interpreter ? tr("งานที่ผ่านมาของคุณ", "Your past work", "您的历史工作") : tr("คำขอล่าสุด", "Recent requests", "最近的请求")}</h2><Link className={`${button} min-h-10 shrink-0 px-4 py-2 text-xs`} href={listPath}>{tr("ดูทั้งหมด", "View all", "查看全部")}</Link></div>{recent.length ? <ul className="min-w-0 divide-y divide-(--khvi-teal)/20">{recent.map(r => requestRow(r, false))}</ul> : <div className="flex items-start gap-4 py-6"><ClipboardDocumentListIcon className="h-8 w-8 shrink-0 text-(--khvi-teal)" aria-hidden="true" /><div><p className="text-sm leading-7">{interpreter ? tr("ยังไม่มีงานที่ผ่านมา เมื่อล่ามรับงาน รายการจะแสดงที่นี่", "You have no past assignments yet. Claimed assignments will appear here.", "您还没有历史任务，接取任务后会显示在这里。") : tr("ยังไม่มีคำขอล่าสุด เมื่อคุณส่งคำขอความช่วยเหลือ รายการจะแสดงที่นี่", "You have no recent requests yet. Requests you submit will appear here.", "您还没有最近的求助，提交求助后会显示在这里。")}</p><Link className={`${button} mt-3 min-h-10 px-4 py-2 text-xs`} href={interpreter ? "/interpreter/find-requests#main-content" : `${workspaceBase}/request-help#main-content`}>{interpreter ? tr("ค้นหาคำขอ", "Find requests", "查找求助") : tr("ขอความช่วยเหลือ", "Request help", "请求帮助")}</Link></div></div>}</section>
     <div className="mt-7 grid items-stretch gap-5 md:grid-cols-2">
       <section id="volunteer-application" className="h-full scroll-mt-28 [&>section]:h-full">{!applicationLoaded || !applicationResult.verified || (interpreterAccount && !activeApplication) ? null : <ApplicationStatusCard application={activeApplication} />}</section>
       <section className={`${panel} h-full`}>
@@ -365,7 +366,7 @@ export function WelcomeDashboard({
           <p className={muted}>{pendingReviews.length
             ? tr(`มีงานที่เสร็จแล้ว ${completed.length} รายการ และมี ${pendingReviews.length} รายการรอรีวิว`, `${pendingReviews.length} of ${completed.length} completed assignments are waiting for your review.`, `${pendingReviews.length} / ${completed.length} 个已完成任务等待评价。`)
             : tr("คุณรีวิวงานที่เสร็จแล้วครบถ้วนแล้ว", "All completed assignments have been reviewed.", "所有已完成任务都已评价。")}</p>
-          {pendingReviews[0] && <Link className={`${button} mt-4 min-h-10 self-start px-4 py-2 text-xs`} href={`/my-requests/${pendingReviews[0].requestId}#main-content`}>{tr("ไปรีวิวงานที่เสร็จแล้ว", "Review a completed assignment", "评价已完成任务")}<ArrowRightIcon className="h-4 w-4" aria-hidden="true" /></Link>}
+          {pendingReviews[0] && <Link className={`${button} mt-4 min-h-10 self-start px-4 py-2 text-xs`} href={`${workspaceBase}/my-requests/${pendingReviews[0].requestId}#main-content`}>{tr("ไปรีวิวงานที่เสร็จแล้ว", "Review a completed assignment", "评价已完成任务")}<ArrowRightIcon className="h-4 w-4" aria-hidden="true" /></Link>}
         </div>}
       </section>
     </div>

@@ -523,11 +523,11 @@ export function ApplicationStatusPanel({ application, onReupload, onCancel, comp
       </section>
 
       <div className="flex flex-wrap gap-3">
-        <Link className="inline-flex min-h-11 items-center justify-center rounded-(--khvi-radius-sm) border border-[#087f80] px-4 py-2.5 text-sm font-bold text-[#087f80] hover:bg-[#edf7f5]" href="/welcome#welcome-user">
+        <Link className="inline-flex min-h-11 items-center justify-center rounded-(--khvi-radius-sm) border border-[#087f80] px-4 py-2.5 text-sm font-bold text-[#087f80] hover:bg-[#edf7f5]" href="/user#welcome-user">
           {locale === "th" ? "กลับสู่หน้าหลัก" : locale === "zh" ? "返回首页" : "Back to Home"}
         </Link>
         {!revoked && (application.status === "needs_revision" || application.status === "rejected" || application.status === "cancelled") && (
-          <Link className="inline-flex min-h-11 items-center justify-center rounded-(--khvi-radius-sm) bg-[#092f45] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0c4960]" href="/volunteer/apply#main-content">
+          <Link className="inline-flex min-h-11 items-center justify-center rounded-(--khvi-radius-sm) bg-[#092f45] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0c4960]" href="/user/volunteer/apply#main-content">
             {application.status === "cancelled"
               ? locale === "th" ? "สมัครใหม่" : locale === "zh" ? "重新申请" : "Apply again"
               : locale === "th" ? "แก้ไขใบสมัคร" : locale === "zh" ? "修改申请" : "Edit application"}

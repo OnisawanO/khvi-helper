@@ -348,11 +348,15 @@ khvi/
 ├── app/                              <── หน้าจอแยกตาม Route
 │   ├── (public)/                     <── หน้าแรกและ redirect สาธารณะ
 │   ├── (auth)/                       <── [คนที่ 1] หน้า Login, Register, Sign in redirect
-│   ├── (workspace)/welcome/          <── หน้า workspace หลัง login ที่ใช้แยก entry ตาม role
-│   ├── (user)/request-help/          <── [คนที่ 2] หน้าฟอร์มปักหมุด SOS & หน้ารอคิว
-│   ├── (user)/my-requests/           <── [คนที่ 2] หน้าประวัติคำขอของผู้ใช้
-│   ├── (interpreter)/find-requests/  <── [คนที่ 3] รายการ/แผนที่งานเปิดสำหรับล่าม
-│   ├── (interpreter)/my-assignments/ <── [คนที่ 4] งานที่ล่ามรับและติดตามอยู่
+│   ├── user/                          <── หน้า workspace และ route สำหรับบัญชี User
+│   │   ├── request-help/             <── [คนที่ 2] หน้าฟอร์มปักหมุด SOS & หน้ารอคิว
+│   │   ├── my-requests/              <── [คนที่ 2] หน้าประวัติและรายละเอียดคำขอของผู้ใช้
+│   │   └── volunteer/                <── หน้าใบสมัครและสถานะล่ามอาสา
+│   ├── interpreter/                  <── หน้า workspace และ route สำหรับบัญชี Interpreter
+│   │   ├── request-help/             <── requester mode ของ Interpreter
+│   │   ├── my-requests/              <── คำขอที่ Interpreter สร้างใน requester mode
+│   │   ├── find-requests/            <── [คนที่ 3] รายการ/แผนที่งานเปิดสำหรับล่าม
+│   │   └── my-assignments/           <── [คนที่ 4] งานที่ล่ามรับและติดตามอยู่
 │   ├── (manager)/manager/            <── [คนที่ 6] หน้าตรวจอนุมัติล่าม & ตอบ Help Request
 │   └── (admin)/admin/                <── [คนที่ 6] หน้าจัดการผู้ใช้และ role
 │
@@ -361,7 +365,7 @@ khvi/
 │   ├── pin-request/                  <── [คนที่ 2] SOSButton, PinForm, RadarWaiting
 │   ├── map/                          <── [คนที่ 3] LeafletMap, CustomMarkers, MapFilterBar
 │   ├── volunteer/                    <── [คนที่ 4] ApplicationForm, ClaimButton
-│   ├── mission/                      <── [คนที่ 5] ContactCard, ExecutionControls, CompletionConfirm สำหรับ `/my-requests/[requestId]`
+│   ├── mission/                      <── [คนที่ 5] ContactCard, ExecutionControls, CompletionConfirm สำหรับ detail route ตาม role
 │   ├── manager/                      <── [คนที่ 6] VolunteerVerifyCard, HelpRequestList
 │   ├── review/                       <── [คนที่ 6] ReviewModal, StarRating
 │   └── admin/                        <── [คนที่ 6] UserTable
@@ -414,10 +418,10 @@ gantt
 | สมาชิก | ฟีเจอร์ที่รับผิดชอบ (Feature Domain) | ไฟล์ Routes & UI Components | Supabase Tables & Server Actions |
 | :---: | :--- | :--- | :--- |
 | **คนที่ 1** | **Identity, Auth & Localization**<br>*(ระบบสมาชิก, สิทธิ์ Roles & ภาษาหน้าจอ)* | • `app/(auth)/login/page.tsx`<br>• `app/(auth)/register/page.tsx`<br>• `app/(auth)/sign-in/page.tsx`<br>• `app/components/auth/login-form.tsx`<br>• `app/components/auth/register-form.tsx` | • **Supabase Auth** และตาราง `users/profiles` ที่อ้าง `auth.users.id`<br>• Next.js `middleware.ts` (RBAC 4 Roles)<br>• `actions/auth-actions.ts` |
-| **คนที่ 2** | **SOS Pin Creation & Requester Hub**<br>*(ระบบปักหมุดและจัดการคำขอ)* | • `app/(workspace)/welcome/page.tsx`<br>• `app/(user)/request-help/page.tsx`<br>• `app/(user)/my-requests/page.tsx`<br>• `app/(user)/my-requests/[requestId]/page.tsx`<br>• `components/pin-request/PinForm.tsx` | • ตาราง `bookings` (Insert `status = 'Open'`)<br>• Geolocation API (ดึง GPS)<br>• `actions/pin-actions.ts` |
-| **คนที่ 3** | **Interactive SOS Map & Visual Discovery**<br>*(ระบบแผนที่และตัวกรองตามความสามารถ)* | • `app/(interpreter)/find-requests/page.tsx`<br>• `components/map/LeafletMap.tsx`<br>• `components/map/CustomMarkers.tsx`<br>• `components/map/MapFilterBar.tsx`<br>• `components/map/PinSummaryModal.tsx` | • Query `bookings` (`status = 'Open'`) โดย match `language_id`, `category_id`<br>• แสดงตำแหน่งคร่าว ๆ ก่อน claim และแยกประเภทงานเร่งด่วน/นัดหมาย |
-| **คนที่ 4** | **Volunteer Portal & Matching Engine**<br>*(ระบบรับสมัครล่ามและรับงาน)* | • `app/(interpreter)/my-assignments/page.tsx`<br>• `app/volunteer/apply/page.tsx` *(planned)*<br>• `app/volunteer/dashboard/page.tsx` *(planned)*<br>• `app/volunteer/status/page.tsx` *(planned)*<br>• `components/volunteer/ClaimButton.tsx` | • ตาราง `interpreter_profiles`, `languages`, `categories`, `interpreter_languages`, `interpreter_categories`<br>• **Postgres RPC `claim_booking`** (Atomic Concurrency Lock)<br>• `actions/volunteer-actions.ts` |
-| **คนที่ 5** | **Status & Contact Tracking**<br>*(ติดตามสถานะ ข้อมูลติดต่อ และการยืนยันจบงาน)* | • `app/(user)/my-requests/[requestId]/page.tsx` *(canonical route)*<br>• `components/mission/MissionHeader.tsx`<br>• `components/mission/ContactCard.tsx`<br>• `components/mission/ExecutionControls.tsx` | • อัปเดต `bookings` (`claimed_at`, `started_at`, `ended_at`, `user_confirmed_done_at`, `interpreter_confirmed_done_at`)<br>• `actions/mission-actions.ts` |
+| **คนที่ 2** | **SOS Pin Creation & Requester Hub**<br>*(ระบบปักหมุดและจัดการคำขอ)* | • `app/user/page.tsx`<br>• `app/user/request-help/page.tsx`<br>• `app/user/my-requests/page.tsx`<br>• `app/user/my-requests/[requestId]/page.tsx`<br>• `app/components/requests/request-help/request-help-form.tsx` | • ตาราง `bookings` (Insert `status = 'Open'`)<br>• Geolocation API (ดึง GPS)<br>• `actions/pin-actions.ts` |
+| **คนที่ 3** | **Interactive SOS Map & Visual Discovery**<br>*(ระบบแผนที่และตัวกรองตามความสามารถ)* | • `app/interpreter/find-requests/page.tsx`<br>• `components/map/LeafletMap.tsx`<br>• `components/map/CustomMarkers.tsx`<br>• `components/map/MapFilterBar.tsx`<br>• `components/map/PinSummaryModal.tsx` | • Query `bookings` (`status = 'Open'`) โดย match `language_id`, `category_id`<br>• แสดงตำแหน่งคร่าว ๆ ก่อน claim และแยกประเภทงานเร่งด่วน/นัดหมาย |
+| **คนที่ 4** | **Volunteer Portal & Matching Engine**<br>*(ระบบรับสมัครล่ามและรับงาน)* | • `app/interpreter/my-assignments/page.tsx`<br>• `app/user/volunteer/apply/page.tsx`<br>• `app/user/volunteer/dashboard/page.tsx`<br>• `app/user/volunteer/status/page.tsx`<br>• `components/volunteer/ClaimButton.tsx` | • ตาราง `interpreter_profiles`, `languages`, `categories`, `interpreter_languages`, `interpreter_categories`<br>• **Postgres RPC `claim_booking`** (Atomic Concurrency Lock)<br>• `actions/volunteer-actions.ts` |
+| **คนที่ 5** | **Status & Contact Tracking**<br>*(ติดตามสถานะ ข้อมูลติดต่อ และการยืนยันจบงาน)* | • `app/user/my-requests/[requestId]/page.tsx`<br>• `app/interpreter/my-requests/[requestId]/page.tsx`<br>• `app/interpreter/my-assignments/[requestId]/page.tsx`<br>• `app/components/requests/request-detail.tsx` | • อัปเดต `bookings` (`claimed_at`, `started_at`, `ended_at`, `user_confirmed_done_at`, `interpreter_confirmed_done_at`)<br>• `actions/mission-actions.ts` |
 | **คนที่ 6** | **Manager & Admin Backoffice**<br>*(ตรวจอนุมัติล่าม, จัดการระบบ & รีวิว)* | • `app/(manager)/manager/page.tsx`<br>• `app/(admin)/admin/page.tsx`<br>• `components/manager/VolunteerVerifyCard.tsx`<br>• `components/admin/UserTable.tsx`<br>• `components/review/ReviewModal.tsx` | • ตาราง `reviews`, `notifications`, `reports`, `help_requests`<br>• Postgres Trigger คำนวณ `average_rating`<br>• `actions/manager-actions.ts`<br>• `actions/admin-actions.ts`<br>• `actions/review-actions.ts` |
 
 รายละเอียดแบบแยกคนต่อคนอยู่ที่ [`docs/team-responsibilities.md`](docs/team-responsibilities.md) โดยแยกหน้า UI, component, logic, ขอบเขต MVP และจุดส่งต่องานของสมาชิกแต่ละคน

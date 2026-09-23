@@ -33,7 +33,7 @@ const landingCopy = {
       languageLabel: "ภาษาหน้าจอ",
       signIn: "เข้าสู่ระบบ",
       primaryAction: "ขอความช่วยเหลือ",
-      nav: [["เกี่ยวกับเรา", "#about"], ["สำหรับอาสาสมัคร", "/welcome#volunteer-application"], ["ข่าวสาร", "#community"]],
+      nav: [["เกี่ยวกับเรา", "#about"], ["สำหรับอาสาสมัคร", "/user/volunteer/apply#main-content"], ["ข่าวสาร", "#community"]],
     },
     hero: {
       lead: "สื่อสารได้",
@@ -94,7 +94,7 @@ const landingCopy = {
       languageLabel: "Language",
       signIn: "Sign in",
       primaryAction: "Get help",
-      nav: [["About us", "#about"], ["For volunteers", "/welcome#volunteer-application"], ["Community", "#community"]],
+      nav: [["About us", "#about"], ["For volunteers", "/user/volunteer/apply#main-content"], ["Community", "#community"]],
     },
     hero: {
       lead: "Communicate clearly.",
@@ -155,7 +155,7 @@ const landingCopy = {
       languageLabel: "语言",
       signIn: "登录",
       primaryAction: "获取帮助",
-      nav: [["关于我们", "#about"], ["志愿者专区", "/welcome#volunteer-application"], ["社区", "#community"]],
+      nav: [["关于我们", "#about"], ["志愿者专区", "/user/volunteer/apply#main-content"], ["社区", "#community"]],
     },
     hero: {
       lead: "沟通无碍",
@@ -221,7 +221,7 @@ const localizedLandingCopy = {
       languageLabel: "Idioma",
       signIn: "Iniciar sesión",
       primaryAction: "Obtener ayuda",
-      nav: [["Sobre nosotros", "#about"], ["Para voluntarios", "/welcome#volunteer-application"], ["Comunidad", "#community"]],
+      nav: [["Sobre nosotros", "#about"], ["Para voluntarios", "/user/volunteer/apply#main-content"], ["Comunidad", "#community"]],
     },
     hero: {
       ...landingCopy.en.hero,
@@ -275,7 +275,7 @@ const localizedLandingCopy = {
       languageLabel: "اللغة",
       signIn: "تسجيل الدخول",
       primaryAction: "الحصول على المساعدة",
-      nav: [["من نحن", "#about"], ["للمتطوعين", "/welcome#volunteer-application"], ["المجتمع", "#community"]],
+      nav: [["من نحن", "#about"], ["للمتطوعين", "/user/volunteer/apply#main-content"], ["المجتمع", "#community"]],
     },
     hero: {
       ...landingCopy.en.hero,
@@ -357,7 +357,7 @@ export default function Home() {
     setIsRegisterOpen(false);
     setIsRoleModalOpen(false);
     router.push(user.role === "User" && intent
-      ? intent === "request" ? "/request-help#main-content" : "/welcome#volunteer-application"
+      ? intent === "request" ? "/user/request-help#main-content" : "/user/volunteer/apply#main-content"
       : getRedirectPathByRole(user.role));
   }
 
@@ -365,7 +365,7 @@ export default function Home() {
     const user = currentUser;
     if (user) {
       router.push(user.role === "User"
-        ? nextIntent === "request" ? "/request-help#main-content" : "/welcome#volunteer-application"
+        ? nextIntent === "request" ? "/user/request-help#main-content" : "/user/volunteer/apply#main-content"
         : getRedirectPathByRole(user.role));
       return;
     }
@@ -424,9 +424,9 @@ export default function Home() {
       onClick={(event) => {
         const anchor = (event.target as HTMLElement).closest("a");
         const href = anchor?.getAttribute("href");
-        if (href === "/request-help#main-content" || href === "/welcome#volunteer-application") {
+        if (href === "/user/request-help#main-content" || href === "/user/volunteer/apply#main-content") {
           event.preventDefault();
-          startIntent(href === "/welcome#volunteer-application" ? "volunteer" : "request");
+          startIntent(href === "/user/volunteer/apply#main-content" ? "volunteer" : "request");
         }
       }}
     >
@@ -454,7 +454,7 @@ export default function Home() {
               <span className="mt-1 block text-[#ef5b47]">{t.hero.accent}</span>
             </h1>
             <p className="mt-5 max-w-[620px] text-pretty text-[15px] font-semibold leading-7 text-white/85 sm:mt-6 sm:text-lg sm:leading-8">{t.hero.body}</p>
-            <a href="/request-help#main-content" className="mt-6 inline-flex min-h-14 w-full max-w-[390px] items-center justify-center gap-3 rounded-xl bg-[#ef5b47] px-5 py-3 text-base font-extrabold text-white shadow-[0_12px_25px_rgba(239,91,71,0.24)] transition-colors hover:bg-[#d94a38] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#092f45] sm:mt-7 sm:px-6 sm:text-lg">
+            <a href="/user/request-help#main-content" className="mt-6 inline-flex min-h-14 w-full max-w-[390px] items-center justify-center gap-3 rounded-xl bg-[#ef5b47] px-5 py-3 text-base font-extrabold text-white shadow-[0_12px_25px_rgba(239,91,71,0.24)] transition-colors hover:bg-[#d94a38] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#092f45] sm:mt-7 sm:px-6 sm:text-lg">
               <BellAlertIcon aria-hidden="true" className="h-7 w-7" />
               {t.hero.action}
             </a>

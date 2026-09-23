@@ -60,16 +60,16 @@
 
 **ขอบเขต UI**
 
-- `/welcome` หรือ `app/(workspace)/welcome/page.tsx`
-- `/request-help` หรือ `app/(user)/request-help/page.tsx`
-- `/my-requests` หรือ `app/(user)/my-requests/page.tsx`
-- `/my-requests/[requestId]` หรือ `app/(user)/my-requests/[requestId]/page.tsx`
+- `/user` หรือ `app/user/page.tsx`
+- `/user/request-help` หรือ `app/user/request-help/page.tsx`
+- `/user/my-requests` หรือ `app/user/my-requests/page.tsx`
+- `/user/my-requests/[requestId]` หรือ `app/user/my-requests/[requestId]/page.tsx`
 - หน้ารอผลหลังสร้างหมุด
 - รายการคำขอของผู้ใช้ แยกตามสถานะ `Open`, `Claimed`, `InProgress`, `Completed`, `Cancelled`, `Expired`
 
 **Component ที่ต้องทำ**
 
-- `app/(user)/request-help/request-help-form.tsx`
+- `app/components/requests/request-help/request-help-form.tsx`
 - `components/pin-request/PinForm.tsx` ในอนาคตเมื่อแยก component กลาง
 - `components/pin-request/SOSButton.tsx`
 - `components/pin-request/LocationPicker.tsx`
@@ -89,7 +89,7 @@
 - ผู้ใช้เลือกภาษา 1 ภาษาและหมวดหมู่ 1 หมวด
 - งานเร่งด่วนต้องมีเวลาหมดอายุ
 - งานนัดหมายต้องเลือกได้ตั้งแต่วันถัดไปตามปฏิทิน และไม่จำกัดวันสูงสุด
-- ผู้ใช้เห็นรายการคำขอของตัวเองและกดเข้า `/my-requests/[requestId]` ได้
+- ผู้ใช้เห็นรายการคำขอของตัวเองและกดเข้า `/user/my-requests/[requestId]` ได้
 
 **จุดส่งต่องาน**
 
@@ -102,8 +102,8 @@
 
 **ขอบเขต UI**
 
-- `/find-requests` หรือ `app/(interpreter)/find-requests/page.tsx` ใน preview ปัจจุบัน
-- `/map` หรือ `app/(interpreter)/map/page.tsx` ในอนาคตเมื่อเพิ่ม Leaflet เต็มรูปแบบ
+- `/interpreter/find-requests` หรือ `app/interpreter/find-requests/page.tsx` ใน preview ปัจจุบัน
+- `/interpreter/map` หรือ `app/interpreter/map/page.tsx` ในอนาคตเมื่อเพิ่ม Leaflet เต็มรูปแบบ
 - แผนที่ Leaflet สำหรับล่ามที่ได้รับอนุมัติ
 - แถบ filter ภาษา, หมวดหมู่, ระยะทาง, ความเร่งด่วน
 - marker งานเร่งด่วนและงานนัดหมาย
@@ -111,7 +111,7 @@
 
 **Component ที่ต้องทำ**
 
-- `app/(interpreter)/find-requests/find-requests-list.tsx`
+- `app/interpreter/find-requests/find-requests-list.tsx`
 - `components/map/LeafletMap.tsx`
 - `components/map/CustomMarkers.tsx`
 - `components/map/MapFilterBar.tsx`
@@ -135,7 +135,7 @@
 
 - รับ interpreter profile และ skill set จากคนที่ 4
 - ส่ง `booking_id` ที่เลือกให้คนที่ 4 ทำ claim
-- เมื่อ claim สำเร็จ ให้พาไป `/my-requests/[requestId]` ของคนที่ 5
+- เมื่อ claim สำเร็จ ให้พาไป `/interpreter/my-assignments/[requestId]` ของคนที่ 5
 
 ---
 
@@ -143,16 +143,16 @@
 
 **ขอบเขต UI**
 
-- `/my-assignments` หรือ `app/(interpreter)/my-assignments/page.tsx` ใน preview ปัจจุบัน
-- `/volunteer/apply` หรือ `app/(interpreter)/volunteer/apply/page.tsx` ในอนาคต
-- `/volunteer/status` หรือ `app/(interpreter)/volunteer/status/page.tsx` ในอนาคต
-- `/volunteer/dashboard` หรือ `app/(interpreter)/volunteer/dashboard/page.tsx` ในอนาคต
+- `/interpreter/my-assignments` หรือ `app/interpreter/my-assignments/page.tsx`
+- `/user/volunteer/apply` หรือ `app/user/volunteer/apply/page.tsx`
+- `/user/volunteer/status` หรือ `app/user/volunteer/status/page.tsx`
+- `/user/volunteer/dashboard` หรือ `app/user/volunteer/dashboard/page.tsx`
 - ส่วนแสดงงานที่ตรงความสามารถ
 - ปุ่ม claim งาน
 
 **Component ที่ต้องทำ**
 
-- `app/(interpreter)/my-assignments/my-assignments-list.tsx`
+- `app/interpreter/my-assignments/my-assignments-list.tsx`
 - `components/volunteer/ApplicationForm.tsx` ในอนาคต
 - `components/volunteer/ApplicationStatus.tsx`
 - `components/volunteer/VolunteerDashboard.tsx`
@@ -187,7 +187,7 @@
 
 **ขอบเขต UI**
 
-- `/my-requests/[requestId]` หรือ `app/(user)/my-requests/[requestId]/page.tsx` เป็น canonical route
+- Detail route ใช้ `app/user/my-requests/[requestId]/page.tsx`, `app/interpreter/my-requests/[requestId]/page.tsx` และ `app/interpreter/my-assignments/[requestId]/page.tsx` ร่วมกับ mission component กลาง
 - หน้ารายละเอียดคำขอและภารกิจที่ใช้ร่วมกันระหว่าง User และ Interpreter ตามสิทธิ์
 - Timeline สถานะงาน
 - ข้อมูลติดต่อหลัง claim

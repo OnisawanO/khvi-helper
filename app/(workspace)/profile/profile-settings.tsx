@@ -56,8 +56,8 @@ type FormState = {
 };
 
 const homeHrefByRole: Record<WorkspaceRole, string> = {
-  User: "/welcome#main-content",
-  Interpreter: "/welcome#main-content",
+  User: "/user#main-content",
+  Interpreter: "/interpreter#main-content",
   Manager: "/manager#main-content",
   Admin: "/admin#main-content",
 };
@@ -884,7 +884,7 @@ function UserRoleSettings({ copy }: { copy: ProfileCopy }) {
         icon={<ClipboardDocumentListIcon className="h-5 w-5" aria-hidden="true" />}
         title={copy.roleSettings.user.requestHistoryTitle}
         description={copy.roleSettings.user.requestHistoryDesc}
-        href="/my-requests#main-content"
+        href="/user/my-requests#main-content"
         linkLabel={copy.roleSettings.user.requestHistoryLink}
       />
       <RoleCard
@@ -1242,14 +1242,14 @@ function InterpreterRoleSettings({
           icon={<MapPinIcon className="h-5 w-5" aria-hidden="true" />}
           title={copy.roleSettings.interpreter.searchPrefsTitle}
           description={copy.roleSettings.interpreter.searchPrefsDesc}
-          href="/find-requests#main-content"
+          href="/interpreter/find-requests#main-content"
           linkLabel={copy.roleSettings.interpreter.searchPrefsLink}
         />
         <RoleCard
           icon={<ClipboardDocumentListIcon className="h-5 w-5" aria-hidden="true" />}
           title={copy.roleSettings.interpreter.assignmentHistoryTitle}
           description={copy.roleSettings.interpreter.assignmentHistoryDesc}
-          href="/my-assignments#main-content"
+          href="/interpreter/my-assignments#main-content"
           linkLabel={copy.roleSettings.interpreter.assignmentHistoryLink}
         />
       </div>

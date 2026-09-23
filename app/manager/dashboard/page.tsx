@@ -43,7 +43,7 @@ const footerCopy = {
     how: "/#how-it-works",
     roles: "/#roles",
     privacy: "/#safety",
-    request: "/request-help",
+    request: "/user/request-help",
     signIn: "/sign-in",
   },
 };
@@ -447,7 +447,7 @@ export default function ManagerDashboardPage() {
             </Link>
             <span>/</span>
             <Link
-              href="/volunteer/status"
+              href="/user/volunteer/status"
               className="text-[#64777e] hover:text-[#10283a] transition-colors"
             >
               Volunteer Status
