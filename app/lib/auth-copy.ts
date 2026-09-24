@@ -14,6 +14,10 @@ export type AuthCopy = {
     resetPasswordSubmitting: string;
     resetPasswordSuccess: string;
     resetPasswordBack: string;
+    resetPasswordInvalidLink: string;
+    resetPasswordRequestNew: string;
+    resetPasswordUpdatedTitle: string;
+    resetPasswordUpdatedBody: string;
     passwordPlaceholder: string;
     rememberMe: string;
     submit: string;
@@ -31,6 +35,8 @@ export type AuthCopy = {
     fastLoginRoleMismatch: string;
     showPassword: string;
     hidePassword: string;
+    noAccount: string;
+    signUp: string;
   };
   register: {
     eyebrow: string;
@@ -45,7 +51,6 @@ export type AuthCopy = {
     confirmPassword: string;
     phone: string;
     phoneHint: string;
-    optional: string;
     dateOfBirth: string;
     age: (age: number) => string;
     firstNamePlaceholder: string;
@@ -58,7 +63,6 @@ export type AuthCopy = {
     existingAccount: string;
     signInHere: string;
     signUpHere: string;
-    noSessionError: string;
     profileError: string;
     genericError: string;
   };
@@ -128,6 +132,10 @@ const englishCopy: AuthCopy = {
     resetPasswordSubmitting: "Sending reset link…",
     resetPasswordSuccess: "Check your email for a password reset link.",
     resetPasswordBack: "Back to sign in",
+    resetPasswordInvalidLink: "This password reset link is invalid or has expired.",
+    resetPasswordRequestNew: "Request a new reset link",
+    resetPasswordUpdatedTitle: "Password updated",
+    resetPasswordUpdatedBody: "Your recovery session is closed. Sign in again with your new password.",
     passwordPlaceholder: "Enter your password",
     rememberMe: "Keep me signed in",
     submit: "Sign in",
@@ -145,6 +153,8 @@ const englishCopy: AuthCopy = {
     fastLoginRoleMismatch: "The test account does not match the selected role.",
     showPassword: "Show password",
     hidePassword: "Hide password",
+    noAccount: "Don’t have an account yet?",
+    signUp: "Sign up",
   },
   register: {
     eyebrow: "Create a new account",
@@ -159,7 +169,6 @@ const englishCopy: AuthCopy = {
     confirmPassword: "Confirm password",
     phone: "Phone number",
     phoneHint: "Used to contact you after an interpreter accepts your request.",
-    optional: "optional",
     dateOfBirth: "Date of birth",
     age: (age) => `${age} years old`,
     firstNamePlaceholder: "e.g. Somchai or John",
@@ -172,7 +181,6 @@ const englishCopy: AuthCopy = {
     existingAccount: "Already have an account?",
     signInHere: "Sign in here",
     signUpHere: "Sign up here",
-    noSessionError: "Account created, but no session is available. Check the Supabase Confirm email setting.",
     profileError: "Unable to create your profile.",
     genericError: "Something went wrong while creating your account. Please try again.",
   },
@@ -242,6 +250,10 @@ const thaiCopy: AuthCopy = {
     resetPasswordSubmitting: "กำลังส่งลิงก์…",
     resetPasswordSuccess: "ตรวจสอบอีเมลของคุณเพื่อใช้ลิงก์ตั้งรหัสผ่านใหม่",
     resetPasswordBack: "กลับไปเข้าสู่ระบบ",
+    resetPasswordInvalidLink: "ลิงก์ตั้งรหัสผ่านนี้ไม่ถูกต้องหรือหมดอายุแล้ว",
+    resetPasswordRequestNew: "ขอลิงก์ใหม่",
+    resetPasswordUpdatedTitle: "เปลี่ยนรหัสผ่านสำเร็จ",
+    resetPasswordUpdatedBody: "ระบบปิดเซสชันกู้คืนแล้ว กรุณาเข้าสู่ระบบใหม่ด้วยรหัสผ่านใหม่",
     passwordPlaceholder: "กรอกรหัสผ่านของคุณ",
     rememberMe: "จดจำการเข้าสู่ระบบไว้",
     submit: "เข้าสู่ระบบ",
@@ -259,6 +271,8 @@ const thaiCopy: AuthCopy = {
     fastLoginRoleMismatch: "บัญชีทดสอบมี role ไม่ตรงกับปุ่มที่เลือก",
     showPassword: "แสดงรหัสผ่าน",
     hidePassword: "ซ่อนรหัสผ่าน",
+    noAccount: "ยังไม่มีบัญชีใช่ไหม?",
+    signUp: "สมัครสมาชิก",
   },
   register: {
     eyebrow: "สร้างบัญชีผู้ใช้ใหม่ · New Account",
@@ -273,7 +287,6 @@ const thaiCopy: AuthCopy = {
     confirmPassword: "ยืนยันรหัสผ่าน",
     phone: "เบอร์โทรศัพท์",
     phoneHint: "สำหรับติดต่อเมื่อมีล่ามกดรับงานแล้ว",
-    optional: "ไม่บังคับ",
     dateOfBirth: "วันเดือนปีเกิด",
     age: (age) => `อายุ ${age} ปี`,
     firstNamePlaceholder: "เช่น สมชาย หรือ John",
@@ -286,7 +299,6 @@ const thaiCopy: AuthCopy = {
     existingAccount: "มีบัญชีอยู่แล้ว?",
     signInHere: "เข้าสู่ระบบที่นี่",
     signUpHere: "สมัครสมาชิกที่นี่",
-    noSessionError: "สมัครสมาชิกแล้ว แต่ยังไม่มี session ให้ใช้งาน กรุณาตรวจสอบการตั้งค่า Confirm email ใน Supabase",
     profileError: "ไม่สามารถสร้างข้อมูลโปรไฟล์ได้",
     genericError: "เกิดข้อผิดพลาดในการลงทะเบียน กรุณาลองใหม่อีกครั้ง",
   },
@@ -352,6 +364,10 @@ const chineseCopy: AuthCopy = {
     description: "登录以跟踪请求、创建求助，或作为口译员帮助他人。",
     forgotPassword: "忘记密码？",
     forgotPasswordSoon: "此功能将在后续步骤中开放。",
+    resetPasswordInvalidLink: "此密码重置链接无效或已过期。",
+    resetPasswordRequestNew: "重新申请重置链接",
+    resetPasswordUpdatedTitle: "密码已更新",
+    resetPasswordUpdatedBody: "恢复会话已关闭。请使用新密码重新登录。",
     passwordPlaceholder: "请输入密码",
     rememberMe: "保持登录状态",
     submit: "登录",
@@ -365,6 +381,8 @@ const chineseCopy: AuthCopy = {
     emptyPassword: "请输入密码。",
     showPassword: "显示密码",
     hidePassword: "隐藏密码",
+    noAccount: "还没有账户？",
+    signUp: "立即注册",
   },
   register: {
     ...englishCopy.register,
@@ -392,7 +410,6 @@ const chineseCopy: AuthCopy = {
     existingAccount: "已有账户？",
     signInHere: "在此登录",
     signUpHere: "在此注册",
-    noSessionError: "账户已创建，但没有可用 session。请检查 Supabase 的 Confirm email 设置。",
     profileError: "无法创建个人资料。",
     genericError: "创建账户时发生错误，请重试。",
   },
@@ -432,6 +449,10 @@ const spanishCopy: AuthCopy = {
     description: "Inicia sesión para seguir solicitudes, crear una petición de ayuda o apoyar a alguien como intérprete.",
     forgotPassword: "¿Olvidaste tu contraseña?",
     forgotPasswordSoon: "Esta función estará disponible más adelante.",
+    resetPasswordInvalidLink: "Este enlace para restablecer la contraseña no es válido o ha caducado.",
+    resetPasswordRequestNew: "Solicitar un enlace nuevo",
+    resetPasswordUpdatedTitle: "Contraseña actualizada",
+    resetPasswordUpdatedBody: "La sesión de recuperación se cerró. Inicia sesión de nuevo con tu nueva contraseña.",
     passwordPlaceholder: "Introduce tu contraseña",
     rememberMe: "Mantener la sesión iniciada",
     submit: "Iniciar sesión",
@@ -443,6 +464,8 @@ const spanishCopy: AuthCopy = {
     emptyEmail: "Introduce tu correo electrónico.",
     invalidEmail: "Introduce un correo electrónico válido.",
     emptyPassword: "Introduce tu contraseña.",
+    noAccount: "¿Aún no tienes una cuenta?",
+    signUp: "Regístrate",
     profileError: "No se pudo cargar tu perfil.",
     genericError: "Se produjo un error al iniciar sesión. Inténtalo de nuevo.",
     fastLoginError: "No se pudo conectar con el inicio rápido.",
@@ -519,6 +542,10 @@ const arabicCopy: AuthCopy = {
     description: "سجّل الدخول لمتابعة الطلبات أو إنشاء طلب مساعدة أو دعم الآخرين كمترجم.",
     forgotPassword: "هل نسيت كلمة المرور؟",
     forgotPasswordSoon: "ستتوفر هذه الميزة في خطوة لاحقة.",
+    resetPasswordInvalidLink: "رابط إعادة تعيين كلمة المرور غير صالح أو انتهت صلاحيته.",
+    resetPasswordRequestNew: "طلب رابط جديد",
+    resetPasswordUpdatedTitle: "تم تحديث كلمة المرور",
+    resetPasswordUpdatedBody: "تم إغلاق جلسة الاسترداد. سجّل الدخول مرة أخرى باستخدام كلمة المرور الجديدة.",
     passwordPlaceholder: "أدخل كلمة المرور",
     rememberMe: "إبقائي مسجّلًا",
     submit: "تسجيل الدخول",
@@ -536,6 +563,8 @@ const arabicCopy: AuthCopy = {
     fastLoginRoleMismatch: "حساب الاختبار لا يطابق الدور المحدد.",
     showPassword: "إظهار كلمة المرور",
     hidePassword: "إخفاء كلمة المرور",
+    noAccount: "ليس لديك حساب؟",
+    signUp: "سجّل الآن",
   },
   register: {
     ...englishCopy.register,

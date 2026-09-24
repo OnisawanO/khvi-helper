@@ -133,15 +133,22 @@ open -> claimed -> in_progress -> completed
 
 - ระบบต้องใช้ Supabase Auth เป็นแหล่งจัดการ identity, email, password และ session
 - ระบบต้องสร้างบัญชีใหม่ด้วย role เริ่มต้นเป็น `User`
-- ระบบต้องตรวจรูปแบบอีเมล ความครบถ้วนของรหัสผ่าน และข้อมูลสมัครก่อนเรียก Auth
+- ระบบต้องตรวจรูปแบบอีเมล ความครบถ้วนของรหัสผ่าน เบอร์โทรศัพท์ และวันเดือนปีเกิดก่อนเรียก Auth โดยเบอร์โทรศัพท์และวันเดือนปีเกิดเป็นข้อมูลบังคับ
+- ฟอร์มสมัครต้องแสดงวันเดือนปีเกิดตามลำดับ วัน เดือน ปี และถ้าอีเมลซ้ำกับบัญชีใน Supabase Auth ต้องแจ้งว่าอีเมลนี้มีผู้ใช้อยู่แล้ว
+- ระบบไม่บังคับ email confirmation ก่อนสร้าง session หรือเข้า private route; หลังสมัครสำเร็จต้องสร้าง session ให้ผู้ใช้ใช้งานได้ทันที
+- Password recovery ใช้ Supabase SSR/PKCE callback ที่แลก `code` ฝั่ง server ก่อนสร้าง recovery session
 - ระบบต้องไม่เก็บ `password_hash` หรือรหัสผ่านใน `profiles` หรือตารางธุรกิจ
 - ระบบต้องยกเลิก session เมื่อผู้ใช้ Logout และไม่ให้เข้าถึง private route ด้วย session เดิม
+- Checkbox `จดจำฉัน` ต้องกำหนดอายุ cookie ของ session: แบบ persistent เมื่อเลือก และ session cookie เมื่อไม่เลือก โดยห้ามเก็บ password หรือ session token ใน `localStorage`
+- Forgot password ต้องตอบข้อความสำเร็จแบบเดียวกันสำหรับอีเมลที่มีและไม่มีบัญชี; ระบบต้องไม่ใช้ผลลัพธ์จาก Auth เพื่อเปิดเผย account existence
+- Recovery link ที่หมดอายุหรือใช้ไม่ได้ต้องพากลับไปขอลิงก์ใหม่ได้; หลังเปลี่ยนรหัสผ่านระบบต้องปิด recovery session และให้ผู้ใช้ Login ใหม่
 - ข้อผิดพลาดจากการสมัครหรือ Login ต้องไม่เปิดเผยข้อมูลที่ช่วยเดาว่าบัญชีอื่นมีอยู่หรือไม่เกินความจำเป็น
 
 **ผลลัพธ์และเกณฑ์ตรวจรับ:**
 
 - สมัครสำเร็จแล้วมี record ใน Supabase Auth และ `profiles` ที่เชื่อมด้วย UUID เดียวกัน
 - Login สำเร็จแล้วระบบสร้าง session ที่ server ตรวจสอบได้
+- บัญชีที่สมัครสำเร็จและบัญชีที่ถูกล็อกต้องถูกตรวจตาม session/profile policy; email confirmation ไม่ใช่เงื่อนไขการเข้าใช้งาน
 - Logout สำเร็จแล้ว private route พากลับหน้า Login หรือหน้า Public ตาม route policy
 - ผู้ใช้ใหม่ได้รับ role `User` เสมอ แม้ client ส่ง role อื่นมา
 
@@ -189,6 +196,8 @@ open -> claimed -> in_progress -> completed
 - Route เฉพาะ User ใช้ `/user/request-help` และ `/user/my-requests`; route เฉพาะ Interpreter ใช้ `/interpreter/find-requests` และ `/interpreter/my-assignments`
 - `Manager` ไปยัง Manager Console ที่ `/manager`
 - `Admin` ไปยัง Admin Dashboard ที่ `/admin`
+- `/login` แสดงฟอร์ม Login โดยตรง; หน้าแรกยังเปิด Login modal ได้
+- `/sign-in` คงเป็น compatibility redirect ไปหน้าแรกพร้อมเปิด Login modal
 - `/welcome` ต้องทำหน้าที่เป็น compatibility redirect ตาม role และไม่มี UI ของตนเอง
 - Path เดิมที่ไม่มี role prefix ต้อง redirect ไป canonical role path เพื่อรองรับลิงก์เดิม
 - ระบบต้องตรวจ role ฝั่ง server ก่อน render ข้อมูล private ไม่พึ่ง client redirect อย่างเดียว

@@ -1,7 +1,9 @@
 import { apiError, apiSuccess } from "@/app/lib/api/auth-response";
 import { isRecord, normalizeLocale } from "@/app/lib/api/auth-utils";
 import { getAuthCopy } from "@/app/lib/auth-copy";
-import { createClient } from "@/utils/supabase/server";
+import { createRouteHandlerClient } from "@/utils/supabase/server";
+import { AUTH_RECOVERY_COOKIE } from "@/utils/supabase/auth-persistence";
+import { cookies } from "next/headers";
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -27,12 +29,22 @@ export async function POST(request: Request) {
     return apiError("passwords_mismatch", copy.validation.passwordsMismatch, 400);
   }
 
-  const supabase = await createClient();
+  const cookieStore = await cookies();
+  const { supabase, applyToResponse } = await createRouteHandlerClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user || cookieStore.get(AUTH_RECOVERY_COOKIE)?.value !== "1") {
+    const response = apiError("reset_session_required", copy.login.genericError, 401);
+    return applyToResponse(response);
+  }
+
   const { error } = await supabase.auth.updateUser({ password });
 
   if (error) {
-    return apiError("reset_session_required", copy.login.genericError, 401);
+    const response = apiError("reset_session_required", copy.login.genericError, 401);
+    return applyToResponse(response);
   }
 
-  return apiSuccess({ updated: true });
+  await supabase.auth.signOut();
+  const response = apiSuccess({ updated: true });
+  return applyToResponse(response, { clearPersistence: true, recovery: false });
 }

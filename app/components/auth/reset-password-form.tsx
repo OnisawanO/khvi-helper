@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useState, type FormEvent } from "react";
 import { EyeIcon, EyeSlashIcon, LockClosedIcon } from "@heroicons/react/24/outline";
 import { getAuthCopy } from "@/app/lib/auth-copy";
 import { useStoredLocale } from "@/app/lib/locale";
 import { authApi } from "@/app/lib/auth-client";
+import { createClient } from "@/utils/supabase/client";
+import { AUTH_RECOVERY_COOKIE } from "@/utils/supabase/auth-persistence";
 
-export function ResetPasswordForm() {
+export function ResetPasswordForm({ initialError = false }: { initialError?: boolean }) {
   const [locale] = useStoredLocale();
   const copy = getAuthCopy(locale);
   const passwordId = useId();
@@ -19,6 +21,34 @@ export function ResetPasswordForm() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUpdated, setIsUpdated] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(!initialError);
+  const [hasRecoverySession, setHasRecoverySession] = useState(false);
+
+  useEffect(() => {
+    if (initialError) return;
+
+    let disposed = false;
+    const supabase = createClient();
+    void supabase.auth.getUser()
+      .then((result: Awaited<ReturnType<typeof supabase.auth.getUser>>) => {
+        if (disposed) return;
+        const { data } = result;
+        const hasRecoveryMarker = document.cookie
+          .split(";")
+          .some((cookie) => cookie.trim().startsWith(`${AUTH_RECOVERY_COOKIE}=1`));
+        setHasRecoverySession(Boolean(data.user && hasRecoveryMarker));
+        setIsCheckingSession(false);
+      })
+      .catch(() => {
+        if (disposed) return;
+        setHasRecoverySession(false);
+        setIsCheckingSession(false);
+      });
+
+    return () => {
+      disposed = true;
+    };
+  }, [initialError]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -39,15 +69,33 @@ export function ResetPasswordForm() {
       setIsSubmitting(false);
       return;
     }
+    await createClient().auth.signOut();
+    setHasRecoverySession(false);
     setIsUpdated(true);
     setIsSubmitting(false);
+  }
+
+  if (isCheckingSession) {
+    return <p role="status" className="rounded-xl border border-[#d6e0e4] bg-white p-6 text-sm font-semibold text-[#5c727d]">{copy.login.resetPasswordDescription}</p>;
+  }
+
+  if (initialError || !hasRecoverySession) {
+    return (
+      <div className="rounded-2xl border border-[#f3b5ad] bg-[#fdf2f0] p-6 text-center">
+        <h1 className="text-xl font-extrabold text-[#8e2419]">{copy.login.resetPasswordTitle}</h1>
+        <p role="alert" className="mt-2 text-sm leading-6 text-[#a53a2c]">{copy.login.resetPasswordInvalidLink}</p>
+        <Link href="/forgot-password" className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#092f45] px-5 text-sm font-extrabold text-white hover:bg-[#0c4960]">
+          {copy.login.resetPasswordRequestNew}
+        </Link>
+      </div>
+    );
   }
 
   if (isUpdated) {
     return (
       <div className="rounded-2xl border border-[#a3d9c9] bg-[#eefaf6] p-6 text-center">
-        <h1 className="text-xl font-extrabold text-[#095744]">{copy.login.successTitle}</h1>
-        <p className="mt-2 text-sm leading-6 text-[#186a55]">{copy.login.resetPasswordBack}</p>
+        <h1 className="text-xl font-extrabold text-[#095744]">{copy.login.resetPasswordUpdatedTitle}</h1>
+        <p className="mt-2 text-sm leading-6 text-[#186a55]">{copy.login.resetPasswordUpdatedBody}</p>
         <Link href="/login" className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#092f45] px-5 text-sm font-extrabold text-white hover:bg-[#0c4960]">{copy.login.resetPasswordBack}</Link>
       </div>
     );

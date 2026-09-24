@@ -1,5 +1,5 @@
 import { apiError, apiSuccess } from "@/app/lib/api/auth-response";
-import { createClient } from "@/utils/supabase/server";
+import { createRouteHandlerClient } from "@/utils/supabase/server";
 import { getRedirectPathByRole, type UserRole } from "@/app/lib/auth-types";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const supabase = await createClient();
+  const { supabase, applyToResponse } = await createRouteHandlerClient();
   const { error } = await supabase.auth.signInWithPassword({
     email: credentials.email,
     password: credentials.password,
@@ -65,17 +65,20 @@ export async function POST(request: Request) {
   const profileResult = await getCurrentUserProfile(supabase);
   if (!profileResult.profile) {
     await supabase.auth.signOut();
-    return apiError("profile_unavailable", profileResult.error || "ไม่สามารถโหลดข้อมูลโปรไฟล์ได้", 403);
+    const response = apiError("profile_unavailable", profileResult.error || "ไม่สามารถโหลดข้อมูลโปรไฟล์ได้", 403);
+    return applyToResponse(response, { clearPersistence: true, recovery: false });
   }
 
   if (profileResult.profile.role !== role) {
     await supabase.auth.signOut();
-    return apiError("role_mismatch", "บัญชีทดสอบนี้ไม่ตรงกับ role ที่เลือก", 403);
+    const response = apiError("role_mismatch", "บัญชีทดสอบนี้ไม่ตรงกับ role ที่เลือก", 403);
+    return applyToResponse(response, { clearPersistence: true, recovery: false });
   }
 
-  return apiSuccess({
+  const response = apiSuccess({
     user: profileResult.profile,
     role,
     redirectPath: getRedirectPathByRole(role),
   });
+  return applyToResponse(response, { persistence: "persistent", recovery: false });
 }

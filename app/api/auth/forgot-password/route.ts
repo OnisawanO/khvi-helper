@@ -1,7 +1,7 @@
 import { apiError, apiSuccess } from "@/app/lib/api/auth-response";
 import { isRecord, isValidEmail, normalizeEmail, normalizeLocale } from "@/app/lib/api/auth-utils";
 import { getAuthCopy } from "@/app/lib/auth-copy";
-import { createClient } from "@/utils/supabase/server";
+import { createRouteHandlerClient } from "@/utils/supabase/server";
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -21,13 +21,14 @@ export async function POST(request: Request) {
     return apiError("invalid_email", copy.login.invalidEmail, 400);
   }
 
-  const supabase = await createClient();
-  const redirectTo = new URL("/reset-password", request.url).toString();
+  const { supabase, applyToResponse } = await createRouteHandlerClient();
+  const redirectTo = new URL("/api/auth/callback?flow=recovery", request.url).toString();
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
 
   if (error) {
-    return apiError("reset_request_failed", copy.login.genericError, 500);
+    console.error("Password reset request failed", error.code ?? error.message);
   }
 
-  return apiSuccess({ sent: true });
+  const response = apiSuccess({ sent: true });
+  return applyToResponse(response);
 }

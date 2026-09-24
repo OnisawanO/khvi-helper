@@ -92,6 +92,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false, isEm
         email: trimmedEmail,
         password,
         locale: currentLocale,
+        rememberMe,
       });
 
       if (!result.ok) {
@@ -268,21 +269,21 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false, isEm
 
           {/* Switch to Register */}
           <div className="border-t border-[#edf2f4] pt-3 text-center text-xs text-[#5c727d]">
-            <span>{copy.register.existingAccount} </span>
+            <span>{copy.login.noAccount} </span>
             {onSwitchToRegister ? (
               <button
                 type="button"
                 onClick={onSwitchToRegister}
                 className="font-extrabold text-[#0d8587] transition-colors hover:text-[#092f45] hover:underline"
               >
-                {copy.register.signUpHere}
+                {copy.login.signUp}
               </button>
             ) : (
               <Link
                 href="/register"
                 className="font-extrabold text-[#0d8587] transition-colors hover:text-[#092f45] hover:underline"
               >
-                {copy.register.signUpHere}
+                {copy.login.signUp}
               </Link>
             )}
           </div>

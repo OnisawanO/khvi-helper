@@ -7,10 +7,12 @@ export const metadata: Metadata = {
   description: "ตั้งรหัสผ่านใหม่สำหรับบัญชี KHVI Helper",
 };
 
-export default function ResetPasswordPage() {
+export default async function ResetPasswordPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const params = await searchParams;
+
   return (
     <AppShell>
-      <AuthUtilityPage variant="reset" />
+      <AuthUtilityPage variant="reset" recoveryError={params.error === "invalid-link"} />
     </AppShell>
   );
 }

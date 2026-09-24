@@ -25,7 +25,7 @@ async function apiFetch<T>(endpoint: string, init?: RequestInit): Promise<AuthAp
 }
 
 export const authApi = {
-  async login(payload: { email: string; password: string; locale: Locale }) {
+  async login(payload: { email: string; password: string; locale: Locale; rememberMe: boolean }) {
     return apiFetch<{ user: UserProfile; redirectPath: string }>("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -34,7 +34,11 @@ export const authApi = {
   },
 
   async register(payload: RegisterInput) {
-    return apiFetch<{ user: UserProfile; redirectPath: string }>("/api/auth/register", {
+    return apiFetch<{
+      user: UserProfile;
+      redirectPath: string;
+      email: string;
+    }>("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),

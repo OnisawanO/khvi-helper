@@ -245,6 +245,7 @@ export function CombinedInterpreterRegisterForm({
           email: email.trim().toLowerCase(),
           password,
           locale,
+          rememberMe: true,
         });
         if (!loginResult.ok) {
           setSubmitError(registerResult.error.message);
