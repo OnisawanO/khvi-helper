@@ -510,7 +510,18 @@ const spanishCopy: AuthCopy = {
   },
   side: {
     ...englishCopy.side,
-    login: { ...englishCopy.side.login, eyebrow: "Bienvenido de nuevo", title: "Sigue ayudando y conectando personas", roles: "Usuario · Intérprete · Gestor · Administrador", secure: "Inicio de sesión seguro", roleCount: "4 roles disponibles" },
+    login: {
+      ...englishCopy.side.login,
+      eyebrow: "Bienvenido de nuevo",
+      title: "Sigue ayudando y conectando personas",
+      description: "Inicia sesión para gestionar misiones, apoyar a otras personas o mantener la comunidad en marcha.",
+      centerTitle: "Portal de KHVI Helper",
+      roles: "Usuario · Intérprete · Gestor · Administrador",
+      secure: "Inicio de sesión seguro",
+      roleCount: "4 roles disponibles",
+      trustOne: "Tus datos personales se protegen durante todo el proceso.",
+      trustTwo: "Irás automáticamente al panel correspondiente a tu rol.",
+    },
     register: { ...englishCopy.side.register, title: "Abre la puerta a la ayuda lingüística cercana", centerTitle: "Conectar con empatía", languages: "Birmano · Chino · Inglés · Lengua de signos", radius: "Radio de 5 km", verified: "Intérpretes verificados" },
   },
 };
@@ -599,7 +610,18 @@ const arabicCopy: AuthCopy = {
   },
   side: {
     ...englishCopy.side,
-    login: { ...englishCopy.side.login, eyebrow: "مرحبًا بعودتك", title: "واصل المساعدة وربط الناس", roles: "مستخدم · مترجم · مدير · مسؤول النظام", secure: "تسجيل دخول آمن", roleCount: "4 أدوار مدعومة" },
+    login: {
+      ...englishCopy.side.login,
+      eyebrow: "مرحبًا بعودتك",
+      title: "واصل المساعدة وربط الناس",
+      description: "سجّل الدخول لإدارة المهام ودعم الآخرين والحفاظ على سير المجتمع بسلاسة.",
+      centerTitle: "بوابة KHVI Helper",
+      roles: "مستخدم · مترجم · مدير · مسؤول النظام",
+      secure: "تسجيل دخول آمن",
+      roleCount: "4 أدوار مدعومة",
+      trustOne: "تظل بياناتك الشخصية محمية طوال الرحلة.",
+      trustTwo: "ستنقل تلقائيًا إلى لوحة التحكم الملائمة لدورك.",
+    },
     register: { ...englishCopy.side.register, title: "افتح باب المساعدة اللغوية القريبة", centerTitle: "نصل الناس بالعناية", languages: "البورمية · الصينية · الإنجليزية · لغة الإشارة", radius: "نطاق 5 كم", verified: "مترجمون موثوقون" },
   },
 };

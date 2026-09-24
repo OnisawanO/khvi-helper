@@ -6,6 +6,7 @@ import {
   NoSymbolIcon,
   ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
+import type { Locale } from "@/app/components/site-header";
 
 export type ReportStatusFilter = "All" | "Pending" | "Resolved" | "Dismissed";
 
@@ -16,6 +17,7 @@ interface ReportsKpiCardsProps {
   dismissedReportsCount: number;
   selectedStatusFilter: ReportStatusFilter;
   onSelectStatusFilter: (status: ReportStatusFilter) => void;
+  locale?: Locale;
 }
 
 export function ReportsKpiCards({
@@ -25,41 +27,43 @@ export function ReportsKpiCards({
   dismissedReportsCount,
   selectedStatusFilter,
   onSelectStatusFilter,
+  locale = "en",
 }: ReportsKpiCardsProps) {
+  const text = (en: string, th: string, zh: string, es: string, ar: string) => locale === "th" ? th : locale === "zh" ? zh : locale === "es" ? es : locale === "ar" ? ar : en;
   const cards = [
     {
       filter: "All" as const,
-      label: "Total System Reports",
+      label: text("Total System Reports", "รายงานระบบทั้งหมด", "系统报告总数", "Total de informes del sistema", "إجمالي تقارير النظام"),
       value: totalReportsCount,
-      suffix: "cases",
-      footer: "All logged platform issues",
+      suffix: text("cases", "รายการ", "条", "casos", "حالات"),
+      footer: text("All logged platform issues", "ปัญหาแพลตฟอร์มที่บันทึกทั้งหมด", "所有已记录的平台问题", "Todos los problemas registrados", "جميع مشكلات المنصة المسجلة"),
       icon: ShieldCheckIcon,
       tone: "blue",
     },
     {
       filter: "Pending" as const,
-      label: "Pending Review",
+      label: text("Pending Review", "รอตรวจสอบ", "待审核", "Pendientes de revisión", "قيد المراجعة"),
       value: pendingReportsCount,
-      suffix: "awaiting",
-      footer: pendingReportsCount > 0 ? "Action required" : "All clear",
+      suffix: text("awaiting", "รอดำเนินการ", "待处理", "pendientes", "بانتظار الإجراء"),
+      footer: pendingReportsCount > 0 ? text("Action required", "ต้องดำเนินการ", "需要处理", "Requiere acción", "يلزم إجراء") : text("All clear", "ไม่มีรายการค้าง", "一切正常", "Todo en orden", "لا توجد إجراءات معلقة"),
       icon: ExclamationCircleIcon,
       tone: "amber",
     },
     {
       filter: "Resolved" as const,
-      label: "Resolved Issues",
+      label: text("Resolved Issues", "ปัญหาที่แก้ไขแล้ว", "已解决问题", "Problemas resueltos", "المشكلات المحلولة"),
       value: resolvedReportsCount,
-      suffix: "resolved",
-      footer: "Verified platform fixes",
+      suffix: text("resolved", "แก้ไขแล้ว", "已解决", "resueltos", "محلولة"),
+      footer: text("Verified platform fixes", "การแก้ไขแพลตฟอร์มที่ยืนยันแล้ว", "已验证的平台修复", "Correcciones verificadas", "إصلاحات المنصة المؤكدة"),
       icon: CheckCircleIcon,
       tone: "emerald",
     },
     {
       filter: "Dismissed" as const,
-      label: "Dismissed Reports",
+      label: text("Dismissed Reports", "รายงานที่ยกเลิก", "已驳回报告", "Informes descartados", "التقارير المستبعدة"),
       value: dismissedReportsCount,
-      suffix: "dismissed",
-      footer: "Closed without a fix",
+      suffix: text("dismissed", "ยกเลิกแล้ว", "已驳回", "descartados", "مستبعدة"),
+      footer: text("Closed without a fix", "ปิดโดยไม่แก้ไข", "未修复即关闭", "Cerrados sin corrección", "أُغلقت دون إصلاح"),
       icon: NoSymbolIcon,
       tone: "slate",
     },
@@ -102,7 +106,7 @@ export function ReportsKpiCards({
               <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px] text-slate-500 sm:text-xs">
                 <span className="truncate text-slate-400">{card.footer}</span>
                 <span className="ml-2 shrink-0 font-bold text-[#087f80] group-hover:underline">
-                  {selected ? "Active Filter" : "Filter"}
+                  {selected ? text("Active Filter", "ตัวกรองที่ใช้อยู่", "当前筛选", "Filtro activo", "التصفية النشطة") : text("Filter", "กรอง", "筛选", "Filtrar", "تصفية")}
                 </span>
               </div>
             </button>

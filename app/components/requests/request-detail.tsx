@@ -28,16 +28,15 @@ import {
   UserCircleIcon,
   XCircleIcon,
 } from "@heroicons/react/24/outline";
-import { useCopyLocale } from "@/app/components/app-shell";
+import { useCopyLocale, useUiLocale } from "@/app/components/app-shell";
+import { formatLocalizedDateTime, type CopyLocale } from "@/app/lib/locale";
 import { ExpiryCountdown } from "@/app/components/expiry-countdown";
 import { MissionLocationMap, type MissionMapPoint } from "@/app/components/mission-location-map";
 import { StatusBadge, UrgencyBadge } from "@/app/components/request-badges";
 import { ReviewModal, type SubmittedReview } from "@/app/components/review/review-modal";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
 import {
-  approximateCoordinates,
   categoryLabel,
-  exactCoordinates,
   isContactUnlocked,
   languageLabel,
   CATEGORIES,
@@ -275,10 +274,28 @@ const localizedCopy = {
     timelineTitle: "ความคืบหน้า", detailsTitle: "รายละเอียดคำขอ", locationTitle: "สถานที่", actionsTitle: "การดำเนินการ",
     newRequest: "คำขอใหม่", cancel: "ยกเลิก", withdraw: "ถอนตัว", startWork: "เริ่มงาน", confirmDone: "ยืนยันว่าเสร็จสิ้น",
     saveDetails: "บันทึกรายละเอียด", discardDetails: "ยกเลิกการแก้ไข", editDetails: "แก้ไขรายละเอียด",
-    languageLabel: "ภาษา", categoryLabel: "หมวดหมู่", descriptionLabel: "รายละเอียด", meetingPointLabel: "จุดนัดพบ",
+    languageLabel: "ภาษา", categoryLabel: "หมวดหมู่", descriptionLabel: "รายละเอียด", meetingPointLabel: "จุดนัดพบ", exactLabel: "จุดนัดพบ", exactCoordsLabel: "พิกัดที่แน่นอน", areaLabel: "พื้นที่",
+    unlockedTitle: "ข้อมูลติดต่อล่าม",
+    steps: { Open: { title: "เปิดคำขอแล้ว", detail: "ล่ามที่ตรงกันในบริเวณใกล้เคียงสามารถเห็นและรับงานได้" }, Claimed: { title: "ล่ามรับคำขอแล้ว", detail: "ผู้ขอตรวจสอบและยืนยันล่ามที่ได้รับมอบหมาย" }, InProgress: { title: "เริ่มงานแล้ว", detail: "ล่ามทำเครื่องหมายว่าเริ่มงานแล้ว" }, Completed: { title: "ทั้งสองฝ่ายยืนยันแล้ว", detail: "งานจะปิดเมื่อผู้ขอและล่ามยืนยันครบทั้งคู่" } },
     mapTitle: "แผนที่ภารกิจ", contactLockedTitle: "ข้อมูลติดต่อยังไม่เปิดเผย", requesterContactTitle: "ข้อมูลติดต่อผู้ขอ",
     locationDenied: "ไม่ได้รับอนุญาตให้เข้าถึงตำแหน่ง", locationUnavailable: "ไม่พบตำแหน่ง", completedTitle: "ภารกิจเสร็จสิ้น",
     noActions: "ขณะนี้ไม่มีการดำเนินการที่ต้องทำ", reviewTitle: "รีวิวภารกิจ", reviewCta: "ให้คะแนนและรีวิว",
+    editHint: "คุณแก้ไขคำขอนี้ได้จนกว่าล่ามจะเริ่มงาน", descriptionHint: "เพิ่มข้อมูลที่ช่วยให้ล่ามเตรียมตัวได้ (ไม่บังคับ)",
+    meetingPointRequired: "กรุณาระบุจุดนัดพบก่อนบันทึก", detailsSaved: "อัปเดตรายละเอียดคำขอแล้ว",
+    interpreterViewLabel: "ข้อมูลที่ล่ามเห็นก่อนผู้ขอยืนยัน", interpreterViewBody: "ล่ามจะเห็นเฉพาะภาษา หมวดหมู่ และพื้นที่ จุดนัดพบกับพิกัดจะซ่อนไว้จนกว่าคุณจะยืนยันล่าม",
+    lockedTitle: "ยังไม่มีล่าม", lockedBody: "โปรไฟล์ล่ามที่ตรงกันจะแสดงหลังรับคำขอ และข้อมูลติดต่อจะเปิดเมื่อคุณยืนยันล่าม",
+    contactLockedBody: "ผู้ขอต้องยืนยันล่ามที่รับงานก่อนจึงจะแสดงข้อมูลสำคัญ", mapIntro: "หมุดแต่ละจุดจะอัปเดตตามตำแหน่งปัจจุบันขณะเปิดหน้านี้",
+    mapEmpty: "กำลังรอตำแหน่งปัจจุบันของคุณ หากเบราว์เซอร์ถามให้อนุญาตการเข้าถึงตำแหน่ง", otherLocationLocked: "ตำแหน่งที่แน่นอนของอีกฝ่ายจะเปิดหลังผู้ขอยืนยันล่าม",
+    waitingRequesterLocation: "กำลังรอตำแหน่งของผู้ขอ", waitingInterpreterLocation: "กำลังรอตำแหน่งของล่าม", readingLocation: "กำลังเริ่มตำแหน่งปัจจุบัน…",
+    locationSaved: "เปิดตำแหน่งปัจจุบันแล้ว", locationFailed: "บันทึกตำแหน่งไม่สำเร็จ โปรดลองอีกครั้ง", ratingLabel: "คะแนน", jobsLabel: "งานที่เสร็จแล้ว",
+    confirmInterpreter: "ยืนยันล่ามคนนี้", confirmInterpreterHint: "ยืนยันโปรไฟล์ก่อนเปิดข้อมูลติดต่อและเริ่มงาน", interpreterConfirmed: "ยืนยันล่ามแล้ว",
+    waitingForRequester: "กำลังรอผู้ขอยืนยันคุณ", cancelReasonLabel: "เหตุผลที่ยกเลิก", cancelReasonHint: "เหตุผลจะถูกบันทึกไว้เพื่อให้ผู้จัดการตรวจสอบภายหลัง",
+    cancelReasonMissing: "กรุณาระบุเหตุผลสั้น ๆ ก่อนยกเลิก", cancelConfirm: "ยืนยันการยกเลิก", cancelDismiss: "เก็บคำขอไว้",
+    confirmDoneHint: "คำขอจะปิดเมื่อทั้งสองฝ่ายยืนยันว่าเสร็จแล้ว", yourConfirmation: "คุณยืนยันแล้ว", requesterConfirmation: "ผู้ขอยืนยันแล้ว",
+    interpreterConfirmation: "ล่ามยืนยันแล้ว", waitingInterpreter: "กำลังรอล่ามยืนยัน", waitingOtherSide: "กำลังรออีกฝ่ายยืนยัน",
+    reviewHint: "การให้คะแนนสั้น ๆ ช่วยยกย่องการสนับสนุนด้านภาษาที่น่าเชื่อถือ", reviewPending: "ผู้ขอยังไม่ได้รีวิวภารกิจนี้", reviewSubmitted: "ส่งรีวิวแล้ว", reviewReceived: "รีวิวจากผู้ขอ",
+    reviewSubmittedAt: "ส่งเมื่อ", reviewReadOnly: "ความคิดเห็นของคุณจะแสดงเป็นตัวอย่างแบบอ่านอย่างเดียว", closedTitle: "คำขอนี้ปิดแล้ว", closedReason: "เหตุผล",
+    closedBy: { User: "คุณยกเลิกแล้ว", Interpreter: "ล่ามยกเลิกแล้ว", Manager: "ผู้จัดการยกเลิกแล้ว", System: "หมดเวลาโดยไม่มีผู้รับงาน" },
   },
   es: {
     ...copy.en,
@@ -287,10 +304,28 @@ const localizedCopy = {
     timelineTitle: "Progreso", detailsTitle: "Detalles de la solicitud", locationTitle: "Ubicación", actionsTitle: "Acciones",
     newRequest: "Nueva solicitud", cancel: "Cancelar", withdraw: "Retirarme", startWork: "Iniciar trabajo", confirmDone: "Confirmar finalización",
     saveDetails: "Guardar detalles", discardDetails: "Descartar cambios", editDetails: "Editar detalles",
-    languageLabel: "Idioma", categoryLabel: "Categoría", descriptionLabel: "Descripción", meetingPointLabel: "Punto de encuentro",
+    languageLabel: "Idioma", categoryLabel: "Categoría", descriptionLabel: "Descripción", meetingPointLabel: "Punto de encuentro", exactLabel: "Punto de encuentro", exactCoordsLabel: "Coordenadas exactas", areaLabel: "Zona",
+    unlockedTitle: "Contacto del intérprete",
+    steps: { Open: { title: "Solicitud abierta", detail: "Los intérpretes compatibles cercanos pueden verla y aceptarla." }, Claimed: { title: "Aceptada por un intérprete", detail: "El solicitante revisa y confirma al intérprete asignado." }, InProgress: { title: "Trabajo iniciado", detail: "El intérprete marcó el inicio del trabajo." }, Completed: { title: "Ambas partes confirmaron", detail: "La misión se cierra cuando ambas partes confirman." } },
     mapTitle: "Mapa de la misión", contactLockedTitle: "Datos de contacto ocultos", requesterContactTitle: "Contacto del solicitante",
     locationDenied: "Se denegó el permiso de ubicación", locationUnavailable: "Ubicación no disponible", completedTitle: "Misión completada",
     noActions: "No hay acciones pendientes", reviewTitle: "Evaluar la misión", reviewCta: "Calificar y evaluar",
+    editHint: "Puedes editar esta solicitud hasta que el intérprete comience el trabajo.", descriptionHint: "Añade contexto que ayude al intérprete a prepararse. Opcional.",
+    meetingPointRequired: "Añade un punto de encuentro antes de guardar.", detailsSaved: "Detalles de la solicitud actualizados.",
+    interpreterViewLabel: "Lo que ve el intérprete antes de tu confirmación", interpreterViewBody: "Solo se muestran idioma, categoría y zona. El punto de encuentro y las coordenadas permanecen ocultos hasta que confirmes al intérprete.",
+    lockedTitle: "Aún no hay intérprete", lockedBody: "El perfil de un intérprete compatible aparecerá cuando acepte la solicitud; los datos de contacto se desbloquean después de tu confirmación.",
+    contactLockedBody: "Debes confirmar al intérprete asignado antes de que aparezcan los datos sensibles.", mapIntro: "Cada marcador se actualiza con la ubicación en directo mientras esta misión está abierta.",
+    mapEmpty: "Esperando tu ubicación en directo. Permite el acceso cuando el navegador lo solicite.", otherLocationLocked: "La ubicación exacta de la otra persona se desbloquea después de confirmar al intérprete.",
+    waitingRequesterLocation: "Esperando la ubicación del solicitante.", waitingInterpreterLocation: "Esperando la ubicación del intérprete.", readingLocation: "Iniciando ubicación en directo…",
+    locationSaved: "Ubicación en directo activada", locationFailed: "No se pudo guardar tu ubicación. Inténtalo de nuevo.", ratingLabel: "valoración", jobsLabel: "trabajos completados",
+    confirmInterpreter: "Confirmar este intérprete", confirmInterpreterHint: "Confirma el perfil antes de desbloquear los datos de contacto y comenzar el trabajo.", interpreterConfirmed: "Intérprete confirmado",
+    waitingForRequester: "Esperando a que el solicitante te confirme", cancelReasonLabel: "¿Por qué cancelas?", cancelReasonHint: "El motivo se guarda con la solicitud para que el gestor pueda revisarlo más tarde.",
+    cancelReasonMissing: "Añade un motivo breve antes de cancelar.", cancelConfirm: "Confirmar cancelación", cancelDismiss: "Conservar la solicitud",
+    confirmDoneHint: "La solicitud se cierra solo cuando ambas partes confirman que el trabajo terminó.", yourConfirmation: "Has confirmado", requesterConfirmation: "El solicitante confirmó",
+    interpreterConfirmation: "El intérprete confirmó", waitingInterpreter: "Esperando la confirmación del intérprete", waitingOtherSide: "Esperando la confirmación de la otra parte",
+    reviewHint: "Una valoración breve ayuda a reconocer el apoyo lingüístico fiable.", reviewPending: "El solicitante aún no ha valorado este trabajo.", reviewSubmitted: "Valoración enviada", reviewReceived: "Valoración del solicitante",
+    reviewSubmittedAt: "Enviada", reviewReadOnly: "Tu opinión se muestra aquí como vista previa de solo lectura.", closedTitle: "Esta solicitud está cerrada", closedReason: "Motivo",
+    closedBy: { User: "Cancelada por ti", Interpreter: "Cancelada por el intérprete", Manager: "Cancelada por el gestor", System: "Caducó sin que nadie la aceptara" },
   },
   ar: {
     ...copy.en,
@@ -299,12 +334,51 @@ const localizedCopy = {
     timelineTitle: "التقدم", detailsTitle: "تفاصيل الطلب", locationTitle: "الموقع", actionsTitle: "الإجراءات",
     newRequest: "طلب جديد", cancel: "إلغاء", withdraw: "الانسحاب", startWork: "بدء العمل", confirmDone: "تأكيد الإكمال",
     saveDetails: "حفظ التفاصيل", discardDetails: "تجاهل التغييرات", editDetails: "تعديل التفاصيل",
-    languageLabel: "اللغة", categoryLabel: "الفئة", descriptionLabel: "الوصف", meetingPointLabel: "نقطة اللقاء",
+    languageLabel: "اللغة", categoryLabel: "الفئة", descriptionLabel: "الوصف", meetingPointLabel: "نقطة اللقاء", exactLabel: "نقطة اللقاء", exactCoordsLabel: "الإحداثيات الدقيقة", areaLabel: "المنطقة",
+    unlockedTitle: "بيانات اتصال المترجم",
+    steps: { Open: { title: "الطلب مفتوح", detail: "يمكن للمترجمين المطابقين القريبين رؤيته واستلامه." }, Claimed: { title: "استلمه مترجم", detail: "يراجع صاحب الطلب المترجم المعيّن ويؤكده." }, InProgress: { title: "بدأ العمل", detail: "حدّد المترجم أن المهمة قيد التنفيذ." }, Completed: { title: "أكد الطرفان", detail: "تُغلق المهمة بعد تأكيد الطرفين." } },
     mapTitle: "خريطة المهمة", contactLockedTitle: "بيانات الاتصال مخفية", requesterContactTitle: "بيانات صاحب الطلب",
     locationDenied: "تم رفض إذن الموقع", locationUnavailable: "الموقع غير متاح", completedTitle: "اكتملت المهمة",
     noActions: "لا توجد إجراءات مطلوبة", reviewTitle: "تقييم المهمة", reviewCta: "التقييم والمراجعة",
+    editHint: "يمكنك تعديل هذا الطلب حتى يبدأ المترجم العمل.", descriptionHint: "أضف أي سياق يساعد المترجم على الاستعداد. اختياري.",
+    meetingPointRequired: "أضف نقطة لقاء قبل الحفظ.", detailsSaved: "تم تحديث تفاصيل الطلب.",
+    interpreterViewLabel: "ما يراه المترجم قبل تأكيد صاحب الطلب", interpreterViewBody: "تظهر اللغة والفئة والمنطقة فقط. تبقى نقطة اللقاء والإحداثيات مخفية حتى تؤكد المترجم المعيّن.",
+    lockedTitle: "لا يوجد مترجم بعد", lockedBody: "يظهر ملف المترجم المطابق بعد استلام الطلب، وتُفتح بيانات الاتصال بعد تأكيدك.",
+    contactLockedBody: "يجب أن يؤكد صاحب الطلب المترجم المعيّن قبل ظهور البيانات الحساسة.", mapIntro: "يتحدّث كل مؤشر من موقع صاحبه المباشر أثناء فتح صفحة المهمة.",
+    mapEmpty: "بانتظار موقعك المباشر. اسمح بالوصول عندما يطلب المتصفح ذلك.", otherLocationLocked: "يُفتح مؤشر الموقع الدقيق للطرف الآخر بعد تأكيد المترجم.",
+    waitingRequesterLocation: "بانتظار موقع صاحب الطلب.", waitingInterpreterLocation: "بانتظار موقع المترجم.", readingLocation: "جارٍ بدء الموقع المباشر…",
+    locationSaved: "تم تشغيل الموقع المباشر", locationFailed: "تعذر حفظ موقعك. حاول مرة أخرى.", ratingLabel: "تقييم", jobsLabel: "مهام مكتملة",
+    confirmInterpreter: "تأكيد هذا المترجم", confirmInterpreterHint: "أكد الملف قبل فتح بيانات الاتصال وبدء المهمة.", interpreterConfirmed: "تم تأكيد المترجم",
+    waitingForRequester: "بانتظار تأكيد صاحب الطلب لك", cancelReasonLabel: "لماذا تلغي؟", cancelReasonHint: "يُحفظ السبب مع الطلب ليراجعه المدير لاحقًا.",
+    cancelReasonMissing: "أضف سببًا مختصرًا قبل الإلغاء.", cancelConfirm: "تأكيد الإلغاء", cancelDismiss: "الاحتفاظ بالطلب",
+    confirmDoneHint: "لا يُغلق الطلب إلا بعد تأكيد الطرفين إتمام العمل.", yourConfirmation: "أكدتَ", requesterConfirmation: "أكد صاحب الطلب",
+    interpreterConfirmation: "أكد المترجم", waitingInterpreter: "بانتظار تأكيد المترجم", waitingOtherSide: "بانتظار تأكيد الطرف الآخر",
+    reviewHint: "يساعد التقييم السريع في تقدير الدعم اللغوي الموثوق.", reviewPending: "لم يقيّم صاحب الطلب هذه المهمة بعد.", reviewSubmitted: "تم إرسال التقييم", reviewReceived: "تقييم صاحب الطلب",
+    reviewSubmittedAt: "أُرسل في", reviewReadOnly: "تظهر ملاحظتك هنا كمعاينة للقراءة فقط.", closedTitle: "هذا الطلب مغلق", closedReason: "السبب",
+    closedBy: { User: "ألغاه صاحب الطلب", Interpreter: "ألغاه المترجم", Manager: "ألغاه المدير", System: "انتهت المهلة دون استلام" },
   },
 } as const;
+
+function localizedRequestTimestamp(
+  rawValue: string | null | undefined,
+  fallback: string | null | undefined,
+  locale: CopyLocale,
+): string | null {
+  if (!rawValue) return fallback ?? null;
+  return formatLocalizedDateTime(rawValue, locale, { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" });
+}
+
+function localizedCoordinates(request: HelpRequest, locale: CopyLocale, exact: boolean): string {
+  if (request.latitude === null || request.longitude === null) {
+    return locale === "th" ? "ไม่มีพิกัด" : locale === "zh" ? "未提供坐标" : locale === "es" ? "No se proporcionaron coordenadas" : locale === "ar" ? "الإحداثيات غير متوفرة" : "Coordinates not provided";
+  }
+  return `${request.latitude.toFixed(exact ? 5 : 2)}, ${request.longitude.toFixed(exact ? 5 : 2)}`;
+}
+
+function localizedAreaName(areaName: string, locale: CopyLocale): string {
+  if (areaName !== "Approximate area") return areaName;
+  return locale === "th" ? "พื้นที่โดยประมาณ" : locale === "zh" ? "大致区域" : locale === "es" ? "Zona aproximada" : locale === "ar" ? "المنطقة التقريبية" : areaName;
+}
 
 type StepState = "done" | "current" | "upcoming" | "stopped";
 
@@ -340,6 +414,7 @@ export function RequestDetail({
 }: { request: HelpRequest; viewer: UserProfile; initialMissionLocations?: RealMissionLocations }) {
   const router = useRouter();
   const pathname = usePathname();
+  const locale = useUiLocale();
   const copyLocale = useCopyLocale();
   const t = localizedCopy[copyLocale];
   const isInterpreter = viewer.role === "Interpreter";
@@ -362,10 +437,6 @@ export function RequestDetail({
   const [submittedReview, setSubmittedReview] = useState<SubmittedReview | null>(null);
   const [locationState, setLocationState] = useState<"loading" | "saved" | "denied" | "unavailable" | "error">("loading");
   const [missionLocations, setMissionLocations] = useState<RealMissionLocations>(initialMissionLocations);
-  const userConfirmedAt = request.userConfirmedDoneAtLabel;
-
-  const interpreterConfirmedAt = request.interpreterConfirmedDoneAtLabel;
-  const viewerConfirmedAt = isInterpreter ? interpreterConfirmedAt : userConfirmedAt;
   const existingReview = request.review
     ? { rating: request.review.rating, comment: request.review.comment ?? "" }
     : null;
@@ -379,6 +450,14 @@ export function RequestDetail({
   const canEdit = !isInterpreter && (status === "Open" || status === "Claimed");
   const canTrackLocation = !isClosed && status !== "Completed";
   const states = stepStates(status);
+  const createdAtLabel = localizedRequestTimestamp(request.createdAt, request.createdAtLabel, copyLocale) ?? request.createdAtLabel;
+  const scheduledAtLabel = localizedRequestTimestamp(request.scheduledAt, request.scheduledAtLabel, copyLocale);
+  const claimedAtLabel = localizedRequestTimestamp(request.claimedAt, request.claimedAtLabel, copyLocale);
+  const startedAtLabel = localizedRequestTimestamp(request.startedAt, request.startedAtLabel, copyLocale);
+  const userConfirmedDoneAtLabel = localizedRequestTimestamp(request.userConfirmedDoneAt, request.userConfirmedDoneAtLabel, copyLocale);
+  const interpreterConfirmedDoneAtLabel = localizedRequestTimestamp(request.interpreterConfirmedDoneAt, request.interpreterConfirmedDoneAtLabel, copyLocale);
+  const endedAtLabel = localizedRequestTimestamp(request.endedAt, request.endedAtLabel, copyLocale);
+  const viewerConfirmedAt = isInterpreter ? interpreterConfirmedDoneAtLabel : userConfirmedDoneAtLabel;
 
   const savedRequesterLocation = missionLocations.requester
     && (!request.requester || missionLocations.requester.actorId === request.requester.userId)
@@ -420,7 +499,7 @@ export function RequestDetail({
               actorId: viewer.userId,
               latitude: position.coords.latitude,
               longitude: position.coords.longitude,
-              updatedAtLabel: new Date().toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }),
+              updatedAtLabel: formatLocalizedDateTime(new Date(), locale, { dateStyle: "medium", timeStyle: "short" }),
               accuracyMeters: position.coords.accuracy,
             };
             setMissionLocations((current) => ({
@@ -440,7 +519,7 @@ export function RequestDetail({
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, [canTrackLocation, isInterpreter, request.requestId, viewer.userId]);
+  }, [canTrackLocation, isInterpreter, locale, request.requestId, viewer.userId]);
 
   if (!isInterpreter && requesterLocation) {
     mapPoints.push({
@@ -449,7 +528,7 @@ export function RequestDetail({
       name: request.requester?.name ?? viewer.name,
       detail: `${requesterLocation.latitude.toFixed(5)}, ${requesterLocation.longitude.toFixed(5)}`,
       sourceLabel: savedRequesterLocation ? t.liveGpsLabel : t.requestLocationLabel,
-      updatedAtLabel: savedRequesterLocation?.updatedAtLabel ?? request.createdAtLabel,
+      updatedAtLabel: savedRequesterLocation?.updatedAtLabel ?? createdAtLabel,
       accuracyMeters: savedRequesterLocation?.accuracyMeters ?? null,
       isCurrentViewer: true,
       latitude: requesterLocation.latitude,
@@ -477,7 +556,7 @@ export function RequestDetail({
       name: request.requester?.name ?? t.requesterMarker,
       detail: `${requesterLocation.latitude.toFixed(5)}, ${requesterLocation.longitude.toFixed(5)}`,
       sourceLabel: savedRequesterLocation ? t.liveGpsLabel : t.requestLocationLabel,
-      updatedAtLabel: savedRequesterLocation?.updatedAtLabel ?? request.createdAtLabel,
+      updatedAtLabel: savedRequesterLocation?.updatedAtLabel ?? createdAtLabel,
       accuracyMeters: savedRequesterLocation?.accuracyMeters ?? null,
       isCurrentViewer: false,
       latitude: requesterLocation.latitude,
@@ -500,10 +579,10 @@ export function RequestDetail({
   }
 
   const stepTimestamps: Record<(typeof TIMELINE_STEPS)[number], string | null> = {
-    Open: request.createdAtLabel,
-    Claimed: request.claimedAtLabel,
-    InProgress: request.startedAtLabel,
-    Completed: status === "Completed" ? (request.endedAtLabel ?? userConfirmedAt ?? interpreterConfirmedAt) : null,
+    Open: createdAtLabel,
+    Claimed: claimedAtLabel,
+    InProgress: startedAtLabel,
+    Completed: status === "Completed" ? (endedAtLabel ?? userConfirmedDoneAtLabel ?? interpreterConfirmedDoneAtLabel) : null,
   };
 
   async function confirmCancellation() {
@@ -606,8 +685,8 @@ export function RequestDetail({
               {categoryLabel(request.categoryId, copyLocale)} · {languageLabel(request.languageId, copyLocale)}
             </h1>
             <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-bold text-[#73848a]">
-              <span>{t.created}: {request.createdAtLabel}</span>
-              {request.scheduledAtLabel && <span>{t.scheduled}: {request.scheduledAtLabel}</span>}
+              <span>{t.created}: {createdAtLabel}</span>
+              {scheduledAtLabel && <span>{t.scheduled}: {scheduledAtLabel}</span>}
               {status === "Open" && request.expiresAt && (
                 <ExpiryCountdown seconds={0} expiresAt={request.expiresAt} copyLocale={copyLocale} compact />
               )}
@@ -694,10 +773,10 @@ export function RequestDetail({
               {status === "Completed" && (
                 <div className="mt-2 border-t border-[#e3ebef] pt-4 text-xs font-bold text-[#087557]">
                   <p>
-                    {isInterpreter ? t.requesterConfirmation : t.yourConfirmation}: {userConfirmedAt}
+                    {isInterpreter ? t.requesterConfirmation : t.yourConfirmation}: {userConfirmedDoneAtLabel}
                   </p>
                   <p className="mt-1">
-                    {isInterpreter ? t.yourConfirmation : t.interpreterConfirmation}: {interpreterConfirmedAt}
+                    {isInterpreter ? t.yourConfirmation : t.interpreterConfirmation}: {interpreterConfirmedDoneAtLabel}
                   </p>
                 </div>
               )}
@@ -836,18 +915,18 @@ export function RequestDetail({
               <dl className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2">
                 <div>
                   <dt className="text-xs font-extrabold text-[#8a9aa0]">{t.areaLabel}</dt>
-                  <dd className="mt-1 text-sm font-extrabold text-[#203d4d]">{request.areaName}</dd>
+                  <dd className="mt-1 text-sm font-extrabold text-[#203d4d]">{localizedAreaName(request.areaName, copyLocale)}</dd>
                 </div>
                 <div>
                   <dt className="text-xs font-extrabold text-[#8a9aa0]">{t.exactCoordsLabel}</dt>
                   <dd className="mt-1 text-sm font-extrabold text-[#203d4d]">
-                    {canSeeSensitiveLocation ? exactCoordinates(request) : approximateCoordinates(request)}
+                    {localizedCoordinates(request, copyLocale, canSeeSensitiveLocation)}
                   </dd>
                 </div>
                 <div className="sm:col-span-2">
                   <dt className="text-xs font-extrabold text-[#8a9aa0]">{t.exactLabel}</dt>
                   <dd className="mt-1 text-sm font-extrabold text-[#203d4d]">
-                    {canSeeSensitiveLocation ? request.exactAddress : request.areaName}
+                    {canSeeSensitiveLocation ? request.exactAddress : localizedAreaName(request.areaName, copyLocale)}
                   </dd>
                 </div>
               </dl>
@@ -859,7 +938,7 @@ export function RequestDetail({
                     {isInterpreter ? t.contactLockedTitle : t.interpreterViewLabel}
                   </p>
                   <p className="mt-2 text-sm font-extrabold text-[#203d4d]">
-                    {request.areaName} · {approximateCoordinates(request)}
+                    {localizedAreaName(request.areaName, copyLocale)} · {localizedCoordinates(request, copyLocale, false)}
                   </p>
                   <p className="mt-1.5 text-xs leading-5 text-[#73848a]">
                     {isInterpreter ? t.contactLockedBody : t.interpreterViewBody}
@@ -950,7 +1029,7 @@ export function RequestDetail({
                   <UserCircleIcon aria-hidden="true" className="h-11 w-11 shrink-0 text-[#087557]" />
                   <div className="min-w-0">
                     <p className="text-base font-extrabold text-[#123a2d]">{request.interpreter.name}</p>
-                    <p className="mt-0.5 text-xs font-bold text-[#5c8073]">{request.interpreter.primaryLanguage}</p>
+                    <p className="mt-0.5 text-xs font-bold text-[#5c8073]">{languageLabel(request.languageId, copyLocale)}</p>
                   </div>
                 </div>
 
@@ -959,7 +1038,7 @@ export function RequestDetail({
                     <StarIcon aria-hidden="true" className="h-4 w-4 text-[#e0952f]" />
                     {(request.interpreter.reviewCount ?? 0) > 0
                       ? <>{request.interpreter.averageRating.toFixed(1)} {t.ratingLabel}</>
-                      : <>{copyLocale === "zh" ? "暂无评分" : "No rating yet"}</>}
+                      : <>{copyLocale === "th" ? "ยังไม่มีคะแนน" : copyLocale === "zh" ? "暂无评分" : copyLocale === "es" ? "Sin valoración" : copyLocale === "ar" ? "لا يوجد تقييم بعد" : "No rating yet"}</>}
                   </span>
                   <span>
                     {request.interpreter.completedJobCount} {t.jobsLabel}
@@ -1022,7 +1101,7 @@ export function RequestDetail({
                       {t.meetingPointLabel}
                     </p>
                     <p className="text-sm font-bold leading-6 text-[#123a2d]">
-                      {request.exactAddress || request.areaName}
+                      {request.exactAddress || localizedAreaName(request.areaName, copyLocale)}
                     </p>
                   </div>
 
@@ -1036,7 +1115,7 @@ export function RequestDetail({
                         {requesterLocation.latitude.toFixed(5)}, {requesterLocation.longitude.toFixed(5)}
                       </p>
                       <p className="text-xs leading-5 text-[#5c8073]">
-                        {t.updatedMapLabel}: {savedRequesterLocation?.updatedAtLabel ?? request.createdAtLabel}
+                        {t.updatedMapLabel}: {savedRequesterLocation?.updatedAtLabel ?? createdAtLabel}
                       </p>
                     </div>
                   )}

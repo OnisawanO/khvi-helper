@@ -4,6 +4,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "@heroicons/react/24/outline";
+import type { Locale } from "@/app/components/site-header";
 
 interface TablePaginationProps {
   totalItems: number;
@@ -11,6 +12,7 @@ interface TablePaginationProps {
   pageSize: number;
   onPageChange: (page: number) => void;
   itemName?: string;
+  locale?: Locale;
 }
 
 export function TablePagination({
@@ -19,6 +21,7 @@ export function TablePagination({
   pageSize,
   onPageChange,
   itemName = "records",
+  locale = "en",
 }: TablePaginationProps) {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const validCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
@@ -29,13 +32,14 @@ export function TablePagination({
 
   const startRecord = (validCurrentPage - 1) * pageSize + 1;
   const endRecord = Math.min(validCurrentPage * pageSize, totalItems);
+  const label = locale === "th" ? { showing: "แสดง", to: "ถึง", of: "จาก", previous: "ก่อนหน้า", next: "ถัดไป" } : locale === "zh" ? { showing: "显示", to: "至", of: "共", previous: "上一页", next: "下一页" } : locale === "es" ? { showing: "Mostrando", to: "a", of: "de", previous: "Anterior", next: "Siguiente" } : locale === "ar" ? { showing: "عرض", to: "إلى", of: "من", previous: "السابق", next: "التالي" } : { showing: "Showing", to: "to", of: "of", previous: "Previous", next: "Next" };
 
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/70 px-5 py-3.5 text-xs text-slate-500 select-none">
       <div>
-        Showing{" "}
-        <strong className="text-[#092f45]">{startRecord}</strong> to{" "}
-        <strong className="text-[#092f45]">{endRecord}</strong> of{" "}
+        {label.showing}{" "}
+        <strong className="text-[#092f45]">{startRecord}</strong> {label.to}{" "}
+        <strong className="text-[#092f45]">{endRecord}</strong> {label.of}{" "}
         <strong className="text-[#092f45]">{totalItems}</strong> {itemName}
       </div>
 
@@ -46,10 +50,10 @@ export function TablePagination({
           disabled={validCurrentPage <= 1}
           onClick={() => onPageChange(Math.max(1, validCurrentPage - 1))}
           className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-[#092f45] shadow-2xs hover:bg-slate-50 hover:border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
-          title="Previous page"
+          title={label.previous}
         >
           <ChevronLeftIcon className="h-3.5 w-3.5" />
-          <span>Previous</span>
+          <span>{label.previous}</span>
         </button>
 
         {/* Page Indicator Pills */}
@@ -76,9 +80,9 @@ export function TablePagination({
           disabled={validCurrentPage >= totalPages}
           onClick={() => onPageChange(Math.min(totalPages, validCurrentPage + 1))}
           className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-[#092f45] shadow-2xs hover:bg-slate-50 hover:border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
-          title="Next page"
+          title={label.next}
         >
-          <span>Next</span>
+          <span>{label.next}</span>
           <ChevronRightIcon className="h-3.5 w-3.5" />
         </button>
       </div>

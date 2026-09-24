@@ -21,6 +21,7 @@ import {
   SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { useCopyLocale, useUiLocale } from "@/app/components/app-shell";
+import { localeDateTimeTags } from "@/app/lib/locale";
 import type { Urgency } from "@/app/lib/request-types";
 import type { ReferenceOption } from "@/app/lib/reference-catalog";
 import { LocationMapPicker, type LocationCoordinates } from "./location-map-picker";
@@ -166,7 +167,12 @@ const localizedCopy = {
     breadcrumb: "เส้นทางนำทาง", main: "หน้าหลัก", label: "สร้างคำขอความช่วยเหลือ", title: "สร้างหมุดขอความช่วยเหลือ",
     intro: "เลือกภาษาและหมวดหมู่ที่ต้องการ แล้วระบุสถานที่เพื่อให้ล่ามที่ตรงความสามารถรับงานได้",
     urgencyLegend: "ต้องการความช่วยเหลือเมื่อใด?", scheduleLabel: "เวลานัดหมาย", scheduleHint: "เลือกวันพรุ่งนี้หรือวันถัดไป",
+    urgency: {
+      Immediate: { title: "เร่งด่วน", detail: "ต้องการความช่วยเหลือภายในประมาณ 15 นาที หมุดจะหมดอายุหลัง 30 นาทีหากไม่มีล่ามรับงาน" },
+      Scheduled: { title: "นัดหมายล่วงหน้า", detail: "เลือกเวลาใดก็ได้ตั้งแต่วันถัดไปเป็นต้นไป" },
+    },
     scheduleDay: "วันที่", scheduleHour: "ชั่วโมง", scheduleMinute: "นาที", selectedTime: "เวลาที่เลือก",
+    timeWheelHint: "เลื่อนวงล้อชั่วโมงและนาทีในแนวตั้ง", previousMonth: "เดือนก่อน", nextMonth: "เดือนถัดไป", selectedDate: "วันที่เลือก",
     languageLabel: "ภาษาที่ต้องการ", languagePlaceholder: "เลือกหนึ่งภาษา", categoryLabel: "หมวดหมู่",
     categoryPlaceholder: "เลือกหนึ่งหมวดหมู่", descriptionLabel: "ล่ามควรรู้อะไรบ้าง?",
     descriptionHint: "อาการ เอกสาร จุดสังเกต หรือข้อมูลที่ช่วยให้ล่ามเตรียมตัว (ไม่บังคับ)",
@@ -190,7 +196,12 @@ const localizedCopy = {
     breadcrumb: "Migas de pan", main: "Inicio", label: "Nueva solicitud de ayuda", title: "Crear una solicitud de ayuda",
     intro: "Elige un idioma y una categoría por solicitud. Los intérpretes que coincidan podrán aceptarla.",
     urgencyLegend: "¿Cuándo necesitas ayuda?", scheduleLabel: "Hora de la cita", scheduleHint: "Elige mañana o una fecha posterior",
+    urgency: {
+      Immediate: { title: "Urgente", detail: "Necesitas ayuda en unos 15 minutos. La solicitud caduca tras 30 minutos si nadie la acepta." },
+      Scheduled: { title: "Programada", detail: "Elige cualquier hora a partir del día siguiente." },
+    },
     scheduleDay: "Fecha", scheduleHour: "Hora", scheduleMinute: "Minuto", selectedTime: "Hora seleccionada",
+    timeWheelHint: "Desplaza verticalmente las ruedas de hora y minuto.", previousMonth: "Mes anterior", nextMonth: "Mes siguiente", selectedDate: "Fecha seleccionada",
     languageLabel: "Idioma necesario", languagePlaceholder: "Selecciona un idioma", categoryLabel: "Categoría",
     categoryPlaceholder: "Selecciona una categoría", descriptionLabel: "¿Qué debe saber el intérprete?",
     descriptionHint: "Síntomas, documentos, referencias u otra información útil. Opcional.",
@@ -214,7 +225,12 @@ const localizedCopy = {
     breadcrumb: "مسار التنقل", main: "الرئيسية", label: "طلب مساعدة جديد", title: "إنشاء طلب مساعدة",
     intro: "اختر لغة وفئة واحدة لكل طلب. سيتمكن المترجمون المطابقون من استلامه.",
     urgencyLegend: "متى تحتاج إلى المساعدة؟", scheduleLabel: "موعد اللقاء", scheduleHint: "اختر الغد أو تاريخًا لاحقًا",
+    urgency: {
+      Immediate: { title: "عاجل", detail: "تحتاج إلى المساعدة خلال نحو 15 دقيقة. تنتهي صلاحية الطلب بعد 30 دقيقة إذا لم يستلمه أحد." },
+      Scheduled: { title: "مجدول", detail: "اختر أي وقت بدءًا من اليوم التالي." },
+    },
     scheduleDay: "التاريخ", scheduleHour: "الساعة", scheduleMinute: "الدقيقة", selectedTime: "الوقت المحدد",
+    timeWheelHint: "مرّر عجلات الساعة والدقيقة رأسيًا.", previousMonth: "الشهر السابق", nextMonth: "الشهر التالي", selectedDate: "التاريخ المحدد",
     languageLabel: "اللغة المطلوبة", languagePlaceholder: "اختر لغة واحدة", categoryLabel: "الفئة",
     categoryPlaceholder: "اختر فئة واحدة", descriptionLabel: "ما الذي يجب أن يعرفه المترجم؟",
     descriptionHint: "الأعراض أو المستندات أو المعالم أو أي معلومات تساعده على الاستعداد. اختياري.",
@@ -375,10 +391,10 @@ function parseDateInputValue(dateValue: string) {
   return date;
 }
 
-function formatShortSelectedDate(dateValue: string) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateValue);
-  if (!match) return "--/--/--";
-  return `${match[3]}/${match[2]}/${match[1].slice(-2)}`;
+function formatShortSelectedDate(dateValue: string, locale: string) {
+  const date = parseDateInputValue(dateValue);
+  if (!date) return "--/--/--";
+  return new Intl.DateTimeFormat(locale, { day: "2-digit", month: "2-digit", year: "2-digit" }).format(date);
 }
 
 function appointmentFromParts(dateValue: string, hourValue: string, minuteValue: string) {
@@ -399,7 +415,7 @@ type DateCalendarProps = {
   label: string;
   value: string;
   minimumDate: string;
-  locale: "en-US" | "zh-CN";
+  locale: string;
   previousMonthLabel: string;
   nextMonthLabel: string;
   selectedDateLabel: string;
@@ -500,7 +516,7 @@ function DateCalendar({
       <div className="mt-3 flex items-center justify-between gap-3 border-t border-[#d6e0e4] pt-3">
         <span className="text-xs font-bold text-[#64777e]">{selectedDateLabel}</span>
         <output htmlFor={id} className="text-base font-extrabold tabular-nums text-[#087f80]">
-          {formatShortSelectedDate(value)}
+          {formatShortSelectedDate(value, locale)}
         </output>
       </div>
     </div>
@@ -867,7 +883,7 @@ export function RequestHelpForm({
                       label={t.scheduleDay}
                       value={scheduledDate}
                       minimumDate={minimumScheduleDate}
-                      locale={copyLocale === "zh" ? "zh-CN" : "en-US"}
+                      locale={localeDateTimeTags[locale]}
                       previousMonthLabel={t.previousMonth}
                       nextMonthLabel={t.nextMonth}
                       selectedDateLabel={t.selectedDate}

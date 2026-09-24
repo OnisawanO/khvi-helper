@@ -242,10 +242,11 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Uncomment to customize email template
-# [auth.email.template.invite]
-# subject = "You have been invited"
-# content_path = "./supabase/templates/invite.html"
+# The template selects its body from the user's preferred_ui_language metadata.
+# Apply the same template in the hosted project's Auth > Email Templates page.
+[auth.email.template.recovery]
+subject = "KHVI Helper: password reset"
+content_path = "./supabase/templates/recovery.html"
 
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]

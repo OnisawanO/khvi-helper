@@ -65,7 +65,7 @@ export function WorkspaceBreadcrumbs({
             <Fragment key={`${item.label}-${index}`}>
               {index > 0 && (
                 <li aria-hidden="true">
-                  <ChevronRightIcon aria-hidden="true" className="h-4 w-4 text-(--khvi-ink)/40" />
+                  <ChevronRightIcon aria-hidden="true" className="rtl-directional-icon h-4 w-4 text-(--khvi-ink)/40" />
                 </li>
               )}
               <li>

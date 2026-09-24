@@ -75,7 +75,7 @@ export function AdminRailBar({
             type="button"
             onClick={onMenuClick}
             className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-white shadow-xs hover:bg-[#087f80] hover:border-[#087f80] transition-all focus:outline-none focus:ring-2 focus:ring-[#087f80]/40 cursor-pointer"
-            aria-label="Toggle Navigation Drawer"
+            aria-label={t.header.menu}
             title={t.header.menu}
           >
             <Bars3Icon className="h-5 w-5" />

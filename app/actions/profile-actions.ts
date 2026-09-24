@@ -50,6 +50,11 @@ export async function updateProfileAction(input: ProfileUpdateInput): Promise<Pr
 
   if (error) return { ok: false, error: "Unable to save your profile. Please try again." };
 
+  const { error: metadataError } = await supabase.auth.updateUser({
+    data: { preferred_ui_language: input.preferredUiLanguage },
+  });
+  if (metadataError) return { ok: false, error: "Unable to save your interface language. Please try again." };
+
   const result = await getCurrentUserProfile(supabase);
   if (!result.profile) return { ok: false, error: result.error ?? "Unable to reload your profile." };
   return { ok: true, profile: result.profile };

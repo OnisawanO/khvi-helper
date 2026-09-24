@@ -3,11 +3,8 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import {
   isLocale,
-  persistPreferredUiLanguage,
   resolveCopyLocale,
   useStoredLocale,
-  LOCALE_STORAGE_KEY,
-  LOCALE_USER_SELECTED_KEY,
   type CopyLocale,
 } from "@/app/lib/locale";
 import { SiteFooter } from "./site-footer";
@@ -206,14 +203,6 @@ export function AppShell({ children, accountActions, welcomeRole, accountRole, h
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return;
 
-      const userSelected = typeof window !== "undefined" && window.localStorage.getItem(LOCALE_USER_SELECTED_KEY) === "true";
-      const activeLocale = typeof window !== "undefined" ? window.localStorage.getItem(LOCALE_STORAGE_KEY) : null;
-
-      if (userSelected && isLocale(activeLocale)) {
-        void persistPreferredUiLanguage(activeLocale).catch(() => {});
-        return;
-      }
-
       const { data } = await supabase
         .from("profiles")
         .select("preferred_ui_language")
@@ -234,12 +223,6 @@ export function AppShell({ children, accountActions, welcomeRole, accountRole, h
 
   const handleLocaleChange = (nextLocale: Locale) => {
     setLocale(nextLocale);
-    void persistPreferredUiLanguage(nextLocale).catch((error: unknown) => {
-      console.error(
-        "Unable to persist preferred UI language:",
-        error instanceof Error ? error.message : error,
-      );
-    });
   };
   const copyLocale = resolveCopyLocale(locale);
   const t = locale === "th" ? {

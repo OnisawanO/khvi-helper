@@ -254,6 +254,16 @@ const localizedLandingCopy = {
       note: "Lenguas diferentes, una comunidad",
       imageAlt: "Un grupo diverso observa unido un paisaje tailandés",
     },
+    howItWorks: {
+      label: "Cómo funciona",
+      title: "De la solicitud a la finalización",
+      steps: ["Elige un idioma, una categoría y un punto de encuentro", "Cuando un intérprete acepte la solicitud, revisa y confirma a la persona intérprete", "Ambas partes confirman la finalización y después dejan una valoración"],
+    },
+    privacy: {
+      label: "Privacidad",
+      title: "Comparte solo lo necesario",
+      body: "Confirma con quién te reunirás y el lugar antes de desplazarte. Los datos de contacto y la ubicación exacta se muestran tras confirmar al intérprete. El apoyo lingüístico no sustituye a los servicios de emergencia.",
+    },
     footer: {
       ...landingCopy.en.footer,
       description: "Una red de intérpretes voluntarios que hace accesible la comunicación para todas las personas.",
@@ -307,6 +317,16 @@ const localizedLandingCopy = {
       quote: "عندما يتجاوز التواصل الحدود،\nيمكن للجميع أن يذهبوا أبعد.",
       note: "لغات مختلفة، مجتمع واحد",
       imageAlt: "مجموعة متنوعة تقف معًا وتتأمل منظرًا طبيعيًا في تايلاند",
+    },
+    howItWorks: {
+      label: "كيف يعمل",
+      title: "من الطلب إلى الإتمام",
+      steps: ["اختر اللغة والفئة ومكان اللقاء", "عندما يستلم مترجم الطلب، راجع بياناته وأكّد اختياره", "يؤكد الطرفان اكتمال المهمة ثم يتركان تقييمًا"],
+    },
+    privacy: {
+      label: "الخصوصية",
+      title: "شارك ما يلزم فقط",
+      body: "تأكد من الشخص الذي ستقابله ومكان اللقاء قبل التحرك. تظهر تفاصيل التواصل والموقع الدقيق بعد تأكيد المترجم. لا يغني الدعم اللغوي عن خدمات الطوارئ.",
     },
     footer: {
       ...landingCopy.en.footer,

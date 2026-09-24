@@ -12,17 +12,21 @@ import {
 } from "@heroicons/react/24/outline";
 import { AuditLogEntry } from "../types";
 import { TablePagination } from "./table-pagination";
+import type { Locale } from "@/app/components/site-header";
+import { formatLocalizedDateTime } from "@/app/lib/locale";
 
 interface AuditTrailTableProps {
   auditLogs: AuditLogEntry[];
   auditViewMode: "table" | "activity";
   setAuditViewMode: (mode: "table" | "activity") => void;
+  locale: Locale;
 }
 
 export function AuditTrailTable({
   auditLogs,
   auditViewMode,
   setAuditViewMode,
+  locale,
 }: AuditTrailTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSeverities, setSelectedSeverities] = useState<string[]>([]);
@@ -100,13 +104,31 @@ export function AuditTrailTable({
 
   const activeFiltersCount =
     selectedSeverities.length + selectedActions.length + selectedActorRoles.length;
+  const text = (en: string, th: string, zh: string, es: string, ar: string) => locale === "th" ? th : locale === "zh" ? zh : locale === "es" ? es : locale === "ar" ? ar : en;
+  const actionLabel = (action: string) => ({
+    INTERPRETER_APPLICATION_APPROVED: text("Interpreter application approved", "อนุมัติใบสมัครล่าม", "已批准口译员申请", "Solicitud de intérprete aprobada", "تم اعتماد طلب المترجم"),
+    INTERPRETER_REVOKED: text("Interpreter accreditation revoked", "เพิกถอนการรับรองล่าม", "已撤销口译员认证", "Acreditación de intérprete revocada", "تم إلغاء اعتماد المترجم"),
+    ACCOUNT_UPDATE: text("Account updated", "อัปเดตบัญชี", "已更新账户", "Cuenta actualizada", "تم تحديث الحساب"),
+    ACCOUNT_SUSPEND: text("Account suspended", "ระงับบัญชี", "已暂停账户", "Cuenta suspendida", "تم تعليق الحساب"),
+    ACCOUNT_BAN: text("Account banned", "แบนบัญชี", "已封禁账户", "Cuenta bloqueada", "تم حظر الحساب"),
+  }[action] ?? text("Security action", "การดำเนินการความปลอดภัย", "安全操作", "Acción de seguridad", "إجراء أمني"));
+  const detailsLabel = (details: string) => {
+    if (/Interpreter application decision: approved/i.test(details)) return text("Interpreter application decision: approved.", "ตัดสินใบสมัครล่าม: อนุมัติ", "口译员申请决定：已批准", "Decisión de solicitud de intérprete: aprobada.", "قرار طلب المترجم: تمت الموافقة.");
+    const revoked = details.match(/^Interpreter accreditation revoked:\s*(.*)$/i);
+    if (revoked) return text(`Interpreter accreditation revoked: ${revoked[1]}`, `เพิกถอนการรับรองล่าม: ${revoked[1]}`, `已撤销口译员认证：${revoked[1]}`, `Acreditación de intérprete revocada: ${revoked[1]}`, `تم إلغاء اعتماد المترجم: ${revoked[1]}`);
+    const role = details.match(/^Role set to (.*)\. Locked: (Yes|No)\.?$/i);
+    if (role) return text(`Role set to ${role[1]}. Locked: ${role[2]}.`, `กำหนดบทบาทเป็น ${role[1]} · ล็อก: ${role[2] === "Yes" ? "ใช่" : "ไม่"}`, `角色设为${role[1]} · 已锁定：${role[2] === "Yes" ? "是" : "否"}`, `Rol establecido: ${role[1]} · Bloqueada: ${role[2] === "Yes" ? "Sí" : "No"}`, `تم تعيين الدور إلى ${role[1]} · مقفل: ${role[2] === "Yes" ? "نعم" : "لا"}`);
+    return details;
+  };
+  const severityLabel = (severity: string) => ({ danger: text("Danger", "อันตราย", "危险", "Peligro", "خطر"), warning: text("Warning", "คำเตือน", "警告", "Advertencia", "تحذير"), info: text("Info", "ข้อมูล", "信息", "Información", "معلومات") }[severity] ?? severity);
+  const timestampLabel = (timestamp: string) => formatLocalizedDateTime(timestamp, locale, { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" });
 
   return (
     <div className="space-y-4">
       <div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-slate-200">
           <div>
-            <h2 className="text-lg sm:text-xl font-bold text-[#092f45]">System Security Audit Trail</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-[#092f45]">{text("System Security Audit Trail", "ประวัติการตรวจสอบความปลอดภัยระบบ", "系统安全审计记录", "Registro de auditoría de seguridad", "سجل تدقيق أمان النظام")}</h2>
           </div>
 
           {/* Toggle Button: View 1 (Table Grid) vs View 2 (Activity Cards Feed) */}
@@ -119,10 +141,10 @@ export function AuditTrailTable({
                   ? "bg-white text-[#087f80] shadow-xs border border-slate-200/80"
                   : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
               }`}
-              title="Table Grid View"
+              title={text("Table Grid View", "มุมมองตาราง", "表格视图", "Vista de tabla", "عرض الجدول")}
             >
               <TableCellsIcon className="h-3.5 w-3.5" />
-              <span>Table</span>
+              <span>{text("Table", "ตาราง", "表格", "Tabla", "جدول")}</span>
             </button>
             <button
               type="button"
@@ -132,10 +154,10 @@ export function AuditTrailTable({
                   ? "bg-white text-[#087f80] shadow-xs border border-slate-200/80"
                   : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
               }`}
-              title="Recent Activity Feed View"
+              title={text("Recent Activity Feed View", "มุมมองกิจกรรมล่าสุด", "最近活动视图", "Vista de actividad reciente", "عرض النشاط الأخير")}
             >
               <ListBulletIcon className="h-3.5 w-3.5" />
-              <span>Activity Feed</span>
+              <span>{text("Activity Feed", "ฟีดกิจกรรม", "活动动态", "Actividad", "موجز النشاط")}</span>
             </button>
           </div>
         </div>
@@ -148,7 +170,7 @@ export function AuditTrailTable({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search audit trail by log ID, actor, action type, target account or detail..."
+              placeholder={text("Search audit trail by log ID, actor, action type, target account or detail...", "ค้นหาด้วยรหัส ผู้ดำเนินการ ประเภทการดำเนินการ บัญชีเป้าหมาย หรือรายละเอียด…", "按日志 ID、执行者、操作类型、目标账户或详情搜索…", "Buscar por ID, actor, acción, cuenta objetivo o detalle…", "ابحث برقم السجل أو المنفذ أو نوع الإجراء أو الحساب أو التفاصيل…")}
               className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-10 pr-4 text-xs text-slate-800 placeholder-slate-400 focus:border-[#087f80] focus:outline-none focus:ring-1 focus:ring-[#087f80]"
             />
             <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
@@ -175,7 +197,7 @@ export function AuditTrailTable({
               }`}
             >
               <AdjustmentsHorizontalIcon className="h-4 w-4 text-[#087f80]" />
-              <span>Event Filter</span>
+              <span>{text("Event Filter", "กรองเหตุการณ์", "事件筛选", "Filtrar eventos", "تصفية الأحداث")}</span>
               {activeFiltersCount > 0 && (
                 <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#087f80] text-[9px] font-black text-white">
                   {activeFiltersCount}
@@ -194,7 +216,7 @@ export function AuditTrailTable({
                 <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                   <span className="text-xs font-bold text-[#092f45] flex items-center gap-1.5">
                     <AdjustmentsHorizontalIcon className="h-4 w-4 text-[#087f80]" />
-                    Audit Event Filters
+                    {text("Audit Event Filters", "ตัวกรองเหตุการณ์ตรวจสอบ", "审计事件筛选", "Filtros de auditoría", "عوامل تصفية أحداث التدقيق")}
                   </span>
                   {activeFiltersCount > 0 && (
                     <button
@@ -206,7 +228,7 @@ export function AuditTrailTable({
                       }}
                       className="text-[10px] font-bold text-red-600 hover:underline cursor-pointer"
                     >
-                      Reset All ({activeFiltersCount})
+                      {text("Reset All", "รีเซ็ตทั้งหมด", "全部重置", "Restablecer todo", "إعادة ضبط الكل")} ({activeFiltersCount})
                     </button>
                   )}
                 </div>
@@ -215,7 +237,7 @@ export function AuditTrailTable({
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                      Actor (ผู้ดำเนินการ)
+                      {text("Actor", "ผู้ดำเนินการ", "执行者", "Actor", "المنفذ")}
                     </label>
                     {selectedActorRoles.length > 0 && (
                       <button
@@ -223,7 +245,7 @@ export function AuditTrailTable({
                         onClick={() => setSelectedActorRoles([])}
                         className="text-[10px] font-bold text-[#087f80] hover:underline cursor-pointer"
                       >
-                        Reset ({selectedActorRoles.length})
+                        {text("Reset", "รีเซ็ต", "重置", "Restablecer", "إعادة ضبط")} ({selectedActorRoles.length})
                       </button>
                     )}
                   </div>
@@ -266,7 +288,7 @@ export function AuditTrailTable({
                 {/* Section 2: Severity Filter */}
                 <div>
                   <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
-                    Severity
+                    {text("Severity", "ระดับความรุนแรง", "严重程度", "Gravedad", "الخطورة")}
                   </label>
                   <div className="flex flex-wrap gap-1">
                     {(["danger", "warning", "info"] as const).map((sev) => {
@@ -299,7 +321,7 @@ export function AuditTrailTable({
                           >
                             {isChecked && <CheckIcon className="h-2 w-2 stroke-[3] text-white" />}
                           </span>
-                          <span className="capitalize">{sev}</span>
+                          <span className="capitalize">{severityLabel(sev)}</span>
                         </button>
                       );
                     })}
@@ -310,7 +332,7 @@ export function AuditTrailTable({
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                      Action Type
+                      {text("Action Type", "ประเภทการดำเนินการ", "操作类型", "Tipo de acción", "نوع الإجراء")}
                     </label>
                     {selectedActions.length > 0 && (
                       <button
@@ -318,7 +340,7 @@ export function AuditTrailTable({
                         onClick={() => setSelectedActions([])}
                         className="text-[10px] font-bold text-[#087f80] hover:underline cursor-pointer"
                       >
-                        Reset ({selectedActions.length})
+                        {text("Reset", "รีเซ็ต", "重置", "Restablecer", "إعادة ضبط")} ({selectedActions.length})
                       </button>
                     )}
                   </div>
@@ -340,7 +362,7 @@ export function AuditTrailTable({
                               : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-white"
                           }`}
                         >
-                          <span className="truncate">{action}</span>
+                          <span className="truncate">{actionLabel(action)}</span>
                           <span
                             className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border ${
                               isChecked
@@ -366,19 +388,19 @@ export function AuditTrailTable({
             <table className="w-full text-left text-xs text-slate-600">
               <thead className="border-b border-slate-200 bg-slate-50 font-bold uppercase tracking-wider text-slate-500">
                 <tr>
-                  <th className="py-3 pl-4 pr-2">Log ID & Time</th>
-                  <th className="px-2 py-3 text-center">Severity</th>
-                  <th className="px-2 py-3">Administrator</th>
-                  <th className="px-2 py-3">Action</th>
-                  <th className="px-2 py-3">Target Account</th>
-                  <th className="py-3 pl-2 pr-4">Details</th>
+                  <th className="py-3 pl-4 pr-2">{text("Log ID & Time", "รหัสและเวลา", "日志 ID 与时间", "ID y hora", "المعرّف والوقت")}</th>
+                  <th className="px-2 py-3 text-center">{text("Severity", "ระดับความรุนแรง", "严重程度", "Gravedad", "الخطورة")}</th>
+                  <th className="px-2 py-3">{text("Administrator", "ผู้ดูแลระบบ", "管理员", "Administrador", "المسؤول")}</th>
+                  <th className="px-2 py-3">{text("Action", "การดำเนินการ", "操作", "Acción", "الإجراء")}</th>
+                  <th className="px-2 py-3">{text("Target Account", "บัญชีเป้าหมาย", "目标账户", "Cuenta objetivo", "الحساب المستهدف")}</th>
+                  <th className="py-3 pl-2 pr-4">{text("Details", "รายละเอียด", "详情", "Detalles", "التفاصيل")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
                 {paginatedLogs.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-12 text-center text-slate-400 font-sans">
-                      No audit events match your search/filter criteria.
+                      {text("No audit events match your search/filter criteria.", "ไม่พบเหตุการณ์ตามตัวกรอง", "没有符合搜索/筛选条件的审计事件。", "No hay eventos que coincidan con la búsqueda o los filtros.", "لا توجد أحداث تدقيق تطابق البحث أو عوامل التصفية.")}
                     </td>
                   </tr>
                 ) : (
@@ -386,7 +408,7 @@ export function AuditTrailTable({
                     <tr key={log.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="py-3 pl-4 pr-2 text-slate-500">
                         <span className="font-bold text-[#092f45]">{log.id}</span>
-                        <div className="text-[10px] text-slate-400 font-sans">{log.timestamp}</div>
+                        <div className="text-[10px] text-slate-400 font-sans">{timestampLabel(log.timestamp)}</div>
                       </td>
                       <td className="px-2 py-3 text-center">
                         <span
@@ -398,13 +420,13 @@ export function AuditTrailTable({
                               : "bg-teal-100 text-[#087f80]"
                           }`}
                         >
-                          {log.severity}
+                          {severityLabel(log.severity)}
                         </span>
                       </td>
                       <td className="px-2 py-3 font-semibold text-[#092f45] font-sans">{log.actor}</td>
-                      <td className="px-2 py-3 font-bold text-slate-700">{log.action}</td>
+                      <td className="px-2 py-3 font-bold text-slate-700">{actionLabel(log.action)}</td>
                       <td className="px-2 py-3 text-slate-600 font-sans">{log.targetUser}</td>
-                      <td className="py-3 pl-2 pr-4 text-slate-500 font-sans text-xs">{log.details}</td>
+                      <td className="py-3 pl-2 pr-4 text-slate-500 font-sans text-xs">{detailsLabel(log.details)}</td>
                     </tr>
                   ))
                 )}
@@ -418,7 +440,7 @@ export function AuditTrailTable({
           <div className="mt-2 divide-y divide-slate-100 border-y border-slate-200">
             {paginatedLogs.length === 0 ? (
               <div className="py-12 text-center text-slate-400 text-xs">
-                No audit events match your search/filter criteria.
+                {text("No audit events match your search/filter criteria.", "ไม่พบเหตุการณ์ตามตัวกรอง", "没有符合搜索/筛选条件的审计事件。", "No hay eventos que coincidan con la búsqueda o los filtros.", "لا توجد أحداث تدقيق تطابق البحث أو عوامل التصفية.")}
               </div>
             ) : (
               paginatedLogs.map((log) => (
@@ -437,23 +459,23 @@ export function AuditTrailTable({
                             : "bg-teal-50 text-teal-800 border border-teal-200/80"
                         }`}
                       >
-                        {log.action}
+                        {actionLabel(log.action)}
                       </span>
                       <span className="text-xs font-bold text-[#092f45]">
                         {log.targetUser}
                       </span>
                       <span className="text-[11px] text-slate-400">
-                        by <strong className="text-slate-600 font-semibold">{log.actor}</strong>
+                        {text("by", "โดย", "由", "por", "بواسطة")} <strong className="text-slate-600 font-semibold">{log.actor}</strong>
                       </span>
                     </div>
                     <p className="text-xs text-slate-600 leading-relaxed">
-                      {log.details}
+                      {detailsLabel(log.details)}
                     </p>
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0 border-t sm:border-t-0 pt-1.5 sm:pt-0 border-slate-100">
                     <span className="text-xs font-mono text-slate-400">
-                      {log.timestamp}
+                      {timestampLabel(log.timestamp)}
                     </span>
                     <span className="rounded bg-slate-50 border border-slate-200/80 px-2 py-0.5 text-[10px] font-mono font-medium text-slate-600">
                       {log.id}
@@ -471,7 +493,8 @@ export function AuditTrailTable({
           currentPage={validCurrentPage}
           pageSize={pageSize}
           onPageChange={setCurrentPage}
-          itemName="audit log events"
+          itemName={text("audit log events", "เหตุการณ์ตรวจสอบ", "审计事件", "eventos de auditoría", "أحداث التدقيق")}
+          locale={locale}
         />
       </div>
     </div>

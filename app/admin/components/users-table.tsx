@@ -18,6 +18,9 @@ import {
 } from "@heroicons/react/24/outline";
 import { AdminUserRecord, SystemRole, UserStatusFilter } from "../types";
 import { TablePagination } from "./table-pagination";
+import type { Locale } from "@/app/components/site-header";
+import { formatLocalizedDateTime } from "@/app/lib/locale";
+import { localizeCategoryReference, localizeLanguageReference, localizeUnspecified } from "@/app/lib/reference-localization";
 
 interface UsersTableProps {
   users: AdminUserRecord[];
@@ -40,6 +43,7 @@ interface UsersTableProps {
   filterMenuOpen: boolean;
   setFilterMenuOpen: (open: boolean) => void;
   onSelectUser: (user: AdminUserRecord) => void;
+  locale: Locale;
 }
 
 export function UsersTable({
@@ -63,6 +67,7 @@ export function UsersTable({
   filterMenuOpen,
   setFilterMenuOpen,
   onSelectUser,
+  locale,
 }: UsersTableProps) {
   const filterMenuRef = useRef<HTMLDivElement>(null);
 
@@ -105,6 +110,12 @@ export function UsersTable({
     const start = (validCurrentPage - 1) * pageSize;
     return users.slice(start, start + pageSize);
   }, [users, validCurrentPage, pageSize]);
+  const text = (en: string, th: string, zh: string, es: string, ar: string) => locale === "th" ? th : locale === "zh" ? zh : locale === "es" ? es : locale === "ar" ? ar : en;
+  const roleLabel = (role: SystemRole) => ({ User: text("User", "ผู้ใช้", "用户", "Usuario", "مستخدم"), Interpreter: text("Interpreter", "ล่าม", "口译员", "Intérprete", "مترجم"), Manager: text("Manager", "ผู้จัดการ", "管理员", "Gestor", "مدير"), Admin: text("Admin", "ผู้ดูแลระบบ", "管理员", "Administrador", "مسؤول") }[role]);
+  const formatLastActive = (value: string) => {
+    const parsed = new Date(value.replace(" ", "T"));
+    return Number.isFinite(parsed.getTime()) ? formatLocalizedDateTime(parsed, locale, { dateStyle: "medium", timeStyle: "short" }) : value;
+  };
 
   return (
     <div className="space-y-4">
@@ -116,7 +127,7 @@ export function UsersTable({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by name, email, phone or ID..."
+            placeholder={text("Search by name, email, phone or ID...", "ค้นหาด้วยชื่อ อีเมล โทรศัพท์ หรือ ID…", "按姓名、邮箱、电话或 ID 搜索…", "Buscar por nombre, correo, teléfono o ID…", "ابحث بالاسم أو البريد أو الهاتف أو المعرّف…")}
             className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-10 pr-4 text-xs text-slate-800 placeholder-slate-400 focus:border-[#087f80] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#087f80]"
           />
           <DocumentMagnifyingGlassIcon className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
@@ -139,11 +150,11 @@ export function UsersTable({
               onChange={(e) => setSelectedStatusFilter(e.target.value as UserStatusFilter)}
               className="rounded-xl sm:rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 focus:border-[#087f80] focus:outline-none cursor-pointer"
             >
-              <option value="All">All Accounts</option>
-              <option value="Active">Active Only</option>
-              <option value="SoftSuspended">Soft Suspended</option>
-              <option value="LegacyRestricted">Legacy Restricted</option>
-              <option value="AppealPending">Appeal Pending ({users.filter(u => u.hasPendingAppeal).length})</option>
+              <option value="All">{text("All Accounts", "ทุกบัญชี", "全部账户", "Todas las cuentas", "كل الحسابات")}</option>
+              <option value="Active">{text("Active Only", "เฉพาะที่ใช้งาน", "仅活跃", "Solo activas", "النشطة فقط")}</option>
+              <option value="SoftSuspended">{text("Soft Suspended", "ระงับชั่วคราว", "暂时停用", "Suspendidas temporalmente", "موقوفة مؤقتًا")}</option>
+              <option value="LegacyRestricted">{text("Legacy Restricted", "จำกัดแบบเดิม", "旧限制", "Restricción heredada", "مقيّدة سابقًا")}</option>
+              <option value="AppealPending">{text("Appeal Pending", "รอคำอุทธรณ์", "待申诉", "Apelación pendiente", "استئناف معلق")} ({users.filter(u => u.hasPendingAppeal).length})</option>
             </select>
           </div>
 
@@ -159,7 +170,7 @@ export function UsersTable({
               }`}
             >
               <AdjustmentsHorizontalIcon className="h-4 w-4 text-[#087f80]" />
-              <span>Filter</span>
+              <span>{text("Filter", "กรอง", "筛选", "Filtrar", "تصفية")}</span>
               {activeFiltersCount > 0 && (
                 <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#087f80] text-[9px] font-black text-white">
                   {activeFiltersCount}
@@ -179,7 +190,7 @@ export function UsersTable({
                 <div className="flex items-center justify-between border-b border-[#edf2f5] pb-2.5">
                   <span className="text-xs font-black text-[#112d3f] flex items-center gap-1.5">
                     <AdjustmentsHorizontalIcon className="h-4 w-4 text-[#087f80]" />
-                    Filter Options
+                    {text("Filter Options", "ตัวเลือกตัวกรอง", "筛选选项", "Opciones de filtro", "خيارات التصفية")}
                   </span>
                   {activeFiltersCount > 0 && (
                     <button
@@ -192,7 +203,7 @@ export function UsersTable({
                       }}
                       className="text-[11px] font-bold text-[#f04f3e] hover:underline cursor-pointer"
                     >
-                      Clear all ({activeFiltersCount})
+                      {text("Clear all", "ล้างทั้งหมด", "全部清除", "Borrar todo", "مسح الكل")} ({activeFiltersCount})
                     </button>
                   )}
                 </div>
@@ -202,7 +213,7 @@ export function UsersTable({
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-[11px] font-bold text-[#557180] flex items-center gap-1">
                       <UserCircleIcon className="h-3.5 w-3.5 text-[#087f80]" />
-                      Roles (Multi-Select)
+                      {text("Roles (Multi-Select)", "บทบาท (เลือกได้หลายรายการ)", "角色（可多选）", "Roles (selección múltiple)", "الأدوار (اختيار متعدد)")}
                     </label>
                     {selectedRoles.length > 0 && (
                       <button
@@ -210,7 +221,7 @@ export function UsersTable({
                         onClick={resetRoles}
                         className="text-[10px] text-[#087f80] hover:underline cursor-pointer font-bold"
                       >
-                        Reset ({selectedRoles.length})
+                        {text("Reset", "รีเซ็ต", "重置", "Restablecer", "إعادة ضبط")} ({selectedRoles.length})
                       </button>
                     )}
                   </div>
@@ -237,7 +248,7 @@ export function UsersTable({
                           >
                             {isChecked && <CheckIcon className="h-2.5 w-2.5 stroke-[3]" />}
                           </span>
-                          <span className="truncate">{role}</span>
+                          <span className="truncate">{roleLabel(role)}</span>
                         </button>
                       );
                     })}
@@ -249,7 +260,7 @@ export function UsersTable({
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-[11px] font-bold text-[#557180] flex items-center gap-1">
                       <CheckCircleIcon className="h-3.5 w-3.5 text-[#087f80]" />
-                      Interpreter Verification
+                      {text("Interpreter Verification", "การรับรองล่าม", "口译员认证", "Verificación del intérprete", "تحقق المترجم")}
                     </label>
                     {selectedVerificationStatuses.length > 0 && (
                       <button
@@ -257,7 +268,7 @@ export function UsersTable({
                         onClick={resetVerificationStatuses}
                         className="text-[10px] text-[#087f80] hover:underline cursor-pointer font-bold"
                       >
-                        Reset ({selectedVerificationStatuses.length})
+                        {text("Reset", "รีเซ็ต", "重置", "Restablecer", "إعادة ضبط")} ({selectedVerificationStatuses.length})
                       </button>
                     )}
                   </div>
@@ -284,7 +295,7 @@ export function UsersTable({
                           >
                             {isChecked && <CheckIcon className="h-2.5 w-2.5 stroke-[3]" />}
                           </span>
-                          <span className="truncate">{status}</span>
+                          <span className="truncate">{({ Approved: text("Approved", "อนุมัติแล้ว", "已批准", "Aprobado", "معتمد"), Pending: text("Pending", "รอตรวจสอบ", "待审核", "Pendiente", "قيد الانتظار"), "Under Review": text("Under Review", "กำลังตรวจสอบ", "审核中", "En revisión", "قيد المراجعة"), Suspended: text("Suspended", "ระงับ", "已暂停", "Suspendido", "موقوف") } as Record<string,string>)[status]}</span>
                         </button>
                       );
                     })}
@@ -296,7 +307,7 @@ export function UsersTable({
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-[11px] font-bold text-[#557180] flex items-center gap-1">
                       <LanguageIcon className="h-3.5 w-3.5 text-[#087f80]" />
-                      Languages (ภาษาที่สื่อสารได้)
+                      {text("Languages", "ภาษา", "语言", "Idiomas", "اللغات")}
                     </label>
                     {selectedLanguages.length > 0 && (
                       <button
@@ -304,7 +315,7 @@ export function UsersTable({
                         onClick={resetLanguages}
                         className="text-[10px] text-[#087f80] hover:underline cursor-pointer font-bold"
                       >
-                        Reset ({selectedLanguages.length})
+                        {text("Reset", "รีเซ็ต", "重置", "Restablecer", "إعادة ضبط")} ({selectedLanguages.length})
                       </button>
                     )}
                   </div>
@@ -331,7 +342,7 @@ export function UsersTable({
                           >
                             {isChecked && <CheckIcon className="h-2.5 w-2.5 stroke-[3]" />}
                           </span>
-                          <span className="truncate">{lang}</span>
+                          <span className="truncate">{localizeLanguageReference(lang, locale)}</span>
                         </button>
                       );
                     })}
@@ -343,7 +354,7 @@ export function UsersTable({
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-[11px] font-bold text-[#557180] flex items-center gap-1">
                       <BriefcaseIcon className="h-3.5 w-3.5 text-[#087f80]" />
-                      Specialty Categories
+                      {text("Specialty Categories", "หมวดหมู่ความเชี่ยวชาญ", "专业类别", "Categorías de especialidad", "فئات التخصص")}
                     </label>
                     {selectedCategories.length > 0 && (
                       <button
@@ -351,7 +362,7 @@ export function UsersTable({
                         onClick={resetCategories}
                         className="text-[10px] text-[#087f80] hover:underline cursor-pointer font-bold"
                       >
-                        Reset ({selectedCategories.length})
+                        {text("Reset", "รีเซ็ต", "重置", "Restablecer", "إعادة ضبط")} ({selectedCategories.length})
                       </button>
                     )}
                   </div>
@@ -378,7 +389,7 @@ export function UsersTable({
                           >
                             {isChecked && <CheckIcon className="h-2.5 w-2.5 stroke-[3]" />}
                           </span>
-                          <span className="truncate">{cat}</span>
+                          <span className="truncate">{localizeCategoryReference(cat, locale)}</span>
                         </button>
                       );
                     })}
@@ -396,13 +407,13 @@ export function UsersTable({
           <table className="w-full border-collapse text-left text-xs text-slate-600">
             <thead className="border-b border-slate-200 bg-slate-50/75 font-bold uppercase tracking-wider text-slate-500">
               <tr>
-                <th className="py-3.5 pl-3 pr-4 w-[24%]">User & Contact</th>
-                <th className="px-3.5 py-3.5 w-[11%] text-center">Role</th>
-                <th className="px-3.5 py-3.5 w-[13%]">Primary Lang</th>
-                <th className="px-3.5 py-3.5 w-[20%]">Spoken Languages</th>
-                <th className="px-3.5 py-3.5 w-[10%] text-center">Rating</th>
-                <th className="px-3.5 py-3.5 w-[11%] text-center">Status</th>
-                <th className="py-3.5 pl-3 pr-3 text-right w-[11%]">Last Active</th>
+                <th className="py-3.5 pl-3 pr-4 w-[24%]">{text("User & Contact", "ผู้ใช้และการติดต่อ", "用户与联系方式", "Usuario y contacto", "المستخدم والاتصال")}</th>
+                <th className="px-3.5 py-3.5 w-[11%] text-center">{text("Role", "บทบาท", "角色", "Rol", "الدور")}</th>
+                <th className="px-3.5 py-3.5 w-[13%]">{text("Primary Lang", "ภาษาหลัก", "主要语言", "Idioma principal", "اللغة الأساسية")}</th>
+                <th className="px-3.5 py-3.5 w-[20%]">{text("Spoken Languages", "ภาษาที่สื่อสารได้", "使用语言", "Idiomas hablados", "اللغات المنطوقة")}</th>
+                <th className="px-3.5 py-3.5 w-[10%] text-center">{text("Rating", "คะแนน", "评分", "Valoración", "التقييم")}</th>
+                <th className="px-3.5 py-3.5 w-[11%] text-center">{text("Status", "สถานะ", "状态", "Estado", "الحالة")}</th>
+                <th className="py-3.5 pl-3 pr-3 text-right w-[11%]">{text("Last Active", "ใช้งานล่าสุด", "最近活跃", "Última actividad", "آخر نشاط")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -410,8 +421,8 @@ export function UsersTable({
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-400">
                     <UserCircleIcon className="mx-auto h-10 w-10 text-slate-300" />
-                    <p className="mt-2 text-sm font-semibold">No users matching the filters</p>
-                    <p className="text-xs text-slate-400">Try adjusting your search criteria or resetting filters.</p>
+                    <p className="mt-2 text-sm font-semibold">{text("No users matching the filters", "ไม่พบผู้ใช้ตามตัวกรอง", "没有符合筛选条件的用户", "No hay usuarios que coincidan con los filtros", "لا يوجد مستخدمون يطابقون عوامل التصفية")}</p>
+                    <p className="text-xs text-slate-400">{text("Try adjusting your search criteria or resetting filters.", "ลองปรับคำค้นหาหรือล้างตัวกรอง", "请调整搜索条件或重置筛选", "Ajusta la búsqueda o restablece los filtros.", "جرّب تعديل البحث أو إعادة ضبط عوامل التصفية.")}</p>
                   </td>
                 </tr>
               ) : (
@@ -445,14 +456,14 @@ export function UsersTable({
                             : "bg-slate-100 text-slate-600 border border-slate-200/60"
                         }`}
                       >
-                        {u.role}
+                        {roleLabel(u.role)}
                       </span>
                     </td>
 
                     {/* Primary Language */}
                     <td className="px-3.5 py-3.5 font-semibold text-[#092f45]">
                       <span className="inline-flex items-center gap-1">
-                        {u.primaryLanguage}
+                        {u.primaryLanguage && u.primaryLanguage !== "Not recorded" ? localizeLanguageReference(u.primaryLanguage, locale) : localizeUnspecified(u.primaryLanguage, locale)}
                       </span>
                     </td>
 
@@ -464,7 +475,7 @@ export function UsersTable({
                             key={lang}
                             className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 border border-slate-200"
                           >
-                            {lang}
+                            {localizeLanguageReference(lang, locale)}
                           </span>
                         ))}
                       </div>
@@ -478,7 +489,7 @@ export function UsersTable({
                           <span>{u.interpreterStats.rating.toFixed(1)}</span>
                         </div>
                       ) : (
-                        <span className="text-slate-400 text-[10px]">Not recorded</span>
+                        <span className="text-slate-400 text-[10px]">{text("Not recorded", "ไม่มีข้อมูล", "未记录", "No registrado", "غير مسجل")}</span>
                       )}
                     </td>
 
@@ -497,17 +508,17 @@ export function UsersTable({
                           {u.restrictionType === "hard" || u.accountStatus === "Banned" ? (
                             <>
                               <NoSymbolIcon className="h-3 w-3" />
-                              <span>Legacy Restricted</span>
+                              <span>{text("Legacy Restricted", "จำกัดแบบเดิม", "旧限制", "Restricción heredada", "مقيّدة سابقًا")}</span>
                             </>
                           ) : u.isLocked ? (
                             <>
                               <LockClosedIcon className="h-3 w-3" />
-                              <span>Soft Suspended</span>
+                              <span>{text("Soft Suspended", "ระงับชั่วคราว", "暂时停用", "Suspendida temporalmente", "موقوفة مؤقتًا")}</span>
                             </>
                           ) : (
                             <>
                               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                              <span>Active</span>
+                              <span>{text("Active", "ใช้งานอยู่", "活跃", "Activa", "نشط")}</span>
                             </>
                           )}
                         </span>
@@ -517,7 +528,7 @@ export function UsersTable({
                             title={`Appeal submitted on ${u.appealSubmittedAt || "recently"}: ${u.appealReason || ""}`}
                           >
                             <ChatBubbleLeftEllipsisIcon className="h-2.5 w-2.5 text-amber-600" />
-                            <span>Appeal Pending</span>
+                            <span>{text("Appeal Pending", "รอคำอุทธรณ์", "待申诉", "Apelación pendiente", "استئناف معلق")}</span>
                           </span>
                         )}
                       </div>
@@ -525,7 +536,7 @@ export function UsersTable({
 
                     {/* Last Active */}
                     <td className="py-3.5 pl-3 pr-3 text-right text-slate-500 text-[11px] font-medium whitespace-nowrap">
-                      {u.lastActive}
+                      {formatLastActive(u.lastActive)}
                     </td>
                   </tr>
                 ))
@@ -540,7 +551,8 @@ export function UsersTable({
           currentPage={validCurrentPage}
           pageSize={pageSize}
           onPageChange={setCurrentPage}
-          itemName="users"
+          itemName={text("users", "ผู้ใช้", "用户", "usuarios", "مستخدمين")}
+          locale={locale}
         />
       </div>
     </div>

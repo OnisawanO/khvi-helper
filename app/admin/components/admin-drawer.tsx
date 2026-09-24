@@ -89,7 +89,7 @@ export function AdminDrawer({
 
       {/* Drawer content sliding smoothly from left (Navy Dark Theme) */}
       <aside
-        className={`relative z-10 flex h-full w-[290px] max-w-[85vw] flex-col justify-between overflow-y-auto bg-[#092f45] text-white p-4 shadow-2xl border-r border-[#16435c] transition-transform duration-300 [transition-timing-function:cubic-bezier(0.2,0,0,1)] select-none ${
+        className={`khvi-side-drawer relative z-10 flex h-full w-[290px] max-w-[85vw] flex-col justify-between overflow-y-auto bg-[#092f45] text-white p-4 shadow-2xl border-r border-[#16435c] transition-transform duration-300 [transition-timing-function:cubic-bezier(0.2,0,0,1)] select-none ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -100,7 +100,7 @@ export function AdminDrawer({
               href="/"
               onClick={onClose}
               className="group flex items-center gap-3 rounded-2xl transition-transform hover:scale-105"
-              title="KHVI Home (กลับสู่หน้าหลัก)"
+              title={t.header.home}
             >
               <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#087f80]/40 bg-[#0d3b55] shadow-xs group-hover:border-[#087f80]">
                 <Image

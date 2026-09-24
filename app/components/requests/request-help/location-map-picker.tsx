@@ -1,6 +1,6 @@
 "use client";
 
-import * as L from "leaflet";
+import type { LatLngExpression, LeafletMouseEvent, Map, Marker } from "leaflet";
 import { CheckIcon, MapPinIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useEffect, useRef, useState } from "react";
 
@@ -21,10 +21,13 @@ type LocationMapPickerProps = {
   onCancel: () => void;
 };
 
-const DEFAULT_CENTER: L.LatLngExpression = [13.0389, 101.49];
+type LeafletModule = typeof import("leaflet");
+
+const DEFAULT_CENTER: LatLngExpression = [13.0389, 101.49];
 const DEFAULT_ZOOM = 6;
 
-function selectionIcon() {
+function selectionIcon(leaflet: LeafletModule) {
+  const L = leaflet;
   return L.divIcon({
     className: "khvi-location-picker-marker",
     html: '<span aria-hidden="true" style="display:grid;width:42px;height:42px;place-items:center;border:4px solid white;border-radius:9999px;background:#ef5b47;color:white;box-shadow:0 8px 18px rgba(9,47,69,.28);font-size:22px;line-height:1">●</span>',
@@ -45,66 +48,81 @@ export function LocationMapPicker({
   onCancel,
 }: LocationMapPickerProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const markerRef = useRef<L.Marker | null>(null);
+  const leafletRef = useRef<LeafletModule | null>(null);
+  const mapRef = useRef<Map | null>(null);
+  const markerRef = useRef<Marker | null>(null);
   const [selected, setSelected] = useState<LocationCoordinates | null>(initialCoordinates);
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    const initialCenter: L.LatLngExpression = initialCoordinates
-      ? [initialCoordinates.latitude, initialCoordinates.longitude]
-      : DEFAULT_CENTER;
-    const map = L.map(mapContainerRef.current, {
-      attributionControl: true,
-      keyboard: true,
-      zoomControl: false,
-    }).setView(initialCenter, initialCoordinates ? 15 : DEFAULT_ZOOM);
+    let cancelled = false;
+    let resizeFrame: number | null = null;
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors",
-      maxZoom: 19,
-      minZoom: 3,
-    }).addTo(map);
-    L.control.zoom({ position: "bottomright" }).addTo(map);
+    const initializeMap = async () => {
+      const L = await import("leaflet");
+      if (cancelled || !mapContainerRef.current || mapRef.current) return;
 
-    const setPoint = (coordinates: LocationCoordinates) => {
-      setSelected(coordinates);
+      leafletRef.current = L;
+      const initialCenter: LatLngExpression = initialCoordinates
+        ? [initialCoordinates.latitude, initialCoordinates.longitude]
+        : DEFAULT_CENTER;
+      const map = L.map(mapContainerRef.current, {
+        attributionControl: true,
+        keyboard: true,
+        zoomControl: false,
+      }).setView(initialCenter, initialCoordinates ? 15 : DEFAULT_ZOOM);
 
-      if (markerRef.current) {
-        markerRef.current.setLatLng([coordinates.latitude, coordinates.longitude]);
-      } else {
-        markerRef.current = L.marker([coordinates.latitude, coordinates.longitude], {
-          draggable: true,
-          icon: selectionIcon(),
-          title: selectedLabel,
-        }).addTo(map);
-        markerRef.current.on("dragend", () => {
-          const point = markerRef.current?.getLatLng();
-          if (point) setSelected({ latitude: point.lat, longitude: point.lng });
-        });
-      }
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors",
+        maxZoom: 19,
+        minZoom: 3,
+      }).addTo(map);
+      L.control.zoom({ position: "bottomright" }).addTo(map);
+
+      const setPoint = (coordinates: LocationCoordinates) => {
+        setSelected(coordinates);
+
+        if (markerRef.current) {
+          markerRef.current.setLatLng([coordinates.latitude, coordinates.longitude]);
+        } else {
+          markerRef.current = L.marker([coordinates.latitude, coordinates.longitude], {
+            draggable: true,
+            icon: selectionIcon(L),
+            title: selectedLabel,
+          }).addTo(map);
+          markerRef.current.on("dragend", () => {
+            const point = markerRef.current?.getLatLng();
+            if (point) setSelected({ latitude: point.lat, longitude: point.lng });
+          });
+        }
+      };
+
+      if (initialCoordinates) setPoint(initialCoordinates);
+      map.on("click", (event: LeafletMouseEvent) => {
+        setPoint({ latitude: event.latlng.lat, longitude: event.latlng.lng });
+      });
+
+      mapRef.current = map;
+      resizeFrame = requestAnimationFrame(() => map.invalidateSize());
     };
 
-    if (initialCoordinates) setPoint(initialCoordinates);
-    map.on("click", (event: L.LeafletMouseEvent) => {
-      setPoint({ latitude: event.latlng.lat, longitude: event.latlng.lng });
-    });
-
-    mapRef.current = map;
-    const resizeFrame = requestAnimationFrame(() => map.invalidateSize());
+    void initializeMap();
 
     return () => {
-      cancelAnimationFrame(resizeFrame);
-      map.remove();
+      cancelled = true;
+      if (resizeFrame !== null) cancelAnimationFrame(resizeFrame);
+      mapRef.current?.remove();
       mapRef.current = null;
       markerRef.current = null;
+      leafletRef.current = null;
     };
   }, [initialCoordinates, selectedLabel]);
 
   function selectMapCenter() {
+    const L = leafletRef.current;
     const center = mapRef.current?.getCenter();
-    if (!center) return;
+    if (!center || !L) return;
 
     const coordinates = { latitude: center.lat, longitude: center.lng };
     setSelected(coordinates);
@@ -114,7 +132,7 @@ export function LocationMapPicker({
     } else {
       markerRef.current = L.marker(center, {
         draggable: true,
-        icon: selectionIcon(),
+        icon: selectionIcon(L),
         title: selectedLabel,
       }).addTo(mapRef.current!);
       markerRef.current.on("dragend", () => {

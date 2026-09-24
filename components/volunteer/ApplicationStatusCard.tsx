@@ -5,6 +5,7 @@ import { CheckBadgeIcon, DocumentCheckIcon, ExclamationTriangleIcon, LanguageIco
 import { useInterpreterAccess, useUiLocale } from "@/app/components/app-shell";
 import type { ApplicationStatus, InterpreterApplication } from "@/app/lib/interpreter-application-types";
 import type { Locale } from "@/app/components/site-header";
+import { formatLocalizedDateTime } from "@/app/lib/locale";
 
 type ApplicationStatusCardProps = {
   application: InterpreterApplication | null;
@@ -73,7 +74,12 @@ export function ApplicationStatusCard({ application, compact = false }: Applicat
         ? text("ใบสมัครผ่านการตรวจสอบแล้ว", "Your application has been approved.", "申请已通过审核。", "Tu solicitud ha sido aprobada.", "تمت الموافقة على طلبك.")
         : application.status === "cancelled"
           ? text("คุณถอนใบสมัครนี้แล้ว หากต้องการสมัครใหม่ให้เริ่มใบสมัครอีกครั้ง", "You withdrew this application. Start a new application if you change your mind.", "你已撤回此申请。如需重新申请，请重新开始申请。", "Retiraste esta solicitud. Inicia otra si cambias de opinión.", "لقد سحبت هذا الطلب. ابدأ طلبًا جديدًا إذا غيّرت رأيك.")
-        : text("ใบสมัครอยู่ในคิวตรวจสอบของ Manager", "Your application is in the Manager review queue.", "申请正在管理员审核队列中。", "Tu solicitud está en la cola de revisión del gestor.", "طلبك في قائمة انتظار مراجعة المدير。");
+          : text("ใบสมัครอยู่ในคิวตรวจสอบของ Manager", "Your application is in the Manager review queue.", "申请正在管理员审核队列中。", "Tu solicitud está en la cola de revisión del gestor.", "طلبك في قائمة انتظار مراجعة المدير。");
+  const submittedAt = formatLocalizedDateTime(application.submittedAt, locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Bangkok",
+  });
 
   return (
     <section className="rounded-(--khvi-radius-md) border border-(--khvi-teal)/20 bg-(--khvi-surface) p-5 sm:p-7" aria-labelledby="volunteer-application-title">
@@ -87,7 +93,7 @@ export function ApplicationStatusCard({ application, compact = false }: Applicat
             <h2 id="volunteer-application-title" className="mt-1 text-xl font-bold">
               {application.applicantName}
             </h2>
-            <p className="mt-1 font-mono text-xs text-(--khvi-ink)/60">{application.id} · {application.submittedAt}</p>
+            <p className="mt-1 font-mono text-xs text-(--khvi-ink)/60">{application.id} · {submittedAt}</p>
           </div>
         </div>
         <span className={`inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-extrabold ${style.className}`}>

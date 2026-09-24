@@ -35,6 +35,7 @@ export function AdminKpiCards({
 }: AdminKpiCardsProps) {
   const [locale] = useStoredLocale();
   const t = getAdminTranslation(locale).kpi;
+  const text = (en: string, th: string, zh: string, es: string, ar: string) => locale === "th" ? th : locale === "zh" ? zh : locale === "es" ? es : locale === "ar" ? ar : en;
   const isAllUsersActive =
     selectedStatusFilter === "All" && selectedRoles.length === 0;
   const isInterpretersActive =
@@ -60,7 +61,7 @@ export function AdminKpiCards({
         >
           <div className="flex items-center justify-between gap-1">
             <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate">
-              Total Accounts
+              {text("Total Accounts", "บัญชีทั้งหมด", "账户总数", "Total de cuentas", "إجمالي الحسابات")}
             </p>
             <div className={`flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-md ${
               isAllUsersActive ? "bg-blue-100 text-blue-700" : "bg-blue-50 text-blue-600"
@@ -75,7 +76,7 @@ export function AdminKpiCards({
             <span className="text-[11px] font-semibold text-slate-400">{t.users}</span>
           </div>
           <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px] sm:text-xs text-slate-500">
-            <span className="text-slate-400">Global Directory</span>
+            <span className="text-slate-400">{text("Global Directory", "รายชื่อบนแพลตฟอร์ม", "平台目录", "Directorio global", "دليل المنصة")}</span>
             <span className={`font-bold ${isAllUsersActive ? "text-blue-700 underline" : "text-blue-600 group-hover:underline"}`}>
               {isAllUsersActive ? t.activeFilter : t.filterAll}
             </span>
@@ -98,7 +99,7 @@ export function AdminKpiCards({
         >
           <div className="flex items-center justify-between gap-1">
             <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate">
-              Volunteer Interpreters
+              {text("Volunteer Interpreters", "ล่ามอาสา", "志愿口译员", "Intérpretes voluntarios", "المترجمون المتطوعون")}
             </p>
             <div className={`flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-md ${
               isInterpretersActive ? "bg-teal-100 text-teal-700" : "bg-teal-50 text-[#087f80]"
@@ -113,7 +114,7 @@ export function AdminKpiCards({
             <span className="text-[11px] font-semibold text-teal-600/70">{t.interpreters}</span>
           </div>
           <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px] sm:text-xs text-slate-500">
-            <span className="text-slate-400">Field Capacity</span>
+            <span className="text-slate-400">{text("Field Capacity", "กำลังรองรับภาคสนาม", "现场能力", "Capacidad operativa", "القدرة الميدانية")}</span>
             <span className={`font-bold ${isInterpretersActive ? "text-teal-800 underline" : "text-[#087f80] group-hover:underline"}`}>
               {isInterpretersActive ? t.activeFilter : t.filterInterpreters}
             </span>
@@ -135,7 +136,7 @@ export function AdminKpiCards({
         >
           <div className="flex items-center justify-between gap-1">
             <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate">
-              Soft Suspended
+              {text("Soft Suspended", "ระงับชั่วคราว", "暂时停用", "Suspendida temporalmente", "موقوفة مؤقتًا")}
             </p>
             <div className={`flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-md ${
               isSuspendedActive ? "bg-red-100 text-[#f04f3e]" : "bg-red-50 text-[#f04f3e]"
@@ -154,7 +155,7 @@ export function AdminKpiCards({
             <span className="text-[11px] font-semibold text-slate-400">{t.softSuspended}</span>
           </div>
           <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px] sm:text-xs text-slate-500">
-            <span className="text-slate-400">Security Actions</span>
+            <span className="text-slate-400">{text("Security Actions", "การดำเนินการความปลอดภัย", "安全操作", "Acciones de seguridad", "إجراءات الأمان")}</span>
             <span
               className={`font-bold ${
                 lockedUsersCount > 0 ? "text-[#f04f3e]" : "text-slate-500"
@@ -180,7 +181,7 @@ export function AdminKpiCards({
         >
           <div className="flex items-center justify-between gap-1">
             <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate">
-              Legacy Restricted
+              {text("Legacy Restricted", "จำกัดแบบเดิม", "旧限制", "Restricción heredada", "مقيّدة سابقًا")}
             </p>
             <div className={`flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-md ${
               isLegacyRestrictedActive ? "bg-red-100 text-red-700" : "bg-red-50 text-red-600"
@@ -192,12 +193,12 @@ export function AdminKpiCards({
             <p className={`text-xl sm:text-2xl font-black ${legacyRestrictedUsersCount > 0 ? "text-red-700" : "text-slate-700"}`}>
               {legacyRestrictedUsersCount}
             </p>
-            <span className="text-[11px] font-semibold text-red-600/70">restricted</span>
+            <span className="text-[11px] font-semibold text-red-600/70">{text("restricted", "จำกัดสิทธิ์", "受限", "restringidas", "مقيّدة")}</span>
           </div>
           <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px] sm:text-xs text-slate-500">
-            <span className="text-slate-400">Security Actions</span>
+            <span className="text-slate-400">{text("Security Actions", "การดำเนินการความปลอดภัย", "安全操作", "Acciones de seguridad", "إجراءات الأمان")}</span>
             <span className={`font-bold ${isLegacyRestrictedActive ? "text-red-900 underline" : "text-red-700 group-hover:underline"}`}>
-              {isLegacyRestrictedActive ? "Active Filter" : "Filter Legacy Records"}
+              {isLegacyRestrictedActive ? text("Active Filter", "ตัวกรองที่ใช้งาน", "当前筛选", "Filtro activo", "التصفية النشطة") : text("Filter Legacy Records", "กรองรายการเดิม", "筛选旧记录", "Filtrar registros heredados", "تصفية السجلات السابقة")}
             </span>
           </div>
         </button>
