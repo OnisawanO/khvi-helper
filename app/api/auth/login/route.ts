@@ -19,7 +19,7 @@ export async function POST(request: Request) {
 
   const email = normalizeEmail(body.email);
   const password = typeof body.password === "string" ? body.password : "";
-  const rememberMe = body.rememberMe !== false;
+  const rememberMe = body.rememberMe === true;
   const locale = normalizeLocale(body.locale);
   const copy = getAuthCopy(locale);
 

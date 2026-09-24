@@ -32,7 +32,7 @@ export async function GET(request: Request) {
 
   if (isRecovery) {
     const response = redirectTo(request, "/reset-password");
-    return applyToResponse(response, { recovery: true });
+    return applyToResponse(response, { persistence: "session", recovery: true });
   }
 
   const profileResult = await getCurrentUserProfile(supabase);
