@@ -206,7 +206,7 @@ interpreter-certificates/{auth.uid()}/{uuid}-{safe-file-name}
 
 Upload ทำใน `uploadInterpreterCertificateAction()` หลังตรวจชนิดไฟล์และขนาดไม่เกิน 10 MB จากนั้นจึงส่ง path เข้า `submit_interpreter_application` หรือ `reupload_interpreter_certificate`
 
-Profile photo upload ทำใน `updateProfileAvatarAction()` หลังตรวจ session, MIME type, JPEG signature และขนาดไฟล์ไม่เกิน 5 MB จากนั้นอัปโหลดไฟล์ใหม่เข้า Storage, อัปเดต URL ใน Auth metadata และลบไฟล์เก่าของเจ้าของบัญชี
+Profile photo upload ทำใน `updateProfileAvatarAction()` หลังตรวจ session, MIME type และ JPEG signature โดยไฟล์ต้นฉบับสามารถใหญ่กว่า 5 MB ได้ เพราะหน้าเว็บจะ crop และลดขนาดลงเป็น JPEG 256×256 ก่อนส่งขึ้น Storage; ฝั่ง server ยังตรวจว่าไฟล์ผลลัพธ์ไม่เกิน 5 MB จากนั้นจึงอัปเดต URL ใน Auth metadata และลบไฟล์เก่าของเจ้าของบัญชี
 
 ## Migration workflow
 
