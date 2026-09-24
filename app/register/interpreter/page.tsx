@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { AppShell } from "@/app/components/app-shell";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
 import { CombinedInterpreterRegisterForm } from "@/components/volunteer/CombinedInterpreterRegisterForm";
-import { loadInterpreterApplicationReferences } from "@/app/lib/real-interpreter-application-data";
+import { loadPublicInterpreterApplicationReferences } from "@/app/lib/real-interpreter-application-data";
 import { VolunteerApplyHeader } from "@/components/volunteer/VolunteerApplyHeader";
 
 export const metadata: Metadata = {
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CombinedInterpreterRegisterPage() {
-  const { languages, categories } = await loadInterpreterApplicationReferences();
+  const { languages, categories } = await loadPublicInterpreterApplicationReferences();
 
   return (
     <AppShell hidePrimaryAction>

@@ -236,13 +236,7 @@ async function references(supabase: SupabaseClient) {
   };
 }
 
-export async function loadInterpreterApplicationReferences(supabase?: SupabaseClient) {
-  const client = supabase ?? await createClient();
-  const profileResult = await getCurrentUserProfile(client);
-  if (!profileResult.profile) {
-    return { languages: [], categories: [] };
-  }
-  const reference = await references(client);
+function toInterpreterApplicationReferences(reference: Awaited<ReturnType<typeof references>>) {
   return {
     languages: [...reference.languages.values()].map((item) => ({
       id: item.language_code,
@@ -258,6 +252,21 @@ export async function loadInterpreterApplicationReferences(supabase?: SupabaseCl
       icon: item.icon ?? undefined,
     } satisfies InterpreterApplicationReference)),
   };
+}
+
+export async function loadInterpreterApplicationReferences(supabase?: SupabaseClient) {
+  const client = supabase ?? await createClient();
+  const profileResult = await getCurrentUserProfile(client);
+  if (!profileResult.profile) {
+    return { languages: [], categories: [] };
+  }
+  return toInterpreterApplicationReferences(await references(client));
+}
+
+/** Load the non-sensitive language and category catalog for pre-auth registration. */
+export async function loadPublicInterpreterApplicationReferences() {
+  const reference = await references(await createClient());
+  return toInterpreterApplicationReferences(reference);
 }
 
 async function links(supabase: SupabaseClient, applicationId: number) {
