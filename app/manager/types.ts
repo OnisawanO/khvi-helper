@@ -39,6 +39,7 @@ export type IncidentSeverity = "critical" | "high" | "medium";
 
 export type IncidentReport = {
   id: string;
+  title: string;
   reporterName: string;
   reporterRole: "User" | "Interpreter";
   bookingId?: string;

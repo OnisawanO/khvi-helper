@@ -73,6 +73,7 @@ export type AdminUserRecord = {
 
 export type AdminIncidentReport = {
   id: string;
+  title: string;
   reporterName: string;
   reporterRole: "User" | "Interpreter";
   bookingId?: string;

@@ -313,6 +313,7 @@ statuses for post-condition verification. Apply
 
 - Admin user directory, account restrictions, reports, staff provisioning, and delegated Admin access use Supabase-backed Server Actions or the trusted Edge Function. Empty database results are shown as empty states; they are never replaced with seed data.
 - Manager applications, profile change requests, reports, and operations history use Supabase-backed data. Operations history reads persisted staff actions from `system_audit_logs` and is not reconstructed from current application or report status.
+- Report title and description are displayed separately. Manager sees the full triage queue, while Admin reports are loaded only after `reports.escalated_at` is set by a Manager escalation; the field also preserves post-escalation history after Admin resolution.
 - Admin audit records are persisted by `system_audit_logs` from migration `20260923001200_create_admin_governance_data.sql`.
 - `platform_settings` remains reserved for a future policy-enforcement feature. The current Admin UI does not expose or apply those settings.
 - The migration must be applied to the linked Supabase project before the Audit Trail tab can load data. The current Admin workflows do not require a `platform_settings` row.

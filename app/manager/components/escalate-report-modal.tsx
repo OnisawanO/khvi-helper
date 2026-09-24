@@ -115,8 +115,11 @@ function EscalateReportModalContent({
             </span>
             <div>
               <h2 id="escalate-modal-title" className="text-base font-extrabold text-[#092f45]">
-                Escalate System Report #{report.id}
+                Escalate Report #{report.id}
               </h2>
+              <p className="mt-1 max-w-xs truncate text-xs font-bold text-[#092f45]" title={report.title}>
+                {report.title}
+              </p>
               <p className="mt-0.5 text-xs text-[#527082]">
                 เลือกระดับความรุนแรงก่อนส่งให้ Admin ดำเนินการ
               </p>

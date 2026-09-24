@@ -104,6 +104,7 @@ export function EscalatedReportsTable({
             report.bookingId,
             report.category,
             report.systemArea,
+            report.title,
             report.reason,
             report.originalReason,
           ]
@@ -269,7 +270,7 @@ export function EscalatedReportsTable({
               <th className="px-3.5 py-3.5">{text("System area", "พื้นที่ระบบ", "系统区域", "Área del sistema", "منطقة النظام")}</th>
               <th className="px-3.5 py-3.5">{text("Reporter", "ผู้รายงาน", "报告人", "Informante", "المُبلّغ")}</th>
               <th className="px-3.5 py-3.5 text-center">{text("Severity", "ความรุนแรง", "严重程度", "Gravedad", "الخطورة")}</th>
-              <th className="px-3.5 py-3.5">{text("System issue", "ปัญหาระบบ", "系统问题", "Problema del sistema", "مشكلة النظام")}</th>
+              <th className="px-3.5 py-3.5">{text("Report details", "รายละเอียดรายงาน", "报告详情", "Detalles del informe", "تفاصيل التقرير")}</th>
               <th className="px-3.5 py-3.5 text-center">{text("Status", "สถานะ", "状态", "Estado", "الحالة")}</th>
               <th className="py-3.5 pl-3 pr-5 text-right">{text("Administrative action", "การดำเนินการของผู้ดูแล", "管理员操作", "Acción administrativa", "إجراء المسؤول")}</th>
             </tr>
@@ -299,7 +300,8 @@ export function EscalatedReportsTable({
                       <div className="flex items-center gap-2">
                         <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 text-[11px] font-bold text-amber-700">!</span>
                         <div>
-                          <div className="font-bold text-[#092f45]">{text("System issue", "ปัญหาระบบ", "系统问题", "Problema del sistema", "مشكلة النظام")}</div>
+                          <div className="max-w-[18rem] truncate font-bold text-[#092f45]" title={report.title}>{report.title}</div>
+                          <div className="text-[10px] font-semibold text-slate-500">{text("System issue", "ปัญหาระบบ", "系统问题", "Problema del sistema", "مشكلة النظام")}</div>
                           <span className="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[9px] font-bold text-amber-800">{systemArea}</span>
                         </div>
                       </div>
@@ -326,7 +328,8 @@ export function EscalatedReportsTable({
                           </button>
                         </div>
                       )}
-                      <p className="font-medium leading-relaxed text-slate-800" title={report.reason}>{report.reason}</p>
+                      <p className="font-semibold leading-relaxed text-[#092f45]" title={report.title}>{report.title}</p>
+                      <p className="mt-1 font-medium leading-relaxed text-slate-800" title={report.reason}>{report.reason}</p>
                       {isOriginalExpanded && report.originalReason && <p className="mt-1.5 rounded-lg border border-slate-200 bg-slate-50 p-2 text-[11px] italic text-slate-600">{report.originalReason}</p>}
                       {report.actionTaken && <p className="mt-1 line-clamp-1 text-[10px] italic text-slate-500">{text("Resolution note", "บันทึกการแก้ไข", "解决说明", "Nota de resolución", "ملاحظة الحل")}: {report.actionTaken}</p>}
                     </td>
@@ -383,7 +386,7 @@ export function EscalatedReportsTable({
                   <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-800">{text("System report", "รายงานระบบ", "系统报告", "Informe del sistema", "تقرير النظام")}</span>
                 </div>
                 <h3 className="mt-1 text-lg font-extrabold text-[#092f45]">{text("System report history", "ประวัติรายงานระบบ", "系统报告历史", "Historial del informe", "سجل تقرير النظام")}</h3>
-                <p className="text-xs text-slate-500">{text("Logged", "บันทึกเมื่อ", "记录时间", "Registrado", "سُجّل")}: {selectedReportDetail.createdAt}{selectedReportDetail.bookingId ? ` · ${text("Booking", "การจอง", "预订", "Reserva", "الحجز")}: ${selectedReportDetail.bookingId}` : ""}</p>
+              <p className="text-xs text-slate-500">{text("Logged", "บันทึกเมื่อ", "记录时间", "Registrado", "سُجّل")}: {selectedReportDetail.createdAt}{selectedReportDetail.bookingId ? ` · ${text("Booking", "การจอง", "预订", "Reserva", "الحجز")}: ${selectedReportDetail.bookingId}` : ""}</p>
               </div>
               <button type="button" onClick={() => setSelectedReportDetail(null)} aria-label={text("Close report history", "ปิดประวัติรายงาน", "关闭报告历史", "Cerrar historial", "إغلاق سجل التقرير")} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
                 <XMarkIcon aria-hidden="true" className="h-5 w-5" />
@@ -404,7 +407,8 @@ export function EscalatedReportsTable({
 
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-sm leading-relaxed text-slate-800">
               <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">{text("System issue", "ปัญหาระบบ", "系统问题", "Problema del sistema", "مشكلة النظام")}</p>
-              {selectedReportDetail.reason}
+              <p className="font-semibold text-[#092f45]">{selectedReportDetail.title}</p>
+              <p className="mt-1">{selectedReportDetail.reason}</p>
             </div>
             <div className="rounded-xl border border-slate-200 bg-white p-3.5">
               <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{text("Resolution note", "บันทึกการแก้ไข", "解决说明", "Nota de resolución", "ملاحظة الحل")}</p>

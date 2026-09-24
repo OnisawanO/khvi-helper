@@ -149,6 +149,7 @@ export function IncidentReportsView({
           report.bookingId,
           report.category,
           report.systemArea,
+          report.title,
           report.reason,
           report.originalReason,
         ]
@@ -402,7 +403,7 @@ export function IncidentReportsView({
                       </span>
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-sm font-bold text-[#092f45]">Report #{report.id}</h3>
+                          <h3 className="truncate text-sm font-bold text-[#092f45]" title={report.title}>{report.title}</h3>
                           <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-800">
                             System report
                           </span>
@@ -413,7 +414,7 @@ export function IncidentReportsView({
                           )}
                         </div>
                         <p className="mt-0.5 text-[11px] text-slate-500">
-                          Reported by <strong className="text-slate-700">{report.reporterName}</strong>{" "}
+                          Report #{report.id} · Reported by <strong className="text-slate-700">{report.reporterName}</strong>{" "}
                           ({report.reporterRole}) · {report.createdAt}
                         </p>
                       </div>
@@ -439,7 +440,7 @@ export function IncidentReportsView({
                   </div>
 
                   <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-xs leading-relaxed text-slate-700">
-                    <p className="font-bold text-[#092f45]">System issue</p>
+                    <p className="font-bold text-[#092f45]">{report.title}</p>
                     <p className="mt-0.5">{report.reason}</p>
                     {report.originalReason && report.originalLanguage && (
                       <div className="mt-2 border-t border-slate-200/60 pt-2">
