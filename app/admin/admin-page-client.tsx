@@ -13,7 +13,6 @@ import {
   AccountStatus,
   AdminUserRecord,
   SystemRole,
-  SystemSettingsConfig,
 } from "./types";
 import { AdminHeader } from "./components/admin-header";
 import { AdminDrawer } from "./components/admin-drawer";
@@ -30,7 +29,6 @@ import {
 import { UsersTable } from "./components/users-table";
 import { EscalatedReportsTable } from "./components/escalated-reports-table";
 import { AuditTrailTable } from "./components/audit-trail-table";
-import { PlatformPoliciesView } from "./components/platform-policies-view";
 import ManagerDashboard from "@/app/manager/page";
 import { PlatformOverviewView } from "./components/platform-overview-view";
 import { WorkspaceDataLoadingSkeleton } from "@/app/components/workspace-loading-skeleton";
@@ -40,8 +38,6 @@ import {
   getAdminReportsAction,
   getAdminUsersAction,
   getAdminAuditLogsAction,
-  getAdminPlatformSettingsAction,
-  updateAdminPlatformSettingsAction,
   createManagerAccountAction,
   grantAdminAccessAction,
   revokeInterpreterAccessAction,
@@ -89,14 +85,12 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
     setReports,
     setAuditLogs,
     updateUser,
-    lockUser,
-    revokeInterpreter,
     resolveReport,
   } = useGovernanceStore();
 
   // Filters
   const [selectedRoles, setSelectedRoles] = useState<SystemRole[]>([]);
-  const [selectedStatusFilter, setSelectedStatusFilter] = useState<"Directory" | "All" | "Active" | "SoftSuspended" | "PermanentlyBanned" | "AppealPending">("Directory");
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<"Directory" | "All" | "Active" | "SoftSuspended" | "LegacyRestricted" | "AppealPending">("Directory");
   const [selectedVerificationStatuses, setSelectedVerificationStatuses] = useState<string[]>([]);
   const [selectedReportStatusFilter, setSelectedReportStatusFilter] = useState<ReportStatusFilter>("Pending");
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
@@ -112,19 +106,15 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
   const [tempIsLocked, setTempIsLocked] = useState(false);
   const [tempLockReason, setTempLockReason] = useState("");
 
-  // Account Action Dialog (Hard Ban / Soft Lock) State
+  // Account Action Dialog (Permanent Account Deletion) State
   const [actionTargetUser, setActionTargetUser] = useState<AdminUserRecord | null>(null);
   const [isActionDialogOpen, setIsActionDialogOpen] = useState(false);
   const [roleAssignmentAlert, setRoleAssignmentAlert] = useState<RoleAssignmentAlertKind | null>(null);
-
-  // Platform System Settings State
-  const [systemSettings, setSystemSettings] = useState<SystemSettingsConfig | null>(null);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [reportsLoadError, setReportsLoadError] = useState<string | null>(null);
   const [usersLoadError, setUsersLoadError] = useState<string | null>(null);
   const [auditLogsLoadError, setAuditLogsLoadError] = useState<string | null>(null);
-  const [systemSettingsLoadError, setSystemSettingsLoadError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(initialUser);
   const [dataLoading, setDataLoading] = useState(true);
   const [isStaffAccountModalOpen, setIsStaffAccountModalOpen] = useState(false);
@@ -156,7 +146,7 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
 
       if (!result.profile) {
         router.replace("/#top");
-        return;
+        return false;
       }
 
       if (result.profile.role !== "Admin") {
@@ -174,7 +164,6 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
         loadSupabaseUsers(),
         loadSupabaseReports(),
         loadSupabaseAuditLogs(),
-        loadSupabasePlatformSettings(),
       ]).finally(() => {
         if (!disposed) setDataLoading(false);
       });
@@ -228,23 +217,6 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
         console.error("Failed to load audit logs from Supabase:", err);
         setAuditLogs([]);
         setAuditLogsLoadError("Unable to load audit logs from Supabase.");
-      }
-    };
-
-    const loadSupabasePlatformSettings = async () => {
-      try {
-        const res = await getAdminPlatformSettingsAction();
-        if (res.success && res.data) {
-          setSystemSettings(res.data);
-          setSystemSettingsLoadError(null);
-        } else {
-          setSystemSettings(null);
-          setSystemSettingsLoadError(res.error || "Unable to load platform settings from Supabase.");
-        }
-      } catch (err) {
-        console.error("Failed to load platform settings from Supabase:", err);
-        setSystemSettings(null);
-        setSystemSettingsLoadError("Unable to load platform settings from Supabase.");
       }
     };
 
@@ -353,14 +325,10 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
     return result;
   };
 
-  // Open Safety Action Dialog (Lock / Hard Ban)
+  // Open permanent account deletion dialog.
   const handleOpenActionDialog = (user: AdminUserRecord) => {
     if (currentUser?.adminLevel !== "primary") {
       showToast("Only the Primary Admin can change account security settings.");
-      return;
-    }
-    if (user.accountStatus === "Banned" || user.restrictionType === "hard") {
-      showToast("Permanent bans require a separate Primary Admin review flow.");
       return;
     }
     setIsEditModalOpen(false);
@@ -386,43 +354,23 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
     showToast(`System report ${reportId} has been marked as resolved.`);
   };
 
-  // Confirm Permanent Hard Ban (Strict Safety Confirmation)
-  const handleConfirmHardBan = async (userId: string, reason: string): Promise<boolean> => {
+  // Confirm Permanent Account Deletion (Strict Safety Confirmation)
+  const handleConfirmAccountDeletion = async (userId: string, reason: string): Promise<boolean> => {
     const target = users.find((u) => u.id === userId);
-    const result = await enforceAccountRestrictionAction(userId, "hard_ban", reason);
+    const result = await enforceAccountRestrictionAction(userId, "delete_account", reason);
     if (!result.success) {
-      showToast(`Permanent ban failed: ${result.error || "Unknown error"}`);
+      showToast(`Permanent account deletion failed: ${result.error || "Unknown error"}`);
       return false;
     }
 
-    lockUser(userId, `[PERMANENT BAN] ${reason}`, true, `${currentUser?.name || "Super Admin"} (Admin)`);
     void refreshUsers();
     void refreshAuditLogs();
-    showToast(`Account ${target?.name || userId} has been permanently hard banned.`);
+    showToast(`Account ${target?.name || userId} has been permanently deleted.`);
     return true;
   };
 
-  const handleRevokeInterpreter = async (targetUser: AdminUserRecord, reason: string) => {
-    if (currentUser?.adminLevel !== "primary") {
-      showToast("Only the Primary Admin can revoke interpreter access.");
-      return;
-    }
-
-    const result = await revokeInterpreterAccessAction(targetUser.id, reason);
-    if (!result.success) {
-      showToast(`Interpreter access was not revoked: ${result.error || "Unknown error"}`);
-      return;
-    }
-
-    revokeInterpreter(targetUser.id, reason, `${currentUser?.name || "Super Admin"} (Admin)`);
-    void refreshUsers();
-    void refreshAuditLogs();
-    setIsEditModalOpen(false);
-    showToast(`Successfully revoked accreditation for ${targetUser.name}. Demoted to standard User.`);
-  };
-
-  const handleSaveUserChanges = async () => {
-    if (!selectedUser) return;
+  const handleSaveUserChanges = async (pendingRevokeReason?: string): Promise<boolean> => {
+    if (!selectedUser) return false;
 
     const isPrimaryAdmin = currentUser?.role === "Admin" && currentUser.adminLevel === "primary";
     const isDelegatedAdmin = currentUser?.role === "Admin" && currentUser.adminLevel === "delegated";
@@ -430,17 +378,32 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
 
     if (!isPrimaryAdmin && !isDelegatedAdmin) {
       showToast("This Admin account cannot change roles or account security settings.");
-      return;
+      return false;
     }
 
     if (selectedUser.role === "Admin") {
       showToast("Admin accounts are read-only in User Directory.");
-      return;
+      return false;
     }
 
     if (selectedUser.accountStatus === "Banned" || selectedUser.restrictionType === "hard") {
-      showToast("Permanent bans require Primary Admin review before any change.");
-      return;
+      showToast("Legacy restricted accounts require the permanent account deletion review flow.");
+      return false;
+    }
+
+    if (pendingRevokeReason && currentUser?.adminLevel !== "primary") {
+      showToast("Only the Primary Admin can revoke interpreter access.");
+      return false;
+    }
+
+    if (pendingRevokeReason && selectedUser.role !== "Interpreter") {
+      showToast("Interpreter accreditation can only be revoked from an active Interpreter account.");
+      return false;
+    }
+
+    if (pendingRevokeReason && tempRole !== "Interpreter") {
+      showToast("Keep the role as Interpreter while applying the accreditation revocation.");
+      return false;
     }
 
     if (
@@ -449,19 +412,19 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
         !delegatedManagedRoles.includes(tempRole))
     ) {
       showToast("Delegated Admin can manage only User and Interpreter accounts.");
-      return;
+      return false;
     }
 
     // Security Business Rule: Admin accounts cannot be suspended or locked
     if (tempRole === "Admin" && tempIsLocked) {
       alert("Administrator accounts cannot be locked or suspended for platform continuity and system safety.");
-      return;
+      return false;
     }
 
     // Validation
     if (tempIsLocked && !tempLockReason.trim()) {
       alert("Please provide an enforcement reason for this account suspension (Required for audit logging).");
-      return;
+      return false;
     }
 
     const updatedUser: AdminUserRecord = {
@@ -493,7 +456,7 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
         } else {
           showToast(`Security changes were not saved: ${res.error || "Unknown error"}`);
         }
-        return;
+        return false;
       }
 
       updateUser(
@@ -504,13 +467,35 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
         `Role set to ${tempRole}. Locked: ${tempIsLocked ? "Yes (" + tempLockReason.trim() + ")" : "No"}.`,
         `${currentUser?.name || "Super Admin"} (Admin)`
       );
+      if (pendingRevokeReason) {
+        const revokeResult = await revokeInterpreterAccessAction(selectedUser.id, pendingRevokeReason);
+        if (!revokeResult.success) {
+          showToast(`Security changes were saved, but interpreter access was not revoked: ${revokeResult.error || "Unknown error"}`);
+          void refreshUsers();
+          void refreshAuditLogs();
+          return false;
+        }
+
+        await refreshUsers();
+        await refreshAuditLogs();
+        window.setTimeout(() => {
+          setIsEditModalOpen(false);
+          setSelectedUser(null);
+        }, 1200);
+        showToast(`Successfully revoked accreditation for ${selectedUser.name}. Demoted to standard User.`);
+        return true;
+      }
+
       setIsEditModalOpen(false);
+      setSelectedUser(null);
       void refreshUsers();
       void refreshAuditLogs();
       showToast(`Successfully saved security changes for ${selectedUser.name}.`);
+      return true;
     } catch (err) {
       console.error("Failed to update user security in Supabase:", err);
       showToast("Security changes could not be saved. Please try again.");
+      return false;
     }
   };
 
@@ -544,12 +529,12 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
       if (selectedRoles.length > 0 && !selectedRoles.includes(u.role)) {
         return false;
       }
-      const isHardBanned = u.restrictionType === "hard" || u.accountStatus === "Banned";
-      const isSoftSuspended = u.isLocked && !isHardBanned;
-      if (selectedStatusFilter === "Directory" && isHardBanned) return false;
-      if (selectedStatusFilter === "Active" && (u.isLocked || isHardBanned)) return false;
+      const isLegacyRestricted = u.restrictionType === "hard" || u.accountStatus === "Banned";
+      const isSoftSuspended = u.isLocked && !isLegacyRestricted;
+      if (selectedStatusFilter === "Directory" && isLegacyRestricted) return false;
+      if (selectedStatusFilter === "Active" && (u.isLocked || isLegacyRestricted)) return false;
       if (selectedStatusFilter === "SoftSuspended" && !isSoftSuspended) return false;
-      if (selectedStatusFilter === "PermanentlyBanned" && !isHardBanned) return false;
+      if (selectedStatusFilter === "LegacyRestricted" && !isLegacyRestricted) return false;
       if (selectedStatusFilter === "AppealPending" && (!u.isLocked || !u.hasPendingAppeal)) return false;
 
       if (selectedVerificationStatuses.length > 0) {
@@ -581,10 +566,10 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
       return true;
     }).sort((a, b) => {
       // Restricted users are always sorted to the bottom of the operational directory.
-      const aHardBanned = a.restrictionType === "hard" || a.accountStatus === "Banned";
-      const bHardBanned = b.restrictionType === "hard" || b.accountStatus === "Banned";
-      if (aHardBanned && !bHardBanned) return 1;
-      if (!aHardBanned && bHardBanned) return -1;
+      const aLegacyRestricted = a.restrictionType === "hard" || a.accountStatus === "Banned";
+      const bLegacyRestricted = b.restrictionType === "hard" || b.accountStatus === "Banned";
+      if (aLegacyRestricted && !bLegacyRestricted) return 1;
+      if (!aLegacyRestricted && bLegacyRestricted) return -1;
       if (a.isLocked && !b.isLocked) return 1;
       if (!a.isLocked && b.isLocked) return -1;
       return 0;
@@ -598,7 +583,7 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
     () => users.filter((u) => u.isLocked && u.restrictionType !== "hard" && u.accountStatus !== "Banned").length,
     [users]
   );
-  const hardBannedUsersCount = useMemo(
+  const legacyRestrictedUsersCount = useMemo(
     () => users.filter((u) => u.restrictionType === "hard" || u.accountStatus === "Banned").length,
     [users]
   );
@@ -724,7 +709,7 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
                 totalUsersCount={totalUsersCount}
                 totalInterpretersCount={totalInterpretersCount}
                 lockedUsersCount={lockedUsersCount}
-                hardBannedUsersCount={hardBannedUsersCount}
+                legacyRestrictedUsersCount={legacyRestrictedUsersCount}
                 selectedStatusFilter={selectedStatusFilter}
                 setSelectedStatusFilter={setSelectedStatusFilter}
                 selectedRoles={selectedRoles}
@@ -828,30 +813,6 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
               )
             )}
 
-            {/* TAB 4: PLATFORM GOVERNANCE & POLICIES */}
-            {activeTab === "policies" && (
-              systemSettings ? (
-                <PlatformPoliciesView
-                  settings={systemSettings}
-                  onSave={async (newSettings) => {
-                    const result = await updateAdminPlatformSettingsAction(newSettings);
-                    if (!result.success) {
-                      showToast(`Platform policies could not be saved: ${result.error || "Unknown error"}`);
-                      return;
-                    }
-                    setSystemSettings(newSettings);
-                    await refreshAuditLogs();
-                    showToast("Platform policies successfully updated and recorded in Audit Trail.");
-                  }}
-                />
-              ) : (
-                <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-800">
-                  <p className="font-bold">Platform policies are not available from Supabase.</p>
-                  <p className="mt-1 break-words">{systemSettingsLoadError || "The platform settings row has not been initialized."}</p>
-                </div>
-              )
-            )}
-
             {activeTab === "manager-operations" && (
               <ManagerDashboard
                 embedded
@@ -867,8 +828,12 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
 
       {/* Centered Modal: User Role & Suspension Editor */}
       <UserEditModal
+        key={selectedUser?.id ?? "closed"}
         isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedUser(null);
+        }}
         user={selectedUser}
         tempRole={tempRole}
         setTempRole={setTempRole}
@@ -883,8 +848,7 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
         }
         isPrimaryAdmin={currentUser?.role === "Admin" && currentUser.adminLevel === "primary"}
         onGrantAdminAccess={handleGrantAdminAccess}
-        onRevokeInterpreter={handleRevokeInterpreter}
-        onDirectHardBan={(u) => handleOpenActionDialog(u)}
+        onDirectAccountDeletion={(u) => handleOpenActionDialog(u)}
       />
 
       <RoleAssignmentAlertDialog
@@ -893,15 +857,16 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
         onClose={() => setRoleAssignmentAlert(null)}
       />
 
-      {/* Centered Modal: Account Action Dialog (Permanent Hard Ban with Strict Confirmation) */}
+      {/* Centered Modal: Permanent Account Deletion with Strict Confirmation */}
       <AccountActionDialog
+        key={actionTargetUser?.id ?? "closed"}
         isOpen={isActionDialogOpen}
         user={actionTargetUser}
         onClose={() => {
           setIsActionDialogOpen(false);
           setActionTargetUser(null);
         }}
-        onConfirmHardBan={handleConfirmHardBan}
+        onConfirmAccountDeletion={handleConfirmAccountDeletion}
       />
 
       <StaffAccountModal

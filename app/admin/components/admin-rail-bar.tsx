@@ -6,7 +6,6 @@ import {
   ChartBarSquareIcon,
   CheckCircleIcon,
   ClockIcon,
-  Cog6ToothIcon,
   DocumentCheckIcon,
   DocumentMagnifyingGlassIcon,
   InboxStackIcon,
@@ -168,21 +167,6 @@ export function AdminRailBar({
             )}
           </button>
 
-          {/* 4. Platform Policies & Governance Settings */}
-          <button
-            type="button"
-            onClick={() => setActiveTab("policies")}
-            className={`relative flex h-10 w-10 items-center justify-center rounded-2xl transition-all cursor-pointer ${
-              activeTab === "policies"
-                ? "bg-[#087f80] text-white shadow-md"
-                : "text-slate-300 hover:bg-white/10 hover:text-white"
-            }`}
-            title={t.navigation.policies}
-            aria-label={t.navigation.policies}
-            aria-pressed={activeTab === "policies"}
-          >
-            <Cog6ToothIcon className="h-5 w-5" />
-          </button>
         </div>
 
         <div className="h-px w-8 bg-[#16435c]" />

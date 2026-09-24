@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-type SecurityAction = "list_directory" | "update" | "suspend" | "unlock" | "hard_ban" | "revoke_interpreter";
+type SecurityAction = "list_directory" | "update" | "suspend" | "unlock" | "delete_account" | "revoke_interpreter";
 type SystemRole = "User" | "Interpreter" | "Manager" | "Admin";
 type RestrictionType = "none" | "soft" | "hard";
 
@@ -19,6 +19,10 @@ type FunctionResult = {
     updated?: boolean;
     restrictionType?: RestrictionType;
     users?: DirectoryProfile[];
+    role?: SystemRole;
+    interpreterAccessStatus?: "active" | "revoked";
+    applicationId?: number;
+    applicationStatus?: string;
   };
   error?: string;
 };
@@ -54,6 +58,8 @@ const json = (body: FunctionResult, status = 200) =>
 const validRoles: SystemRole[] = ["User", "Interpreter", "Manager", "Admin"];
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const longAuthBan = "876000h";
+const certificateBucket = "interpreter-certificates";
+const storagePageSize = 100;
 
 const cleanReason = (value: unknown) => (typeof value === "string" ? value.trim().slice(0, 1000) : "");
 
@@ -67,6 +73,72 @@ const inferRestrictionType = (profile: {
   if (profile.lock_reason?.startsWith("[PERMANENT BAN]")) return "hard";
   return profile.is_locked ? "soft" : "none";
 };
+
+async function removeInterpreterCertificates(
+  adminSupabase: ReturnType<typeof createClient>,
+  userId: string,
+) {
+  const bucket = adminSupabase.storage.from(certificateBucket);
+  const paths: string[] = [];
+  let offset = 0;
+
+  while (true) {
+    const { data, error } = await bucket.list(userId, {
+      limit: storagePageSize,
+      offset,
+      sortBy: { column: "name", order: "asc" },
+    });
+
+    if (error) throw new Error(`certificate_cleanup_failed: ${error.message}`);
+
+    const entries = data ?? [];
+    for (const entry of entries) {
+      if (entry.id) paths.push(`${userId}/${entry.name}`);
+    }
+
+    if (entries.length < storagePageSize) break;
+    offset += entries.length;
+  }
+
+  for (let index = 0; index < paths.length; index += storagePageSize) {
+    const { error } = await bucket.remove(paths.slice(index, index + storagePageSize));
+    if (error) throw new Error(`certificate_cleanup_failed: ${error.message}`);
+  }
+}
+
+async function findActiveBookings(
+  adminSupabase: ReturnType<typeof createClient>,
+  userId: string,
+) {
+  const [requesterBookings, interpreterBookings] = await Promise.all([
+    adminSupabase
+      .from("bookings")
+      .select("booking_id, status, expires_at")
+      .eq("user_id", userId)
+      .in("status", ["open", "claimed", "in_progress"])
+      .limit(100),
+    adminSupabase
+      .from("bookings")
+      .select("booking_id, status, expires_at")
+      .eq("interpreter_id", userId)
+      .in("status", ["open", "claimed", "in_progress"])
+      .limit(100),
+  ]);
+
+  const error = requesterBookings.error || interpreterBookings.error;
+  if (error) throw new Error(`active_booking_check_failed: ${error.message}`);
+
+  const now = Date.now();
+  const activeBookings = [
+    ...(requesterBookings.data || []),
+    ...(interpreterBookings.data || []),
+  ].filter((booking) =>
+    booking.status !== "open"
+      || (typeof booking.expires_at === "string" && new Date(booking.expires_at).getTime() > now)
+  );
+
+  return activeBookings.length > 0;
+}
 
 Deno.serve(async (request) => {
   if (request.method !== "POST") {
@@ -121,7 +193,7 @@ Deno.serve(async (request) => {
     return json({ success: false, error: "Invalid request body." }, 400);
   }
 
-  if (!input || !["list_directory", "update", "suspend", "unlock", "hard_ban", "revoke_interpreter"].includes(input.action)) {
+  if (!input || !["list_directory", "update", "suspend", "unlock", "delete_account", "revoke_interpreter"].includes(input.action)) {
     return json({ success: false, error: "Unsupported account security action." }, 400);
   }
 
@@ -194,8 +266,8 @@ Deno.serve(async (request) => {
     return json({ success: false, error: "Admin accounts are protected from User Directory security actions." }, 403);
   }
 
-  if (input.action === "hard_ban" && !isPrimaryAdmin) {
-    return json({ success: false, error: "Only the Primary Admin can apply a permanent hard ban." }, 403);
+  if (input.action === "delete_account" && !isPrimaryAdmin) {
+    return json({ success: false, error: "Only the Primary Admin can permanently delete an account." }, 403);
   }
 
   if (input.action === "revoke_interpreter" && !isPrimaryAdmin) {
@@ -236,7 +308,7 @@ Deno.serve(async (request) => {
     }
 
     if (currentRestriction === "hard") {
-      return json({ success: false, error: "Permanent bans require Primary Admin review before any change." }, 403);
+      return json({ success: false, error: "Legacy restricted accounts require the permanent account deletion review flow." }, 403);
     }
 
     if (requestedRole === "Interpreter" && targetProfile.interpreter_access_status === "revoked") {
@@ -251,8 +323,8 @@ Deno.serve(async (request) => {
     }
   }
 
-  if (input.action === "hard_ban" && !reason) {
-    return json({ success: false, error: "A reason is required for a permanent hard ban." }, 400);
+  if (input.action === "delete_account" && !reason) {
+    return json({ success: false, error: "A reason is required for permanent account deletion." }, 400);
   }
 
   if (input.action === "suspend" && !reason) {
@@ -264,7 +336,7 @@ Deno.serve(async (request) => {
   }
 
   if (input.action === "unlock" && currentRestriction === "hard") {
-    return json({ success: false, error: "Permanent bans cannot be lifted through the standard unlock action." }, 403);
+    return json({ success: false, error: "Legacy permanent restrictions cannot be lifted through the standard unlock action." }, 403);
   }
 
   if (requestedRole === "Interpreter" && currentRole !== "Interpreter") {
@@ -286,16 +358,108 @@ Deno.serve(async (request) => {
     }
   }
 
+  if (input.action === "delete_account") {
+    if (input.targetUserId === authUser.user.id) {
+      return json({ success: false, error: "An Admin cannot delete their own account through this flow." }, 403);
+    }
+
+    const now = new Date().toISOString();
+    const { error: expireError } = await adminSupabase
+      .from("bookings")
+      .update({
+        status: "expired",
+        cancelled_by: "system",
+        cancel_reason: "Request expired before permanent account deletion.",
+      })
+      .eq("user_id", input.targetUserId)
+      .eq("status", "open")
+      .lte("expires_at", now);
+
+    if (expireError) {
+      return json({ success: false, error: `Unable to prepare the account for deletion: ${expireError.message}` }, 500);
+    }
+
+    let hasActiveBooking = false;
+    try {
+      hasActiveBooking = await findActiveBookings(adminSupabase, input.targetUserId);
+    } catch (error) {
+      return json({
+        success: false,
+        error: error instanceof Error ? error.message : "active_booking_check_failed",
+      }, 500);
+    }
+
+    if (hasActiveBooking) {
+      return json({
+        success: false,
+        error: "active_bookings_exist: Finish or cancel active requests or assignments before deleting this account.",
+      }, 409);
+    }
+
+    const [requesterBookings, interpreterBookings] = await Promise.all([
+      adminSupabase
+        .from("bookings")
+        .select("booking_id")
+        .eq("user_id", input.targetUserId),
+      adminSupabase
+        .from("bookings")
+        .select("booking_id")
+        .eq("interpreter_id", input.targetUserId),
+    ]);
+    const bookingHistoryError = requesterBookings.error || interpreterBookings.error;
+
+    if (bookingHistoryError) {
+      return json({ success: false, error: `Unable to prepare booking history for deletion: ${bookingHistoryError.message}` }, 500);
+    }
+
+    const bookingIds = [
+      ...(requesterBookings.data || []).map((booking) => booking.booking_id),
+      ...(interpreterBookings.data || []).map((booking) => booking.booking_id),
+    ];
+
+    try {
+      await removeInterpreterCertificates(adminSupabase, input.targetUserId);
+    } catch (error) {
+      return json({
+        success: false,
+        error: error instanceof Error ? error.message : "certificate_cleanup_failed",
+      }, 500);
+    }
+
+    const { error: reporterCleanupError } = await adminSupabase
+      .from("reports")
+      .update({ reporter_id: null })
+      .eq("reporter_id", input.targetUserId);
+
+    if (reporterCleanupError) {
+      return json({ success: false, error: `Unable to preserve report history before deletion: ${reporterCleanupError.message}` }, 500);
+    }
+
+    if (bookingIds.length > 0) {
+      const { error: reportBookingCleanupError } = await adminSupabase
+        .from("reports")
+        .update({ booking_id: null })
+        .in("booking_id", [...new Set(bookingIds)]);
+
+      if (reportBookingCleanupError) {
+        return json({ success: false, error: `Unable to detach report history from deleted bookings: ${reportBookingCleanupError.message}` }, 500);
+      }
+    }
+
+    const { error: accountDeletionError } = await adminSupabase.auth.admin.deleteUser(input.targetUserId, false);
+    if (accountDeletionError) {
+      return json({ success: false, error: `permanent_account_deletion_failed: ${accountDeletionError.message}` }, 500);
+    }
+
+    return json({ success: true, data: { updated: true, restrictionType: "none" } });
+  }
+
   const previousWasLocked = Boolean(targetProfile.is_locked);
-  const isHardBan = input.action === "hard_ban";
   const isRevokeInterpreter = input.action === "revoke_interpreter";
-  const shouldLock = isHardBan
-    || input.action === "suspend"
+  const shouldLock = input.action === "suspend"
     || (input.action === "update" && input.isLocked === true)
     || (isRevokeInterpreter && previousWasLocked);
-  const restrictionType: RestrictionType = isHardBan
-    ? "hard"
-    : isRevokeInterpreter
+  const restrictionType: RestrictionType = isRevokeInterpreter
     ? currentRestriction
     : shouldLock
     ? "soft"
@@ -314,22 +478,67 @@ Deno.serve(async (request) => {
     return json({ success: false, error: `Authentication restriction failed: ${authUpdateError.message}` }, 400);
   }
 
+  if (isRevokeInterpreter) {
+    const { data: revocationData, error: revocationError } = await adminSupabase.rpc("revoke_interpreter_access",
+      {
+        p_actor_user_id: authUser.user.id,
+        p_target_user_id: input.targetUserId,
+        p_reason: reason,
+      },
+    );
+
+    const revocation = revocationData as {
+      user_id?: string;
+      role?: SystemRole;
+      interpreter_access_status?: "active" | "revoked";
+      application_id?: number;
+      application_status?: string;
+    } | null;
+
+    const revocationSucceeded =
+      !revocationError &&
+      revocation?.user_id === input.targetUserId &&
+      revocation.role === "User" &&
+      revocation.interpreter_access_status === "revoked" &&
+      typeof revocation.application_id === "number" &&
+      revocation.application_status === "rejected";
+
+    if (!revocationSucceeded) {
+      await adminSupabase.auth.admin.updateUserById(input.targetUserId, {
+        ban_duration: previousWasLocked ? longAuthBan : "none",
+      });
+
+      return json({
+        success: false,
+        error: `Interpreter accreditation was not revoked: ${revocationError?.message || "Database post-condition verification failed"}`,
+      }, 500);
+    }
+
+    return json({
+      success: true,
+      data: {
+        updated: true,
+        restrictionType,
+        role: revocation.role,
+        interpreterAccessStatus: revocation.interpreter_access_status,
+        applicationId: revocation.application_id,
+        applicationStatus: revocation.application_status,
+      },
+    });
+  }
+
   const profileUpdate: Record<string, unknown> = {
     is_locked: shouldLock,
-    lock_reason: isHardBan ? `[PERMANENT BAN] ${nextReason}` : nextReason,
+    lock_reason: nextReason,
     restriction_type: restrictionType,
     restriction_reason: nextReason,
     restriction_at: shouldLock ? new Date().toISOString() : null,
     restriction_by_user_id: shouldLock ? authUser.user.id : null,
   };
 
-  if (input.action === "update" || isRevokeInterpreter) {
+  if (input.action === "update") {
     profileUpdate.role = requestedRole;
     profileUpdate.admin_level = null;
-  }
-
-  if (isRevokeInterpreter) {
-    profileUpdate.interpreter_access_status = "revoked";
   }
 
   const { data: updatedProfile, error: profileUpdateError } = await adminSupabase
@@ -344,37 +553,6 @@ Deno.serve(async (request) => {
       ban_duration: previousWasLocked ? longAuthBan : "none",
     });
     return json({ success: false, error: `Account restriction was not saved: ${profileUpdateError?.message || "profile not updated"}` }, 500);
-  }
-
-  if (isRevokeInterpreter) {
-    const { data: revokedApplication, error: revokeApplicationError } = await adminSupabase
-      .from("interpreter_applications")
-      .update({
-        status: "rejected",
-        reject_reason: `Interpreter accreditation revoked: ${reason}`,
-        revision_note: null,
-        reviewed_at: new Date().toISOString(),
-        reviewed_by_user_id: authUser.user.id,
-      })
-      .eq("user_id", input.targetUserId)
-      .eq("status", "approved")
-      .select("application_id")
-      .maybeSingle();
-
-    if (revokeApplicationError || !revokedApplication) {
-      await adminSupabase
-        .from("profiles")
-        .update({
-          role: currentRole,
-          admin_level: targetProfile.admin_level,
-          interpreter_access_status: targetProfile.interpreter_access_status || "active",
-        })
-        .eq("user_id", input.targetUserId);
-      await adminSupabase.auth.admin.updateUserById(input.targetUserId, {
-        ban_duration: previousWasLocked ? longAuthBan : "none",
-      });
-      return json({ success: false, error: `Interpreter accreditation was not revoked: ${revokeApplicationError?.message || "approved application not found"}` }, 500);
-    }
   }
 
   return json({ success: true, data: { updated: true, restrictionType } });

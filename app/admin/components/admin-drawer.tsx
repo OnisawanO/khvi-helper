@@ -7,7 +7,6 @@ import {
   ChartBarSquareIcon,
   CheckCircleIcon,
   ClockIcon,
-  Cog6ToothIcon,
   DocumentCheckIcon,
   DocumentMagnifyingGlassIcon,
   InboxStackIcon,
@@ -249,33 +248,6 @@ export function AdminDrawer({
                 </span>
               </button>
 
-              <button
-                onClick={() => {
-                  setActiveTab("policies");
-                  onClose();
-                }}
-                type="button"
-                aria-current={activeTab === "policies" ? "page" : undefined}
-                className={`flex w-full h-10 items-center justify-between rounded-2xl px-3 text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === "policies"
-                    ? "bg-[#087f80] text-white shadow-md"
-                    : "text-slate-200 hover:bg-white/10 hover:text-white"
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <Cog6ToothIcon className="h-5 w-5 text-slate-300" />
-                  <span>{t.navigation.policies}</span>
-                </div>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase ${
-                    activeTab === "policies"
-                      ? "bg-white/20 text-white"
-                      : "bg-teal-900/60 text-teal-300"
-                  }`}
-                >
-                  Active
-                </span>
-              </button>
             </nav>
           </div>
 

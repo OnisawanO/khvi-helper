@@ -14,7 +14,7 @@ interface AdminKpiCardsProps {
   totalUsersCount: number;
   totalInterpretersCount: number;
   lockedUsersCount: number;
-  hardBannedUsersCount: number;
+  legacyRestrictedUsersCount: number;
   selectedStatusFilter: UserStatusFilter;
   setSelectedStatusFilter: (status: UserStatusFilter) => void;
   selectedRoles: string[];
@@ -26,7 +26,7 @@ export function AdminKpiCards({
   totalUsersCount,
   totalInterpretersCount,
   lockedUsersCount,
-  hardBannedUsersCount,
+  legacyRestrictedUsersCount,
   selectedStatusFilter,
   setSelectedStatusFilter,
   selectedRoles,
@@ -40,7 +40,7 @@ export function AdminKpiCards({
   const isInterpretersActive =
     selectedRoles.length === 1 && selectedRoles.includes("Interpreter");
   const isSuspendedActive = selectedStatusFilter === "SoftSuspended";
-  const isHardBannedActive = selectedStatusFilter === "PermanentlyBanned";
+  const isLegacyRestrictedActive = selectedStatusFilter === "LegacyRestricted";
 
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-1 shadow-2xs">
@@ -165,39 +165,39 @@ export function AdminKpiCards({
           </div>
         </button>
 
-        {/* 4. Permanent Hard Bans */}
+        {/* 4. Legacy Restrictions */}
         <button
           type="button"
           onClick={() => {
-            setSelectedStatusFilter("PermanentlyBanned");
+            setSelectedStatusFilter("LegacyRestricted");
             resetRoles();
           }}
           className={`group text-left rounded-lg p-3.5 sm:p-4 transition-all cursor-pointer border ${
-            isHardBannedActive
+            isLegacyRestrictedActive
               ? "bg-white border-red-200 shadow-xs ring-1 ring-red-500/20"
               : "bg-white/60 hover:bg-white border-transparent hover:border-slate-200"
           }`}
         >
           <div className="flex items-center justify-between gap-1">
             <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate">
-              Permanently Banned
+              Legacy Restricted
             </p>
             <div className={`flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-md ${
-              isHardBannedActive ? "bg-red-100 text-red-700" : "bg-red-50 text-red-600"
+              isLegacyRestrictedActive ? "bg-red-100 text-red-700" : "bg-red-50 text-red-600"
             }`}>
               <NoSymbolIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </div>
           </div>
           <div className="mt-1.5 flex items-baseline gap-2">
-            <p className={`text-xl sm:text-2xl font-black ${hardBannedUsersCount > 0 ? "text-red-700" : "text-slate-700"}`}>
-              {hardBannedUsersCount}
+            <p className={`text-xl sm:text-2xl font-black ${legacyRestrictedUsersCount > 0 ? "text-red-700" : "text-slate-700"}`}>
+              {legacyRestrictedUsersCount}
             </p>
-            <span className="text-[11px] font-semibold text-red-600/70">{t.hardBanned}</span>
+            <span className="text-[11px] font-semibold text-red-600/70">restricted</span>
           </div>
           <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px] sm:text-xs text-slate-500">
             <span className="text-slate-400">Security Actions</span>
-            <span className={`font-bold ${isHardBannedActive ? "text-red-900 underline" : "text-red-700 group-hover:underline"}`}>
-              {isHardBannedActive ? t.activeFilter : t.filterHardBans}
+            <span className={`font-bold ${isLegacyRestrictedActive ? "text-red-900 underline" : "text-red-700 group-hover:underline"}`}>
+              {isLegacyRestrictedActive ? "Active Filter" : "Filter Legacy Records"}
             </span>
           </div>
         </button>

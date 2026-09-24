@@ -52,7 +52,7 @@ export const governanceStore = {
     notify();
   },
 
-  lockUser: (userId: string, reason: string, isHardBan = false, actor = "Super Admin (Admin)") => {
+  lockUser: (userId: string, reason: string, actor = "Super Admin (Admin)") => {
     const target = memoryUsers.find((u) => u.id === userId);
     if (!target) return;
 
@@ -60,15 +60,15 @@ export const governanceStore = {
       ...target,
       isLocked: true,
       lockReason: reason,
-      restrictionType: isHardBan ? "hard" : "soft",
+      restrictionType: "soft",
       restrictionReason: reason,
       restrictionAt: new Date().toISOString(),
-      accountStatus: isHardBan ? "Banned" : "Locked",
+      accountStatus: "Locked",
     };
 
     governanceStore.updateUser(
       updatedUser,
-      isHardBan ? "ACCOUNT_HARD_BANNED" : "ACCOUNT_SUSPEND",
+      "ACCOUNT_SUSPEND",
       `Reason: ${reason}`,
       actor
     );

@@ -139,11 +139,10 @@ export function UsersTable({
               onChange={(e) => setSelectedStatusFilter(e.target.value as UserStatusFilter)}
               className="rounded-xl sm:rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 focus:border-[#087f80] focus:outline-none cursor-pointer"
             >
-              <option value="Directory">Operational Directory</option>
               <option value="All">All Accounts</option>
               <option value="Active">Active Only</option>
               <option value="SoftSuspended">Soft Suspended</option>
-              <option value="PermanentlyBanned">Permanently Banned</option>
+              <option value="LegacyRestricted">Legacy Restricted</option>
               <option value="AppealPending">Appeal Pending ({users.filter(u => u.hasPendingAppeal).length})</option>
             </select>
           </div>
@@ -498,7 +497,7 @@ export function UsersTable({
                           {u.restrictionType === "hard" || u.accountStatus === "Banned" ? (
                             <>
                               <NoSymbolIcon className="h-3 w-3" />
-                              <span>Permanently Banned</span>
+                              <span>Legacy Restricted</span>
                             </>
                           ) : u.isLocked ? (
                             <>

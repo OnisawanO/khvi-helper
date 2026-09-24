@@ -642,6 +642,12 @@ open -> claimed -> in_progress -> completed
 
 #### FR-20: Admin
 
+The Admin security console supports soft suspension for routine enforcement. Permanent account
+deletion replaces the previous hard-ban action and is available only to the Primary Admin after
+strict confirmation. The flow blocks deletion while the target has an active booking, removes
+account-owned interpreter certificates, deletes the Supabase Auth account and cascading profile
+data, and preserves audit/report history without the deleted profile reference.
+
 **Requirement:** Admin ต้องจัดการ role และข้อมูลผู้ใช้ตามสิทธิ์ระดับระบบ
 
 **Actor:** Admin

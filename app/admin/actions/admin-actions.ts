@@ -9,10 +9,8 @@ import {
   AuditLogEntry,
   InterpreterApplicationStatus,
   InterpreterAccessStatus,
-  SystemSettingsConfig,
   SystemRole,
 } from "../types";
-import { DEFAULT_PLATFORM_SETTINGS } from "../platform-settings-defaults";
 import {
   formatReportId,
   getReportProfileName,
@@ -180,6 +178,10 @@ type AccountSecurityActionResult = AdminActionResult<{
   updated: boolean;
   restrictionType?: AccountRestrictionType;
   users?: DirectoryProfile[];
+  role?: SystemRole;
+  interpreterAccessStatus?: InterpreterAccessStatus;
+  applicationId?: number;
+  applicationStatus?: string;
 }>;
 
 
@@ -227,6 +229,10 @@ async function invokeAccountSecurityFunction(
       updated?: boolean;
       restrictionType?: AccountRestrictionType;
       users?: DirectoryProfile[];
+      role?: SystemRole;
+      interpreterAccessStatus?: InterpreterAccessStatus;
+      applicationId?: number;
+      applicationStatus?: string;
     };
     error?: string;
   } | null;
@@ -244,6 +250,10 @@ async function invokeAccountSecurityFunction(
       updated: true,
       restrictionType: result.data.restrictionType,
       users: result.data.users,
+      role: result.data.role,
+      interpreterAccessStatus: result.data.interpreterAccessStatus,
+      applicationId: result.data.applicationId,
+      applicationStatus: result.data.applicationStatus,
     },
   };
 }
@@ -497,85 +507,6 @@ export async function getAdminAuditLogsAction(): Promise<AdminActionResult<Audit
   }
 }
 
-/** Fetches the persisted Admin platform policy configuration. */
-export async function getAdminPlatformSettingsAction(): Promise<AdminActionResult<SystemSettingsConfig>> {
-  try {
-    const authCheck = await verifyAdminCaller();
-    if (!authCheck.authorized || !authCheck.supabase) {
-      return { success: false, error: authCheck.error || "Access denied" };
-    }
-
-    const { data, error } = await authCheck.supabase
-      .from("platform_settings")
-      .select("settings, updated_at, updated_by")
-      .eq("setting_key", "default")
-      .maybeSingle();
-
-    if (error) return { success: false, error: `Failed to fetch platform settings: ${error.message}` };
-    if (!data) return { success: false, error: "Platform settings have not been initialized in Supabase." };
-
-    const settings = {
-      ...DEFAULT_PLATFORM_SETTINGS,
-      ...(data.settings as Partial<SystemSettingsConfig>),
-      lastUpdated: data.updated_at?.slice(0, 19).replace("T", " "),
-      updatedBy: data.updated_by ? "Admin" : "System baseline",
-    } satisfies SystemSettingsConfig;
-
-    return { success: true, data: settings };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to load platform settings";
-    return { success: false, error: message };
-  }
-}
-
-/** Persists platform policies and records the change in the immutable audit trail. */
-export async function updateAdminPlatformSettingsAction(
-  settings: SystemSettingsConfig,
-): Promise<AdminActionResult<{ updated: boolean; auditLog?: AuditLogEntry }>> {
-  try {
-    const authCheck = await verifyAdminCaller();
-    if (!authCheck.authorized || !authCheck.supabase || !authCheck.user) {
-      return { success: false, error: authCheck.error || "Access denied" };
-    }
-
-    const persistedSettings = {
-      sosDispatchRadiusKm: settings.sosDispatchRadiusKm,
-      autoEscalateTicketMinutes: settings.autoEscalateTicketMinutes,
-      allowGuestSosRequests: settings.allowGuestSosRequests,
-      interpreterMinRatingThreshold: settings.interpreterMinRatingThreshold,
-      mandatoryIdVerification: settings.mandatoryIdVerification,
-      maxFalseAlarmsBeforeAutoLock: settings.maxFalseAlarmsBeforeAutoLock,
-      languagesCatalog: settings.languagesCatalog,
-      specialtyCategories: settings.specialtyCategories,
-    } satisfies Omit<SystemSettingsConfig, "lastUpdated" | "updatedBy">;
-
-    const { error } = await authCheck.supabase
-      .from("platform_settings")
-      .update({ settings: persistedSettings, updated_by: authCheck.user.id })
-      .eq("setting_key", "default");
-
-    if (error) return { success: false, error: `Failed to save platform settings: ${error.message}` };
-
-    const auditLog = await insertAuditLog(
-      authCheck.supabase,
-      authCheck.user.id,
-      authCheck.actorName || "Admin",
-      {
-        action: "SYSTEM_POLICY_UPDATE",
-        targetUser: "Platform Configuration",
-        severity: "warning",
-        details: `SOS Radius: ${settings.sosDispatchRadiusKm}km, Min Rating: ${settings.interpreterMinRatingThreshold}, Ticket SLA: ${settings.autoEscalateTicketMinutes}m, Languages: ${settings.languagesCatalog.length}, Taxonomies: ${settings.specialtyCategories.length}`,
-      },
-    );
-
-    revalidatePath("/admin");
-    return { success: true, data: { updated: true, auditLog: auditLog || undefined } };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to save platform settings";
-    return { success: false, error: message };
-  }
-}
-
 /**
  * Updates a user's role, lock status, and lock reason in Supabase.
  */
@@ -644,7 +575,7 @@ export async function updateUserSecurityAction(
     if (targetRestrictionType === "hard") {
       return {
         success: false,
-        error: "Permanent bans require Primary Admin review before any change.",
+        error: "Legacy restricted accounts require the permanent account deletion review flow.",
       };
     }
 
@@ -762,6 +693,43 @@ export async function revokeInterpreterAccessAction(
     });
 
     if (!result.success) return result;
+
+    const applicationId = result.data?.applicationId;
+    if (!applicationId) {
+      return {
+        success: false,
+        error: "Revoke response did not include the updated application. Deploy the latest account-security function.",
+      };
+    }
+
+    const [profileVerification, applicationVerification] = await Promise.all([
+      authCheck.supabase
+        .from("profiles")
+        .select("role, interpreter_access_status")
+        .eq("user_id", targetUserId)
+        .maybeSingle(),
+      authCheck.supabase
+        .from("interpreter_applications")
+        .select("application_id, status")
+        .eq("application_id", applicationId)
+        .maybeSingle(),
+    ]);
+
+    if (
+      profileVerification.error ||
+      applicationVerification.error ||
+      !profileVerification.data ||
+      !applicationVerification.data ||
+      profileVerification.data.role !== "User" ||
+      profileVerification.data.interpreter_access_status !== "revoked" ||
+      applicationVerification.data.status !== "rejected"
+    ) {
+      return {
+        success: false,
+        error: "Revoke completed with an inconsistent database state. Refresh the record and inspect the account-security invocation.",
+      };
+    }
+
     await insertAuditLog(
       authCheck.supabase,
       authCheck.user?.id || "",
@@ -781,7 +749,7 @@ export async function revokeInterpreterAccessAction(
   }
 }
 
-export type AccountRestrictionAction = "suspend" | "unlock" | "hard_ban";
+export type AccountRestrictionAction = "suspend" | "unlock" | "delete_account";
 
 /**
  * Applies an account restriction through the trusted Supabase Edge Function.
@@ -799,10 +767,10 @@ export async function enforceAccountRestrictionAction(
       return { success: false, error: authCheck.error || "Access denied" };
     }
 
-    if (action === "hard_ban" && authCheck.adminLevel !== "primary") {
+    if (action === "delete_account" && authCheck.adminLevel !== "primary") {
       return {
         success: false,
-        error: "Forbidden: Only the Primary Admin can apply a permanent hard ban.",
+        error: "Forbidden: Only the Primary Admin can permanently delete an account.",
       };
     }
 
@@ -822,10 +790,12 @@ export async function enforceAccountRestrictionAction(
         authCheck.user?.id || "",
         authCheck.actorName || "Admin",
         {
-          action: action === "hard_ban" ? "ACCOUNT_HARD_BANNED" : action === "suspend" ? "ACCOUNT_SUSPEND" : "ACCOUNT_UNLOCKED",
+          action: action === "delete_account" ? "ACCOUNT_PERMANENTLY_DELETED" : action === "suspend" ? "ACCOUNT_SUSPEND" : "ACCOUNT_UNLOCKED",
           targetUser: targetUserId,
           severity: action === "unlock" ? "info" : "danger",
-          details: `${action} account restriction. Reason: ${reason.trim() || "not provided"}.`,
+          details: action === "delete_account"
+            ? `Account permanently deleted. Reason: ${reason.trim() || "not provided"}.`
+            : `${action} account restriction. Reason: ${reason.trim() || "not provided"}.`,
         },
       );
       revalidatePath("/admin");
