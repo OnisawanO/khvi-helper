@@ -2,13 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import type { Locale } from "@/app/components/site-header";
-import type { UserProfile } from "@/app/lib/mock-auth";
-import { submitInterpreterApplication, type InterpreterApplication } from "@/app/lib/interpreter-application";
-import {
-  DEFAULT_INTERPRETER_LANGUAGES,
-  DEFAULT_INTERPRETER_CATEGORIES,
-  sortCategoriesByPriority,
-} from "@/app/lib/interpreter-reference-catalog";
+import type { UserProfile } from "@/app/lib/auth-types";
+import type { InterpreterApplication } from "@/app/lib/interpreter-application-types";
+import { sortCategoriesByPriority, type InterpreterApplicationReference } from "@/app/lib/interpreter-reference-catalog";
 import {
   uploadInterpreterCertificateAction,
   updateInterpreterProfileAction,
@@ -21,6 +17,8 @@ export interface EditInterpreterProfileModalProps {
   locale: Locale;
   initialApplication: InterpreterApplication | null;
   profile: UserProfile;
+  availableLanguages: InterpreterApplicationReference[];
+  availableCategories: InterpreterApplicationReference[];
 }
 
 function getInitialNames(initialApplication: InterpreterApplication | null, profile: UserProfile) {
@@ -32,10 +30,10 @@ function getInitialNames(initialApplication: InterpreterApplication | null, prof
   return { firstName: parts[0] || "", lastName: parts.slice(1).join(" ") || "" };
 }
 
-function getInitialLanguages(initialApplication: InterpreterApplication | null) {
+function getInitialLanguages(initialApplication: InterpreterApplication | null, availableLanguages: InterpreterApplicationReference[]) {
   if (initialApplication?.languages && initialApplication.languages.length > 0) {
     return initialApplication.languages.map((l, index) => {
-      const found = DEFAULT_INTERPRETER_LANGUAGES.find(
+      const found = availableLanguages.find(
         (ref) =>
           ref.id.toLowerCase() === l.id.toLowerCase() ||
           ref.name.toLowerCase() === l.name.toLowerCase()
@@ -48,22 +46,19 @@ function getInitialLanguages(initialApplication: InterpreterApplication | null) 
       };
     });
   }
-  return [
-    { code: "thai", level: "Native", isPrimary: true },
-    { code: "english", level: "Fluent", isPrimary: false },
-  ];
+  return [];
 }
 
-function getInitialCategories(initialApplication: InterpreterApplication | null) {
+function getInitialCategories(initialApplication: InterpreterApplication | null, availableCategories: InterpreterApplicationReference[]) {
   if (initialApplication?.categories && initialApplication.categories.length > 0) {
     return initialApplication.categories.map((c) => {
-      const found = DEFAULT_INTERPRETER_CATEGORIES.find(
+      const found = availableCategories.find(
         (ref) => ref.id.toLowerCase() === String(c.id).toLowerCase() || ref.name.toLowerCase() === c.name.toLowerCase()
       );
       return found?.id || String(c.id).toLowerCase();
     });
   }
-  return ["general", "medical"];
+  return [];
 }
 
 export function EditInterpreterProfileModal(props: EditInterpreterProfileModalProps) {
@@ -77,14 +72,16 @@ function EditInterpreterProfileModalDialog({
   locale,
   initialApplication,
   profile,
+  availableLanguages,
+  availableCategories,
 }: EditInterpreterProfileModalProps) {
   // Languages selection: Array of { code: string; level: string; isPrimary: boolean }
-  const [selectedLanguages, setSelectedLanguages] = useState(() => getInitialLanguages(initialApplication));
+  const [selectedLanguages, setSelectedLanguages] = useState(() => getInitialLanguages(initialApplication, availableLanguages));
   const [languageSearch, setLanguageSearch] = useState("");
   const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
 
   // Categories selection
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(() => getInitialCategories(initialApplication));
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(() => getInitialCategories(initialApplication, availableCategories));
 
   // Certificate / Document
   const [existingCertFileName] = useState(initialApplication?.certificateFileName || "");
@@ -112,10 +109,10 @@ function EditInterpreterProfileModalDialog({
   }, [isSubmitting, onClose]);
 
   // Language helpers
-  const coreLanguages = DEFAULT_INTERPRETER_LANGUAGES.slice(0, 5); // Thai, English, Chinese, Spanish, Arabic
+  const coreLanguages = availableLanguages.slice(0, 5);
 
   const getLanguageName = (code: string) => {
-    const found = DEFAULT_INTERPRETER_LANGUAGES.find((l) => l.id.toLowerCase() === code.toLowerCase());
+    const found = availableLanguages.find((l) => l.id.toLowerCase() === code.toLowerCase());
     if (!found) return code;
     if (locale === "zh") return found.nameZh ?? found.nameTh ?? found.name;
     if (locale === "en") return found.name;
@@ -176,7 +173,7 @@ function EditInterpreterProfileModalDialog({
     setErrorMessage(null);
   };
 
-  const filteredCatalog = DEFAULT_INTERPRETER_LANGUAGES.filter((l) => {
+  const filteredCatalog = availableLanguages.filter((l) => {
     if (isLanguageSelected(l.id)) return false;
     if (!languageSearch.trim()) return true;
     const q = languageSearch.toLowerCase().trim();
@@ -189,7 +186,7 @@ function EditInterpreterProfileModalDialog({
   });
 
   // Category helpers
-  const sortedCategories = sortCategoriesByPriority(DEFAULT_INTERPRETER_CATEGORIES);
+  const sortedCategories = sortCategoriesByPriority(availableCategories);
 
   const getCategoryName = (cat: { name: string; nameTh?: string; nameZh?: string }) => {
     if (locale === "zh") return cat.nameZh ?? cat.nameTh ?? cat.name;
@@ -304,42 +301,6 @@ function EditInterpreterProfileModalDialog({
         });
       } catch {
         // Continue gracefully so modal closes and message appears
-        // Continue gracefully
-      }
-
-      // 2. Also sync to mock localStorage for client-side manager queue
-      try {
-        const fullLanguages = selectedLanguages.map((l, i) => {
-          const ref = DEFAULT_INTERPRETER_LANGUAGES.find((item) => item.id.toLowerCase() === l.code.toLowerCase());
-          return {
-            id: l.code,
-            name: ref?.nameTh || ref?.name || l.code,
-            type: i === 0 || l.isPrimary ? "Primary" : "Fluent",
-            level: l.level || "Fluent",
-          };
-        });
-        const fullCategories = selectedCategories.map((cCode, i) => {
-          const ref = DEFAULT_INTERPRETER_CATEGORIES.find((item) => item.id.toLowerCase() === cCode.toLowerCase());
-          return {
-            id: i + 1,
-            name: ref?.nameTh || ref?.name || cCode,
-            icon: ref?.icon || "📋",
-          };
-        });
-
-        submitInterpreterApplication(profile, {
-          applicantName: `${currentFirstName} ${currentLastName}`.trim(),
-          phone: currentPhone,
-          email: currentEmail,
-          age: initialApplication?.age || 25,
-          extraContact: currentExtraContact,
-          assignedArea: currentAssignedArea,
-          languages: fullLanguages,
-          categories: fullCategories,
-          certificateFileName: finalCertFileName,
-          certificateUrl: finalCertUrl,
-        });
-      } catch {
         // Continue gracefully
       }
 

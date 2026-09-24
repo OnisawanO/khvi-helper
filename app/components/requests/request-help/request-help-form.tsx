@@ -21,7 +21,7 @@ import {
   SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { useCopyLocale, useUiLocale } from "@/app/components/app-shell";
-import type { Urgency } from "@/app/lib/mock-requests";
+import type { Urgency } from "@/app/lib/request-types";
 import type { ReferenceOption } from "@/app/lib/reference-catalog";
 import { LocationMapPicker, type LocationCoordinates } from "./location-map-picker";
 import styles from "./request-success.module.css";
@@ -155,6 +155,83 @@ const copy = {
     createdBody: "附近匹配的口译员现在可以看到它。有人接取后，请先核对并确认口译员，联系方式随后才会解锁。",
     createdTrack: "查看这条求助",
     createdList: "查看全部求助",
+  },
+} as const;
+
+const localizedCopy = {
+  en: copy.en,
+  zh: copy.zh,
+  th: {
+    ...copy.en,
+    breadcrumb: "เส้นทางนำทาง", main: "หน้าหลัก", label: "สร้างคำขอความช่วยเหลือ", title: "สร้างหมุดขอความช่วยเหลือ",
+    intro: "เลือกภาษาและหมวดหมู่ที่ต้องการ แล้วระบุสถานที่เพื่อให้ล่ามที่ตรงความสามารถรับงานได้",
+    urgencyLegend: "ต้องการความช่วยเหลือเมื่อใด?", scheduleLabel: "เวลานัดหมาย", scheduleHint: "เลือกวันพรุ่งนี้หรือวันถัดไป",
+    scheduleDay: "วันที่", scheduleHour: "ชั่วโมง", scheduleMinute: "นาที", selectedTime: "เวลาที่เลือก",
+    languageLabel: "ภาษาที่ต้องการ", languagePlaceholder: "เลือกหนึ่งภาษา", categoryLabel: "หมวดหมู่",
+    categoryPlaceholder: "เลือกหนึ่งหมวดหมู่", descriptionLabel: "ล่ามควรรู้อะไรบ้าง?",
+    descriptionHint: "อาการ เอกสาร จุดสังเกต หรือข้อมูลที่ช่วยให้ล่ามเตรียมตัว (ไม่บังคับ)",
+    placeLabel: "ต้องการความช่วยเหลือที่ไหน? (สถานที่หรือจุดนัดพบ)", placePlaceholder: "ชื่อโรงพยาบาล อาคาร หรือหมายเลขเคาน์เตอร์",
+    gpsButton: "ใช้ตำแหน่งปัจจุบัน", mapButton: "เลือกบนแผนที่", mapPickerTitle: "เลือกสถานที่บนแผนที่",
+    mapPickerHint: "แตะแผนที่เพื่อวางหมุด ลากหมุด หรือเลื่อนแผนที่แล้วใช้จุดกึ่งกลาง",
+    mapSelected: "พิกัดที่เลือก", mapUseCenter: "ใช้จุดกึ่งกลางแผนที่", mapConfirm: "ใช้สถานที่นี้", mapCancel: "ยกเลิก",
+    gpsLoading: "กำลังอ่านตำแหน่ง", gpsReady: "แนบพิกัดแล้ว", gpsHint: "พิกัดจะแสดงแบบคร่าว ๆ จนกว่าจะยืนยันล่าม",
+    gpsDenied: "ไม่ได้รับอนุญาตให้เข้าถึงตำแหน่ง ระบบจะใช้คำอธิบายสถานที่แทน",
+    gpsUnavailable: "เบราว์เซอร์นี้ไม่สามารถแชร์ตำแหน่งได้ ระบบจะใช้คำอธิบายสถานที่แทน",
+    gpsMissing: "ยังไม่มีพิกัด คุณยังบันทึกจุดนัดพบได้ แต่จะไม่แสดงบนแผนที่",
+    submit: "สร้างคำขอ", privacyTitle: "ล่ามที่ตรงความสามารถจะเห็นอะไรบ้าง",
+    beforeClaim: "ก่อนยืนยันล่าม", afterClaim: "หลังยืนยันล่าม",
+    beforeItems: ["ภาษาและหมวดหมู่ที่ต้องการ", "รายละเอียดคำขอ (หลีกเลี่ยงข้อมูลติดต่อส่วนตัว)", "พื้นที่โดยประมาณ ความเร่งด่วน และเวลานัดหมาย"],
+    afterItems: ["ที่อยู่และพิกัดจริงของจุดนัดพบ (ถ้ามี)", "ชื่อและเบอร์โทรศัพท์สำหรับประสานงาน"],
+    errors: { language: "กรุณาเลือกภาษาที่ต้องการ", category: "กรุณาเลือกหมวดหมู่", place: "กรุณาระบุสถานที่ที่ต้องการความช่วยเหลือ", scheduleMissing: "กรุณาเลือกวันและเวลานัดหมาย", scheduleTooSoon: "กรุณาเลือกวันพรุ่งนี้หรือวันถัดไป" },
+    createdTitle: "สร้างคำขอแล้ว", createdBody: "ล่ามที่ตรงความสามารถในพื้นที่จะเห็นคำขอนี้ ตรวจสอบล่ามที่รับงานแล้วกดยืนยันเพื่อเปิดข้อมูลติดต่อ", createdTrack: "ติดตามคำขอนี้", createdList: "ดูคำขอทั้งหมด",
+  },
+  es: {
+    ...copy.en,
+    breadcrumb: "Migas de pan", main: "Inicio", label: "Nueva solicitud de ayuda", title: "Crear una solicitud de ayuda",
+    intro: "Elige un idioma y una categoría por solicitud. Los intérpretes que coincidan podrán aceptarla.",
+    urgencyLegend: "¿Cuándo necesitas ayuda?", scheduleLabel: "Hora de la cita", scheduleHint: "Elige mañana o una fecha posterior",
+    scheduleDay: "Fecha", scheduleHour: "Hora", scheduleMinute: "Minuto", selectedTime: "Hora seleccionada",
+    languageLabel: "Idioma necesario", languagePlaceholder: "Selecciona un idioma", categoryLabel: "Categoría",
+    categoryPlaceholder: "Selecciona una categoría", descriptionLabel: "¿Qué debe saber el intérprete?",
+    descriptionHint: "Síntomas, documentos, referencias u otra información útil. Opcional.",
+    placeLabel: "¿Dónde necesitas ayuda? (Lugar o punto de encuentro)", placePlaceholder: "Hospital, edificio o número de mostrador",
+    gpsButton: "Usar mi ubicación actual", mapButton: "Elegir en el mapa", mapPickerTitle: "Elegir una ubicación en el mapa",
+    mapPickerHint: "Toca el mapa para colocar un marcador, arrástralo o usa el centro del mapa.",
+    mapSelected: "Coordenadas seleccionadas", mapUseCenter: "Usar el centro del mapa", mapConfirm: "Usar esta ubicación", mapCancel: "Cancelar",
+    gpsLoading: "Leyendo ubicación", gpsReady: "Coordenadas adjuntas", gpsHint: "Las coordenadas serán aproximadas hasta confirmar al intérprete.",
+    gpsDenied: "Se denegó el permiso de ubicación. Se usará la descripción del lugar.",
+    gpsUnavailable: "Este navegador no puede compartir la ubicación. Se usará la descripción del lugar.",
+    gpsMissing: "No hay coordenadas. Puedes guardar un punto de encuentro, pero no aparecerá en el mapa.",
+    submit: "Crear solicitud", privacyTitle: "Qué puede ver un intérprete compatible",
+    beforeClaim: "Antes de confirmar al intérprete", afterClaim: "Después de confirmar al intérprete",
+    beforeItems: ["Idioma y categoría solicitados", "Descripción de la solicitud; evita datos de contacto privados", "Zona aproximada, urgencia y hora de cita"],
+    afterItems: ["Dirección y coordenadas exactas, si se proporcionan", "Tu nombre y teléfono para coordinar la cita"],
+    errors: { language: "Selecciona el idioma que necesitas.", category: "Selecciona una categoría.", place: "Describe dónde necesitas ayuda.", scheduleMissing: "Elige la fecha y hora de la cita.", scheduleTooSoon: "Elige mañana o una fecha posterior." },
+    createdTitle: "Solicitud creada", createdBody: "Los intérpretes cercanos podrán verla. Revisa y confirma al intérprete para desbloquear los datos de contacto.", createdTrack: "Seguir esta solicitud", createdList: "Ver todas mis solicitudes",
+  },
+  ar: {
+    ...copy.en,
+    breadcrumb: "مسار التنقل", main: "الرئيسية", label: "طلب مساعدة جديد", title: "إنشاء طلب مساعدة",
+    intro: "اختر لغة وفئة واحدة لكل طلب. سيتمكن المترجمون المطابقون من استلامه.",
+    urgencyLegend: "متى تحتاج إلى المساعدة؟", scheduleLabel: "موعد اللقاء", scheduleHint: "اختر الغد أو تاريخًا لاحقًا",
+    scheduleDay: "التاريخ", scheduleHour: "الساعة", scheduleMinute: "الدقيقة", selectedTime: "الوقت المحدد",
+    languageLabel: "اللغة المطلوبة", languagePlaceholder: "اختر لغة واحدة", categoryLabel: "الفئة",
+    categoryPlaceholder: "اختر فئة واحدة", descriptionLabel: "ما الذي يجب أن يعرفه المترجم؟",
+    descriptionHint: "الأعراض أو المستندات أو المعالم أو أي معلومات تساعده على الاستعداد. اختياري.",
+    placeLabel: "أين تحتاج إلى المساعدة؟ (المكان أو نقطة اللقاء)", placePlaceholder: "اسم المستشفى أو المبنى أو رقم الشباك",
+    gpsButton: "استخدم موقعي الحالي", mapButton: "اختر على الخريطة", mapPickerTitle: "اختر موقعًا على الخريطة",
+    mapPickerHint: "اضغط على الخريطة لوضع علامة أو حرّك العلامة أو استخدم مركز الخريطة.",
+    mapSelected: "الإحداثيات المحددة", mapUseCenter: "استخدم مركز الخريطة", mapConfirm: "استخدم هذا الموقع", mapCancel: "إلغاء",
+    gpsLoading: "جارٍ قراءة الموقع", gpsReady: "تم إرفاق الإحداثيات", gpsHint: "ستبقى الإحداثيات تقريبية حتى تؤكد المترجم.",
+    gpsDenied: "تم رفض إذن الموقع. سيتم استخدام وصف المكان بدلًا منه.",
+    gpsUnavailable: "لا يمكن لهذا المتصفح مشاركة الموقع. سيتم استخدام وصف المكان بدلًا منه.",
+    gpsMissing: "لم تتم إضافة إحداثيات. يمكنك حفظ نقطة لقاء، لكنها لن تظهر على الخريطة.",
+    submit: "إنشاء الطلب", privacyTitle: "ما الذي يمكن للمترجم المطابق رؤيته؟",
+    beforeClaim: "قبل تأكيد المترجم", afterClaim: "بعد تأكيد المترجم",
+    beforeItems: ["اللغة والفئة المطلوبة", "وصف الطلب؛ تجنب بيانات الاتصال الخاصة", "المنطقة التقريبية ودرجة الاستعجال وموعد اللقاء"],
+    afterItems: ["عنوان اللقاء وإحداثياته الدقيقة، إن وُجدت", "اسمك ورقم هاتفك لتنسيق اللقاء"],
+    errors: { language: "اختر اللغة التي تحتاجها.", category: "اختر فئة واحدة.", place: "صف المكان الذي تحتاج فيه إلى المساعدة.", scheduleMissing: "اختر تاريخ ووقت اللقاء.", scheduleTooSoon: "اختر الغد أو تاريخًا لاحقًا." },
+    createdTitle: "تم إنشاء الطلب", createdBody: "يمكن للمترجمين المطابقين القريبين رؤيته الآن. راجع المترجم الذي يستلمه ثم أكّده لفتح بيانات الاتصال.", createdTrack: "تتبع هذا الطلب", createdList: "عرض كل طلباتي",
   },
 } as const;
 
@@ -533,7 +610,7 @@ export function RequestHelpForm({
   const workspaceBase = pathname.startsWith("/interpreter") ? "/interpreter" : "/user";
   const locale = useUiLocale();
   const copyLocale = useCopyLocale();
-  const t = copy[copyLocale];
+  const t = localizedCopy[copyLocale];
   const privacyCopy = locale === "th"
     ? {
         privacyTitle: "สิ่งที่ล่ามสามารถมองเห็นได้",

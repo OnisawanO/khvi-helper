@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useUiLocale } from "@/app/components/app-shell";
+import { useStoredLocale } from "@/app/lib/locale";
 import { WorkspaceShell } from "@/app/components/workspace-shell";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
 import {
@@ -11,11 +11,22 @@ import {
   reuploadInterpreterCertificateAction,
   uploadInterpreterCertificateAction,
 } from "@/app/actions/interpreter-application-actions";
-import type { InterpreterApplication } from "@/app/lib/interpreter-application";
+import type { InterpreterApplication } from "@/app/lib/interpreter-application-types";
 import { ApplicationStatusPanel } from "@/components/volunteer/ApplicationStatusPanel";
 
+const statusCopy = {
+  en: { loading: "Loading application data...", empty: "No volunteer application yet", emptyBody: "Start an application to submit your credentials for Manager review", home: "Back to Home", apply: "Go to application form" },
+  th: { loading: "กำลังโหลดข้อมูลใบสมัคร...", empty: "ยังไม่มีใบสมัครล่ามอาสา", emptyBody: "เริ่มกรอกข้อมูลเพื่อส่งให้ Manager ตรวจสอบคุณสมบัติ", home: "กลับสู่หน้าหลัก", apply: "ไปหน้าใบสมัคร" },
+  zh: { loading: "正在加载申请数据...", empty: "暂无志愿口译员申请", emptyBody: "开始填写以提交管理员审核资质", home: "返回首页", apply: "前往申请页面" },
+  es: { loading: "Cargando los datos de la solicitud...", empty: "Aún no tienes una solicitud de voluntariado", emptyBody: "Inicia una solicitud para enviar tus credenciales a revisión del gestor", home: "Volver al inicio", apply: "Ir al formulario" },
+  ar: { loading: "جارٍ تحميل بيانات الطلب...", empty: "لا يوجد طلب تطوع حتى الآن", emptyBody: "ابدأ طلبًا لإرسال مؤهلاتك إلى مراجعة المدير", home: "العودة إلى الرئيسية", apply: "الانتقال إلى نموذج الطلب" },
+} as const;
+
 export default function VolunteerStatusPage() {
-  const locale = useUiLocale();
+  // This page owns its state above WorkspaceShell, so read the shared persisted
+  // locale directly instead of consuming a provider that is rendered below it.
+  const [locale] = useStoredLocale();
+  const t = statusCopy[locale];
   const router = useRouter();
   const [application, setApplication] = useState<InterpreterApplication | null>(null);
   const [ready, setReady] = useState(false);
@@ -66,7 +77,7 @@ export default function VolunteerStatusPage() {
 
         {!ready ? (
           <section className="rounded-(--khvi-radius-md) border border-[#d6e0e4] bg-white p-8 text-center text-sm text-[#64777e] shadow-sm">
-            {locale === "th" ? "กำลังโหลดข้อมูลใบสมัคร..." : locale === "zh" ? "正在加载申请数据..." : "Loading application data..."}
+            {t.loading}
           </section>
         ) : error && !application ? (
           <section role="alert" className="rounded-(--khvi-radius-md) border border-[#f8c5be] bg-[#fff1f2] p-8 text-center text-sm font-bold text-[#b8291b]">
@@ -75,23 +86,23 @@ export default function VolunteerStatusPage() {
         ) : !application ? (
           <section className="rounded-(--khvi-radius-md) border border-[#d6e0e4] bg-white p-8 text-center shadow-sm">
             <p className="text-sm font-extrabold text-[#10283a]">
-              {locale === "th" ? "ยังไม่มีใบสมัครล่ามอาสา" : locale === "zh" ? "暂无志愿口译员申请" : "No volunteer application yet"}
+              {t.empty}
             </p>
             <p className="mt-2 text-xs text-[#64777e]">
-              {locale === "th" ? "เริ่มกรอกข้อมูลเพื่อส่งให้ Manager ตรวจสอบคุณสมบัติ" : locale === "zh" ? "开始填写以提交管理员审核资质" : "Start an application to submit your credentials for Manager review"}
+              {t.emptyBody}
             </p>
             <div className="mt-5 flex flex-wrap justify-center gap-3">
               <a
                 href="/user"
                 className="inline-flex min-h-11 items-center justify-center rounded-(--khvi-radius-sm) border border-[#cbd7dc] bg-white px-5 py-2.5 text-sm font-bold text-[#53656c] hover:bg-[#f4f7f8]"
               >
-                {locale === "th" ? "กลับสู่หน้าหลัก" : locale === "zh" ? "返回首页" : "Back to Home"}
+                {t.home}
               </a>
               <a
                 href="/user/volunteer/apply#main-content"
                 className="inline-flex min-h-11 items-center justify-center rounded-(--khvi-radius-sm) bg-[#092f45] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#0c4960]"
               >
-                {locale === "th" ? "ไปหน้าใบสมัคร" : locale === "zh" ? "前往申请页面" : "Go to application form"}
+                {t.apply}
               </a>
             </div>
           </section>

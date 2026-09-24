@@ -11,7 +11,7 @@ import {
   UserCircleIcon,
 } from "@heroicons/react/24/outline";
 import { BrandMark } from "@/app/components/brand-mark";
-import { UserProfile } from "@/app/lib/mock-auth";
+import { UserProfile } from "@/app/lib/auth-types";
 import { useStoredLocale } from "@/app/lib/locale";
 import { getManagerTranslation } from "../locales";
 
@@ -79,8 +79,8 @@ export function ManagerHeader({
             type="button"
             onClick={onMenuClick}
             className="flex md:hidden h-9 w-9 items-center justify-center rounded-xl border border-[#c9d8de] bg-white text-[#092f45] shadow-xs hover:border-[#087f80] hover:bg-[#edf7f5] hover:text-[#087f80] transition-colors focus:outline-none focus:ring-2 focus:ring-[#087f80]/30 cursor-pointer"
-            aria-label="Toggle Navigation Menu"
-            title="Toggle Navigation Menu"
+            aria-label={t.toggleMenu}
+            title={t.toggleMenu}
           >
             <Bars3Icon className="h-5 w-5" />
           </button>
@@ -89,7 +89,7 @@ export function ManagerHeader({
           <BrandMark
             subtitle={t.hubSubtitle}
             href="/"
-            ariaLabel="KHVI Home"
+            ariaLabel={t.profile}
           />
         </div>
 
@@ -101,7 +101,7 @@ export function ManagerHeader({
               type="button"
               onClick={() => setLangMenuOpen((prev) => !prev)}
               className="flex h-9 items-center gap-1.5 rounded-xl border border-[#c9d8de] bg-white px-2.5 sm:px-3 text-xs font-bold text-[#344d59] shadow-2xs hover:border-[#087f80] hover:bg-[#edf7f5] hover:text-[#087f80] transition-colors cursor-pointer"
-              aria-label="Change Language"
+              aria-label={t.interfaceLanguage}
               aria-expanded={langMenuOpen}
             >
               <LanguageIcon className="h-4 w-4 text-[#087f80] shrink-0" />
@@ -118,7 +118,6 @@ export function ManagerHeader({
             {langMenuOpen && (
               <div className="absolute right-0 mt-2 w-48 rounded-2xl border border-[#d6e0e4] bg-white p-1.5 shadow-[0_18px_36px_rgba(19,52,68,0.16)] animate-in fade-in zoom-in-95 z-50">
                 <div className="px-2.5 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#7a939e] border-b border-slate-100 mb-1">
-                  Interface Language
                   {t.interfaceLanguage}
                 </div>
                 {languageOptions.map((opt) => {

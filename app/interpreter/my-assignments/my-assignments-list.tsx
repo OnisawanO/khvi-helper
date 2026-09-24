@@ -16,13 +16,13 @@ import { ExpiryCountdown } from "@/app/components/expiry-countdown";
 import { StatusBadge, UrgencyBadge } from "@/app/components/request-badges";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
 import { cancelBookingAction, claimBookingAction } from "@/app/actions/booking-actions";
-import type { ApplicationStatus } from "@/app/lib/interpreter-application";
+import type { ApplicationStatus } from "@/app/lib/interpreter-application-types";
 import {
   categoryLabel,
   languageLabel,
   type HelpRequest,
   type StatusFilterId,
-} from "@/app/lib/mock-requests";
+} from "@/app/lib/request-types";
 
 const ASSIGNMENT_FILTERS = ["completed", "in-progress", "open", "claimed", "closed", "all"] as const;
 type AssignmentFilterId = (typeof ASSIGNMENT_FILTERS)[number];
@@ -124,6 +124,71 @@ const copy = {
   },
 } as const;
 
+const localizedCopy = {
+  en: copy.en,
+  zh: copy.zh,
+  th: {
+    ...copy.en,
+    breadcrumb: "เส้นทางนำทาง", main: "หน้าหลัก", label: "พื้นที่ทำงานล่าม", title: "งานของฉัน",
+    intro: "รับคำขอที่ตรงกับความสามารถและติดตามงานที่กำลังดูแล", findRequests: "ค้นหาคำขอ",
+    availableTitle: "คำขอที่พร้อมรับ", availableBody: "คำขอเหล่านี้ตรงกับภาษาและหมวดหมู่ที่ได้รับอนุมัติในโปรไฟล์ล่าม",
+    workspaceBlockedTitle: "กรุณาทำงานปัจจุบันให้เสร็จก่อน", workspaceBlockedBody: "คุณรับงานใหม่ไม่ได้ขณะมีคำขอหรืองานล่ามที่กำลังดำเนินการ",
+    claimRequest: "รับคำขอ", claiming: "กำลังรับงาน…", claimFallback: "รับคำขอไม่ได้ กรุณารีเฟรชแล้วลองใหม่",
+    claimSuccessTitle: "รับคำขอแล้ว", claimSuccessBody: "คำขอนี้อยู่ในรายการงานของคุณแล้ว", openClaimedMission: "เปิดภารกิจที่รับแล้ว",
+    noAvailableTitle: "ไม่มีคำขอที่ตรงกัน", noAvailableBody: "คำขอใหม่จะแสดงเมื่อภาษาและหมวดหมู่ตรงกับโปรไฟล์ที่อนุมัติ",
+    approvalTitle: "ต้องได้รับการอนุมัติก่อนรับงาน", approvalMissingBody: "กรอกใบสมัครล่ามโดยเลือกอย่างน้อยหนึ่งภาษาและหนึ่งหมวดหมู่",
+    approvalPendingBody: "ใบสมัครของคุณกำลังรอตรวจสอบ คำขอที่ตรงกันจะแสดงหลังอนุมัติ",
+    approvalRevisionBody: "ดูหมายเหตุจาก Manager และแก้ไขใบสมัครก่อนรับงาน", approvalRejectedBody: "ตรวจสอบผลการสมัครก่อนส่งข้อมูลใหม่",
+    startApplication: "เริ่มสมัครล่าม", viewApplicationStatus: "ดูสถานะใบสมัคร", assignmentsTitle: "งานของคุณ",
+    filterLabel: "กรองงานตามสถานะ", filters: { completed: "เสร็จสิ้น", "in-progress": "กำลังดำเนินการ", open: "เปิดรับ", claimed: "รับแล้ว", closed: "ยกเลิกหรือหมดอายุ", all: "ทั้งหมด" },
+    created: "สร้างเมื่อ", scheduled: "เวลานัดหมาย", area: "พื้นที่", openMission: "เปิดภารกิจ", cancelAssignment: "ยกเลิกงาน",
+    cancelReasonLabel: "ทำไมจึงยกเลิก?", cancelReasonPlaceholder: "ระบุเหตุผลสั้น ๆ", cancelReasonHint: "งานที่รับแล้วจะกลับสู่คิว ส่วนงานที่เริ่มแล้วจะถูกยกเลิก",
+    cancelReasonMissing: "กรุณาระบุเหตุผลก่อนยกเลิก", cancelConfirm: "ยืนยันการยกเลิก", cancelDismiss: "เก็บงานไว้",
+    cancelFallback: "ยกเลิกงานไม่ได้ กรุณาลองใหม่", next: { Claimed: "รอผู้ขอยืนยัน", InProgress: "ทำงานต่อ", Completed: "งานเสร็จสิ้น" },
+    emptyTitle: "ยังไม่มีงาน", emptyBody: "งานที่รับแล้วจะแสดงที่นี่ เมื่อพร้อมช่วยเหลือให้เปิดค้นหาคำขอ", loading: "กำลังโหลดงานของคุณ…",
+  },
+  es: {
+    ...copy.en,
+    breadcrumb: "Migas de pan", main: "Inicio", label: "Espacio del intérprete", title: "Mis asignaciones",
+    intro: "Acepta solicitudes compatibles y sigue las asignaciones que gestionas.", findRequests: "Buscar solicitudes",
+    availableTitle: "Solicitudes disponibles", availableBody: "Coinciden con los idiomas y categorías aprobados para tu perfil.",
+    workspaceBlockedTitle: "Termina tu tarea actual primero", workspaceBlockedBody: "No puedes aceptar otra solicitud mientras tengas una tarea activa.",
+    claimRequest: "Aceptar solicitud", claiming: "Aceptando…", claimFallback: "No se pudo aceptar. Actualiza la lista e inténtalo de nuevo.",
+    claimSuccessTitle: "Solicitud aceptada", claimSuccessBody: "La solicitud aparece ahora en tus asignaciones.", openClaimedMission: "Abrir misión aceptada",
+    noAvailableTitle: "No hay solicitudes compatibles", noAvailableBody: "Aparecerán nuevas solicitudes cuando coincidan con tu perfil aprobado.",
+    approvalTitle: "Necesitas aprobación para aceptar trabajo", approvalMissingBody: "Completa la solicitud de intérprete con un idioma y una categoría.",
+    approvalPendingBody: "Tu solicitud espera revisión. Las solicitudes compatibles aparecerán después de la aprobación.",
+    approvalRevisionBody: "Revisa la nota del gestor y actualiza tu solicitud.", approvalRejectedBody: "Revisa la decisión antes de enviar información actualizada.",
+    startApplication: "Iniciar solicitud de intérprete", viewApplicationStatus: "Ver estado de la solicitud", assignmentsTitle: "Tus asignaciones",
+    filterLabel: "Filtrar asignaciones por estado", filters: { completed: "Completadas", "in-progress": "En curso", open: "Abiertas", claimed: "Aceptadas", closed: "Canceladas o expiradas", all: "Todas" },
+    created: "Creada", scheduled: "Cita", area: "Zona", openMission: "Abrir misión", cancelAssignment: "Cancelar asignación",
+    cancelReasonLabel: "¿Por qué cancelas?", cancelReasonPlaceholder: "Añade un motivo breve", cancelReasonHint: "El trabajo aceptado vuelve a la lista; el ya iniciado se cancela.",
+    cancelReasonMissing: "Añade un motivo antes de cancelar", cancelConfirm: "Confirmar cancelación", cancelDismiss: "Conservar asignación",
+    cancelFallback: "No se pudo cancelar. Inténtalo de nuevo.", next: { Claimed: "Esperando confirmación", InProgress: "Continuar asignación", Completed: "Asignación completada" },
+    emptyTitle: "Aún no tienes asignaciones", emptyBody: "Las solicitudes aceptadas aparecerán aquí.", loading: "Cargando tus asignaciones…",
+  },
+  ar: {
+    ...copy.en,
+    breadcrumb: "مسار التنقل", main: "الرئيسية", label: "مساحة عمل المترجم", title: "مهامي",
+    intro: "استلم الطلبات المطابقة وتابع المهام التي تديرها.", findRequests: "البحث عن الطلبات",
+    availableTitle: "الطلبات المتاحة", availableBody: "تطابق اللغات والفئات المعتمدة في ملفك.",
+    workspaceBlockedTitle: "أكمل مهمتك الحالية أولًا", workspaceBlockedBody: "لا يمكنك استلام طلب آخر أثناء وجود مهمة نشطة.",
+    claimRequest: "استلام الطلب", claiming: "جارٍ الاستلام…", claimFallback: "تعذر الاستلام. حدّث القائمة وحاول مجددًا.",
+    claimSuccessTitle: "تم استلام الطلب", claimSuccessBody: "أصبح الطلب مدرجًا ضمن مهامك.", openClaimedMission: "فتح المهمة المستلمة",
+    noAvailableTitle: "لا توجد طلبات مطابقة", noAvailableBody: "ستظهر الطلبات الجديدة عندما تطابق ملفك المعتمد.",
+    approvalTitle: "تحتاج إلى الموافقة قبل استلام العمل", approvalMissingBody: "أكمل طلب المترجم باختيار لغة وفئة واحدة على الأقل.",
+    approvalPendingBody: "طلبك قيد المراجعة. ستظهر الطلبات المطابقة بعد الموافقة.",
+    approvalRevisionBody: "راجع ملاحظة المدير وحدّث طلبك.", approvalRejectedBody: "راجع القرار قبل إرسال معلومات محدثة.",
+    startApplication: "بدء طلب المترجم", viewApplicationStatus: "عرض حالة الطلب", assignmentsTitle: "مهامك",
+    filterLabel: "تصفية المهام حسب الحالة", filters: { completed: "مكتملة", "in-progress": "قيد التنفيذ", open: "مفتوحة", claimed: "مستلمة", closed: "ملغاة أو منتهية", all: "الكل" },
+    created: "أُنشئت", scheduled: "الموعد", area: "المنطقة", openMission: "فتح المهمة", cancelAssignment: "إلغاء المهمة",
+    cancelReasonLabel: "لماذا تلغي؟", cancelReasonPlaceholder: "أضف سببًا مختصرًا", cancelReasonHint: "تعود المهمة المستلمة إلى قائمة الطلبات؛ أما المهمة التي بدأت فتُلغى.",
+    cancelReasonMissing: "أضف سببًا قبل الإلغاء", cancelConfirm: "تأكيد الإلغاء", cancelDismiss: "الاحتفاظ بالمهمة",
+    cancelFallback: "تعذر إلغاء المهمة. حاول مجددًا.", next: { Claimed: "بانتظار تأكيد صاحب الطلب", InProgress: "متابعة المهمة", Completed: "اكتملت المهمة" },
+    emptyTitle: "لا توجد مهام بعد", emptyBody: "ستظهر الطلبات التي تستلمها هنا.", loading: "جارٍ تحميل مهامك…",
+  },
+} as const;
+
 function assignmentStatuses(filterId: AssignmentFilterId): readonly HelpRequest["status"][] | null {
   if (filterId === "completed") return ["Completed"];
   if (filterId === "in-progress") return ["InProgress"];
@@ -153,7 +218,7 @@ export function MyAssignmentsList({
   const router = useRouter();
   const allRequests = initialAssignments;
   const copyLocale = useCopyLocale();
-  const t = copy[copyLocale];
+  const t = localizedCopy[copyLocale];
   const [selectedFilter, setSelectedFilter] = useState<AssignmentFilterId>(() => normalizeFilter(activeFilter));
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [claimedRequestId, setClaimedRequestId] = useState<string | null>(null);

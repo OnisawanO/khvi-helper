@@ -8,6 +8,8 @@ const copy = {
   th: { prefix: "หมดอายุใน", expired: "หมดอายุโดยไม่มีล่ามรับงาน" },
   en: { prefix: "Expires in", expired: "Expired without a claim" },
   zh: { prefix: "剩余时间", expired: "无人接取已过期" },
+  es: { prefix: "Expira en", expired: "Expirada sin asignación" },
+  ar: { prefix: "ينتهي خلال", expired: "انتهت دون استلام" },
 } as const;
 
 function formatRemaining(totalSeconds: number): string {
@@ -29,7 +31,7 @@ export function ExpiryCountdown({
 }: {
   seconds: number;
   expiresAt?: string;
-  copyLocale: CopyLocale | "th";
+  copyLocale: CopyLocale;
   compact?: boolean;
 }) {
   const [remaining, setRemaining] = useState<number | null>(expiresAt ? null : seconds);

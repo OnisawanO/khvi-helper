@@ -1,14 +1,14 @@
 import { BoltIcon, CalendarDaysIcon } from "@heroicons/react/24/outline";
 import type { CopyLocale } from "@/app/lib/locale";
-import type { RequestStatus, Urgency } from "@/app/lib/mock-requests";
+import type { RequestStatus, Urgency } from "@/app/lib/request-types";
 
-const statusCopy: Record<RequestStatus, Record<CopyLocale | "th", string>> = {
-  Open: { th: "รอรับงาน", en: "Open", zh: "开放中" },
-  Claimed: { th: "รับงานแล้ว", en: "Claimed", zh: "已接取" },
-  InProgress: { th: "กำลังดำเนินการ", en: "In progress", zh: "进行中" },
-  Completed: { th: "เสร็จสิ้น", en: "Completed", zh: "已完成" },
-  Cancelled: { th: "ยกเลิก", en: "Cancelled", zh: "已取消" },
-  Expired: { th: "หมดอายุ", en: "Expired", zh: "已过期" },
+const statusCopy: Record<RequestStatus, Record<CopyLocale, string>> = {
+  Open: { th: "รอรับงาน", en: "Open", zh: "开放中", es: "Abierta", ar: "مفتوح" },
+  Claimed: { th: "รับงานแล้ว", en: "Claimed", zh: "已接取", es: "Asignada", ar: "تم الاستلام" },
+  InProgress: { th: "กำลังดำเนินการ", en: "In progress", zh: "进行中", es: "En curso", ar: "قيد التنفيذ" },
+  Completed: { th: "เสร็จสิ้น", en: "Completed", zh: "已完成", es: "Completada", ar: "مكتمل" },
+  Cancelled: { th: "ยกเลิก", en: "Cancelled", zh: "已取消", es: "Cancelada", ar: "ملغى" },
+  Expired: { th: "หมดอายุ", en: "Expired", zh: "已过期", es: "Expirada", ar: "منتهي" },
 };
 
 const statusTone: Record<RequestStatus, string> = {
@@ -20,12 +20,12 @@ const statusTone: Record<RequestStatus, string> = {
   Expired: "border-[#d6e0e4] bg-[#eef2f4] text-[#52676f]",
 };
 
-const urgencyCopy: Record<Urgency, Record<CopyLocale | "th", string>> = {
-  Immediate: { th: "ด่วน", en: "Urgent", zh: "紧急" },
-  Scheduled: { th: "นัดหมาย", en: "Scheduled", zh: "预约" },
+const urgencyCopy: Record<Urgency, Record<CopyLocale, string>> = {
+  Immediate: { th: "ด่วน", en: "Urgent", zh: "紧急", es: "Urgente", ar: "عاجل" },
+  Scheduled: { th: "นัดหมาย", en: "Scheduled", zh: "预约", es: "Programada", ar: "مجدول" },
 };
 
-export function StatusBadge({ status, copyLocale }: { status: RequestStatus; copyLocale: CopyLocale | "th" }) {
+export function StatusBadge({ status, copyLocale }: { status: RequestStatus; copyLocale: CopyLocale }) {
   return (
     <span className={`inline-flex items-center rounded-lg border px-3 py-1.5 text-xs font-extrabold ${statusTone[status]}`}>
       {statusCopy[status][copyLocale]}
@@ -33,7 +33,7 @@ export function StatusBadge({ status, copyLocale }: { status: RequestStatus; cop
   );
 }
 
-export function UrgencyBadge({ urgency, copyLocale }: { urgency: Urgency; copyLocale: CopyLocale | "th" }) {
+export function UrgencyBadge({ urgency, copyLocale }: { urgency: Urgency; copyLocale: CopyLocale }) {
   const isImmediate = urgency === "Immediate";
   const Icon = isImmediate ? BoltIcon : CalendarDaysIcon;
 
@@ -49,6 +49,6 @@ export function UrgencyBadge({ urgency, copyLocale }: { urgency: Urgency; copyLo
   );
 }
 
-export function statusLabel(status: RequestStatus, copyLocale: CopyLocale | "th"): string {
+export function statusLabel(status: RequestStatus, copyLocale: CopyLocale): string {
   return statusCopy[status][copyLocale];
 }

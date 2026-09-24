@@ -9,9 +9,9 @@ import { useCopyLocale, useInterpreterAccess, useUiLocale } from "./app-shell";
 import { ExpiryCountdown } from "./expiry-countdown";
 import { ResponsiveHeroImage } from "./responsive-hero-image";
 import { StatusBadge, UrgencyBadge } from "./request-badges";
-import type { HelpRequest, RequestStatus } from "@/app/lib/mock-requests";
-import type { UserProfile } from "@/app/lib/mock-auth";
-import type { InterpreterApplication } from "@/app/lib/interpreter-application";
+import type { HelpRequest, RequestStatus } from "@/app/lib/request-types";
+import type { UserProfile } from "@/app/lib/auth-types";
+import type { InterpreterApplication } from "@/app/lib/interpreter-application-types";
 import { loadMyInterpreterApplicationAction } from "@/app/actions/interpreter-application-actions";
 import { ApplicationStatusCard } from "@/components/volunteer/ApplicationStatusCard";
 import type { InterpreterWorkspaceMode } from "@/app/lib/workspace-mode";
@@ -27,6 +27,62 @@ const button = "inline-flex min-h-12 items-center justify-center gap-2 rounded-(
 const heroButton = "inline-flex min-h-12 items-center justify-center gap-2 rounded-(--khvi-radius-sm) bg-white px-5 py-3 text-sm font-bold text-(--khvi-navy) hover:bg-(--khvi-paper) focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--khvi-sun)";
 const panel = "rounded-(--khvi-radius-md) border border-(--khvi-teal)/20 bg-(--khvi-surface) p-5 sm:p-7";
 const muted = "mt-2 text-sm leading-7 text-(--khvi-ink)/70";
+
+const welcomeSpanish: Record<string, string> = {
+  "Open": "Abierta", "Claimed": "Asignada", "In progress": "En curso", "Completed": "Completada",
+  "Request progress": "Progreso de la solicitud", "Waiting for an interpreter. Open the request to track its deadline.": "Esperando a un intérprete. Abre la solicitud para consultar el plazo.",
+  "An interpreter has claimed this request. Review the details and confirmation steps before meeting.": "Un intérprete ha aceptado esta solicitud. Revisa los detalles y los pasos de confirmación antes del encuentro.",
+  "The requester has confirmed completion. Waiting for the interpreter.": "El solicitante confirmó la finalización. Esperando al intérprete.",
+  "The interpreter has confirmed completion. Waiting for the requester.": "El intérprete confirmó la finalización. Esperando al solicitante.",
+  "Work is in progress. Both people confirm when it is complete.": "El trabajo está en curso. Ambas personas deben confirmar cuando termine.",
+  "View details": "Ver detalles", "Welcome": "Bienvenido/a", "No reviews yet": "Aún no hay reseñas", "Rating unavailable": "Calificación no disponible",
+  "Choose how to use KHVI": "Elige cómo usar KHVI", "Switch between helping and requesting help": "Cambiar entre ayudar y solicitar ayuda", "Help others": "Ayudar a otros", "Request help": "Solicitar ayuda",
+  "View application status": "Ver estado de la solicitud", "Volunteer apply": "Solicitud de voluntariado", "A volunteer interpreter helping a user speak with a community service worker": "Un intérprete voluntario ayuda a una persona a comunicarse con un servicio comunitario", "A requester receiving an explanation from a volunteer interpreter": "Una persona recibe una explicación de un intérprete voluntario",
+  "Community language help": "Ayuda lingüística comunitaria", "Help someone be understood.": "Ayuda a que alguien sea comprendido.", "A little language help starts here.": "Un poco de ayuda lingüística empieza aquí.",
+  "Explore requests by language, category and distance. Review each request and take one assignment at a time.": "Explora solicitudes por idioma, categoría y distancia. Revisa cada solicitud y acepta una misión a la vez.", "Choose a language, category and meeting point. A suitable interpreter chooses to claim your request.": "Elige un idioma, una categoría y un punto de encuentro. Un intérprete adecuado podrá aceptar tu solicitud.", "Create a help request": "Crear una solicitud de ayuda",
+  "Current help request": "Solicitud de ayuda actual", "Language and category": "Idioma y categoría", "Assigned interpreter": "Intérprete asignado", "View all details": "Ver todos los detalles", "You have multiple active records. Open the full list to view them all.": "Tienes varios registros activos. Abre la lista completa para verlos todos.",
+  "No active help requests": "No hay solicitudes de ayuda activas", "Track your request status and assigned interpreter here when you have an active request.": "Aquí podrás consultar el estado y el intérprete asignado cuando tengas una solicitud activa.",
+  "Current assignment": "Misión actual", "Meeting area": "Zona de encuentro", "Requester": "Solicitante", "You have multiple active assignments. Open your assignments to view them all.": "Tienes varias misiones activas. Abre tus misiones para verlas todas.",
+  "Nearby requests": "Solicitudes cercanas", "Locating…": "Buscando ubicación…", "Try location again": "Intentar localizar de nuevo", "Use my current location": "Usar mi ubicación actual", "Location unavailable. Try again.": "Ubicación no disponible. Inténtalo de nuevo.", "Nearby help request map": "Mapa de solicitudes cercanas", "Loading map…": "Cargando mapa…", "Current location": "Ubicación actual", "Open full map": "Abrir mapa completo",
+  "Explore suitable requests": "Explorar solicitudes adecuadas", "Filter open requests that match your skills.": "Filtra solicitudes abiertas que coincidan con tus habilidades.", "Language": "Idioma", "All languages": "Todos los idiomas", "Category": "Categoría", "All categories": "Todas las categorías", "Open the map": "Abrir el mapa", "No open requests currently match your approved skills.": "No hay solicitudes abiertas que coincidan con tus habilidades aprobadas.", "No open requests match these filters. Try another language, category or distance.": "No hay solicitudes abiertas que coincidan con estos filtros. Prueba con otro idioma, categoría o distancia.",
+  "Recent requests": "Solicitudes recientes", "Your past work": "Trabajos anteriores", "View all": "Ver todo", "You have no past assignments yet. Claimed assignments will appear here.": "Aún no tienes misiones anteriores. Las misiones aceptadas aparecerán aquí.", "You have no recent requests yet. Requests you submit will appear here.": "Aún no tienes solicitudes recientes. Las solicitudes que envíes aparecerán aquí.", "Find requests": "Buscar solicitudes", "Contact us if you have a problem": "Contáctanos si tienes un problema", "If you run into a problem or need further help, contact us through:": "Si tienes un problema o necesitas más ayuda, contáctanos por:", "Review after completion": "Reseña después de completar la misión", "All completed assignments have been reviewed.": "Todas las misiones completadas tienen una reseña.", "Review a completed assignment": "Reseñar una misión completada",
+};
+
+const welcomeArabic: Record<string, string> = {
+  "Open": "مفتوح", "Claimed": "تم استلامها", "In progress": "قيد التنفيذ", "Completed": "مكتملة",
+  "Request progress": "تقدم الطلب", "Waiting for an interpreter. Open the request to track its deadline.": "بانتظار مترجم. افتح الطلب لمتابعة الموعد النهائي.",
+  "An interpreter has claimed this request. Review the details and confirmation steps before meeting.": "استلم مترجم هذا الطلب. راجع التفاصيل وخطوات التأكيد قبل اللقاء.",
+  "The requester has confirmed completion. Waiting for the interpreter.": "أكد صاحب الطلب إتمام المهمة. بانتظار المترجم.",
+  "The interpreter has confirmed completion. Waiting for the requester.": "أكد المترجم إتمام المهمة. بانتظار صاحب الطلب.",
+  "Work is in progress. Both people confirm when it is complete.": "المهمة قيد التنفيذ. يجب على الطرفين التأكيد عند اكتمالها.",
+  "View details": "عرض التفاصيل", "Welcome": "مرحبًا", "No reviews yet": "لا توجد مراجعات بعد", "Rating unavailable": "التقييم غير متاح",
+  "Choose how to use KHVI": "اختر طريقة استخدام KHVI", "Switch between helping and requesting help": "التبديل بين تقديم المساعدة وطلبها", "Help others": "مساعدة الآخرين", "Request help": "طلب المساعدة",
+  "View application status": "عرض حالة الطلب", "Volunteer apply": "طلب التطوع", "A volunteer interpreter helping a user speak with a community service worker": "مترجم متطوع يساعد مستخدمًا على التواصل مع موظف خدمة مجتمعية", "A requester receiving an explanation from a volunteer interpreter": "صاحب طلب يتلقى شرحًا من مترجم متطوع",
+  "Community language help": "مساعدة لغوية مجتمعية", "Help someone be understood.": "ساعد شخصًا على أن يُفهم.", "A little language help starts here.": "تبدأ المساعدة اللغوية من هنا.",
+  "Explore requests by language, category and distance. Review each request and take one assignment at a time.": "استكشف الطلبات حسب اللغة والفئة والمسافة. راجع كل طلب واقبل مهمة واحدة في كل مرة.", "Choose a language, category and meeting point. A suitable interpreter chooses to claim your request.": "اختر اللغة والفئة ومكان اللقاء. يمكن لمترجم مناسب استلام طلبك.", "Create a help request": "إنشاء طلب مساعدة",
+  "Current help request": "طلب المساعدة الحالي", "Language and category": "اللغة والفئة", "Assigned interpreter": "المترجم المكلّف", "View all details": "عرض كل التفاصيل", "You have multiple active records. Open the full list to view them all.": "لديك عدة سجلات نشطة. افتح القائمة الكاملة لعرضها.",
+  "No active help requests": "لا توجد طلبات مساعدة نشطة", "Track your request status and assigned interpreter here when you have an active request.": "تابع حالة طلبك والمترجم المكلّف هنا عند وجود طلب نشط.",
+  "Current assignment": "المهمة الحالية", "Meeting area": "منطقة اللقاء", "Requester": "صاحب الطلب", "You have multiple active assignments. Open your assignments to view them all.": "لديك عدة مهام نشطة. افتح قائمة مهامك لعرضها.",
+  "Nearby requests": "الطلبات القريبة", "Locating…": "جارٍ تحديد الموقع…", "Try location again": "حاول تحديد الموقع مجددًا", "Use my current location": "استخدم موقعي الحالي", "Location unavailable. Try again.": "الموقع غير متاح. حاول مرة أخرى.", "Nearby help request map": "خريطة طلبات المساعدة القريبة", "Loading map…": "جارٍ تحميل الخريطة…", "Current location": "الموقع الحالي", "Open full map": "فتح الخريطة الكاملة",
+  "Explore suitable requests": "استكشاف الطلبات المناسبة", "Filter open requests that match your skills.": "صفِّ الطلبات المفتوحة التي تناسب مهاراتك.", "Language": "اللغة", "All languages": "كل اللغات", "Category": "الفئة", "All categories": "كل الفئات", "Open the map": "فتح الخريطة", "No open requests currently match your approved skills.": "لا توجد طلبات مفتوحة تطابق مهاراتك المعتمدة.", "No open requests match these filters. Try another language, category or distance.": "لا توجد طلبات مفتوحة تطابق عوامل التصفية هذه. جرّب لغة أو فئة أو مسافة أخرى.",
+  "Recent requests": "الطلبات الأخيرة", "Your past work": "أعمالك السابقة", "View all": "عرض الكل", "You have no past assignments yet. Claimed assignments will appear here.": "لا توجد مهام سابقة بعد. ستظهر المهام التي تستلمها هنا.", "You have no recent requests yet. Requests you submit will appear here.": "لا توجد طلبات حديثة بعد. ستظهر الطلبات التي ترسلها هنا.", "Find requests": "البحث عن الطلبات", "Contact us if you have a problem": "تواصل معنا إذا واجهت مشكلة", "If you run into a problem or need further help, contact us through:": "إذا واجهت مشكلة أو احتجت إلى مساعدة إضافية فتواصل معنا عبر:", "Review after completion": "المراجعة بعد إتمام المهمة", "All completed assignments have been reviewed.": "تمت مراجعة جميع المهام المكتملة.", "Review a completed assignment": "مراجعة مهمة مكتملة",
+};
+
+function localizeWelcomeText(locale: ReturnType<typeof useUiLocale>, th: string, en: string, zh: string) {
+  if (locale === "th") return th;
+  if (locale === "zh") return zh;
+  if (locale === "es") {
+    if (en.startsWith("Average rating ")) return en.replace("Average rating", "Calificación promedio").replace("out of", "de").replace("from", "de").replace("reviews", "reseñas");
+    if (en.includes("completed assignments are waiting for your review")) return en.replace("completed assignments are waiting for your review.", "misiones completadas esperan tu reseña.");
+    return welcomeSpanish[en] ?? en;
+  }
+  if (locale === "ar") {
+    if (en.startsWith("Average rating ")) return en.replace("Average rating", "متوسط التقييم").replace("out of", "من").replace("from", "من").replace("reviews", "مراجعات");
+    if (en.includes("completed assignments are waiting for your review")) return en.replace("completed assignments are waiting for your review.", "مهام مكتملة بانتظار مراجعتك.");
+    return welcomeArabic[en] ?? en;
+  }
+  return en;
+}
 function distance(request: HelpRequest, location: GeolocationCoordinates | null) {
   if (!location || request.latitude === null || request.longitude === null) return null;
   const rad = Math.PI / 180;
@@ -99,7 +155,7 @@ export function WelcomeDashboard({
   const locale = useUiLocale();
   const interpreterAccess = useInterpreterAccess();
   const copyLocale = useCopyLocale();
-  const tr = (th: string, en: string, zh: string) => locale === "th" ? th : locale === "zh" ? zh : en;
+  const tr = (th: string, en: string, zh: string) => localizeWelcomeText(locale, th, en, zh);
   const interpreterAccount = user.role === "Interpreter";
   const interpreter = interpreterAccount && interpreterMode === "helper";
   const workspaceBase = interpreterAccount ? "/interpreter" : "/user";

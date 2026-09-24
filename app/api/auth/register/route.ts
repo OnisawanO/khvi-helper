@@ -1,9 +1,9 @@
 import { apiError, apiSuccess } from "@/app/lib/api/auth-response";
 import { isRecord, normalizeEmail, normalizeLocale } from "@/app/lib/api/auth-utils";
 import { getAuthCopy } from "@/app/lib/auth-copy";
-import { getRedirectPathByRole, validateRegisterInput, type RegisterInput } from "@/app/lib/mock-auth";
-import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
-import { createClient } from "@/utils/supabase/server";
+import { getRedirectPathByRole, validateRegisterInput, type RegisterInput } from "@/app/lib/auth-types";
+import { getAuthErrorMessage, getCurrentUserProfile } from "@/app/lib/supabase-auth";
+import { createRouteHandlerClient } from "@/utils/supabase/server";
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const supabase = await createClient();
+  const { supabase, applyToResponse } = await createRouteHandlerClient();
   const { data, error } = await supabase.auth.signUp({
     email: input.email,
     password: input.password,
@@ -60,25 +60,41 @@ export async function POST(request: Request) {
     },
   });
 
-  if (error || !data.user) {
-    return apiError("registration_failed", copy.errors.registerFallback, 400);
+  const isExistingUser = Boolean(
+    data.user?.identities?.length === 0
+    || error?.code === "user_already_exists"
+    || error?.message?.toLowerCase().includes("already registered")
+    || error?.message?.toLowerCase().includes("already been registered"),
+  );
+
+  if (error || !data.user || isExistingUser) {
+    if (data.session) await supabase.auth.signOut();
+    return apiError(
+      isExistingUser ? "email_exists" : "registration_failed",
+      isExistingUser ? copy.errors.emailExists : getAuthErrorMessage(error, "register", locale),
+      isExistingUser ? 409 : 400,
+    );
   }
 
   if (!data.session) {
-    return apiError("session_unavailable", copy.register.noSessionError, 409);
+    const response = apiError("session_unavailable", copy.register.genericError, 503);
+    return applyToResponse(response, { clearPersistence: true, recovery: false });
   }
 
   const profileResult = await getCurrentUserProfile(supabase);
   if (!profileResult.profile) {
     await supabase.auth.signOut();
-    return apiError("profile_unavailable", copy.register.profileError, 500);
+    const response = apiError("profile_unavailable", copy.register.profileError, 500);
+    return applyToResponse(response, { clearPersistence: true, recovery: false });
   }
 
-  return apiSuccess(
+  const response = apiSuccess(
     {
       user: profileResult.profile,
       redirectPath: getRedirectPathByRole(profileResult.profile.role),
+      email: input.email,
     },
     201,
   );
+  return applyToResponse(response, { persistence: "persistent", recovery: false });
 }

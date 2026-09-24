@@ -36,6 +36,14 @@ const languageOptions = [
   { code: "ar", label: "AR", name: "Arabic", nativeName: "العربية" },
 ] as const;
 
+const navigationAccessibility = {
+  en: { open: "Open navigation menu", close: "Close navigation menu", primary: "Primary navigation", mobile: "Mobile navigation", workspace: "KHVI workspace", welcome: "KHVI welcome", home: "KHVI home" },
+  th: { open: "เปิดเมนูนำทาง", close: "ปิดเมนูนำทาง", primary: "เมนูนำทางหลัก", mobile: "เมนูนำทางบนมือถือ", workspace: "พื้นที่ทำงาน KHVI", welcome: "หน้าแรก KHVI", home: "หน้าแรก KHVI" },
+  zh: { open: "打开导航菜单", close: "关闭导航菜单", primary: "主导航", mobile: "移动端导航", workspace: "KHVI 工作区", welcome: "KHVI 欢迎页", home: "KHVI 首页" },
+  es: { open: "Abrir menú de navegación", close: "Cerrar menú de navegación", primary: "Navegación principal", mobile: "Navegación móvil", workspace: "Espacio de trabajo KHVI", welcome: "Bienvenida de KHVI", home: "Página principal de KHVI" },
+  ar: { open: "فتح قائمة التنقل", close: "إغلاق قائمة التنقل", primary: "التنقل الرئيسي", mobile: "التنقل على الهاتف", workspace: "مساحة عمل KHVI", welcome: "صفحة ترحيب KHVI", home: "الصفحة الرئيسية لـ KHVI" },
+} as const;
+
 function getHashTarget(hash: string) {
   try {
     return document.getElementById(decodeURIComponent(hash.slice(1)));
@@ -186,6 +194,7 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
     isRequestWorkspacePage ||
     isAuthOrOnboardingPage;
   const navItems = isRequestWorkspacePage ? copy.nav.slice(0, 2) : copy.nav;
+  const accessibility = navigationAccessibility[locale];
 
   useEffect(() => {
     const handleHashLinkClick = (event: MouseEvent) => {
@@ -312,9 +321,9 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
         <BrandMark
           subtitle={copy.brandSubtitle}
           href={workspaceRole ? resolvedWorkspaceHomeHref : "/#top"}
-          ariaLabel={workspaceRole ? "KHVI workspace" : "KHVI home"}
+          ariaLabel={workspaceRole ? accessibility.workspace : accessibility.home}
         />
-        <nav className="hidden items-center gap-7 text-[13px] font-extrabold text-[#39525d] lg:flex" aria-label="Primary navigation">
+        <nav className="hidden items-center gap-7 text-[13px] font-extrabold text-[#39525d] lg:flex" aria-label={accessibility.primary}>
           {navItems.map(([label, href]) => (
             <a key={href} className="transition-colors hover:text-[#0d8587]" href={href}>
               {label}
@@ -362,7 +371,7 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
             ref={menuButtonRef}
             type="button"
             className="flex h-11 w-11 items-center justify-center rounded-lg border border-[#cbd7dc] bg-white text-lg text-[#123b4f] transition-colors hover:border-[#8fbfc1] hover:text-[#0d8587] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f80] lg:hidden"
-            aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-label={menuOpen ? accessibility.close : accessibility.open}
             aria-expanded={menuOpen}
             aria-controls="mobile-navigation"
             onClick={() => setMenuOpen((open) => !open)}
@@ -378,7 +387,7 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
           <button
             type="button"
             className="absolute inset-0 h-full w-full cursor-default bg-[#092f45]/45 backdrop-blur-[2px] animate-in fade-in duration-200"
-            aria-label="Close navigation menu"
+            aria-label={accessibility.close}
             onClick={() => setMenuOpen(false)}
           />
           <aside
@@ -386,16 +395,16 @@ export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpe
             id="mobile-navigation"
             role="dialog"
             aria-modal="true"
-            aria-label="Mobile navigation"
+            aria-label={accessibility.mobile}
             className="absolute inset-y-0 right-0 flex h-dvh w-[min(88vw,360px)] flex-col overflow-hidden bg-white shadow-[-18px_0_45px_rgba(9,47,69,0.24)] animate-in slide-in-from-right duration-200 motion-reduce:animate-none"
           >
             <div className="flex items-center justify-between gap-4 border-b border-[#e1e9ec] px-5 py-4">
-              <BrandMark subtitle={copy.brandSubtitle} href={workspaceRole ? resolvedWorkspaceHomeHref : "/#top"} ariaLabel={workspaceRole ? "KHVI welcome" : "KHVI home"} />
+              <BrandMark subtitle={copy.brandSubtitle} href={workspaceRole ? resolvedWorkspaceHomeHref : "/#top"} ariaLabel={workspaceRole ? accessibility.welcome : accessibility.home} />
               <button
                 ref={closeButtonRef}
                 type="button"
                 className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-[#cbd7dc] text-[#123b4f] transition-colors hover:border-[#8fbfc1] hover:bg-[#eef7f5] hover:text-[#087f80] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f80]"
-                aria-label="Close navigation menu"
+                aria-label={accessibility.close}
                 onClick={() => setMenuOpen(false)}
               >
                 <XMarkIcon aria-hidden="true" className="h-6 w-6" />

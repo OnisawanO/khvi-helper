@@ -6,7 +6,7 @@ import { ResetPasswordForm } from "./reset-password-form";
 import { getAuthCopy } from "@/app/lib/auth-copy";
 import { useStoredLocale } from "@/app/lib/locale";
 
-export function AuthUtilityPage({ variant }: { variant: "forgot" | "reset" }) {
+export function AuthUtilityPage({ variant, recoveryError = false }: { variant: "forgot" | "reset"; recoveryError?: boolean }) {
   const [locale] = useStoredLocale();
   const copy = getAuthCopy(locale);
   const isArabic = locale === "ar";
@@ -26,7 +26,7 @@ export function AuthUtilityPage({ variant }: { variant: "forgot" | "reset" }) {
         mode="page"
         sideCopy={copy.side.login}
       >
-        {variant === "forgot" ? <ForgotPasswordForm /> : <ResetPasswordForm />}
+        {variant === "forgot" ? <ForgotPasswordForm /> : <ResetPasswordForm initialError={recoveryError} />}
       </AuthShell>
     </main>
   );

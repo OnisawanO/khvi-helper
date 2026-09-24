@@ -45,6 +45,16 @@ function parseDateInputValue(value: string): Date | null {
   return date.getFullYear() === year && date.getMonth() === month && date.getDate() === day ? date : null;
 }
 
+function formatDayMonthYear(date: Date, locale: string) {
+  const parts = new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).formatToParts(date);
+  const values = new Map(parts.map((part) => [part.type, part.value]));
+  return [values.get("day"), values.get("month"), values.get("year")].filter(Boolean).join(" ");
+}
+
 export function DatePicker({
   id,
   label,
@@ -73,9 +83,7 @@ export function DatePicker({
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const monthLabel = visibleMonth.toLocaleDateString(formatLocale, { month: "long" });
   const yearLabel = visibleMonth.toLocaleDateString(formatLocale, { year: "numeric" });
-  const selectedLabel = selectedDate
-    ? selectedDate.toLocaleDateString(formatLocale, { day: "numeric", month: "long", year: "numeric" })
-    : "";
+  const selectedLabel = selectedDate ? formatDayMonthYear(selectedDate, formatLocale) : "";
   const weekdays = useMemo(
     () => Array.from(
       { length: 7 },

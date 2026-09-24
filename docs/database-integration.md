@@ -10,6 +10,7 @@
 - Server Actions ใช้ Supabase RPC สำหรับ mutation ที่ต้องตรวจสิทธิ์ เปลี่ยน status หรือทำหลายขั้นตอนใน transaction เดียว
 - Server data loader ใช้ `@supabase/ssr` และ session cookie ของผู้ใช้
 - Certificate ใช้ Supabase Storage bucket ชื่อ `interpreter-certificates` ซึ่งเป็น private bucket
+- Profile photo ใช้ Supabase Storage bucket public ชื่อ `avatars` โดยเก็บไฟล์ใต้ path `{auth.uid()}/{uuid}.jpg` และเก็บเฉพาะ URL/path สั้น ๆ ใน Auth metadata
 - `supabase/config.toml` เปิด Realtime ไว้ แต่ application flow ปัจจุบันยังไม่มี subscription ผ่าน `channel()` หรือ `postgres_changes`; หน้าเว็บใช้ Server Action และ `revalidatePath()`
 
 ให้ยึด source code และ migration ปัจจุบันเป็นหลักเมื่อเอกสาร roadmap ระบุสถานะเก่ากว่า implementation
@@ -52,8 +53,6 @@ User | Interpreter | Manager | Admin
 เฉพาะ Admin หลักเท่านั้นที่เปลี่ยน role หรือจัดการสิทธิ์ของ Admin ได้
 
 `profiles` เปิด RLS และให้ผู้ใช้ที่ login แล้วอ่านหรือแก้ไขเฉพาะ profile ของตนเอง ฟิลด์ role, lock status และ `is_super_interpreter` ต้องเปลี่ยนผ่าน server-side authorization เท่านั้น อย่าใช้ `user_metadata` เป็นแหล่งตัดสินสิทธิ์
-
-Fast Login ใช้เฉพาะ development ผ่าน `FAST_LOGIN_*` server environment variables และ `/api/auth/fast-login` ไม่ควรนำไปใช้เป็น production login flow
 
 ## Schema ที่มีอยู่จริง
 
@@ -207,6 +206,8 @@ interpreter-certificates/{auth.uid()}/{uuid}-{safe-file-name}
 
 Upload ทำใน `uploadInterpreterCertificateAction()` หลังตรวจชนิดไฟล์และขนาดไม่เกิน 10 MB จากนั้นจึงส่ง path เข้า `submit_interpreter_application` หรือ `reupload_interpreter_certificate`
 
+Profile photo upload ทำใน `updateProfileAvatarAction()` หลังตรวจ session, MIME type, JPEG signature และขนาดไฟล์ไม่เกิน 5 MB จากนั้นอัปโหลดไฟล์ใหม่เข้า Storage, อัปเดต URL ใน Auth metadata และลบไฟล์เก่าของเจ้าของบัญชี
+
 ## Migration workflow
 
 Project นี้ใช้ imperative migration ใน `supabase/migrations/` และไม่ได้ใช้ `supabase/schemas/`
@@ -236,18 +237,18 @@ npm run dev
 
 ก่อนใช้ remote project ต้อง link project ให้ถูกต้องและตรวจ migration ก่อน `db push` เสมอ การ push schema ไป shared หรือ production ต้องได้รับอนุมัติจากผู้ดูแลโครงการ
 
-ใน repository ยังไม่มี `supabase/seed.sql` หรือ committed test users ดังนั้น local reset ไม่ได้สร้างบัญชี Fast Login ให้เอง บัญชีทดสอบต้องมีทั้ง Supabase Auth user และ `public.profiles` ที่ตรงกัน
+ใน repository ยังไม่มี `supabase/seed.sql` หรือ committed test users ดังนั้น local reset ไม่ได้สร้างบัญชีทดสอบให้อัตโนมัติ บัญชีทดสอบต้องมีทั้ง Supabase Auth user และ `public.profiles` ที่ตรงกัน และเข้าสู่ระบบผ่านฟอร์มปกติ
 
 ### บัญชี Super Interpreter สำหรับทดสอบ
 
-บัญชีใน `FAST_LOGIN_INTERPRETER_EMAIL` ที่ต้องการใช้เป็นบัญชีทดสอบพิเศษสามารถเปิดสิทธิ์ด้วย SQL นี้หลังจากมี profile และใบสมัครที่ `approved` แล้ว:
+บัญชี Interpreter สำหรับทดสอบที่ต้องการสิทธิ์พิเศษสามารถเปิดสิทธิ์ด้วย SQL นี้หลังจากมี profile และใบสมัครที่ `approved` แล้ว:
 
 ```sql
 update public.profiles p
 set is_super_interpreter = true
 from auth.users u
 where u.id = p.user_id
-  and u.email = '<FAST_LOGIN_INTERPRETER_EMAIL>'
+  and u.email = '<TEST_INTERPRETER_EMAIL>'
   and p.role = 'Interpreter'
   and p.is_locked = false;
 ```
@@ -267,13 +268,13 @@ where u.id = p.user_id
 - `/volunteer/status` อ่านและจัดการ application จริง
 - Manager application queue อ่านข้อมูลจริงและ review ผ่าน RPC
 
-ยังเป็น mock หรือยังไม่เชื่อมใน domain อื่น:
+ยังไม่อยู่ใน migration ชุดนี้:
 
 - Notification และ ticket domain แยกยังไม่อยู่ใน migration ชุดนี้
 - Admin, Manager reports, review records และ audit log ใช้ Supabase-backed actions แล้ว
 - Realtime config เปิดอยู่ แต่ application ยังใช้ request/response และ cache revalidation แทน realtime subscription
 
-`docs/route-inventory.md`, `detail.md` และ role documents บางส่วนยังมีข้อความที่อธิบาย route หรือ status เป็น mock/planned จากช่วงก่อนเชื่อม database เอกสารนี้บันทึก implementation ปัจจุบันจาก source code และ migration หากจะขยาย feature ให้ผ่าน Requirement Consistency Gate และอัปเดตเอกสารที่เกี่ยวข้องใน PR เดียวกัน
+`docs/route-inventory.md`, `detail.md` และ role documents บางส่วนยังมีข้อความ historical จากช่วงก่อนเชื่อม database เอกสารนี้บันทึก implementation ปัจจุบันจาก source code และ migration หากจะขยาย feature ให้ผ่าน Requirement Consistency Gate และอัปเดตเอกสารที่เกี่ยวข้องใน PR เดียวกัน
 
 ## ไฟล์อ้างอิงหลัก
 

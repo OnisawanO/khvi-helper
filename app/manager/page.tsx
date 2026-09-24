@@ -24,11 +24,12 @@ import { OperationsHistoryView } from "./components/operations-history-view";
 import { ProfileChangeRequestsView } from "./components/profile-change-requests-view";
 import { ApplicantDetailModal } from "./components/applicant-detail-modal";
 import { LoginModal } from "@/app/components/auth/login-modal";
+import { WorkspaceLoadingSkeleton } from "@/app/components/workspace-loading-skeleton";
 
 import {
   getRedirectPathByRole,
   type UserProfile,
-} from "@/app/lib/mock-auth";
+} from "@/app/lib/auth-types";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { createClient } from "@/utils/supabase/client";
 import { useStoredLocale } from "@/app/lib/locale";
@@ -528,11 +529,7 @@ export default function ManagerDashboard({
   ]);
 
   if (!authChecked) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#f7f9fa] text-[#092f45]" aria-busy="true">
-        <p role="status" className="text-sm font-bold">Checking manager session…</p>
-      </main>
-    );
+    return <WorkspaceLoadingSkeleton variant="table" />;
   }
 
   const setManagerNavSection = (section: ManagerNavSection) => {
@@ -633,14 +630,14 @@ export default function ManagerDashboard({
                   {embedded && visibleNavSection === "queue"
                     ? "Operations Console"
                     : t.headings[visibleNavSection]?.title ??
-                      (visibleNavSection === "change-requests" ? "Profile Change Requests" : "Manager Dashboard")}
+                      (visibleNavSection === "change-requests" ? t.navigation.changeRequests : "Manager Dashboard")}
                 </h2>
                 <p className="mt-0.5 text-xs text-slate-500">
                   {embedded && visibleNavSection === "queue"
                     ? "Manager operations inside the Admin Console."
                     : t.headings[visibleNavSection]?.subtitle ??
                     (visibleNavSection === "change-requests"
-                      ? "Review evidence before approving language and/or category changes for certified interpreters."
+                      ? t.navigation.changeRequests
                       : "")}
                 </p>
               </div>

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getRedirectPathByRole, type UserRole } from "@/app/lib/mock-auth";
+import { getRedirectPathByRole, type UserRole } from "@/app/lib/auth-types";
 import {
   loadInterpreterAssignments,
   loadOpenInterpreterRequests,
@@ -9,7 +9,7 @@ import {
 import { loadReferenceCatalog } from "@/app/lib/real-reference-data";
 import { loadMyInterpreterRating, type InterpreterRating } from "@/app/lib/real-interpreter-rating";
 import type { ReferenceCatalog } from "@/app/lib/reference-catalog";
-import type { HelpRequest } from "@/app/lib/mock-requests";
+import type { HelpRequest } from "@/app/lib/request-types";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { createClient } from "@/utils/supabase/server";
 import { Welcome } from "./workspace-welcome";
@@ -36,9 +36,9 @@ export async function WorkspaceHomePage({ requiredRole }: { requiredRole: Extrac
 
   if (profile.role === "Interpreter") {
     const [openRes, assignRes, requestRes, catalog, ratingResult] = await Promise.all([
-      loadOpenInterpreterRequests(supabase),
-      loadInterpreterAssignments(supabase),
-      loadRequesterRequests(supabase),
+      loadOpenInterpreterRequests(supabase, profile),
+      loadInterpreterAssignments(supabase, { profile }),
+      loadRequesterRequests(supabase, { profile }),
       loadReferenceCatalog(supabase),
       loadMyInterpreterRating(supabase, profile.userId).catch(() => null),
     ]);
@@ -50,7 +50,7 @@ export async function WorkspaceHomePage({ requiredRole }: { requiredRole: Extrac
     interpreterRating = ratingResult;
   } else {
     [requesterRequests, referenceCatalog] = await Promise.all([
-      loadRequesterRequests(supabase),
+      loadRequesterRequests(supabase, { profile }),
       loadReferenceCatalog(supabase),
     ]);
   }

@@ -437,7 +437,7 @@ const copyEn: ProfileCopy = {
   },
   photo: {
     title: "Profile photo",
-    description: "Use a clear image, then crop it to a square before saving it to this browser preview.",
+    description: "Use a clear image, then crop it to a square before saving it to your profile.",
     processing: "Processing…",
     changePhoto: "Change photo",
     removePhoto: "Remove",
@@ -713,9 +713,45 @@ const copyZh: ProfileCopy = {
   },
 };
 
+const copyEs: ProfileCopy = {
+  ...copyEn,
+  loading: "Cargando tu perfil…",
+  breadcrumbAria: "Navegación del perfil",
+  breadcrumbCurrent: "Perfil y configuración",
+  rail: { ...copyEn.rail, personalDetails: "Datos personales", roleSettings: "Configuración del rol", deleteAccount: "Eliminar cuenta", accountPrivacy: "Privacidad de la cuenta", roleLabels: { User: "Solicitante", Interpreter: "Intérprete", Manager: "Gestor", Admin: "Administrador" } },
+  personalDetails: { ...copyEn.personalDetails, eyebrow: "PERFIL", title: "Datos personales", description: "Actualiza tus datos y el idioma de la interfaz.", firstName: "Nombre", lastName: "Apellidos", email: "Correo electrónico", phone: "Teléfono", dateOfBirth: "Fecha de nacimiento", preferredUiLanguage: "Idioma de la interfaz", saveChanges: "Guardar cambios", saved: "Guardado" },
+  accountDeletion: { ...copyEn.accountDeletion, eyebrow: "ZONA DE PELIGRO", title: "Eliminar cuenta", deleteButton: "Eliminar mi cuenta", cancelButton: "Cancelar", confirmButton: "Eliminar cuenta", deleting: "Eliminando…" },
+  roleConfig: {
+    ...copyEn.roleConfig,
+    User: { ...copyEn.roleConfig.User, eyebrow: "SOLICITANTE", title: "Perfil del solicitante", badge: "Solicitante", homeLabel: "Ir al inicio", note: "Gestiona tus solicitudes de ayuda." },
+    Interpreter: { ...copyEn.roleConfig.Interpreter, eyebrow: "INTÉRPRETE", title: "Perfil del intérprete", badge: "Intérprete", homeLabel: "Ir al espacio de trabajo", note: "Gestiona tus capacidades y asignaciones." },
+    Manager: { ...copyEn.roleConfig.Manager, eyebrow: "GESTOR", title: "Perfil del gestor", badge: "Gestor", homeLabel: "Abrir consola", note: "Gestiona operaciones y solicitudes." },
+    Admin: { ...copyEn.roleConfig.Admin, eyebrow: "ADMINISTRADOR", title: "Perfil del administrador", badge: "Administrador", homeLabel: "Abrir panel", note: "Gestiona la gobernanza de la plataforma." },
+  },
+};
+
+const copyAr: ProfileCopy = {
+  ...copyEn,
+  loading: "جارٍ تحميل ملفك الشخصي…",
+  breadcrumbAria: "تنقل الملف الشخصي",
+  breadcrumbCurrent: "الملف الشخصي والإعدادات",
+  rail: { ...copyEn.rail, personalDetails: "البيانات الشخصية", roleSettings: "إعدادات الدور", deleteAccount: "حذف الحساب", accountPrivacy: "خصوصية الحساب", roleLabels: { User: "صاحب الطلب", Interpreter: "المترجم", Manager: "المدير", Admin: "المسؤول" } },
+  personalDetails: { ...copyEn.personalDetails, eyebrow: "الملف الشخصي", title: "البيانات الشخصية", description: "حدّث بياناتك ولغة الواجهة.", firstName: "الاسم الأول", lastName: "اسم العائلة", email: "البريد الإلكتروني", phone: "الهاتف", dateOfBirth: "تاريخ الميلاد", preferredUiLanguage: "لغة الواجهة", saveChanges: "حفظ التغييرات", saved: "تم الحفظ" },
+  accountDeletion: { ...copyEn.accountDeletion, eyebrow: "منطقة الخطر", title: "حذف الحساب", deleteButton: "حذف حسابي", cancelButton: "إلغاء", confirmButton: "حذف الحساب", deleting: "جارٍ الحذف…" },
+  roleConfig: {
+    ...copyEn.roleConfig,
+    User: { ...copyEn.roleConfig.User, eyebrow: "صاحب الطلب", title: "ملف صاحب الطلب", badge: "صاحب الطلب", homeLabel: "العودة للرئيسية", note: "إدارة طلبات المساعدة." },
+    Interpreter: { ...copyEn.roleConfig.Interpreter, eyebrow: "المترجم", title: "ملف المترجم", badge: "المترجم", homeLabel: "فتح مساحة العمل", note: "إدارة المهارات والمهام." },
+    Manager: { ...copyEn.roleConfig.Manager, eyebrow: "المدير", title: "ملف المدير", badge: "المدير", homeLabel: "فتح اللوحة", note: "إدارة العمليات والطلبات." },
+    Admin: { ...copyEn.roleConfig.Admin, eyebrow: "المسؤول", title: "ملف المسؤول", badge: "المسؤول", homeLabel: "فتح لوحة الإدارة", note: "إدارة حوكمة المنصة." },
+  },
+};
+
 export function getProfileCopy(locale: Locale): ProfileCopy {
   if (locale === "th") return copyTh;
   if (locale === "zh") return copyZh;
+  if (locale === "es") return copyEs;
+  if (locale === "ar") return copyAr;
   return copyEn;
 }
 

@@ -27,23 +27,22 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type PointerEvent, type ReactNode } from "react";
 import { AppShell, type WorkspaceRole } from "@/app/components/app-shell";
 import { deleteOwnAccountAction } from "@/app/actions/account-actions";
+import { updateProfileAction, updateProfileAvatarAction } from "@/app/actions/profile-actions";
 import { authApi } from "@/app/lib/auth-client";
 import { WorkspaceAccountActions } from "@/app/components/workspace-account-actions";
 import { WorkspaceBreadcrumbs } from "@/app/components/workspace-breadcrumbs";
 import { UserAvatar } from "@/app/components/user-avatar";
 import {
-  AUTH_SESSION_STORAGE_KEY,
-  clearMockUserSession,
-  getMockUserSession,
-  saveMockUserSession,
   type UserProfile,
-} from "@/app/lib/mock-auth";
+} from "@/app/lib/auth-types";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import type { Locale } from "@/app/components/site-header";
 import { persistPreferredUiLanguage, useStoredLocale } from "@/app/lib/locale";
 import { getProfileCopy, type ProfileCopy } from "@/app/lib/profile-copy";
 import { loadMyInterpreterApplicationAction } from "@/app/actions/interpreter-application-actions";
-import type { InterpreterApplication } from "@/app/lib/interpreter-application";
+import type { InterpreterApplication } from "@/app/lib/interpreter-application-types";
+import type { InterpreterApplicationReference } from "@/app/lib/interpreter-reference-catalog";
+import { sortCategoriesByPriority } from "@/app/lib/interpreter-reference-catalog";
 import { INTERPRETER_MATCHING_RADIUS_KM } from "@/app/lib/matching-settings";
 import { loadMyInterpreterRating, type InterpreterRating } from "@/app/lib/real-interpreter-rating";
 import { EditInterpreterProfileModal } from "@/components/volunteer/EditInterpreterProfileModal";
@@ -123,7 +122,7 @@ export function ProfileSettings({ accountDeletionConfigured }: { accountDeletion
       try {
         supabaseResult = await getCurrentUserProfile(supabase);
       } catch {
-        // Keep the browser preview available when Supabase is not configured.
+        // Treat an unavailable Supabase session as unauthenticated.
       }
 
       if (disposed) return;
@@ -135,32 +134,21 @@ export function ProfileSettings({ accountDeletionConfigured }: { accountDeletion
 
         if (disposed) return;
 
-        const previewSession = getMockUserSession();
-        const sameAccountPreview = previewSession?.userId === supabaseResult.profile.userId ? previewSession : null;
-        setUser(sameAccountPreview ? { ...supabaseResult.profile, ...sameAccountPreview } : supabaseResult.profile);
+        setUser(supabaseResult.profile);
         setInterpreterRating(rating);
         setCanDeleteAccount(accountDeletionConfigured && supabaseResult.accountDeletionAvailable !== false);
         setReady(true);
         return;
       }
 
-      // Do not fall back to a mock session when Supabase has an authenticated
-      // user without a valid profile or with a locked account.
+      // Do not continue when Supabase has an authenticated user without a
+      // valid profile or with a locked account.
       if (supabaseResult?.authenticated) {
         setUser(null);
         setInterpreterRating(null);
         setCanDeleteAccount(false);
         setReady(true);
         router.replace("/#top");
-        return;
-      }
-
-      const session = getMockUserSession();
-      if (session && ["User", "Interpreter", "Manager", "Admin"].includes(session.role) && !session.isLocked) {
-        setUser(session);
-        setInterpreterRating(null);
-        setCanDeleteAccount(false);
-        setReady(true);
         return;
       }
 
@@ -171,15 +159,9 @@ export function ProfileSettings({ accountDeletionConfigured }: { accountDeletion
       router.replace("/#top");
     };
 
-    const onStorage = (event: StorageEvent) => {
-      if (event.key === AUTH_SESSION_STORAGE_KEY || event.key === null) {
-        void refreshSession();
-      }
-    };
     const onWindowFocus = () => void refreshSession();
 
     void refreshSession();
-    window.addEventListener("storage", onStorage);
     window.addEventListener("focus", onWindowFocus);
     const { data: authListener } = supabase.auth.onAuthStateChange(() => {
       window.setTimeout(() => void refreshSession(), 0);
@@ -187,7 +169,6 @@ export function ProfileSettings({ accountDeletionConfigured }: { accountDeletion
 
     return () => {
       disposed = true;
-      window.removeEventListener("storage", onStorage);
       window.removeEventListener("focus", onWindowFocus);
       authListener.subscription.unsubscribe();
     };
@@ -204,7 +185,6 @@ export function ProfileSettings({ accountDeletionConfigured }: { accountDeletion
           <WorkspaceAccountActions
             user={user}
             onSignOut={async () => {
-              clearMockUserSession();
               await authApi.logout();
               setUser(null);
               router.replace("/#top");
@@ -218,7 +198,6 @@ export function ProfileSettings({ accountDeletionConfigured }: { accountDeletion
           onUserChange={setUser}
           canDeleteAccount={canDeleteAccount}
           onAccountDeleted={async () => {
-            clearMockUserSession();
             await createClient().auth.signOut({ scope: "local" });
             setUser(null);
             setCanDeleteAccount(false);
@@ -354,6 +333,7 @@ function PersonalDetailsCard({
   const [form, setForm] = useState<FormState>(() => getFormState(user));
   const [, setStoredLocale] = useStoredLocale();
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
   const updateField = <K extends keyof FormState>(field: K, value: FormState[K]) => {
@@ -362,8 +342,9 @@ function PersonalDetailsCard({
     setForm((current) => ({ ...current, [field]: value }));
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setSaveError(null);
     const nextErrors: Partial<Record<keyof FormState, string>> = {};
     if (!form.firstName.trim()) nextErrors.firstName = copy.personalDetails.errors.firstName;
     if (!form.lastName.trim()) nextErrors.lastName = copy.personalDetails.errors.lastName;
@@ -376,15 +357,13 @@ function PersonalDetailsCard({
       return;
     }
 
-    const nextUser: UserProfile = {
-      ...user,
-      name: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
-      phone: form.phone.trim(),
-      dateOfBirth: form.dateOfBirth,
-      preferredUiLanguage: form.preferredUiLanguage,
-    };
-    saveMockUserSession(nextUser);
-    onUserChange(nextUser);
+    const result = await updateProfileAction(form);
+    if (!result.ok) {
+      setSaveError(result.error);
+      setSaved(false);
+      return;
+    }
+    onUserChange(result.profile);
     setSaved(true);
   };
 
@@ -403,6 +382,7 @@ function PersonalDetailsCard({
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6 px-5 py-6 sm:px-7">
+        {saveError && <p role="alert" className="rounded-lg bg-(--khvi-coral)/10 px-3 py-2 text-xs font-bold text-(--khvi-coral)">{saveError}</p>}
         <ProfileImagePicker user={user} onUserChange={onUserChange} copy={copy} />
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label={copy.personalDetails.firstName} error={errors.firstName}>
@@ -436,7 +416,10 @@ function PersonalDetailsCard({
                   updateField("preferredUiLanguage", nextLocale);
                   setStoredLocale(nextLocale);
                   void persistPreferredUiLanguage(nextLocale).catch((error: unknown) => {
-                    console.error("Unable to persist preferred UI language", error);
+                    console.error(
+                      "Unable to persist preferred UI language:",
+                      error instanceof Error ? error.message : error,
+                    );
                   });
                 }}
                 className={`${inputClass()} pl-9`}
@@ -654,6 +637,12 @@ function renderCroppedImage(source: CropSource, zoom: number, offset: CropOffset
   });
 }
 
+async function dataUrlToJpegFile(dataUrl: string): Promise<File> {
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+  return new File([blob], "profile.jpg", { type: "image/jpeg" });
+}
+
 function ProfileImagePicker({
   user,
   onUserChange,
@@ -695,13 +684,26 @@ function ProfileImagePicker({
     }
   };
 
-  const handleCropConfirm = (avatarUrl: string) => {
-    const nextUser = { ...user, avatarUrl };
-    saveMockUserSession(nextUser);
-    onUserChange(nextUser);
-    if (cropSource) URL.revokeObjectURL(cropSource.url);
-    setCropSource(null);
-    setMessage(copy.photo.photoUpdated);
+  const handleCropConfirm = async (avatarUrl: string) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.set("file", await dataUrlToJpegFile(avatarUrl));
+      const result = await updateProfileAvatarAction(formData);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      onUserChange(result.profile);
+      if (cropSource) URL.revokeObjectURL(cropSource.url);
+      setCropSource(null);
+      setMessage(copy.photo.photoUpdated);
+    } catch {
+      setError(copy.photo.cropError);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleCropCancel = () => {
@@ -709,12 +711,22 @@ function ProfileImagePicker({
     setCropSource(null);
   };
 
-  const removePhoto = () => {
-    const nextUser = { ...user, avatarUrl: undefined };
-    saveMockUserSession(nextUser);
-    onUserChange(nextUser);
-    setMessage(copy.photo.photoRemoved);
+  const removePhoto = async () => {
+    setBusy(true);
     setError(null);
+    try {
+      const result = await updateProfileAvatarAction(null);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      onUserChange(result.profile);
+      setMessage(copy.photo.photoRemoved);
+    } catch {
+      setError(copy.photo.cropError);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -747,7 +759,7 @@ function CropEditor({
 }: {
   source: CropSource;
   onCancel: () => void;
-  onConfirm: (avatarUrl: string) => void;
+  onConfirm: (avatarUrl: string) => void | Promise<void>;
   copy: ProfileCopy;
 }) {
   const [zoom, setZoom] = useState(1);
@@ -794,7 +806,7 @@ function CropEditor({
     setRendering(true);
     setError(null);
     try {
-      onConfirm(await renderCroppedImage(source, zoom, offset));
+      await onConfirm(await renderCroppedImage(source, zoom, offset));
     } catch {
       setError(copy.photo.cropError);
     } finally {
@@ -932,6 +944,8 @@ function InterpreterRoleSettings({
   locale: Locale;
 }) {
   const [application, setApplication] = useState<InterpreterApplication | null>(null);
+  const [referenceLanguages, setReferenceLanguages] = useState<InterpreterApplicationReference[]>([]);
+  const [referenceCategories, setReferenceCategories] = useState<InterpreterApplicationReference[]>([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [showSteppedStatus, setShowSteppedStatus] = useState(false);
 
@@ -964,6 +978,40 @@ function InterpreterRoleSettings({
     };
   }, []);
 
+  useEffect(() => {
+    let disposed = false;
+    const loadReferences = async () => {
+      const supabase = createClient();
+      const [{ data: languages }, { data: categories }] = await Promise.all([
+        supabase.from("languages").select("language_code, language_name, language_name_th, language_name_zh").eq("is_active", true).order("language_name"),
+        supabase.from("categories").select("category_code, category_name, category_name_th, category_name_zh, icon").eq("is_active", true).order("category_name"),
+      ]);
+      if (disposed) return;
+      setReferenceLanguages((languages ?? []).map((item: { language_code: string; language_name: string; language_name_th: string | null; language_name_zh: string | null }) => ({
+        id: item.language_code,
+        name: item.language_name,
+        nameTh: item.language_name_th ?? item.language_name,
+        nameZh: item.language_name_zh ?? item.language_name,
+      })));
+      setReferenceCategories(sortCategoriesByPriority((categories ?? []).map((item: { category_code: string; category_name: string; category_name_th: string | null; category_name_zh: string | null; icon: string | null }) => ({
+        id: item.category_code,
+        name: item.category_name,
+        nameTh: item.category_name_th ?? item.category_name,
+        nameZh: item.category_name_zh ?? item.category_name,
+        icon: item.icon ?? undefined,
+      }))));
+    };
+    void loadReferences().catch(() => {
+      if (!disposed) {
+        setReferenceLanguages([]);
+        setReferenceCategories([]);
+      }
+    });
+    return () => {
+      disposed = true;
+    };
+  }, []);
+
   const handleEditSuccess = async () => {
     setShowSteppedStatus(true);
     setApplication((prev) => (prev ? { ...prev, status: "pending" } : prev));
@@ -978,21 +1026,8 @@ function InterpreterRoleSettings({
   };
 
   // Resolve active languages and categories
-  const activeLanguages =
-    application?.languages && application.languages.length > 0
-      ? application.languages
-      : [
-          { id: "th", name: "Thai", nameTh: "ภาษาไทย", nameZh: "泰语", type: "Primary", level: "Native" },
-          { id: "en", name: "English", nameTh: "ภาษาอังกฤษ", nameZh: "英语", type: "Fluent", level: "Fluent" },
-        ];
-
-  const activeCategories =
-    application?.categories && application.categories.length > 0
-      ? application.categories
-      : [
-          { id: 1, name: "General & Daily Life", nameTh: "การสื่อสารทั่วไป", nameZh: "日常生活", icon: "💬" },
-          { id: 2, name: "Medical & Health", nameTh: "การแพทย์และสาธารณสุข", nameZh: "医疗健康", icon: "🏥" },
-        ];
+  const activeLanguages = application?.languages ?? [];
+  const activeCategories = application?.categories ?? [];
 
   const isPendingReview = application?.status === "pending" || application?.status === "under_review";
   const needsRevision = application?.status === "needs_revision";
@@ -1289,6 +1324,8 @@ function InterpreterRoleSettings({
         locale={locale}
         initialApplication={application}
         profile={user}
+        availableLanguages={referenceLanguages}
+        availableCategories={referenceCategories}
       />
     </div>
   );

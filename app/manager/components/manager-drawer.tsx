@@ -104,7 +104,6 @@ export function ManagerDrawer({
           {/* Group 1: Verification */}
           <div>
             <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Verification & Onboarding
               {t.verificationGroup}
             </p>
             <nav className="mt-1 space-y-1">
@@ -122,7 +121,6 @@ export function ManagerDrawer({
               >
                 <div className="flex items-center gap-2.5">
                   <InboxStackIcon className="h-5 w-5 text-slate-300" />
-                  <span>Application Queue</span>
                   <span>{t.queue}</span>
                 </div>
                 {pendingCount > 0 && (
@@ -152,7 +150,6 @@ export function ManagerDrawer({
               >
                 <div className="flex items-center gap-2.5">
                   <CheckCircleIcon className="h-5 w-5 text-slate-300" />
-                  <span>Approved Volunteers</span>
                   <span>{t.approved}</span>
                 </div>
                 <span
@@ -180,7 +177,7 @@ export function ManagerDrawer({
               >
                 <div className="flex items-center gap-2.5">
                   <DocumentCheckIcon className="h-5 w-5 text-slate-300" />
-                  <span>Profile Change Requests</span>
+                  <span>{t.changeRequests}</span>
                 </div>
                 <span
                   className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
@@ -207,7 +204,6 @@ export function ManagerDrawer({
               >
                 <div className="flex items-center gap-2.5">
                   <ArchiveBoxXMarkIcon className="h-5 w-5 text-slate-300" />
-                  <span>Rejected Archive</span>
                   <span>{t.rejected}</span>
                 </div>
                 <span
@@ -226,7 +222,6 @@ export function ManagerDrawer({
           {/* Group 2: Escalation & Operations */}
           <div>
             <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Operations & Governance
               {t.operationsGroup}
             </p>
             <nav className="mt-1 space-y-1">
@@ -272,7 +267,6 @@ export function ManagerDrawer({
               >
                 <div className="flex items-center gap-2.5">
                   <ClockIcon className="h-5 w-5 text-slate-300" />
-                  <span>Operations History</span>
                   <span>{t.history}</span>
                 </div>
                 <span

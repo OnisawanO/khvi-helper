@@ -30,7 +30,7 @@ import {
   languageLabel,
   type HelpRequest,
   type Urgency,
-} from "@/app/lib/mock-requests";
+} from "@/app/lib/request-types";
 
 const RequestMap = dynamic(
   () => import("./request-map").then((module) => module.RequestMap),
@@ -195,6 +195,81 @@ const copy = {
   },
 } as const;
 
+const localizedCopy = {
+  en: copy.en,
+  zh: copy.zh,
+  th: {
+    ...copy.en,
+    breadcrumb: "เส้นทางนำทาง", main: "หน้าหลัก", label: "พื้นที่ทำงานล่าม", title: "ค้นหาคำขอ",
+    intro: "ดูคำขอใกล้เคียง ตรวจสอบพื้นที่โดยประมาณ และรับงานที่คุณช่วยได้", assignments: "งานของฉัน",
+    filtersLabel: "กรองคำขอที่รับได้", language: "ภาษา", category: "หมวดหมู่", distance: "ระยะทาง",
+    allLanguages: "ทุกภาษา", allCategories: "ทุกหมวดหมู่", anyDistance: "ทุกระยะทาง", sortBy: "เรียงตาม",
+    newestFirst: "คำขอใหม่ล่าสุด", nearestFirst: "ใกล้ที่สุด", connectGps: "ใช้ตำแหน่งของฉัน",
+    locatingGps: "กำลังค้นหาตำแหน่ง…", gpsReady: "เชื่อม GPS แล้ว", gpsError: "ไม่พบตำแหน่ง",
+    filters: { all: "ทั้งหมด", urgent: "ด่วน", scheduled: "นัดหมาย" },
+    mapLabel: "แผนที่คำขอที่เปิดอยู่", mapHint: "หมุดแสดงพื้นที่โดยประมาณเท่านั้น เลือกหมุดเพื่อดูรายละเอียด",
+    mapLegend: "แผนที่คำขอ", urgentLegend: "ด่วน", scheduledLegend: "นัดหมาย", myLocation: "ตำแหน่งของคุณ",
+    openRequests: "คำขอที่เปิดอยู่", area: "พื้นที่", created: "สร้างเมื่อ", scheduled: "เวลานัดหมาย",
+    viewDetails: "ดูรายละเอียด", claim: "รับคำขอ", claimError: "รับคำขอนี้ไม่ได้ กรุณารีเฟรชแล้วลองใหม่",
+    claimTitle: "ตรวจสอบก่อนรับงาน", claimBody: "ยืนยันว่าคำขอนี้ตรงกับภาษาและหมวดหมู่บริการของคุณก่อนรับงาน",
+    description: "รายละเอียดความช่วยเหลือ", privacy: "ที่อยู่ พิกัด และข้อมูลติดต่อจริงจะถูกซ่อนไว้จนกว่าผู้ขอจะยืนยันคุณ",
+    close: "ปิด", cancel: "ดูต่อ", confirmClaim: "ยืนยันการรับงาน", claimedTitle: "รับคำขอสำเร็จ",
+    claimedBody: "คำขอนี้อยู่ในงานของคุณแล้ว ไปที่งานของฉันเพื่อประสานงานกับผู้ขอ", goAssignments: "เปิดงานของฉัน",
+    refresh: "รีเฟรช", refreshing: "กำลังรีเฟรช…", diagnosticNotApprovedTitle: "ใบสมัครล่ามยังรอการอนุมัติ",
+    checkApplicationStatus: "ดูสถานะใบสมัคร →", diagnosticDbErrorTitle: "โหลดคำขอไม่ได้",
+    noMatching: "ไม่มีคำขอตรงกับตัวกรอง", noMatchingBody: "ลองเพิ่มระยะทางหรือล้างตัวกรอง",
+    loading: "กำลังโหลดแผนที่คำขอ…", locationUnavailable: "ไม่พบตำแหน่ง", distanceUnavailable: "เชื่อม GPS เพื่อดูระยะทาง",
+    distanceAway: "ห่างออกไป", broadAreaOnly: "แสดงพื้นที่โดยประมาณก่อนรับงาน",
+    workspaceBlockedTitle: "กรุณาทำงานปัจจุบันให้เสร็จก่อน", workspaceBlockedBody: "คุณรับคำขอใหม่ไม่ได้ขณะมีงานที่กำลังดำเนินการ",
+  },
+  es: {
+    ...copy.en,
+    breadcrumb: "Migas de pan", main: "Inicio", label: "Espacio del intérprete", title: "Buscar solicitudes",
+    intro: "Revisa solicitudes cercanas, confirma la zona aproximada y acepta las que puedas ayudar.",
+    assignments: "Mis asignaciones", filtersLabel: "Filtrar solicitudes disponibles", language: "Idioma", category: "Categoría",
+    distance: "Distancia", allLanguages: "Todos los idiomas", allCategories: "Todas las categorías", anyDistance: "Cualquier distancia",
+    sortBy: "Ordenar por", newestFirst: "Más recientes", nearestFirst: "Más cercanas", connectGps: "Usar mi ubicación",
+    locatingGps: "Buscando ubicación…", gpsReady: "GPS conectado", gpsError: "Ubicación no disponible",
+    filters: { all: "Todas", urgent: "Urgentes", scheduled: "Programadas" },
+    mapLabel: "Mapa de solicitudes abiertas", mapHint: "Los marcadores muestran zonas aproximadas. Selecciona uno para revisar la solicitud.",
+    mapLegend: "Mapa de solicitudes", urgentLegend: "Urgente", scheduledLegend: "Programada", myLocation: "Tu ubicación",
+    openRequests: "Solicitudes abiertas", area: "Zona", created: "Creada", scheduled: "Cita", viewDetails: "Ver detalles",
+    claim: "Aceptar solicitud", claimError: "No se pudo aceptar esta solicitud. Actualiza la lista e inténtalo de nuevo.",
+    claimTitle: "Revisa antes de aceptar", claimBody: "Confirma que el idioma y la categoría coinciden con tus capacidades.",
+    description: "Qué ayuda se necesita", privacy: "Los datos exactos permanecen ocultos hasta que el solicitante te confirme.",
+    close: "Cerrar", cancel: "Seguir explorando", confirmClaim: "Confirmar aceptación", claimedTitle: "Solicitud aceptada",
+    claimedBody: "La solicitud está en tus asignaciones. Ábrelas para coordinarte con el solicitante.", goAssignments: "Abrir mis asignaciones",
+    refresh: "Actualizar", refreshing: "Actualizando…", diagnosticNotApprovedTitle: "La solicitud de intérprete espera aprobación",
+    checkApplicationStatus: "Ver estado de la solicitud →", diagnosticDbErrorTitle: "No se pudieron cargar las solicitudes",
+    noMatching: "Ninguna solicitud coincide con estos filtros", noMatchingBody: "Prueba con una distancia mayor o elimina algún filtro.",
+    loading: "Cargando el mapa…", locationUnavailable: "Ubicación no disponible", distanceUnavailable: "Conecta el GPS para ver la distancia",
+    distanceAway: "de distancia", broadAreaOnly: "Solo se muestra la zona aproximada antes de aceptar",
+    workspaceBlockedTitle: "Termina tu tarea actual primero", workspaceBlockedBody: "No puedes aceptar otra solicitud mientras tengas una asignación activa.",
+  },
+  ar: {
+    ...copy.en,
+    breadcrumb: "مسار التنقل", main: "الرئيسية", label: "مساحة عمل المترجم", title: "البحث عن الطلبات",
+    intro: "راجع الطلبات القريبة وتحقق من المنطقة التقريبية واستلم المهمة التي تستطيع المساعدة فيها.",
+    assignments: "مهامي", filtersLabel: "تصفية الطلبات المتاحة", language: "اللغة", category: "الفئة", distance: "المسافة",
+    allLanguages: "كل اللغات", allCategories: "كل الفئات", anyDistance: "أي مسافة", sortBy: "ترتيب حسب",
+    newestFirst: "الأحدث أولًا", nearestFirst: "الأقرب أولًا", connectGps: "استخدم موقعي", locatingGps: "جارٍ تحديد الموقع…",
+    gpsReady: "تم اتصال GPS", gpsError: "الموقع غير متاح", filters: { all: "الكل", urgent: "عاجل", scheduled: "مجدول" },
+    mapLabel: "خريطة الطلبات المفتوحة", mapHint: "تُظهر العلامات المناطق التقريبية فقط. اختر علامة لمراجعة الطلب.",
+    mapLegend: "خريطة الطلبات", urgentLegend: "عاجل", scheduledLegend: "مجدول", myLocation: "موقعك",
+    openRequests: "الطلبات المفتوحة", area: "المنطقة", created: "أُنشئ في", scheduled: "الموعد", viewDetails: "عرض التفاصيل",
+    claim: "استلام الطلب", claimError: "تعذر استلام هذا الطلب. حدّث القائمة وحاول مجددًا.", claimTitle: "راجع قبل الاستلام",
+    claimBody: "تأكد من تطابق اللغة والفئة مع قدراتك قبل استلام الطلب.", description: "نوع المساعدة المطلوبة",
+    privacy: "تبقى البيانات الدقيقة مخفية حتى يؤكدك صاحب الطلب.", close: "إغلاق", cancel: "متابعة التصفح",
+    confirmClaim: "تأكيد الاستلام", claimedTitle: "تم استلام الطلب", claimedBody: "أُضيف الطلب إلى مهامك للتنسيق مع صاحب الطلب.",
+    goAssignments: "فتح مهامي", refresh: "تحديث", refreshing: "جارٍ التحديث…", diagnosticNotApprovedTitle: "طلب المترجم بانتظار الموافقة",
+    checkApplicationStatus: "عرض حالة الطلب →", diagnosticDbErrorTitle: "تعذر تحميل الطلبات",
+    noMatching: "لا توجد طلبات تطابق عوامل التصفية", noMatchingBody: "جرّب نطاقًا أوسع أو امسح أحد الفلاتر.",
+    loading: "جارٍ تحميل خريطة الطلبات…", locationUnavailable: "الموقع غير متاح", distanceUnavailable: "صل GPS لعرض المسافة",
+    distanceAway: "بعيدًا", broadAreaOnly: "تظهر المنطقة التقريبية قبل الاستلام",
+    workspaceBlockedTitle: "أكمل مهمتك الحالية أولًا", workspaceBlockedBody: "لا يمكنك استلام طلب آخر أثناء وجود مهمة نشطة.",
+  },
+} as const;
+
 function distanceInKm(from: Coordinates, to: Coordinates): number {
   const earthRadiusKm = 6371;
   const latitudeDelta = ((to.latitude - from.latitude) * Math.PI) / 180;
@@ -248,7 +323,7 @@ export function FindRequestsList({
   const [geoStatus, setGeoStatus] = useState<GeoStatus>("idle");
   const ready = true;
   const copyLocale = useCopyLocale();
-  const t = copy[copyLocale];
+  const t = localizedCopy[copyLocale];
 
   useEffect(() => {
     if (!claimRequest) return;

@@ -372,7 +372,7 @@ khvi/
 │
 ├── lib/                              <── ตัวช่วยส่วนกลาง
 │   ├── supabase/                     <── Supabase Client/Server helpers (@supabase/ssr)
-│   └── mock-data.ts                  <── ข้อมูลจำลองสำหรับช่วงเริ่มต้นพัฒนา (Mock Mode)
+│   └── auth-types.ts / request-types.ts <── shared production domain types
 │
 ├── types/                            <── TypeScript Interfaces
 │   └── database.types.ts             <── Database Type Definitions
@@ -399,7 +399,7 @@ gantt
     dateFormat  YYYY-MM-DD
     section สัปดาห์ 1: Setup & UI
     Setup Supabase Tables & Schema          :done,    des1, 2026-09-01, 2026-09-03
-    ทุกคนทำหน้า UI + Mock Data ของตัวเอง      :active,  des2, 2026-09-03, 2026-09-07
+    ทุกคนทำหน้า UI + เชื่อม production data contract      :active,  des2, 2026-09-03, 2026-09-07
     section สัปดาห์ 2: Connect DB
     ต่อ Supabase Auth & ระบบปักหมุด SOS (คน 1,2) :         des3, 2026-09-08, 2026-09-14
     ต่อ Leaflet Map & ระบบรับสมัครล่าม (คน 3,4)   :         des4, 2026-09-08, 2026-09-14

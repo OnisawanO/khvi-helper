@@ -1,4 +1,4 @@
-import { getMockUserSession, type UserProfile } from "@/app/lib/mock-auth";
+import type { UserProfile } from "@/app/lib/auth-types";
 
 export type WorkspaceRole = "User" | "Interpreter";
 export type InterpreterWorkspaceMode = "helper" | "requester";
@@ -43,14 +43,6 @@ export function getWorkspaceRoleForMode(
   if (user.role === "User") return "User";
   if (user.role !== "Interpreter") return null;
   return mode === "requester" ? "User" : "Interpreter";
-}
-
-export function getWorkspaceActorSession(): UserProfile | null {
-  const user = getMockUserSession();
-  if (!user) return null;
-
-  const activeRole = getActiveWorkspaceRole(user);
-  return activeRole ? { ...user, role: activeRole } : user;
 }
 
 export function subscribeInterpreterWorkspaceMode(listener: () => void): () => void {

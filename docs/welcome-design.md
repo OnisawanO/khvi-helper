@@ -2,14 +2,14 @@
 
 งานนี้ปรับหน้าแรกและ Welcome ตามคำขอผู้ใช้ โดยใช้สี ฟอนต์ และ component เดิม ให้ผู้มาใหม่เริ่มใช้งานได้ และให้ผู้ที่ล็อกอินเห็นงานที่ต้องทำต่อก่อนคู่มือ
 
-> สถานะปัจจุบัน 2026-09-23: หน้า workspace `/user` และ `/interpreter` อ่าน `bookings`, `languages` และ `categories` จาก Supabase ตาม session/RLS แล้ว ส่วน request-help ตาม role อ่าน catalog จาก Supabase และสร้าง booking ผ่าน `create_booking` RPC รายละเอียด mock ด้านล่างเป็นบันทึกประวัติและไม่ใช่ data source ปัจจุบัน
+> สถานะปัจจุบัน 2026-09-24: หน้า workspace `/user` และ `/interpreter` อ่าน `bookings`, `languages` และ `categories` จาก Supabase ตาม session/RLS แล้ว ส่วน request-help ตาม role อ่าน catalog จาก Supabase และสร้าง booking ผ่าน `create_booking` RPC ระบบ production ไม่ใช้ mock records หรือ browser-local business data
 
 ## ขอบเขตและผลตรวจความสอดคล้อง
 
 | ประเด็น | หลักฐาน | ผลตรวจและการใช้งานในงานนี้ |
 |---|---|---|
 | หน้าเริ่มต้นสามกลุ่ม | requirements FR-03/04, user-flows, route-inventory | สอดคล้อง: ผู้มาใหม่ใช้ `/`, User ใช้ `/user` และ Interpreter ใช้ `/interpreter` |
-| ข้อมูลรายบัญชี | request-store และ mock-auth ไม่มี owner ID ในคำขอ | ยังไม่พร้อม: แสดงเป็นข้อมูลในเบราว์เซอร์ ไม่อ้างว่าเป็นงานที่เป็นเจ้าของหรือผลจับคู่ที่ยืนยันแล้ว |
+| ข้อมูลรายบัญชี | booking และ profile ถูกผูกกับ Supabase user ผ่าน RLS | สอดคล้อง: แสดงเฉพาะข้อมูลของบัญชีและข้อมูลที่ server อนุญาต |
 | การเปิดข้อมูลติดต่อ | FR-10/11 และ user-flows ต้องยืนยันล่าม; request detail เดิมปลดล็อกหลัง Claim | ขัดแย้งเดิม: Welcome แสดงเฉพาะชื่อ/ภาษาล่ามและคำแนะนำตาม requirement ไม่เปลี่ยนการปลดล็อกหรือ state machine ในหน้ารายละเอียด |
 | จำกัดงานที่ยังไม่จบ | requirements หมวด 5; store รองรับหลายรายการ | ต่างจากเป้าหมาย: ปุ่มหลักบน Welcome เน้นกลับสู่งานปัจจุบัน มีทางดูทั้งหมด ไม่เพิ่มกฎบังคับใน store |
 | โปรไฟล์ ใบสมัคร และรีวิว | FR-14/15/16; ไม่มี data source/route สำหรับดำเนินการ | ยังไม่พร้อม: มีส่วนแนะนำและสถานะไม่เปิดใช้งาน ไม่สร้างสถานะ Pending/Approved หรือรีวิวขึ้นมาเอง |
@@ -25,9 +25,9 @@
 
 ## การตรวจสอบรอบนี้
 
-- lint, production build และ request-store tests 6 เคสผ่าน
-- ตรวจเบราว์เซอร์จริง: การเลือกภาษาไทย ปุ่มขอความช่วยเหลือเปิด login พร้อม intent, Quick Login User ไปหน้าสร้างคำขอ, กลับ Welcome และสร้างคำขอทดสอบเพื่อให้เห็น active card
-- Quick Login Interpreter แสดงเนื้อหาตามบทบาท ตัวกรองภาษาเปลี่ยนจากรายการที่ตรงเป็น empty state ได้
+- lint และ production build ผ่านหลังย้าย business data ไปใช้ Supabase
+- ตรวจเบราว์เซอร์จริง: การเลือกภาษาไทย ปุ่มขอความช่วยเหลือเปิด login พร้อม intent, บัญชี User ไปหน้าสร้างคำขอ, กลับ Welcome และสร้างคำขอทดสอบเพื่อให้เห็น active card
+- บัญชี Interpreter แสดงเนื้อหาตามบทบาท ตัวกรองภาษาเปลี่ยนจากรายการที่ตรงเป็น empty state ได้
 - FAQ เปิดคำตอบได้ ตรวจหน้าจอ 390, 768 และ 1440 พิกเซลตามหน้าที่ทดสอบ ไม่พบ horizontal overflow; พบปุ่มสีข้อความผิดระหว่างตรวจและแก้ก่อนตรวจซ้ำ
 - Next.js /_next/mcp get_errors ไม่พบ config/session errors
 - ยังไม่ได้ตรวจ GPS สำเร็จโดยใช้พิกัดจริง ไม่ได้ทดสอบ approval/review/atomic Claim เพราะ backend ส่วนนี้ยังไม่มี
@@ -47,8 +47,8 @@
 |---|---|---|
 | User starting page | requirements FR-04, user-flows.txt | Show service guidance and working links to create and track requests. |
 | Interpreter starting page | Existing documents plan an interpreter dashboard; the current user request asks for Welcome for both roles. | Use role-specific Welcome content for this task. The map remains planned. |
-| Authentication | mock-auth.ts stores sessions locally; requirements FR-01 and server authorization are future integration work. | Use the existing session for navigation and presentation. This is not a security boundary. |
-| Request activity | request-store.ts stores device-wide records with no requester or interpreter identity. | Label activity as saved on this device. Interpreter routes may show status-based request summaries for preview, but must not present them as account-owned or skill-matched data. |
+| Authentication | Supabase Auth และ `public.profiles` เป็นแหล่งข้อมูล session/profile | ใช้ session และ server authorization จริง; ผู้ใช้เข้าสู่ระบบด้วยอีเมลและรหัสผ่าน |
+| Request activity | `bookings` และ guarded RPCs ผูกกับบัญชีใน Supabase | แสดงข้อมูลจริงตาม owner, role และ RLS |
 | Interpreter jobs | Matching, claims and account-scoped job history use Supabase data. | Use `/interpreter/find-requests` for open summaries and `/interpreter/my-assignments` for claimed, in-progress or completed summaries. |
 | Privacy | FR-10/11 require requester confirmation before sensitive details unlock. | Explain the confirmation gate consistently in the requester and interpreter guidance. |
 | Scheduling | Scheduled requests start on the next calendar day and have no maximum future date. | Explain the next-day minimum; scheduled requests still expire at the appointment time. |
@@ -62,6 +62,6 @@ Production work still requires Supabase sessions, server authorization and accou
 - `npm run lint` and `npm run build` passed.
 - Existing development server: `http://localhost:3000`. `/_next/mcp` `get_errors` returned empty configuration and session errors.
 - Browser checks cover role-specific workspace entry, sign-out to `/#top`, requester links, role-specific Back to main paths, interpreter guide anchor and Chinese language switching.
-- Checked layouts at 390, 768 and 1440 pixels with no horizontal overflow. Also checked overflow at 320 pixels. The requester empty state was exercised; populated records retain existing request-store and status-badge contracts.
+- Checked layouts at 390, 768 และ 1440 พิกเซลโดยไม่มี horizontal overflow; empty states แสดงจากผลลัพธ์ Supabase
 - LSP CLI was unavailable; source reads, reference searches and the TypeScript build covered import/type verification.
-- Post-change review keeps claim, contact-unlock, scheduling and database contracts unchanged. The implementation remains a mock workspace.
+- Post-change review keeps claim, contact-unlock, scheduling and database contracts unchanged. The implementation uses production data paths; login uses Supabase Auth credentials.

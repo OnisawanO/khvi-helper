@@ -19,7 +19,7 @@ import { RegisterModal } from "@/app/components/auth/register-modal";
 import { RegisterRoleModal } from "@/app/components/auth/register-role-modal";
 import { LoginModal } from "@/app/components/auth/login-modal";
 import { useStoredLocale } from "@/app/lib/locale";
-import { getRedirectPathByRole, type UserProfile } from "@/app/lib/mock-auth";
+import { getRedirectPathByRole, type UserProfile } from "@/app/lib/auth-types";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { createClient } from "@/utils/supabase/client";
 

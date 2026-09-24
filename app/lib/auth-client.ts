@@ -1,6 +1,6 @@
 import type { AuthApiResponse } from "./api/auth-response";
 import type { Locale } from "@/app/components/site-header";
-import type { RegisterInput, UserProfile, UserRole } from "./mock-auth";
+import type { RegisterInput, UserProfile } from "./auth-types";
 
 async function apiFetch<T>(endpoint: string, init?: RequestInit): Promise<AuthApiResponse<T>> {
   try {
@@ -25,7 +25,7 @@ async function apiFetch<T>(endpoint: string, init?: RequestInit): Promise<AuthAp
 }
 
 export const authApi = {
-  async login(payload: { email: string; password: string; locale: Locale }) {
+  async login(payload: { email: string; password: string; locale: Locale; rememberMe: boolean }) {
     return apiFetch<{ user: UserProfile; redirectPath: string }>("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -34,7 +34,11 @@ export const authApi = {
   },
 
   async register(payload: RegisterInput) {
-    return apiFetch<{ user: UserProfile; redirectPath: string }>("/api/auth/register", {
+    return apiFetch<{
+      user: UserProfile;
+      redirectPath: string;
+      email: string;
+    }>("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -60,14 +64,6 @@ export const authApi = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ password, confirmPassword, locale }),
-    });
-  },
-
-  async fastLogin(role: UserRole) {
-    return apiFetch<{ user: UserProfile; role: UserRole; redirectPath: string }>("/api/auth/fast-login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role }),
     });
   },
 };

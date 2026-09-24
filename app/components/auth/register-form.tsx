@@ -20,7 +20,7 @@ import {
   validateRegisterInput,
   type RegisterInput,
   type ValidationErrors,
-} from "@/app/lib/mock-auth";
+} from "@/app/lib/auth-types";
 import { authApi } from "@/app/lib/auth-client";
 import { DatePicker, toDateInputValue } from "./date-picker";
 
@@ -135,11 +135,13 @@ export function RegisterForm({
       }
 
       setIsSuccess(true);
+      setIsSubmitting(false);
+
       setTimeout(() => {
         if (onSuccess) {
           onSuccess();
         } else {
-          router.push("/user");
+          router.push(result.data.redirectPath || "/user");
         }
       }, 1000);
     } catch {
@@ -383,8 +385,8 @@ export function RegisterForm({
 
           {/* Phone */}
           <div>
-              <label htmlFor={phoneId} className="block text-xs font-extrabold text-[#294554] sm:text-sm">
-              {copy.register.phone} <span className="text-[11px] font-semibold text-[#73848a]">({copy.register.optional})</span>
+            <label htmlFor={phoneId} className="block text-xs font-extrabold text-[#294554] sm:text-sm">
+              {copy.register.phone} <span className="text-[#e24432]">*</span>
             </label>
             <div className="relative mt-1">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#73848a]">
@@ -393,6 +395,7 @@ export function RegisterForm({
               <input
                 id={phoneId}
                 type="tel"
+                required
                 autoComplete="tel"
                 placeholder="0812345678"
                 value={formData.phone}

@@ -15,7 +15,7 @@ import { SiteHeader } from "./site-header";
 import type { Locale } from "./site-header";
 import { createClient } from "@/utils/supabase/client";
 import { loadMyInterpreterApplicationAction } from "@/app/actions/interpreter-application-actions";
-import type { ApplicationStatus } from "@/app/lib/interpreter-application";
+import type { ApplicationStatus } from "@/app/lib/interpreter-application-types";
 
 export type WorkspaceRole = "User" | "Interpreter" | "Manager" | "Admin";
 
@@ -235,7 +235,10 @@ export function AppShell({ children, accountActions, welcomeRole, accountRole, h
   const handleLocaleChange = (nextLocale: Locale) => {
     setLocale(nextLocale);
     void persistPreferredUiLanguage(nextLocale).catch((error: unknown) => {
-      console.error("Unable to persist preferred UI language", error);
+      console.error(
+        "Unable to persist preferred UI language:",
+        error instanceof Error ? error.message : error,
+      );
     });
   };
   const copyLocale = resolveCopyLocale(locale);
@@ -283,7 +286,7 @@ export function AppShell({ children, accountActions, welcomeRole, accountRole, h
         hidePrimaryAction={hidePrimaryAction}
       />
       {children}
-      <SiteFooter copy={t.footer} brandSubtitle={t.header.brandSubtitle} workspace={Boolean(welcomeRole)} />
+      <SiteFooter copy={t.footer} brandSubtitle={t.header.brandSubtitle} locale={locale} workspace={Boolean(welcomeRole)} />
     </InterpreterAccessContext.Provider></CopyLocaleContext.Provider></UiLocaleContext.Provider>
   );
 }

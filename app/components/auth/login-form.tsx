@@ -11,10 +11,9 @@ import {
   LockClosedIcon,
 } from "@heroicons/react/24/outline";
 import { getAuthCopy } from "@/app/lib/auth-copy";
-import { DevFastLoginPanel } from "./dev-fast-login-panel";
 import { useStoredLocale } from "@/app/lib/locale";
 import { authApi } from "@/app/lib/auth-client";
-import { getRedirectPathByRole, type UserProfile } from "@/app/lib/mock-auth";
+import { getRedirectPathByRole, type UserProfile } from "@/app/lib/auth-types";
 
 export interface LoginFormProps {
   onSuccess?: (user: UserProfile) => void;
@@ -35,7 +34,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false, isEm
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -92,6 +91,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false, isEm
         email: trimmedEmail,
         password,
         locale: currentLocale,
+        rememberMe,
       });
 
       if (!result.ok) {
@@ -264,25 +264,23 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false, isEm
             </div>
           </form>
 
-          <DevFastLoginPanel embedded />
-
           {/* Switch to Register */}
           <div className="border-t border-[#edf2f4] pt-3 text-center text-xs text-[#5c727d]">
-            <span>{copy.register.existingAccount} </span>
+            <span>{copy.login.noAccount} </span>
             {onSwitchToRegister ? (
               <button
                 type="button"
                 onClick={onSwitchToRegister}
                 className="font-extrabold text-[#0d8587] transition-colors hover:text-[#092f45] hover:underline"
               >
-                {copy.register.signUpHere}
+                {copy.login.signUp}
               </button>
             ) : (
               <Link
                 href="/register"
                 className="font-extrabold text-[#0d8587] transition-colors hover:text-[#092f45] hover:underline"
               >
-                {copy.register.signUpHere}
+                {copy.login.signUp}
               </Link>
             )}
           </div>

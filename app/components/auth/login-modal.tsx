@@ -11,7 +11,7 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { LoginForm } from "./login-form";
-import type { UserProfile } from "@/app/lib/mock-auth";
+import type { UserProfile } from "@/app/lib/auth-types";
 import { getAuthCopy } from "@/app/lib/auth-copy";
 import { useStoredLocale } from "@/app/lib/locale";
 

@@ -17,6 +17,8 @@ import {
 import { AdminActiveTab } from "../types";
 import type { ManagerNavSection } from "@/app/manager/types";
 import { formatBadgeCount } from "@/app/manager/utils";
+import { useStoredLocale } from "@/app/lib/locale";
+import { getAdminTranslation } from "../locales";
 
 interface AdminDrawerProps {
   isOpen: boolean;
@@ -53,6 +55,8 @@ export function AdminDrawer({
   pendingManagerReportCount,
   managerActivitiesCount,
 }: AdminDrawerProps) {
+  const [locale] = useStoredLocale();
+  const t = getAdminTranslation(locale);
   const openManagerSection = (section: ManagerNavSection) => {
     setManagerSection(section);
     setActiveTab("manager-operations");
@@ -110,15 +114,15 @@ export function AdminDrawer({
               </div>
               <div>
                 <span className="block text-sm font-black tracking-tight text-white">KHVI</span>
-                <span className="block truncate text-[10px] font-bold text-[#4d8a93]">Admin Console</span>
+                <span className="block truncate text-[10px] font-bold text-[#4d8a93]">{t.header.subtitle}</span>
               </div>
             </Link>
             <button
               type="button"
               onClick={onClose}
               className="flex h-8 w-8 items-center justify-center rounded-xl text-slate-300 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
-              aria-label="Close menu"
-              title="Close menu (ปิดเมนู)"
+              aria-label={t.header.closeMenu}
+              title={t.header.closeMenu}
             >
               <XMarkIcon className="h-5 w-5" />
             </button>
@@ -145,7 +149,7 @@ export function AdminDrawer({
               >
                 <div className="flex items-center gap-2.5">
                   <ChartBarSquareIcon className="h-5 w-5 text-slate-300" />
-                  <span>Platform Overview</span>
+                  <span>{t.navigation.overview}</span>
                 </div>
               </button>
             </nav>
@@ -171,7 +175,7 @@ export function AdminDrawer({
               >
                 <div className="flex items-center gap-2.5">
                   <UserGroupIcon className="h-5 w-5 text-slate-300" />
-                  <span>User Management</span>
+                  <span>{t.navigation.users}</span>
                 </div>
                 <span
                   className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
@@ -207,7 +211,7 @@ export function AdminDrawer({
               >
                 <div className="flex items-center gap-2.5">
                   <ShieldExclamationIcon className="h-5 w-5 text-slate-300" />
-                  <span>System Reports</span>
+                  <span>{t.navigation.reports}</span>
                 </div>
                 {pendingReportsCount > 0 && (
                   <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black text-white ring-1 ring-white/20">
@@ -231,7 +235,7 @@ export function AdminDrawer({
               >
                 <div className="flex items-center gap-2.5">
                   <DocumentMagnifyingGlassIcon className="h-5 w-5 text-slate-300" />
-                  <span>Audit Trail</span>
+                  <span>{t.navigation.audit}</span>
                 </div>
                 <span
                   className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
@@ -253,27 +257,27 @@ export function AdminDrawer({
             </p>
             <nav className="mt-1 space-y-1">
               <button type="button" onClick={() => openManagerSection("queue")} aria-current={activeTab === "manager-operations" && managerSection === "queue" ? "page" : undefined} className={managerItemClass("queue")}>
-                <span className="flex items-center gap-2.5"><InboxStackIcon className="h-5 w-5 text-slate-300" />Application Queue</span>
+                <span className="flex items-center gap-2.5"><InboxStackIcon className="h-5 w-5 text-slate-300" />{t.navigation.queue}</span>
                 {pendingApplicantCount > 0 && <span className="rounded-full bg-[#087f80] px-2 py-0.5 text-[10px] font-extrabold text-white">{formatBadgeCount(pendingApplicantCount)}</span>}
               </button>
               <button type="button" onClick={() => openManagerSection("approved")} aria-current={activeTab === "manager-operations" && managerSection === "approved" ? "page" : undefined} className={managerItemClass("approved")}>
-                <span className="flex items-center gap-2.5"><CheckCircleIcon className="h-5 w-5 text-slate-300" />Approved Volunteers</span>
+                <span className="flex items-center gap-2.5"><CheckCircleIcon className="h-5 w-5 text-slate-300" />{t.navigation.approved}</span>
                 {approvedApplicantCount > 0 && <span className="rounded-full bg-teal-900/60 px-2 py-0.5 text-[10px] font-extrabold text-teal-300 border border-teal-700/50">{formatBadgeCount(approvedApplicantCount)}</span>}
               </button>
               <button type="button" onClick={() => openManagerSection("change-requests")} aria-current={activeTab === "manager-operations" && managerSection === "change-requests" ? "page" : undefined} className={managerItemClass("change-requests")}>
-                <span className="flex items-center gap-2.5"><DocumentCheckIcon className="h-5 w-5 text-slate-300" />Profile Change Requests</span>
+                <span className="flex items-center gap-2.5"><DocumentCheckIcon className="h-5 w-5 text-slate-300" />{t.navigation.changeRequests}</span>
                 {pendingProfileChangeCount > 0 && <span className="rounded-full bg-sky-900/60 px-2 py-0.5 text-[10px] font-extrabold text-sky-300 border border-sky-700/50">{formatBadgeCount(pendingProfileChangeCount)}</span>}
               </button>
               <button type="button" onClick={() => openManagerSection("rejected")} aria-current={activeTab === "manager-operations" && managerSection === "rejected" ? "page" : undefined} className={managerItemClass("rejected")}>
-                <span className="flex items-center gap-2.5"><ArchiveBoxXMarkIcon className="h-5 w-5 text-slate-300" />Rejected Archive</span>
+                <span className="flex items-center gap-2.5"><ArchiveBoxXMarkIcon className="h-5 w-5 text-slate-300" />{t.navigation.rejected}</span>
                 {rejectedApplicantCount > 0 && <span className="rounded-full bg-red-900/60 px-2 py-0.5 text-[10px] font-extrabold text-red-300 border border-red-800/50">{formatBadgeCount(rejectedApplicantCount)}</span>}
               </button>
               <button type="button" onClick={() => openManagerSection("reports")} aria-current={activeTab === "manager-operations" && managerSection === "reports" ? "page" : undefined} className={managerItemClass("reports")}>
-                <span className="flex items-center gap-2.5"><ShieldExclamationIcon className="h-5 w-5 text-slate-300" />System Reports</span>
+                <span className="flex items-center gap-2.5"><ShieldExclamationIcon className="h-5 w-5 text-slate-300" />{t.navigation.reports}</span>
                 {pendingManagerReportCount > 0 && <span className="rounded-full bg-amber-900/60 px-2 py-0.5 text-[10px] font-extrabold text-amber-300 border border-amber-700/50">{formatBadgeCount(pendingManagerReportCount)}</span>}
               </button>
               <button type="button" onClick={() => openManagerSection("history")} aria-current={activeTab === "manager-operations" && managerSection === "history" ? "page" : undefined} className={managerItemClass("history")}>
-                <span className="flex items-center gap-2.5"><ClockIcon className="h-5 w-5 text-slate-300" />Operations History</span>
+                <span className="flex items-center gap-2.5"><ClockIcon className="h-5 w-5 text-slate-300" />{t.navigation.history}</span>
                 {managerActivitiesCount > 0 && <span className="rounded-full bg-slate-700/60 px-2 py-0.5 text-[10px] font-extrabold text-slate-300 border border-slate-600/50">{formatBadgeCount(managerActivitiesCount)}</span>}
               </button>
             </nav>

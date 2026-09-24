@@ -7,7 +7,7 @@ import { WorkspaceAccountActions } from "./workspace-account-actions";
 import {
   getRedirectPathByRole,
   type UserProfile,
-} from "@/app/lib/mock-auth";
+} from "@/app/lib/auth-types";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import { authApi } from "@/app/lib/auth-client";
 import {
@@ -24,14 +24,18 @@ function isWorkspaceUser(user: UserProfile | null): user is UserProfile & { role
   return user?.role === "User" || user?.role === "Interpreter";
 }
 
-export function WorkspaceShell({ children, requiredRole, requiredAccountRole, alternatePath }: {
+export function WorkspaceShell({ children, requiredRole, requiredAccountRole, alternatePath, initialUser }: {
   children: ReactNode;
   requiredRole?: WorkspaceRole;
   requiredAccountRole?: WorkspaceRole;
   alternatePath?: string;
+  initialUser?: UserProfile | null;
 }) {
   const router = useRouter();
-  const [user, setUser] = useState<(UserProfile & { role: WorkspaceRole }) | null>(null);
+  const candidateUser = initialUser ?? null;
+  const [user, setUser] = useState<(UserProfile & { role: WorkspaceRole }) | null>(
+    () => (isWorkspaceUser(candidateUser) ? candidateUser : null),
+  );
   const [interpreterMode, setInterpreterMode] = useState<InterpreterWorkspaceMode>("helper");
 
   useEffect(() => {
