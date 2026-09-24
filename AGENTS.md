@@ -62,6 +62,21 @@ KHVI Helper เป็นเว็บแอปพลิเคชันสำห�
 หากข้อมูลจากแหล่งใดขัดแย้งกัน ต้องระบุความขัดแย้งและถามผู้ใช้ก่อนตัดสินใจ
 ห้ามเลือกใช้ข้อมูลใดข้อมูลหนึ่งเงียบ ๆ โดยไม่มีการแจ้งให้ทราบ
 
+### Requirement Consistency Gate
+
+งานใดก็ตามที่อ่าน แก้ เพิ่ม หรือนำ requirement ไป implement ต้องผ่าน gate นี้ก่อนเริ่มแก้ไฟล์:
+
+1. ระบุขอบเขต requirement ของ task และรวบรวมเอกสารที่เกี่ยวข้องอย่างน้อยจาก `docs/requirements.md`, `docs/user-flows.txt`, `detail.md`, เอกสาร role ที่เกี่ยวข้อง และ `docs/route-inventory.md` หากมีผลต่อ route
+2. ตรวจ Source code, configuration, database schema/migration ที่มีอยู่จริงแยกจากเอกสารแผนงาน
+3. ทำ conflict matrix สั้น ๆ โดยเทียบ requirement กับ use case/user flow, database relation/schema, route และ business rule ที่เกี่ยวข้อง
+4. แยกผลตรวจเป็น `สอดคล้อง`, `ขัดแย้ง`, `ยังไม่ชัดเจน` และบันทึกไฟล์/หัวข้อที่เป็นหลักฐาน
+5. หากพบความขัดแย้งหรือข้อไม่ชัดเจนที่เปลี่ยน scope, business rule, role/permission, status transition, data model หรือ API contract ให้หยุดก่อนแก้ implementation และถามผู้ใช้
+6. หากไม่พบความขัดแย้ง ให้สรุป decision ที่จะยึดและไฟล์ที่จะเปลี่ยนในแผนงานก่อนเริ่มแก้
+7. หลังแก้เสร็จให้ตรวจ gate ซ้ำกับ diff เพื่อยืนยันว่า requirement, flow, relation และ implementation ยังสอดคล้องกัน
+
+ใช้ checklist กลางที่ `docs/requirement-consistency-checklist.md` ทุกครั้งที่ task แตะ requirement
+หรือ behavior หลักของระบบ
+
 ## 5. ข้อกำหนดของโครงงาน
 
 - ต้องมีฟีเจอร์หลักตามขอบเขตของทีมและรองรับ CRUD ที่จำเป็น
@@ -107,18 +122,37 @@ KHVI Helper เป็นเว็บแอปพลิเคชันสำห�
 
 ## 8. Workflow ของ Agent
 
+### Scope ของงาน
+
+- ทำเฉพาะสิ่งที่ผู้ใช้สั่งหรือสิ่งที่จำเป็นโดยตรงต่อการทำงานนั้น
+- ห้ามขยาย scope ไปแก้ refactor, documentation, design, dependency, test หรือ configuration ที่ผู้ใช้ไม่ได้ระบุ
+- หากพบงานต่อเนื่องที่เกี่ยวข้อง ให้แนะนำเป็นรายการถัดไปได้ แต่ต้องรอคำสั่งหรือการอนุมัติก่อนลงมือ
+- หากงานที่พบเป็น blocker โดยตรง ให้แจ้งผู้ใช้และอธิบายว่าต้องทำอะไรจึงจะทำงานหลักต่อได้
+- รายงานให้ชัดว่าส่วนใดทำตามคำสั่งและส่วนใดเป็นคำแนะนำที่ยังไม่ได้ดำเนินการ
+
 ### ก่อนเริ่มงาน
 
 1. ตรวจสอบ branch ด้วย `git branch --show-current`
 2. ตรวจสอบสถานะไฟล์ด้วย `git status --short`
-3. ห้ามเริ่มแก้ไขหากอยู่บน `main` หรือ `develop`
-4. อ่าน requirements และเอกสารที่เกี่ยวข้อง
-5. หากเป็นงาน UI/UX ให้อ่าน `SKILL.md` และกำหนด design direction
-6. หากเป็นงาน UI/UX ให้อ่าน `docs/design-system.md` และตรวจ token/component ที่มีอยู่
-7. หากเป็นงานเขียนหรือแก้ไข prose, documentation, PR text หรือ UI copy ให้อ่าน `skills/stop-slop/SKILL.md`
-8. แยกให้ได้ว่าส่วนใดทำแล้ว ส่วนใดอยู่ระหว่างทำ และส่วนใดเป็นแผนงาน
-9. ระบุไฟล์ที่จะเปลี่ยนและวางแผนสั้น ๆ
-10. ใช้ feature branch รูปแบบ `feature/<สมาชิก>/<งาน>`, `fix/<สมาชิก>/<งาน>` หรือ `docs/<สมาชิก>/<งาน>`
+3. หากอยู่บน `main` หรือ `develop` ให้ทำ Branch Preflight ก่อนแก้ไฟล์
+4. หาก task เกี่ยวข้องกับ requirement หรือ behavior หลัก ให้ผ่าน Requirement Consistency Gate และบันทึกผลตาม `docs/requirement-consistency-checklist.md`
+5. อ่าน requirements และเอกสารที่เกี่ยวข้อง
+6. หากเป็นงาน UI/UX ให้อ่าน `SKILL.md` และกำหนด design direction
+7. หากเป็นงาน UI/UX ให้อ่าน `docs/design-system.md` และตรวจ token/component ที่มีอยู่
+8. หากเป็นงานเขียนหรือแก้ไข prose, documentation, PR text หรือ UI copy ให้อ่าน `skills/stop-slop/SKILL.md`
+9. แยกให้ได้ว่าส่วนใดทำแล้ว ส่วนใดอยู่ระหว่างทำ และส่วนใดเป็นแผนงาน
+10. ระบุไฟล์ที่จะเปลี่ยนและวางแผนสั้น ๆ
+11. ใช้ feature branch รูปแบบ `feature/<สมาชิก>/<งาน>`, `fix/<สมาชิก>/<งาน>` หรือ `docs/<สมาชิก>/<งาน>`
+
+### Branch Preflight
+
+- อนุญาตให้อ่าน ตรวจสอบ status และดู log บน `main` หรือ `develop`
+- ห้ามแก้ไฟล์, commit หรือ push ขณะ current branch เป็น `main` หรือ `develop`
+- ถ้าอยู่บน `develop` และ working tree สะอาด ให้ sync `origin/develop` แล้วสร้าง feature branch ก่อนเริ่มแก้
+- ถ้าอยู่บน `main` ให้หยุดและถามผู้ใช้ เว้นแต่ผู้ใช้สั่งให้สร้าง branch จาก `main` โดยตรง
+- ถ้ามี uncommitted changes บน `main` หรือ `develop` ให้หยุดและถามผู้ใช้
+- ห้ามย้าย, stash, reset หรือ commit การเปลี่ยนแปลงของผู้ใช้โดยการคาดเดา
+- Feature branch ต้องระบุ base branch เป็น `develop` ในแผนงานหรือ Pull Request
 
 ### ระหว่างทำงาน
 
@@ -134,7 +168,8 @@ KHVI Helper เป็นเว็บแอปพลิเคชันสำห�
 2. รันคำสั่งตรวจสอบที่เกี่ยวข้อง
 3. ตรวจสอบว่าไม่มี secret หรือไฟล์ generated ถูกเพิ่ม
 4. ตรวจสอบ business rules ที่เกี่ยวข้อง
-5. รายงานไฟล์ที่แก้ ผลการตรวจสอบ และความเสี่ยงที่เหลือ
+5. หาก task ผ่าน Requirement Consistency Gate ให้ตรวจ checklist ซ้ำหลังแก้และระบุผลในรายงาน
+6. รายงานไฟล์ที่แก้ ผลการตรวจสอบ และความเสี่ยงที่เหลือ
 
 ## 9. คำสั่งมาตรฐาน
 
@@ -150,6 +185,12 @@ KHVI Helper เป็นเว็บแอปพลิเคชันสำห�
 ห้ามรายงานว่าการทดสอบผ่าน หากยังไม่ได้รันคำสั่งจริง
 
 ## 10. Git, Commit และ Pull Request
+
+ค่าเริ่มต้นของการส่งงานขึ้น GitHub คือ `develop` ในฐานะ default integration branch
+
+- เมื่อผู้ใช้สั่ง push โดยไม่ระบุ branch ให้ push feature branch ปัจจุบันและตั้งเป้า Pull Request ไปที่ `develop`
+- ห้ามตีความว่าให้ push ตรงเข้า `develop` เว้นแต่ผู้ใช้สั่งโดยตรง
+- `main` ใช้สำหรับ release และรับงานจาก `develop` หลังผ่านการ review เท่านั้น
 
 โครงสร้าง branch คือ:
 
@@ -167,6 +208,14 @@ feature/* = branch สำหรับงานแต่ละชิ้น
 - ก่อน commit ต้องแสดง branch, diff summary และผล lint/build/test
 - ใช้ commit message ที่สื่อความหมาย เช่น `feat: add SOS request form`
 
+### Protected Integration Branch Rule
+
+- `develop` และ `main` เป็น protected integration branches
+- การ push ปกติให้ push feature branch และเปิด Pull Request เข้า `develop`
+- การ push ตรงเข้า `develop` หรือ `main` ต้องมีคำสั่งชัดเจนจากผู้ใช้
+- ก่อน commit ต้องแสดง current branch, base branch, changed files, included files และผลตรวจสอบ
+- หากผู้ใช้สั่ง push ตรงเข้า protected branch ต้องแจ้งว่าเป็นการข้าม Pull Request workflow ก่อนดำเนินการ
+
 ## 11. Definition of Done
 
 งานถือว่าเสร็จเมื่อ:
@@ -176,6 +225,7 @@ feature/* = branch สำหรับงานแต่ละชิ้น
 - ผ่าน lint และ build ที่เกี่ยวข้อง
 - ผ่าน test ที่เกี่ยวข้องเมื่อมี test script
 - เอกสารถูกอัปเดตเมื่อ setup, workflow หรือ behavior เปลี่ยน
+- โครงสร้าง page route ตรงกับ canonical mapping ในหัวข้อ Route และ Path Governance และ `/welcome` ยังคงเป็น redirect เท่านั้น
 - ไม่มี secret หรือไฟล์ generated ถูกเพิ่ม
 - มีรายงานไฟล์ที่แก้ไขและผลการตรวจสอบ
 - ยังไม่มีการ commit หรือ push หากผู้ใช้ไม่ได้สั่ง
@@ -251,6 +301,15 @@ feature/* = branch สำหรับงานแต่ละชิ้น
 - หากเปลี่ยน public path ต้องระบุ redirect หรือ migration plan ก่อนแก้ไข
 - ทุก route ใหม่ต้องเพิ่มใน `docs/route-inventory.md`
 - ทุก dynamic route ต้องระบุ access rule, data source, metadata และการทดสอบ navigation
+- Page route ต้องวางเป็นโฟลเดอร์ตรงใต้ `app/` ให้ตำแหน่งไฟล์สอดคล้องกับ public URL และห้ามเพิ่ม route group สำหรับหน้าใหม่
+- Canonical role home คือ `app/page.tsx` สำหรับ Landing, `app/user/page.tsx` สำหรับ User, `app/interpreter/page.tsx` สำหรับ Interpreter, `app/manager/page.tsx` สำหรับ Manager และ `app/admin/page.tsx` สำหรับ Admin
+- Interpreter ต้องสลับโหมดช่วยเหลือและขอความช่วยเหลือภายใน `app/interpreter/page.tsx` และคง URL หลักเป็น `/interpreter`; ห้ามสร้าง page route แยกสำหรับโหมด requester ของบัญชี Interpreter
+- Page ที่เป็นของ role เดียวต้องอยู่ใต้โฟลเดอร์ role นั้น เช่น `app/user/request-help`, `app/user/my-requests`, `app/interpreter/find-requests` และ `app/interpreter/my-assignments`
+- `/request-help`, `/my-requests`, `/find-requests` และ `/my-assignments` เป็น compatibility redirect เท่านั้น ห้ามเพิ่ม UI หรือ business logic ใหม่ใน route เหล่านี้
+- Page ที่ใช้ร่วมกันหลาย role เช่น `profile` หรือเป็นโดเมนร่วม เช่น `volunteer` ให้อยู่ตรงใต้ `app/` จนกว่าจะมี requirement ระบุเจ้าของ role เดียว
+- Auth page เช่น `login`, `register`, `forgot-password`, `reset-password` และ `sign-in` ต้องเป็นโฟลเดอร์ตรงใต้ `app/`
+- `/welcome` เป็น compatibility redirect ที่ `app/welcome/page.tsx` เท่านั้น ห้ามเพิ่ม UI หรือ business logic ใหม่ใน route นี้
+- HTTP Route Handler ต้องใช้รูปแบบ `app/api/<resource>/route.ts`
 - ยังไม่ใช้ catch-all route, i18n route หรือ middleware สำหรับ routing จนกว่าจะมี requirement จริง
 
 ## 17. New Idea และ System Setting Decision Gate

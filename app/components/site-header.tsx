@@ -1,10 +1,11 @@
 "use client";
 
 import { Bars3Icon, CheckIcon, ChevronDownIcon, LanguageIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BrandMark } from "./brand-mark";
 
-export type Locale = "en" | "th" | "zh" | "my" | "vi";
+export type Locale = "en" | "th" | "zh" | "es" | "ar";
 
 type HeaderCopy = {
   brandSubtitle: string;
@@ -18,15 +19,30 @@ type SiteHeaderProps = {
   copy: HeaderCopy;
   locale: Locale;
   onLocaleChange: (locale: Locale) => void;
+  onOpenRegister?: () => void;
+  onOpenSignIn?: () => void;
+  accountActions?: ReactNode;
+  workspaceRole?: "User" | "Interpreter" | "Manager" | "Admin";
+  workspaceHomeHref?: string;
+  primaryActionHref?: string;
+  hidePrimaryAction?: boolean;
 };
 
 const languageOptions = [
   { code: "en", label: "EN", name: "English", nativeName: "English" },
   { code: "th", label: "TH", name: "Thai", nativeName: "ไทย" },
   { code: "zh", label: "ZH", name: "Chinese", nativeName: "中文" },
-  { code: "my", label: "MY", name: "Burmese", nativeName: "မြန်မာ" },
-  { code: "vi", label: "VI", name: "Vietnamese", nativeName: "Tiếng Việt" },
+  { code: "es", label: "ES", name: "Spanish", nativeName: "Español" },
+  { code: "ar", label: "AR", name: "Arabic", nativeName: "العربية" },
 ] as const;
+
+const navigationAccessibility = {
+  en: { open: "Open navigation menu", close: "Close navigation menu", primary: "Primary navigation", mobile: "Mobile navigation", workspace: "KHVI workspace", welcome: "KHVI welcome", home: "KHVI home" },
+  th: { open: "เปิดเมนูนำทาง", close: "ปิดเมนูนำทาง", primary: "เมนูนำทางหลัก", mobile: "เมนูนำทางบนมือถือ", workspace: "พื้นที่ทำงาน KHVI", welcome: "หน้าแรก KHVI", home: "หน้าแรก KHVI" },
+  zh: { open: "打开导航菜单", close: "关闭导航菜单", primary: "主导航", mobile: "移动端导航", workspace: "KHVI 工作区", welcome: "KHVI 欢迎页", home: "KHVI 首页" },
+  es: { open: "Abrir menú de navegación", close: "Cerrar menú de navegación", primary: "Navegación principal", mobile: "Navegación móvil", workspace: "Espacio de trabajo KHVI", welcome: "Bienvenida de KHVI", home: "Página principal de KHVI" },
+  ar: { open: "فتح قائمة التنقل", close: "إغلاق قائمة التنقل", primary: "التنقل الرئيسي", mobile: "التنقل على الهاتف", workspace: "مساحة عمل KHVI", welcome: "صفحة ترحيب KHVI", home: "الصفحة الرئيسية لـ KHVI" },
+} as const;
 
 function getHashTarget(hash: string) {
   try {
@@ -51,7 +67,7 @@ function scrollToHashTarget(hash: string, behavior: ScrollBehavior = "smooth") {
   return true;
 }
 
-function LanguageSwitcher({ copy, locale, onLocaleChange, compact = false }: SiteHeaderProps & { compact?: boolean }) {
+export function LanguageSwitcher({ copy, locale, onLocaleChange, compact = false }: SiteHeaderProps & { compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const switcherRef = useRef<HTMLDivElement>(null);
   const selectedLanguage = languageOptions.find((option) => option.code === locale) ?? languageOptions[0];
@@ -137,8 +153,48 @@ function LanguageSwitcher({ copy, locale, onLocaleChange, compact = false }: Sit
     </div>
   );
 }
-export function SiteHeader({ copy, locale, onLocaleChange }: SiteHeaderProps) {
+function getRegisterLabel(locale: Locale) {
+  switch (locale) {
+    case "zh":
+      return "注册";
+    case "th":
+      return "สมัครสมาชิก";
+    case "es":
+      return "Registrarse";
+    case "ar":
+      return "إنشاء حساب";
+    default:
+      return "Sign up";
+  }
+}
+
+export function SiteHeader({ copy, locale, onLocaleChange, onOpenRegister, onOpenSignIn, accountActions, workspaceRole, workspaceHomeHref, primaryActionHref = "/user/request-help#main-content", hidePrimaryAction }: SiteHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLElement>(null);
+  const pathname = usePathname();
+  const isLandingPage = pathname === "/";
+  const isRequestWorkspacePage =
+    pathname.startsWith("/user/request-help") ||
+    pathname.startsWith("/user/my-requests") ||
+    pathname.startsWith("/interpreter/request-help") ||
+    pathname.startsWith("/interpreter/my-requests") ||
+    pathname.startsWith("/interpreter/find-requests") ||
+    pathname.startsWith("/interpreter/my-assignments");
+  const isAuthOrOnboardingPage =
+    pathname.startsWith("/register") ||
+    pathname.startsWith("/user/volunteer") ||
+    pathname === "/login" ||
+    pathname === "/sign-in" ||
+    pathname === "/profile";
+  const shouldHidePrimaryAction =
+    Boolean(hidePrimaryAction) ||
+    isLandingPage ||
+    isRequestWorkspacePage ||
+    isAuthOrOnboardingPage;
+  const navItems = isRequestWorkspacePage ? copy.nav.slice(0, 2) : copy.nav;
+  const accessibility = navigationAccessibility[locale];
 
   useEffect(() => {
     const handleHashLinkClick = (event: MouseEvent) => {
@@ -193,12 +249,82 @@ export function SiteHeader({ copy, locale, onLocaleChange }: SiteHeaderProps) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!menuOpen) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    const desktopQuery = window.matchMedia("(min-width: 1024px)");
+    const triggerButton = menuButtonRef.current;
+    const focusFrame = requestAnimationFrame(() => closeButtonRef.current?.focus());
+
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+        return;
+      }
+
+      if (event.key !== "Tab" || !drawerRef.current) {
+        return;
+      }
+
+      const focusableElements = Array.from(
+        drawerRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements.at(-1);
+
+      if (!firstElement || !lastElement) {
+        return;
+      }
+
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    };
+
+    const handleDesktopChange = (event: MediaQueryListEvent) => {
+      if (event.matches) {
+        setMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    desktopQuery.addEventListener("change", handleDesktopChange);
+
+    return () => {
+      cancelAnimationFrame(focusFrame);
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+      desktopQuery.removeEventListener("change", handleDesktopChange);
+      triggerButton?.focus();
+    };
+  }, [menuOpen]);
+
+  const registerLabel = getRegisterLabel(locale);
+  const primaryActionLabel = copy.primaryAction;
+  const resolvedWorkspaceHomeHref = workspaceRole === "Manager" ? "/manager" : workspaceRole === "Admin" ? "/admin" : workspaceHomeHref ?? (workspaceRole === "Interpreter" ? "/interpreter" : "/user");
+
   return (
-    <header className="sticky top-0 z-30 border-b border-[#dbe3e7] bg-[#fbfdfc]/95 shadow-[0_8px_24px_rgba(21,52,67,0.06)] backdrop-blur">
-      <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-5 py-3.5 sm:px-8 lg:gap-6 lg:px-12">
-        <BrandMark subtitle={copy.brandSubtitle} />
-        <nav className="hidden items-center gap-7 text-[13px] font-extrabold text-[#39525d] lg:flex" aria-label="Primary navigation">
-          {copy.nav.map(([label, href]) => (
+    <>
+      <header className="sticky top-0 z-30 border-b border-[#dbe3e7] bg-[#fbfdfc]/95 shadow-[0_8px_24px_rgba(21,52,67,0.06)] backdrop-blur">
+      <div className="mx-auto flex max-w-[1480px] items-center justify-between gap-4 px-5 py-3.5 sm:px-8 lg:gap-6 lg:px-8">
+        <BrandMark
+          subtitle={copy.brandSubtitle}
+          href={workspaceRole ? resolvedWorkspaceHomeHref : "/#top"}
+          ariaLabel={workspaceRole ? accessibility.workspace : accessibility.home}
+        />
+        <nav className="hidden items-center gap-7 text-[13px] font-extrabold text-[#39525d] lg:flex" aria-label={accessibility.primary}>
+          {navItems.map(([label, href]) => (
             <a key={href} className="transition-colors hover:text-[#0d8587]" href={href}>
               {label}
             </a>
@@ -206,39 +332,142 @@ export function SiteHeader({ copy, locale, onLocaleChange }: SiteHeaderProps) {
         </nav>
         <div className="flex items-center gap-2 sm:gap-3">
           <LanguageSwitcher copy={copy} locale={locale} onLocaleChange={onLocaleChange} />
-          <a className="hidden h-10 items-center rounded-lg border border-[#123b4f] px-4 text-xs font-extrabold text-[#123b4f] transition-colors hover:bg-[#edf3f1] sm:flex" href="/sign-in">
-            {copy.signIn}
-          </a>
-          <a className="flex h-10 items-center rounded-lg bg-[#092f45] px-4 text-xs font-extrabold text-white shadow-[0_6px_14px_rgba(9,47,69,0.16)] transition-colors hover:bg-[#0c4960] sm:px-5" href="/request-help">
-            {copy.primaryAction}
-          </a>
+          {accountActions ?? <>{onOpenRegister ? (
+            <button
+              type="button"
+              onClick={onOpenRegister}
+              className="hidden h-10 items-center rounded-lg border border-[#0d8587] bg-[#edf7f5] px-3.5 text-xs font-extrabold text-[#087f80] transition-colors hover:bg-[#d8efe9] sm:flex"
+            >
+              {registerLabel}
+            </button>
+          ) : (
+            <a
+              className="hidden h-10 items-center rounded-lg border border-[#0d8587] bg-[#edf7f5] px-3.5 text-xs font-extrabold text-[#087f80] transition-colors hover:bg-[#d8efe9] sm:flex"
+              href="/register"
+            >
+              {registerLabel}
+            </a>
+          )}
+          {onOpenSignIn ? (
+            <button
+              type="button"
+              onClick={onOpenSignIn}
+              className="hidden h-10 items-center rounded-lg border border-[#123b4f] px-4 text-xs font-extrabold text-[#123b4f] transition-colors hover:bg-[#edf3f1] sm:flex"
+            >
+              {copy.signIn}
+            </button>
+          ) : (
+            <a className="hidden h-10 items-center rounded-lg border border-[#123b4f] px-4 text-xs font-extrabold text-[#123b4f] transition-colors hover:bg-[#edf3f1] sm:flex" href="/login">
+              {copy.signIn}
+            </a>
+          )}
+          {!shouldHidePrimaryAction && (
+            <a className="flex h-10 items-center rounded-lg bg-[#092f45] px-4 text-xs font-extrabold text-white shadow-[0_6px_14px_rgba(9,47,69,0.16)] transition-colors hover:bg-[#0c4960] sm:px-5" href={primaryActionHref}>
+              {primaryActionLabel}
+            </a>
+          )}
+          </>}
           <button
+            ref={menuButtonRef}
             type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#cbd7dc] bg-white text-lg text-[#123b4f] transition-colors hover:border-[#8fbfc1] hover:text-[#0d8587] lg:hidden"
-            aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+            className="flex h-11 w-11 items-center justify-center rounded-lg border border-[#cbd7dc] bg-white text-lg text-[#123b4f] transition-colors hover:border-[#8fbfc1] hover:text-[#0d8587] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f80] lg:hidden"
+            aria-label={menuOpen ? accessibility.close : accessibility.open}
             aria-expanded={menuOpen}
             aria-controls="mobile-navigation"
             onClick={() => setMenuOpen((open) => !open)}
           >
-            {menuOpen ? <XMarkIcon aria-hidden="true" className="h-5 w-5" /> : <Bars3Icon aria-hidden="true" className="h-5 w-5" />}
+            <Bars3Icon aria-hidden="true" className="h-6 w-6" />
           </button>
         </div>
       </div>
+      </header>
+
       {menuOpen && (
-        <nav id="mobile-navigation" className="border-t border-[#e3eaed] bg-white px-5 py-3 lg:hidden" aria-label="Mobile navigation">
-          <div className="mx-auto flex max-w-[1440px] flex-col gap-1 sm:px-3">
-            {copy.nav.map(([label, href]) => (
-              <a key={href} className="rounded-lg px-3 py-3 text-sm font-extrabold text-[#39525d] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587]" href={href} onClick={() => setMenuOpen(false)}>
+        <div className="fixed inset-0 z-40 lg:hidden">
+          <button
+            type="button"
+            className="absolute inset-0 h-full w-full cursor-default bg-[#092f45]/45 backdrop-blur-[2px] animate-in fade-in duration-200"
+            aria-label={accessibility.close}
+            onClick={() => setMenuOpen(false)}
+          />
+          <aside
+            ref={drawerRef}
+            id="mobile-navigation"
+            role="dialog"
+            aria-modal="true"
+            aria-label={accessibility.mobile}
+            className="absolute inset-y-0 right-0 flex h-dvh w-[min(88vw,360px)] flex-col overflow-hidden bg-white shadow-[-18px_0_45px_rgba(9,47,69,0.24)] animate-in slide-in-from-right duration-200 motion-reduce:animate-none"
+          >
+            <div className="flex items-center justify-between gap-4 border-b border-[#e1e9ec] px-5 py-4">
+              <BrandMark subtitle={copy.brandSubtitle} href={workspaceRole ? resolvedWorkspaceHomeHref : "/#top"} ariaLabel={workspaceRole ? accessibility.welcome : accessibility.home} />
+              <button
+                ref={closeButtonRef}
+                type="button"
+                className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-[#cbd7dc] text-[#123b4f] transition-colors hover:border-[#8fbfc1] hover:bg-[#eef7f5] hover:text-[#087f80] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f80]"
+                aria-label={accessibility.close}
+                onClick={() => setMenuOpen(false)}
+              >
+                <XMarkIcon aria-hidden="true" className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+              <nav className="flex flex-col gap-1" aria-label="Mobile navigation">
+            {navItems.map(([label, href]) => (
+                  <a key={href} className="flex min-h-12 items-center rounded-xl px-4 py-3 text-base font-extrabold text-[#294554] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#087f80]" href={href} onClick={() => setMenuOpen(false)}>
                 {label}
               </a>
             ))}
-            <LanguageSwitcher copy={copy} locale={locale} onLocaleChange={onLocaleChange} compact />
-            <a className="rounded-lg px-3 py-3 text-sm font-extrabold text-[#39525d] transition-colors hover:bg-[#eef5f7] hover:text-[#0d8587]" href="/sign-in" onClick={() => setMenuOpen(false)}>
-              {copy.signIn}
-            </a>
-          </div>
-        </nav>
+              </nav>
+
+              <div className="my-4 border-t border-[#e1e9ec]" />
+              <p className="px-3 text-xs font-extrabold uppercase tracking-[0.12em] text-[#78909a]">{copy.languageLabel}</p>
+              <LanguageSwitcher copy={copy} locale={locale} onLocaleChange={onLocaleChange} compact />
+            </div>
+
+            {!accountActions && (
+              <div className="grid gap-2 border-t border-[#e1e9ec] bg-[#f7faf9] p-4">
+                {onOpenRegister ? (
+              <button
+                type="button"
+                    className="flex min-h-12 items-center justify-center rounded-xl border border-[#0d8587] bg-[#edf7f5] px-4 py-3 text-sm font-extrabold text-[#087f80] transition-colors hover:bg-[#d8efe9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f80]"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onOpenRegister();
+                }}
+              >
+                {registerLabel}
+              </button>
+            ) : (
+              <a
+                    className="flex min-h-12 items-center justify-center rounded-xl border border-[#0d8587] bg-[#edf7f5] px-4 py-3 text-sm font-extrabold text-[#087f80] transition-colors hover:bg-[#d8efe9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f80]"
+                href="/register"
+                onClick={() => setMenuOpen(false)}
+              >
+                {registerLabel}
+              </a>
+            )}
+            {onOpenSignIn ? (
+              <button
+                type="button"
+                    className="flex min-h-12 items-center justify-center rounded-xl border border-[#123b4f] bg-white px-4 py-3 text-sm font-extrabold text-[#123b4f] transition-colors hover:bg-[#edf3f1] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#123b4f]"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onOpenSignIn();
+                }}
+              >
+                {copy.signIn}
+              </button>
+            ) : (
+                  <a className="flex min-h-12 items-center justify-center rounded-xl border border-[#123b4f] bg-white px-4 py-3 text-sm font-extrabold text-[#123b4f] transition-colors hover:bg-[#edf3f1] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#123b4f]" href="/login" onClick={() => setMenuOpen(false)}>
+                {copy.signIn}
+              </a>
+            )}
+              </div>
+            )}
+          </aside>
+        </div>
       )}
-    </header>
+    </>
   );
 }

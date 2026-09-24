@@ -1,0 +1,98 @@
+.dialog {
+  position: fixed;
+  inset: 0;
+  width: min(26rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  margin: auto;
+  padding: 2rem 1.5rem 1.5rem;
+  overflow-y: auto;
+  border: 1px solid var(--khvi-teal);
+  border-radius: var(--khvi-radius-lg);
+  background: var(--khvi-surface);
+  box-shadow: var(--khvi-shadow-raised);
+  text-align: center;
+}
+
+.dialog[open] {
+  animation: celebrate 3s ease both;
+}
+
+.dialog::backdrop {
+  background: rgb(9 47 69 / 35%);
+  backdrop-filter: blur(4px);
+}
+
+.illustration {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 7rem;
+  height: 7rem;
+  margin: 0 auto 1.5rem;
+  border-radius: 50%;
+  background: var(--khvi-paper);
+}
+
+.heart {
+  width: 3.5rem;
+  height: 3.5rem;
+  color: var(--khvi-teal);
+  fill: currentColor;
+  animation: heartbeat 700ms ease 200ms 2;
+}
+
+.sparkles {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: -0.25rem;
+  width: 2rem;
+  height: 2rem;
+  color: var(--khvi-sun);
+}
+
+.check {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-end: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: var(--khvi-surface);
+  color: var(--khvi-teal);
+}
+
+.progress {
+  height: 0.25rem;
+  margin-top: 1rem;
+  overflow: hidden;
+  border-radius: var(--khvi-radius-sm);
+  background: var(--khvi-paper);
+}
+
+.progress span {
+  display: block;
+  height: 100%;
+  background: var(--khvi-teal);
+  transform-origin: left;
+  animation: countdown 3s linear forwards;
+}
+
+@keyframes celebrate {
+  0% { opacity: 0; transform: translateY(1rem) scale(0.9); }
+  12% { opacity: 1; transform: translateY(-0.25rem) scale(1.02); }
+  18%, 90% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-0.5rem) scale(0.98); }
+}
+
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12) rotate(-6deg); }
+}
+
+@keyframes countdown {
+  to { transform: scaleX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog[open], .heart, .progress span { animation: none; }
+}

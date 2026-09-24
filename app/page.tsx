@@ -1,602 +1,559 @@
 "use client";
 
-import type { ComponentType, SVGProps } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentType, type SVGProps } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
-  CalendarDaysIcon,
-  CheckBadgeIcon,
-  CheckCircleIcon,
+  BellAlertIcon,
+  BuildingLibraryIcon,
   ClockIcon,
-  DocumentCheckIcon,
-  ExclamationTriangleIcon,
-  LanguageIcon,
-  LockClosedIcon,
-  MapPinIcon,
+  GlobeAltIcon,
+  HeartIcon,
   ShieldCheckIcon,
-  UserCircleIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
-import { SiteFooter } from "./components/site-footer";
-import { SiteHeader, type Locale } from "./components/site-header";
+import { SiteFooter } from "@/app/components/site-footer";
+import { SiteHeader } from "@/app/components/site-header";
+import { ResponsiveHeroImage } from "@/app/components/responsive-hero-image";
+import { RegisterModal } from "@/app/components/auth/register-modal";
+import { RegisterRoleModal } from "@/app/components/auth/register-role-modal";
+import { LoginModal } from "@/app/components/auth/login-modal";
+import { useStoredLocale } from "@/app/lib/locale";
+import { getRedirectPathByRole, type UserProfile } from "@/app/lib/auth-types";
+import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
+import { createClient } from "@/utils/supabase/client";
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
-type RequestCardContent = {
-  title: string;
-  meta: string;
-  location: string;
-  action: string;
-  tone: "urgent" | "scheduled";
-};
 
-const copy = {
+const landingCopy = {
+  th: {
+    skip: "ข้ามไปเนื้อหาหลัก",
+    header: {
+      brandSubtitle: "เชื่อมคน เชื่อมภาษา เพื่อสังคมที่เท่าเทียม",
+      languageLabel: "ภาษาหน้าจอ",
+      signIn: "เข้าสู่ระบบ",
+      primaryAction: "ขอความช่วยเหลือ",
+      nav: [["เกี่ยวกับเรา", "#about"], ["สำหรับอาสาสมัคร", "/user/volunteer/apply#main-content"], ["ข่าวสาร", "#community"]],
+    },
+    hero: {
+      lead: "สื่อสารได้",
+      accent: "ช่วยได้",
+      body: "เพราะทุกคนมีสิทธิ์ในการสื่อสาร KHVI Helper เชื่อมโยงอาสาสมัครล่าม เพื่อช่วยเหลือผู้ที่ต้องการความช่วยเหลือด้านภาษาในสถานการณ์ฉุกเฉินและในชีวิตประจำวัน",
+      action: "ขอความช่วยเหลือ",
+      note: "แจ้งความต้องการล่าม ได้อย่างรวดเร็ว ปลอดภัย และฟรี",
+      imageAlt: "ล่ามอาสากำลังช่วยผู้สูงอายุสื่อสารผ่านแท็บเล็ต",
+    },
+    trust: [
+      { title: "ปลอดภัย น่าเชื่อถือ", detail: "ตรวจสอบอาสาสมัครทุกคน" },
+      { title: "อาสาสมัครทั่วประเทศ", detail: "หลากหลายภาษา พร้อมช่วยเหลือ" },
+      { title: "รวดเร็ว ทันเหตุการณ์", detail: "เชื่อมต่อได้ในเวลาที่คุณต้องการ" },
+      { title: "เพื่อสังคมที่เท่าเทียม", detail: "ไม่ทิ้งใครไว้ข้างหลัง" },
+    ],
+    about: {
+      label: "KHVI HELPER",
+      title: "พลังของการสื่อสาร\nสร้างสังคมที่ดีกว่า",
+      body: "เราคือเครือข่ายอาสาสมัครล่าม ที่พร้อมช่วยเหลือผู้คนในสถานการณ์ฉุกเฉิน การเข้าถึงบริการสาธารณสุข การติดต่อภาครัฐ และในชีวิตประจำวัน เพื่อให้ทุกคนได้สื่อสารอย่างมั่นใจ",
+      action: "เกี่ยวกับเรา",
+      cards: [
+        { title: "ช่วยในสถานการณ์ฉุกเฉิน", detail: "เจ็บป่วย อุบัติเหตุ เหตุฉุกเฉิน เราพร้อมเชื่อมต่อล่ามทันที" },
+        { title: "เข้าถึงบริการภาครัฐ", detail: "ลดอุปสรรคในการติดต่อกับหน่วยงานต่าง ๆ" },
+        { title: "เชื่อมโยงผู้คน หลากหลายภาษา", detail: "ร่วมสร้างสังคมที่เปิดกว้างและเท่าเทียม" },
+      ],
+    },
+    community: {
+      quote: "เพื่อการสื่อสารไร้พรมแดน\nโอกาสของทุกคนก็ไปได้ไกลกว่าเดิม",
+      note: "คนต่างภาษา แต่หัวใจเดียวกัน",
+      imageAlt: "กลุ่มคนหลากหลายยืนเคียงกันมองทิวทัศน์ประเทศไทย",
+    },
+    howItWorks: {
+      label: "ขั้นตอนใช้งาน",
+      title: "จากคำขอจนจบภารกิจ",
+      steps: ["เลือกภาษา หมวดหมู่ และจุดนัดพบ", "เมื่อล่ามรับงาน ตรวจสอบและยืนยันล่าม", "ทั้งสองฝ่ายยืนยันจบ แล้วจึงรีวิว"],
+    },
+    privacy: {
+      label: "ความเป็นส่วนตัว",
+      title: "แบ่งปันเฉพาะข้อมูลที่จำเป็น",
+      body: "ตรวจสอบบุคคลและจุดนัดพบก่อนเดินทาง ข้อมูลติดต่อและพิกัดละเอียดเปิดตามขั้นตอนยืนยันล่าม บริการนี้ช่วยด้านภาษา ไม่ทดแทนหน่วยงานฉุกเฉิน",
+    },
+    footer: {
+      description: "เครือข่ายอาสาสมัครล่ามเพื่อการสื่อสารที่เข้าถึงได้สำหรับทุกคน",
+      note: "เชื่อมคน เชื่อมภาษา",
+      explore: "สำรวจ",
+      safety: "ความปลอดภัย",
+      needHelp: "ต้องการความช่วยเหลือ?",
+      needHelpBody: "แจ้งภาษาและสถานที่เพื่อเริ่มค้นหาอาสาสมัครล่าม",
+      footerCta: "ขอความช่วยเหลือ",
+      privacy: "ข้อมูลละเอียดเปิดหลังผู้ขอยืนยันล่าม",
+      links: { map: "เกี่ยวกับเรา", how: "สำหรับอาสาสมัคร", roles: "ชุมชน", privacy: "ความเป็นส่วนตัว", request: "ขอความช่วยเหลือ", signIn: "เข้าสู่ระบบ" },
+    },
+  },
   en: {
     skip: "Skip to main content",
     header: {
-      brandSubtitle: "Community interpreter map",
+      brandSubtitle: "Connecting people and languages",
       languageLabel: "Language",
       signIn: "Sign in",
-      primaryAction: "Create pin",
-      nav: [
-        ["Map preview", "#map-preview"],
-        ["How it works", "#how-it-works"],
-        ["Safety", "#safety"],
-        ["Roles", "#roles"],
-      ],
+      primaryAction: "Get help",
+      nav: [["About us", "#about"], ["For volunteers", "/user/volunteer/apply#main-content"], ["Community", "#community"]],
     },
     hero: {
-      label: "Map-based volunteer interpreter platform",
-      title: "Language help nearby, when communication cannot wait",
-      body: "Create a help request pin, choose one language and one category, and let approved volunteer interpreters nearby claim the job.",
-      primaryCta: "Create a help request pin",
-      secondaryCta: "Apply as interpreter",
-      statusTitle: "Job status",
+      lead: "Communicate clearly.",
+      accent: "Help confidently.",
+      body: "Everyone deserves to be understood. KHVI Helper connects people with volunteer interpreters for language support in urgent situations and everyday life.",
+      action: "Get language help",
+      note: "Request an interpreter quickly, safely, and free of charge.",
+      imageAlt: "A volunteer interpreter helping an older woman communicate using a tablet",
     },
-    statuses: ["Open", "Claimed", "In progress", "Completed"],
-    filters: ["Chinese", "English", "Medical", "Police station", "Within 5 km"],
-    mapLabels: ["Bang Rak", "Din Daeng", "Khlong Toei"],
-    mapCard: {
-      title: "Matched job near you",
-      meta: "Medical · Chinese · within 5 km from an approximate location",
-      privacy: "Exact contact details and location unlock after claim",
-      action: "Claim job",
-    },
-    featureBand: [
-      "Match by language and category, instead of asking one interpreter at a time",
-      "Protect exact location and contact details until a job is claimed",
-      "Support urgent jobs and same-day scheduled requests",
+    trust: [
+      { title: "Safe and trusted", detail: "Every volunteer is reviewed" },
+      { title: "A nationwide community", detail: "Many languages, ready to help" },
+      { title: "Timely connections", detail: "Find help when you need it" },
+      { title: "Equal communication", detail: "No one is left behind" },
     ],
-    mapSection: {
-      label: "Map workflow preview",
-      title: "One pin goes to every approved interpreter who matches the request",
-      body: "The platform reduces waiting time by pooling each request for qualified interpreters, while still hiding sensitive details until someone claims the job.",
+    about: {
+      label: "KHVI HELPER",
+      title: "Communication can build\na more inclusive society",
+      body: "We are a network of volunteer interpreters helping people in emergencies, healthcare, public services, and daily life so everyone can communicate with confidence.",
+      action: "About us",
       cards: [
-        {
-          title: "Urgent request",
-          meta: "Medical · Chinese",
-          location: "Approximate location only",
-          action: "Waiting 03:42",
-          tone: "urgent",
-        },
-        {
-          title: "Today appointment",
-          meta: "Police station · English",
-          location: "Scheduled 14:30",
-          action: "View details",
-          tone: "scheduled",
-        },
+        { title: "Help in urgent situations", detail: "Connect with language support for illness, accidents, and urgent needs." },
+        { title: "Access public services", detail: "Reduce language barriers when contacting public agencies." },
+        { title: "Connect across languages", detail: "Help create a more open and equal community." },
       ],
     },
-    how: {
+    community: {
+      quote: "When communication crosses borders,\neveryone can go further.",
+      note: "Different languages, one community",
+      imageAlt: "A diverse group standing together and looking over a Thai landscape",
+    },
+    howItWorks: {
       label: "How it works",
-      title: "Four steps both sides can understand",
-      steps: [
-        {
-          title: "Create a request pin",
-          description: "The requester chooses one language, one category, a short description, and the help location.",
-        },
-        {
-          title: "Matched interpreters see it",
-          description: "Only approved interpreters with the matching language and category can see the open pin.",
-        },
-        {
-          title: "Details unlock after claim",
-          description: "Before claim, only a rough area is visible. After claim, exact location and contact details are shown.",
-        },
-        {
-          title: "Both sides confirm completion",
-          description: "The job is completed only when the requester and interpreter both confirm the work is done.",
-        },
-      ],
+      title: "From request to completion",
+      steps: ["Choose a language, category and meeting point", "Review and confirm the interpreter after claim", "Both people confirm completion, then review"],
     },
-    safety: {
-      label: "Data safety",
-      title: "Reveal only what is needed, when it is needed",
-      body: "The landing page should make it clear that exact location and contact details are not visible to everyone from the start.",
-      items: [
-        {
-          title: "Interpreter approval first",
-          description: "A Manager or Admin reviews the application before a user becomes an interpreter.",
-        },
-        {
-          title: "Approximate map location",
-          description: "The map shows only language, category, and a rough area before the job is claimed.",
-        },
-        {
-          title: "Single successful claim",
-          description: "Claiming should be atomic so one open pin can be accepted by only one interpreter.",
-        },
-      ],
-    },
-    roles: {
-      label: "System roles",
-      title: "Each role has a clear job",
-      action: "Sign in to open your workspace",
-      cards: [
-        {
-          role: "Requester",
-          detail: "Creates requests, tracks job status, and sees interpreter contact details after a claim.",
-        },
-        {
-          role: "Volunteer interpreter",
-          detail: "Applies, waits for approval, sees matched nearby jobs, and claims suitable requests.",
-        },
-        {
-          role: "Manager / Admin",
-          detail: "Reviews interpreter applications, manages roles, and keeps the platform trustworthy.",
-        },
-      ],
+    privacy: {
+      label: "Privacy",
+      title: "Share only what is needed",
+      body: "Confirm who you are meeting and where. Contact details and exact locations follow interpreter confirmation. Language support does not replace emergency services.",
     },
     footer: {
-      description: "A map-based language help platform for situations where communication needs to be clear and timely.",
-      note: "Built for safer coordination",
+      description: "A volunteer interpreter network making communication accessible to everyone.",
+      note: "Connecting people and languages",
       explore: "Explore",
       safety: "Safety",
       needHelp: "Need help?",
-      needHelpBody: "Start by creating a request pin with the language, category, and location where help is needed.",
-      footerCta: "Create a help request pin",
-      privacy: "Sensitive details stay hidden until a job is claimed",
-      links: {
-        map: "Map preview",
-        how: "How it works",
-        roles: "Roles",
-        privacy: "Data protection",
-        request: "Create request",
-        signIn: "Sign in",
-      },
+      needHelpBody: "Share the language and location to start finding a volunteer interpreter.",
+      footerCta: "Get help",
+      privacy: "Sensitive details open only after interpreter confirmation",
+      links: { map: "About us", how: "For volunteers", roles: "Community", privacy: "Privacy", request: "Get help", signIn: "Sign in" },
     },
   },
   zh: {
     skip: "跳到主要内容",
     header: {
-      brandSubtitle: "社区口译地图",
+      brandSubtitle: "连接人与语言，共创平等社会",
       languageLabel: "语言",
       signIn: "登录",
-      primaryAction: "创建求助点",
-      nav: [
-        ["地图预览", "#map-preview"],
-        ["使用流程", "#how-it-works"],
-        ["安全机制", "#safety"],
-        ["系统角色", "#roles"],
-      ],
+      primaryAction: "获取帮助",
+      nav: [["关于我们", "#about"], ["志愿者专区", "/user/volunteer/apply#main-content"], ["社区", "#community"]],
     },
     hero: {
-      label: "基于地图的志愿口译平台",
-      title: "需要沟通时，快速找到附近语言帮助",
-      body: "创建求助点，选择一种语言和一个类别，让附近已审核的志愿口译员接取任务。",
-      primaryCta: "创建语言求助点",
-      secondaryCta: "申请成为口译员",
-      statusTitle: "任务状态",
+      lead: "沟通无碍",
+      accent: "互助有力",
+      body: "每个人都有沟通的权利。KHVI Helper 将有语言需求的人与志愿口译员连接起来，服务于紧急情况和日常生活。",
+      action: "获取语言帮助",
+      note: "快速、安全、免费地申请志愿口译服务。",
+      imageAlt: "志愿口译员通过平板电脑帮助老年女性沟通",
     },
-    statuses: ["开放中", "已接取", "进行中", "已完成"],
-    filters: ["中文", "英语", "医疗", "警察局", "5 公里内"],
-    mapLabels: ["邦拉", "丁登", "空堤"],
-    mapCard: {
-      title: "附近匹配任务",
-      meta: "医疗 · 中文 · 距大致位置 5 公里内",
-      privacy: "接取任务后解锁准确联系方式和位置",
-      action: "接取任务",
-    },
-    featureBand: [
-      "按语言和类别匹配，不必逐个联系口译员",
-      "任务被接取前保护准确位置和联系方式",
-      "支持紧急求助和当天预约任务",
+    trust: [
+      { title: "安全可信", detail: "每位志愿者均经过审核" },
+      { title: "全国志愿网络", detail: "多种语言，随时提供帮助" },
+      { title: "及时连接", detail: "在需要时快速找到帮助" },
+      { title: "平等沟通", detail: "不让任何人掉队" },
     ],
-    mapSection: {
-      label: "地图流程预览",
-      title: "一个求助点会展示给所有符合条件的已审核口译员",
-      body: "平台把每个请求放入任务池，减少等待时间，同时在任务被接取前隐藏敏感信息。",
+    about: {
+      label: "KHVI HELPER",
+      title: "沟通的力量\n让社会更加美好",
+      body: "我们是志愿口译员网络，在紧急情况、医疗、公共服务和日常生活中提供帮助，让每个人都能自信沟通。",
+      action: "关于我们",
       cards: [
-        {
-          title: "紧急求助",
-          meta: "医疗 · 中文",
-          location: "仅显示大致位置",
-          action: "等待 03:42",
-          tone: "urgent",
-        },
-        {
-          title: "今日预约",
-          meta: "警察局 · 英语",
-          location: "预约 14:30",
-          action: "查看详情",
-          tone: "scheduled",
-        },
+        { title: "紧急情况支援", detail: "在疾病、事故及紧急需求中快速连接口译员。" },
+        { title: "使用公共服务", detail: "减少联系公共机构时遇到的语言障碍。" },
+        { title: "连接不同语言的人", detail: "共同建设更加开放和平等的社区。" },
       ],
     },
-    how: {
-      label: "使用流程",
-      title: "双方都能理解的四个步骤",
-      steps: [
-        {
-          title: "创建求助点",
-          description: "求助者选择一种语言、一个类别，填写简短说明，并标记需要帮助的位置。",
-        },
-        {
-          title: "符合条件的口译员可见",
-          description: "只有通过审核且语言和类别匹配的口译员，才能看到开放中的求助点。",
-        },
-        {
-          title: "接取后解锁详细信息",
-          description: "接取前只显示大致区域；接取后显示准确位置和联系方式。",
-        },
-        {
-          title: "双方确认完成",
-          description: "只有求助者和口译员都确认完成后，任务才会变为已完成。",
-        },
-      ],
+    community: {
+      quote: "当沟通跨越边界，\n每个人都能走得更远。",
+      note: "语言不同，心意相通",
+      imageAlt: "多元群体并肩眺望泰国景观",
     },
-    safety: {
-      label: "数据安全",
-      title: "只在必要的时候展示必要的信息",
-      body: "首页应清楚说明，准确位置和联系方式不会从一开始就对所有人公开。",
-      items: [
-        {
-          title: "口译员先通过审核",
-          description: "Manager 或 Admin 审核申请后，用户才会成为口译员。",
-        },
-        {
-          title: "地图只显示大致位置",
-          description: "任务被接取前，地图只显示语言、类别和大致区域。",
-        },
-        {
-          title: "一次任务只能成功接取一次",
-          description: "接取流程应采用原子操作，确保一个开放求助点只能被一名口译员接取。",
-        },
-      ],
+    howItWorks: {
+      label: "使用步骤",
+      title: "从请求到完成",
+      steps: ["选择语言、类别和见面地点", "口译员接单后查看并确认", "双方确认完成后评价"],
     },
-    roles: {
-      label: "系统角色",
-      title: "每个角色都有清楚的职责",
-      action: "登录并打开你的工作区",
-      cards: [
-        {
-          role: "求助者",
-          detail: "创建请求、跟踪任务状态，并在任务被接取后查看口译员联系方式。",
-        },
-        {
-          role: "志愿口译员",
-          detail: "提交申请、等待审核、查看附近匹配任务，并接取合适的请求。",
-        },
-        {
-          role: "Manager / Admin",
-          detail: "审核口译员申请、管理角色，并维护平台可信度。",
-        },
-      ],
+    privacy: {
+      label: "隐私",
+      title: "仅分享必要信息",
+      body: "出发前确认见面对象和地点。确认口译员后才开放联系方式及详细位置。语言服务不能代替紧急救援。",
     },
     footer: {
-      description: "一个基于地图的语言求助平台，服务于需要清晰、及时沟通的场景。",
-      note: "为更安全的协作而设计",
+      description: "让每个人都能获得沟通支持的志愿口译网络。",
+      note: "连接人与语言",
       explore: "探索",
       safety: "安全",
       needHelp: "需要帮助？",
-      needHelpBody: "从创建求助点开始，填写所需语言、类别和需要帮助的位置。",
-      footerCta: "创建语言求助点",
-      privacy: "敏感信息会在任务被接取前保持隐藏",
-      links: {
-        map: "地图预览",
-        how: "使用流程",
-        roles: "系统角色",
-        privacy: "数据保护",
-        request: "创建请求",
-        signIn: "登录",
-      },
+      needHelpBody: "填写所需语言和地点，开始寻找志愿口译员。",
+      footerCta: "获取帮助",
+      privacy: "确认口译员后才会开放敏感信息",
+      links: { map: "关于我们", how: "志愿者专区", roles: "社区", privacy: "隐私", request: "获取帮助", signIn: "登录" },
     },
   },
 } as const;
 
-const localeLanguageTags: Record<Locale, string> = {
-  en: "en",
-  th: "th",
-  zh: "zh-Hans",
-  my: "my",
-  vi: "vi",
-};
+const localizedLandingCopy = {
+  ...landingCopy,
+  es: {
+    ...landingCopy.en,
+    header: {
+      ...landingCopy.en.header,
+      brandSubtitle: "Conectamos personas y lenguas para una sociedad más igualitaria",
+      languageLabel: "Idioma",
+      signIn: "Iniciar sesión",
+      primaryAction: "Obtener ayuda",
+      nav: [["Sobre nosotros", "#about"], ["Para voluntarios", "/user/volunteer/apply#main-content"], ["Comunidad", "#community"]],
+    },
+    hero: {
+      ...landingCopy.en.hero,
+      lead: "Comunícate con claridad.",
+      accent: "Ayuda con confianza.",
+      body: "Todas las personas merecen ser comprendidas. KHVI Helper conecta a las personas con intérpretes voluntarios para ofrecer apoyo lingüístico en situaciones urgentes y en la vida diaria.",
+      action: "Obtener ayuda lingüística",
+      note: "Solicita un intérprete de forma rápida, segura y gratuita.",
+      imageAlt: "Una intérprete voluntaria ayuda a una mujer mayor a comunicarse con una tableta",
+    },
+    trust: [
+      { title: "Seguro y confiable", detail: "Revisamos a cada voluntario" },
+      { title: "Comunidad nacional", detail: "Muchas lenguas, siempre dispuestos a ayudar" },
+      { title: "Conexiones oportunas", detail: "Encuentra ayuda cuando la necesitas" },
+      { title: "Comunicación igualitaria", detail: "Nadie queda atrás" },
+    ],
+    about: {
+      ...landingCopy.en.about,
+      title: "La comunicación puede construir\nuna sociedad más inclusiva",
+      body: "Somos una red de intérpretes voluntarios que ayuda en emergencias, atención sanitaria, servicios públicos y vida diaria para que todas las personas puedan comunicarse con confianza.",
+      action: "Sobre nosotros",
+      cards: [
+        { title: "Ayuda en situaciones urgentes", detail: "Conecta con apoyo lingüístico para enfermedades, accidentes y necesidades urgentes." },
+        { title: "Accede a servicios públicos", detail: "Reduce las barreras lingüísticas al contactar con organismos públicos." },
+        { title: "Conecta entre lenguas", detail: "Ayuda a crear una comunidad más abierta e igualitaria." },
+      ],
+    },
+    community: {
+      quote: "Cuando la comunicación cruza fronteras,\ntodas las personas pueden llegar más lejos.",
+      note: "Lenguas diferentes, una comunidad",
+      imageAlt: "Un grupo diverso observa unido un paisaje tailandés",
+    },
+    footer: {
+      ...landingCopy.en.footer,
+      description: "Una red de intérpretes voluntarios que hace accesible la comunicación para todas las personas.",
+      note: "Conectamos personas y lenguas",
+      explore: "Explorar",
+      safety: "Seguridad",
+      needHelp: "¿Necesitas ayuda?",
+      needHelpBody: "Comparte el idioma y el lugar para empezar a buscar un intérprete voluntario.",
+      footerCta: "Obtener ayuda",
+      privacy: "Los datos sensibles se abren solo después de confirmar al intérprete",
+      links: { map: "Sobre nosotros", how: "Para voluntarios", roles: "Comunidad", privacy: "Privacidad", request: "Obtener ayuda", signIn: "Iniciar sesión" },
+    },
+  },
+  ar: {
+    ...landingCopy.en,
+    header: {
+      ...landingCopy.en.header,
+      brandSubtitle: "نربط الناس واللغات من أجل مجتمع أكثر مساواة",
+      languageLabel: "اللغة",
+      signIn: "تسجيل الدخول",
+      primaryAction: "الحصول على المساعدة",
+      nav: [["من نحن", "#about"], ["للمتطوعين", "/user/volunteer/apply#main-content"], ["المجتمع", "#community"]],
+    },
+    hero: {
+      ...landingCopy.en.hero,
+      lead: "تواصل بوضوح.",
+      accent: "وساعد بثقة.",
+      body: "يستحق الجميع أن يتم فهمهم. يربط KHVI Helper الناس بالمترجمين المتطوعين للحصول على دعم لغوي في المواقف العاجلة وفي الحياة اليومية.",
+      action: "الحصول على مساعدة لغوية",
+      note: "اطلب مترجمًا بسرعة وأمان ومجانًا.",
+      imageAlt: "مترجمة متطوعة تساعد امرأة مسنة على التواصل باستخدام جهاز لوحي",
+    },
+    trust: [
+      { title: "آمن وموثوق", detail: "نراجع كل متطوع" },
+      { title: "مجتمع في جميع أنحاء البلاد", detail: "لغات متعددة ومتطوعون مستعدون للمساعدة" },
+      { title: "تواصل في الوقت المناسب", detail: "اعثر على المساعدة عند حاجتك" },
+      { title: "تواصل متساوٍ", detail: "لا نترك أحدًا خلفنا" },
+    ],
+    about: {
+      ...landingCopy.en.about,
+      title: "يمكن للتواصل أن يبني\nمجتمعًا أكثر شمولًا",
+      body: "نحن شبكة من المترجمين المتطوعين الذين يساعدون الناس في حالات الطوارئ والرعاية الصحية والخدمات العامة والحياة اليومية حتى يتمكن الجميع من التواصل بثقة.",
+      action: "من نحن",
+      cards: [
+        { title: "المساعدة في المواقف العاجلة", detail: "تواصل مع الدعم اللغوي في حالات المرض والحوادث والاحتياجات العاجلة." },
+        { title: "الوصول إلى الخدمات العامة", detail: "قلل حواجز اللغة عند التواصل مع الجهات العامة." },
+        { title: "ربط اللغات المختلفة", detail: "ساعد في بناء مجتمع أكثر انفتاحًا ومساواة." },
+      ],
+    },
+    community: {
+      quote: "عندما يتجاوز التواصل الحدود،\nيمكن للجميع أن يذهبوا أبعد.",
+      note: "لغات مختلفة، مجتمع واحد",
+      imageAlt: "مجموعة متنوعة تقف معًا وتتأمل منظرًا طبيعيًا في تايلاند",
+    },
+    footer: {
+      ...landingCopy.en.footer,
+      description: "شبكة مترجمين متطوعين تجعل التواصل متاحًا للجميع.",
+      note: "نربط الناس واللغات",
+      explore: "استكشف",
+      safety: "الأمان",
+      needHelp: "هل تحتاج إلى مساعدة؟",
+      needHelpBody: "شارك اللغة والمكان لبدء البحث عن مترجم متطوع.",
+      footerCta: "الحصول على المساعدة",
+      privacy: "تُفتح التفاصيل الحساسة بعد تأكيد المترجم فقط",
+      links: { map: "من نحن", how: "للمتطوعين", roles: "المجتمع", privacy: "الخصوصية", request: "الحصول على المساعدة", signIn: "تسجيل الدخول" },
+    },
+  },
+} as const;
 
-function isLocale(value: string | null): value is Locale {
-  return value === "en" || value === "th" || value === "zh" || value === "my" || value === "vi";
-}
+const trustIcons = [ShieldCheckIcon, UserGroupIcon, ClockIcon, HeartIcon] as const;
+const serviceIcons = [BellAlertIcon, BuildingLibraryIcon, GlobeAltIcon] as const;
 
-function getCopyLocale(locale: Locale): keyof typeof copy {
-  return locale === "zh" ? "zh" : "en";
-}
-
-const statusTone = ["bg-[#f04f3e] text-white", "bg-white text-[#18384a]", "bg-white text-[#18384a]", "bg-[#e6f4ef] text-[#087557]"] as const;
-const stepIcons = [MapPinIcon, LanguageIcon, LockClosedIcon, CheckCircleIcon] as const;
-const safetyIcons = [CheckBadgeIcon, ShieldCheckIcon, DocumentCheckIcon] as const;
-const roleIcons = [UserCircleIcon, UserGroupIcon, ShieldCheckIcon] as const;
-
-function IconFrame({ icon: IconComponent, className = "" }: { icon: Icon; className?: string }) {
+function TrustItem({ icon: IconComponent, title, detail }: { icon: Icon; title: string; detail: string }) {
   return (
-    <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${className}`}>
-      <IconComponent aria-hidden="true" className="h-6 w-6" />
-    </span>
-  );
-}
-
-function StatusFlow({ labels, title }: { labels: readonly string[]; title: string }) {
-  return (
-    <div className="mt-7">
-      <p className="text-sm font-bold text-[#294554]">{title}</p>
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        {labels.map((label, index) => (
-          <div key={label} className="flex items-center gap-2">
-            <span className={`rounded-lg border border-[#d7e0e5] px-3 py-2 text-xs font-extrabold shadow-sm ${statusTone[index]}`}>
-              {label}
-            </span>
-            {index < labels.length - 1 && <span className="text-[#9aa9ae]">/</span>}
-          </div>
-        ))}
-      </div>
+    <div className="flex items-center gap-3 border-b border-[#cfe0e5] px-4 py-3.5 last:border-b-0 sm:odd:border-r sm:[&:nth-child(n+3)]:border-b-0 lg:border-b-0 lg:border-r lg:last:border-r-0 lg:px-6 lg:py-4">
+      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#e7f4f5] text-[#087f80] lg:h-12 lg:w-12">
+        <IconComponent aria-hidden="true" className="h-6 w-6 lg:h-7 lg:w-7" />
+      </span>
+      <span>
+        <strong className="block text-sm font-extrabold text-[#173646]">{title}</strong>
+        <span className="mt-1 block text-xs leading-5 text-[#64777e]">{detail}</span>
+      </span>
     </div>
   );
 }
 
-function MapPin({ className = "", sos = false }: { className?: string; sos?: boolean }) {
-  return (
-    <div className={`absolute ${className}`}>
-      <div
-        className={`relative flex h-12 w-12 items-center justify-center rounded-full border-[5px] border-white shadow-[0_12px_22px_rgba(23,54,70,0.2)] ${
-          sos ? "bg-[#f04f3e]" : "bg-[#087f80]"
-        }`}
-      >
-        {sos ? (
-          <ExclamationTriangleIcon aria-hidden="true" className="h-5 w-5 text-white" />
-        ) : (
-          <UserCircleIcon aria-hidden="true" className="h-5 w-5 text-white" />
-        )}
-        <span className={`absolute -bottom-2 h-4 w-4 rotate-45 rounded-[3px] ${sos ? "bg-[#f04f3e]" : "bg-[#087f80]"}`} />
-      </div>
-    </div>
-  );
-}
+export default function LandingPage() {
+  const router = useRouter();
+  const [intent, setIntent] = useState<"request" | "volunteer" | null>(null);
+  const [locale, setLocale] = useStoredLocale();
+  const t = locale === "th" ? localizedLandingCopy.th : localizedLandingCopy[locale];
+  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [isSignInOpen, setIsSignInOpen] = useState(false);
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
 
-function MapPreview({ locale }: { locale: Locale }) {
-  const t = copy[getCopyLocale(locale)];
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
 
-  return (
-    <div className="landing-map relative min-h-[520px] overflow-hidden border border-[#d8e1e6] bg-[#eef4f6] shadow-[0_18px_45px_rgba(20,55,72,0.12)]">
-      <div className="absolute left-5 right-5 top-5 z-10 flex flex-wrap gap-2">
-        {t.filters.map((filter) => (
-          <span key={filter} className="rounded-lg border border-[#d8e4e7] bg-white/90 px-3 py-2 text-xs font-extrabold text-[#1d3b46] shadow-sm backdrop-blur">
-            {filter}
-          </span>
-        ))}
-      </div>
+  function continueAfterLogin(user: UserProfile | null = currentUser) {
+    if (!user) return;
+    setIsSignInOpen(false);
+    setIsRegisterOpen(false);
+    setIsRoleModalOpen(false);
+    router.push(user.role === "User" && intent
+      ? intent === "request" ? "/user/request-help#main-content" : "/user/volunteer/apply#main-content"
+      : getRedirectPathByRole(user.role));
+  }
 
-      <div className="absolute left-[30%] top-[24%] h-[310px] w-[310px] rounded-full border border-dashed border-[#f04f3e] bg-[#f04f3e]/10" />
-      <div className="absolute left-[39%] top-[41%] z-10 flex h-24 w-24 items-center justify-center rounded-full border-[10px] border-white bg-[#f04f3e] text-xl font-extrabold text-white shadow-[0_18px_30px_rgba(240,79,62,0.28)]">
-        SOS
-      </div>
-      <MapPin className="left-[17%] top-[28%]" sos />
-      <MapPin className="left-[71%] top-[23%]" />
-      <MapPin className="left-[73%] top-[60%]" sos />
-      <MapPin className="left-[23%] top-[67%]" />
-      <MapPin className="left-[58%] top-[70%]" />
-
-      <div className="absolute left-[12%] top-[18%] rounded-lg bg-white/80 px-3 py-1.5 text-xs font-bold text-[#65757b] shadow-sm">{t.mapLabels[0]}</div>
-      <div className="absolute right-[16%] top-[36%] rounded-lg bg-white/80 px-3 py-1.5 text-xs font-bold text-[#65757b] shadow-sm">{t.mapLabels[1]}</div>
-      <div className="absolute bottom-[18%] left-[44%] rounded-lg bg-white/80 px-3 py-1.5 text-xs font-bold text-[#65757b] shadow-sm">{t.mapLabels[2]}</div>
-
-      <div className="absolute bottom-5 left-5 right-5 z-10 border border-[#d8e1e6] bg-white/95 p-4 shadow-[0_14px_28px_rgba(20,55,72,0.12)] backdrop-blur">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <IconFrame icon={UserCircleIcon} className="bg-[#e6f4ef] text-[#087557]" />
-            <div>
-              <p className="text-base font-extrabold text-[#173646]">{t.mapCard.title}</p>
-              <p className="mt-1 text-sm text-[#66777d]">{t.mapCard.meta}</p>
-              <p className="mt-2 flex items-center gap-2 text-xs font-bold text-[#73848a]">
-                <LockClosedIcon aria-hidden="true" className="h-4 w-4" />
-                {t.mapCard.privacy}
-              </p>
-            </div>
-          </div>
-          <a className="inline-flex h-12 shrink-0 items-center justify-center rounded-lg bg-[#087f80] px-6 text-sm font-extrabold text-white shadow-[0_10px_18px_rgba(8,127,128,0.2)] transition-colors hover:bg-[#096f70]" href="/request-help">
-            {t.mapCard.action}
-          </a>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function RequestCard({ card, icon: IconComponent }: { card: RequestCardContent; icon: Icon }) {
-  const isUrgent = card.tone === "urgent";
-
-  return (
-    <article className={`border p-4 ${isUrgent ? "border-[#f6b8ae] bg-[#fff6f4]" : "border-[#f0c98f] bg-[#fffbf4]"}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <IconFrame icon={IconComponent} className={isUrgent ? "bg-[#f04f3e] text-white" : "bg-[#fff1d8] text-[#b5680b]"} />
-          <div>
-            <h3 className="text-base font-extrabold text-[#173646]">{card.title}</h3>
-            <p className="mt-1 text-sm text-[#66777d]">{card.meta}</p>
-          </div>
-        </div>
-        <span className={`rounded-lg px-3 py-1.5 text-xs font-extrabold ${isUrgent ? "bg-[#f04f3e] text-white" : "bg-[#f7d99e] text-[#6b3b08]"}`}>
-          {card.action}
-        </span>
-      </div>
-      <p className="mt-4 flex items-center gap-2 text-sm text-[#52676f]">
-        <MapPinIcon aria-hidden="true" className="h-5 w-5 text-[#087f80]" />
-        {card.location}
-      </p>
-    </article>
-  );
-}
-
-export default function Home() {
-  const [locale, setLocale] = useState<Locale>(() => {
-    if (typeof window !== "undefined") {
-      const savedLocale = window.localStorage.getItem("khvi-locale");
-
-      if (isLocale(savedLocale)) {
-        return savedLocale;
-      }
+  function startIntent(nextIntent: "request" | "volunteer") {
+    const user = currentUser;
+    if (user) {
+      router.push(user.role === "User"
+        ? nextIntent === "request" ? "/user/request-help#main-content" : "/user/volunteer/apply#main-content"
+        : getRedirectPathByRole(user.role));
+      return;
     }
-
-    return "en";
-  });
-  const t = copy[getCopyLocale(locale)];
+    setIntent(nextIntent);
+    setIsSignInOpen(true);
+    setIsRegisterOpen(false);
+    setIsRoleModalOpen(false);
+  }
 
   useEffect(() => {
-    document.documentElement.lang = localeLanguageTags[locale];
-    window.localStorage.setItem("khvi-locale", locale);
-  }, [locale]);
+    const supabase = createClient();
+    let disposed = false;
+
+    const refreshUser = async () => {
+      const result = await getCurrentUserProfile(supabase);
+      if (!disposed) setCurrentUser(result.profile);
+    };
+
+    void refreshUser();
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+      window.setTimeout(() => void refreshUser(), 0);
+    });
+
+    return () => {
+      disposed = true;
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    const checkUrl = () => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("register") === "true" || window.location.hash === "#register") {
+        queueMicrotask(() => { setIsRegisterOpen(true); setIsSignInOpen(false); });
+        queueMicrotask(() => { setIsRoleModalOpen(true); setIsSignInOpen(false); setIsRegisterOpen(false); });
+      } else if (
+        params.get("signin") === "true"
+        || params.get("login") === "true"
+        || window.location.hash === "#signin"
+        || window.location.hash === "#login"
+      ) {
+        queueMicrotask(() => { setIsSignInOpen(true); setIsRegisterOpen(false); });
+        queueMicrotask(() => { setIsSignInOpen(true); setIsRegisterOpen(false); setIsRoleModalOpen(false); });
+      }
+    };
+
+    checkUrl();
+    window.addEventListener("hashchange", checkUrl);
+    return () => window.removeEventListener("hashchange", checkUrl);
+  }, []);
 
   return (
-    <main id="top" className="min-h-screen bg-[#f7f9fa] text-[#10283a]">
-      <a className="skip-link" href="#main-content">
-        {t.skip}
-      </a>
-      <SiteHeader copy={t.header} locale={locale} onLocaleChange={setLocale} />
+    <main
+      id="top"
+      className="min-h-screen bg-[#f7f9fa] text-[#10283a]"
+      onClick={(event) => {
+        const anchor = (event.target as HTMLElement).closest("a");
+        const href = anchor?.getAttribute("href");
+        if (href === "/user/request-help#main-content" || href === "/user/volunteer/apply#main-content") {
+          event.preventDefault();
+          startIntent(href === "/user/volunteer/apply#main-content" ? "volunteer" : "request");
+        }
+      }}
+    >
+      <a className="skip-link" href="#main-content">{t.skip}</a>
+      <SiteHeader
+        copy={t.header}
+        locale={locale}
+        onLocaleChange={setLocale}
+        onOpenRegister={() => { setIntent(null); setIsRoleModalOpen(true); setIsSignInOpen(false); setIsRegisterOpen(false); }}
+        onOpenSignIn={() => { setIntent(null); setIsSignInOpen(true); setIsRegisterOpen(false); setIsRoleModalOpen(false); }}
+      />
 
-      <section id="main-content" className="mx-auto grid max-w-[1440px] scroll-mt-24 gap-8 px-5 pb-10 pt-8 sm:px-8 lg:grid-cols-[0.76fr_1.24fr] lg:items-center lg:px-12 lg:py-12">
-        <div>
-          <p className="max-w-fit rounded-lg border border-[#b9d9d6] bg-[#edf7f5] px-3 py-2 text-sm font-extrabold text-[#087f80]">
-            {t.hero.label}
-          </p>
-          <h1 className="mt-6 max-w-[680px] text-[clamp(2.2rem,4.8vw,4.35rem)] font-extrabold leading-[1.12] tracking-normal text-[#122b3e]">
-            {t.hero.title}
-          </h1>
-          <p className="mt-6 max-w-[560px] text-base leading-8 text-[#53656c] sm:text-lg">
-            {t.hero.body}
-          </p>
-          <div className="mt-8 flex max-w-[430px] flex-col gap-3">
-            <a className="flex min-h-14 flex-1 items-center justify-center gap-2 rounded-lg bg-[#f04f3e] px-4 py-3 text-center text-[13px] font-extrabold leading-5 text-white shadow-[0_10px_20px_rgba(240,79,62,0.22)] transition-colors hover:bg-[#d94334] sm:px-5 sm:text-sm" href="/request-help">
-              <MapPinIcon aria-hidden="true" className="h-5 w-5" />
-              {t.hero.primaryCta}
+      <section id="main-content" className="mx-auto max-w-[1480px] scroll-mt-24 px-4 pt-4 sm:px-8 sm:pt-6 lg:px-8 lg:pt-8">
+        <div className="relative isolate min-h-[540px] overflow-hidden rounded-2xl border border-[#d8e3e7] bg-(--khvi-navy) shadow-[0_18px_50px_rgba(21,52,67,0.10)] sm:min-h-[580px] lg:min-h-[500px]">
+          <ResponsiveHeroImage
+            desktopSrc="/khvi-landing-hero.png"
+            mobileSrc="/khvi-landing-hero-mobile.png"
+            alt={t.hero.imageAlt}
+            sizes="(min-width: 1480px) 1420px, (min-width: 1024px) calc(100vw - 64px), (min-width: 640px) calc(100vw - 64px), calc(100vw - 32px)"
+          />
+          <div aria-hidden="true" className={`absolute inset-0 bg-[linear-gradient(180deg,rgba(9,47,69,0.90)_0%,rgba(9,47,69,0.76)_62%,rgba(9,47,69,0.60)_100%)] ${locale === "ar" ? "lg:bg-[linear-gradient(270deg,rgba(9,47,69,0.97)_0%,rgba(9,47,69,0.88)_40%,rgba(9,47,69,0.42)_62%,rgba(9,47,69,0.08)_100%)]" : "lg:bg-[linear-gradient(90deg,rgba(9,47,69,0.97)_0%,rgba(9,47,69,0.88)_40%,rgba(9,47,69,0.42)_62%,rgba(9,47,69,0.08)_100%)]"}`} />
+          <div className="relative z-10 flex min-h-[540px] max-w-[720px] flex-col justify-end px-5 py-8 text-white sm:min-h-[580px] sm:justify-center sm:px-10 sm:py-10 lg:min-h-[500px] lg:px-12">
+            <h1 className="max-w-[720px] text-[2.65rem] font-extrabold leading-[1.04] tracking-[-0.035em] text-white text-balance sm:text-[3.5rem] lg:text-[clamp(3.4rem,5vw,5rem)]">
+              <span className="block">{t.hero.lead}</span>
+              <span className="mt-1 block text-[#ef5b47]">{t.hero.accent}</span>
+            </h1>
+            <p className="mt-5 max-w-[620px] text-pretty text-[15px] font-semibold leading-7 text-white/85 sm:mt-6 sm:text-lg sm:leading-8">{t.hero.body}</p>
+            <a href="/user/request-help#main-content" className="mt-6 inline-flex min-h-14 w-full max-w-[390px] items-center justify-center gap-3 rounded-xl bg-[#ef5b47] px-5 py-3 text-base font-extrabold text-white shadow-[0_12px_25px_rgba(239,91,71,0.24)] transition-colors hover:bg-[#d94a38] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#092f45] sm:mt-7 sm:px-6 sm:text-lg">
+              <BellAlertIcon aria-hidden="true" className="h-7 w-7" />
+              {t.hero.action}
             </a>
-            <a className="flex min-h-14 flex-1 items-center justify-center gap-2 rounded-lg border-2 border-[#087f80] px-4 py-3 text-center text-[13px] font-extrabold leading-5 text-[#087f80] transition-colors hover:bg-[#edf7f5] sm:px-5 sm:text-sm" href="/volunteer/apply">
-              <UserGroupIcon aria-hidden="true" className="h-5 w-5" />
-              {t.hero.secondaryCta}
-            </a>
+            <p className="mt-3 text-sm font-semibold text-white/75">{t.hero.note}</p>
           </div>
-          <StatusFlow labels={t.statuses} title={t.hero.statusTitle} />
         </div>
 
-        <MapPreview locale={locale} />
+        <div className="relative z-10 mx-2 -mt-4 grid overflow-hidden rounded-2xl border border-[#d8e3e7] bg-white/95 shadow-[0_15px_35px_rgba(21,52,67,0.10)] backdrop-blur sm:mx-6 sm:-mt-5 sm:grid-cols-2 lg:-mt-7 lg:grid-cols-4">
+          {t.trust.map((item, index) => <TrustItem key={item.title} icon={trustIcons[index]} title={item.title} detail={item.detail} />)}
+        </div>
       </section>
 
-      <section className="border-y border-[#dbe3e7] bg-white px-5 py-5 sm:px-8 lg:px-12">
-        <div className="mx-auto grid max-w-[1320px] gap-3 md:grid-cols-3">
-          {t.featureBand.map((feature, index) => {
-            const icons = [LanguageIcon, LockClosedIcon, ClockIcon] as const;
-            const IconComponent = icons[index];
-            const tone = index === 1 ? "bg-[#f4f7fa] text-[#173646]" : index === 2 ? "bg-[#fff4df] text-[#b5680b]" : "bg-[#edf7f5] text-[#087f80]";
-
+      <section id="about" className="relative mx-auto grid max-w-[1480px] scroll-mt-24 gap-7 px-4 py-10 sm:px-8 sm:py-14 lg:grid-cols-[0.92fr_1.48fr] lg:items-center lg:gap-8 lg:px-8 lg:py-16">
+        <span id="map-preview" className="absolute top-0" aria-hidden="true" />
+        <div>
+          <span className="inline-flex rounded-md bg-[#dff4f5] px-3 py-1.5 text-xs font-extrabold tracking-wide text-[#087f80]">{t.about.label}</span>
+          <h2 className="mt-4 whitespace-pre-line text-3xl font-extrabold leading-tight tracking-[-0.02em] text-[#0b3550] sm:text-4xl">{t.about.title}</h2>
+          <p className="mt-5 max-w-lg text-sm leading-7 text-[#536c79] sm:text-base">{t.about.body}</p>
+          <a href="#community" className="mt-5 inline-flex text-sm font-extrabold text-[#087f80] underline decoration-2 underline-offset-4 hover:text-[#075f61]">{t.about.action}</a>
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          {t.about.cards.map((card, index) => {
+            const IconComponent = serviceIcons[index];
             return (
-              <div key={feature} className="flex items-center gap-3 border-[#e3ebef] py-2 md:border-r md:px-6 first:md:pl-0 last:md:border-r-0 last:md:pr-0">
-                <IconFrame icon={IconComponent} className={tone} />
-                <p className="text-sm font-bold text-[#294554]">{feature}</p>
-              </div>
+              <article key={card.title} className="flex items-center gap-4 rounded-2xl border border-[#dbe6ea] bg-[linear-gradient(180deg,#f4fbfc_0%,#eef5f8_100%)] p-4 text-left shadow-[0_10px_24px_rgba(20,55,72,0.06)] md:block md:p-5 md:text-center">
+                <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#dff1f4] text-[#087f80] md:mx-auto md:h-20 md:w-20">
+                  <IconComponent aria-hidden="true" className="h-8 w-8 md:h-11 md:w-11" />
+                </span>
+                <div>
+                  <h3 className="text-base font-extrabold leading-6 text-[#123b55] md:mt-5">{card.title}</h3>
+                  <p className="mt-1.5 text-sm leading-6 text-[#58717f] md:mt-3">{card.detail}</p>
+                </div>
+              </article>
             );
           })}
         </div>
       </section>
 
-      <section id="map-preview" className="mx-auto grid max-w-[1320px] gap-6 px-5 py-12 sm:px-8 lg:grid-cols-[1fr_0.72fr] lg:px-12">
-        <div>
-          <p className="text-sm font-extrabold text-[#087f80]">{t.mapSection.label}</p>
-          <h2 className="mt-2 max-w-2xl text-3xl font-extrabold tracking-normal text-[#153447] sm:text-4xl">
-            {t.mapSection.title}
-          </h2>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-[#64777e]">
-            {t.mapSection.body}
-          </p>
-        </div>
-        <div className="grid gap-3">
-          {t.mapSection.cards.map((card, index) => (
-            <RequestCard key={card.title} card={card} icon={index === 0 ? ExclamationTriangleIcon : CalendarDaysIcon} />
-          ))}
-        </div>
-      </section>
-
-      <section id="how-it-works" className="border-y border-[#dbe3e7] bg-[#edf2f4] px-5 py-12 sm:px-8 lg:px-12">
-        <div className="mx-auto max-w-[1320px]">
-          <div className="max-w-2xl">
-            <p className="text-sm font-extrabold text-[#087f80]">{t.how.label}</p>
-            <h2 className="mt-2 text-3xl font-extrabold tracking-normal text-[#153447] sm:text-4xl">
-              {t.how.title}
-            </h2>
-          </div>
-          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {t.how.steps.map((step, index) => (
-              <article key={step.title} className="border border-[#d6e0e4] bg-white p-5">
-                <div className="flex items-center justify-between gap-4">
-                  <IconFrame icon={stepIcons[index]} className="bg-[#edf7f5] text-[#087f80]" />
-                  <span className="text-sm font-extrabold text-[#88989d]">{index + 1}</span>
-                </div>
-                <h3 className="mt-5 text-lg font-extrabold text-[#203d4d]">{step.title}</h3>
-                <p className="mt-3 text-sm leading-7 text-[#64777e]">{step.description}</p>
-              </article>
+      <section id="how-it-works" className="mx-auto grid max-w-[1480px] scroll-mt-24 gap-6 px-4 pb-10 sm:px-8 sm:pb-14 lg:grid-cols-[1.15fr_0.85fr] lg:items-stretch lg:gap-8 lg:px-8">
+        <div className="rounded-2xl border border-[#d7e4e8] bg-white p-6 sm:p-8">
+          <p className="text-xs font-extrabold tracking-wide text-[#087f80]">{t.howItWorks.label}</p>
+          <h2 className="mt-3 text-3xl font-extrabold tracking-[-0.02em] text-[#0b3550] sm:text-4xl">{t.howItWorks.title}</h2>
+          <ol className="mt-6 grid gap-4 md:grid-cols-3">
+            {t.howItWorks.steps.map((step, index) => (
+              <li key={step} className="flex gap-3 border-t border-[#dbe6ea] pt-4 text-sm font-semibold leading-6 text-[#536c79] md:block md:border-t-0 md:border-l md:pl-4 md:first:border-l-0 md:first:pl-0">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#dff4f5] font-extrabold text-[#087f80] md:mb-4">{index + 1}</span>
+                {step}
+              </li>
             ))}
+          </ol>
+        </div>
+        <aside id="safety" className="rounded-2xl bg-(--khvi-sage)/10 p-6 sm:p-8">
+          <ShieldCheckIcon aria-hidden="true" className="h-8 w-8 text-(--khvi-teal)" />
+          <p className="mt-5 text-xs font-extrabold tracking-wide text-(--khvi-teal)">{t.privacy.label}</p>
+          <h2 className="mt-3 text-2xl font-extrabold tracking-[-0.02em] text-(--khvi-ink)">{t.privacy.title}</h2>
+          <p className="mt-4 text-sm leading-7 text-(--khvi-ink)/75">{t.privacy.body}</p>
+        </aside>
+      </section>
+
+      <section id="community" className="relative mx-auto max-w-[1480px] scroll-mt-24 px-4 pb-10 sm:px-8 sm:pb-14 lg:px-8">
+        <span id="roles" className="absolute top-0" aria-hidden="true" />
+        <div className="overflow-hidden rounded-2xl border border-[#d7e4e8] bg-white sm:relative sm:min-h-[280px] sm:bg-[#eef7f8]">
+          <div className="relative aspect-[3/1] bg-[#eef7f8] sm:absolute sm:inset-0 sm:aspect-auto">
+            <Image src="/khvi-community-banner.png" alt={t.community.imageAlt} fill className="object-cover object-center" sizes="(min-width: 1480px) 1420px, (min-width: 640px) calc(100vw - 64px), calc(100vw - 32px)" />
+          </div>
+          <div aria-hidden="true" className="absolute inset-0 hidden bg-gradient-to-b from-white/90 via-white/30 to-transparent sm:block" />
+          <div className="relative z-10 flex items-start justify-between gap-6 px-5 py-5 sm:px-10 sm:py-7">
+            <p className="whitespace-pre-line text-base font-extrabold leading-7 text-[#123b55] sm:text-2xl sm:leading-9">{t.community.quote}</p>
+            <p className="hidden max-w-[230px] text-right text-base font-extrabold leading-7 text-[#087f80] sm:block">{t.community.note}</p>
           </div>
         </div>
       </section>
 
-      <section id="safety" className="bg-[#082f45] px-5 py-12 text-white sm:px-8 lg:px-12">
-        <div className="mx-auto grid max-w-[1320px] gap-8 lg:grid-cols-[0.78fr_1.22fr] lg:items-start">
-          <div>
-            <p className="text-sm font-extrabold text-[#8ed5c4]">{t.safety.label}</p>
-            <h2 className="mt-2 text-3xl font-extrabold tracking-normal sm:text-4xl">{t.safety.title}</h2>
-            <p className="mt-4 max-w-md text-sm leading-7 text-white/75">
-              {t.safety.body}
-            </p>
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            {t.safety.items.map((item, index) => (
-              <article key={item.title} className="border border-white/12 bg-white/10 p-5">
-                <IconFrame icon={safetyIcons[index]} className="bg-white text-[#087f80]" />
-                <h3 className="mt-5 text-base font-extrabold">{item.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-white/72">{item.description}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="roles" className="px-5 py-12 sm:px-8 lg:px-12">
-        <div className="mx-auto max-w-[1320px]">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-sm font-extrabold text-[#087f80]">{t.roles.label}</p>
-              <h2 className="mt-2 text-3xl font-extrabold tracking-normal text-[#153447] sm:text-4xl">{t.roles.title}</h2>
-            </div>
-            <a className="inline-flex h-11 items-center justify-center rounded-lg border border-[#cbd7dc] bg-white px-4 text-sm font-extrabold text-[#173646] transition-colors hover:border-[#087f80] hover:text-[#087f80]" href="/sign-in">
-              {t.roles.action}
-            </a>
-          </div>
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            {t.roles.cards.map((card, index) => (
-              <article key={card.role} className="border border-[#d6e0e4] bg-white p-5">
-                <IconFrame icon={roleIcons[index]} className="bg-[#edf7f5] text-[#087f80]" />
-                <h3 className="mt-5 text-lg font-extrabold text-[#203d4d]">{card.role}</h3>
-                <p className="mt-3 text-sm leading-7 text-[#64777e]">{card.detail}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
+      <RegisterRoleModal
+        isOpen={isRoleModalOpen}
+        onClose={() => setIsRoleModalOpen(false)}
+        onSelectUser={() => {
+          setIsRoleModalOpen(false);
+          setIsRegisterOpen(true);
+        }}
+        onSelectInterpreter={() => {
+          setIsRoleModalOpen(false);
+          router.push("/register/interpreter");
+        }}
+      />
+      <RegisterModal
+        onSuccess={() => continueAfterLogin()}
+        intentLabel={intent ? locale === "th" ? intent === "request" ? "สมัครเพื่อขอความช่วยเหลือ" : "สมัครเพื่อดูขั้นตอนอาสาสมัคร" : locale === "zh" ? intent === "request" ? "注册以获取帮助" : "注册以查看志愿者流程" : locale === "es" ? intent === "request" ? "Regístrate para obtener ayuda" : "Regístrate para conocer el voluntariado" : locale === "ar" ? intent === "request" ? "أنشئ حسابًا للحصول على المساعدة" : "أنشئ حسابًا للتعرف على التطوع" : intent === "request" ? "Register to get help" : "Register to explore volunteering" : undefined}
+        isOpen={isRegisterOpen}
+        onClose={() => { setIsRegisterOpen(false); setIntent(null); }}
+        onSwitchToSignIn={() => { setIsRegisterOpen(false); setIsSignInOpen(true); }}
+      />
+      <LoginModal
+        onSuccess={continueAfterLogin}
+        intentLabel={intent ? locale === "th" ? intent === "request" ? "เข้าสู่ระบบเพื่อขอความช่วยเหลือ" : "เข้าสู่ระบบเพื่อดูขั้นตอนอาสาสมัคร" : locale === "zh" ? intent === "request" ? "登录以获取帮助" : "登录以查看志愿者流程" : locale === "es" ? intent === "request" ? "Inicia sesión para obtener ayuda" : "Inicia sesión para conocer el voluntariado" : locale === "ar" ? intent === "request" ? "سجّل الدخول للحصول على المساعدة" : "سجّل الدخول للتعرف على التطوع" : intent === "request" ? "Sign in to get help" : "Sign in to explore volunteering" : undefined}
+        isOpen={isSignInOpen}
+        onClose={() => { setIsSignInOpen(false); setIntent(null); }}
+        onSwitchToRegister={() => { setIsSignInOpen(false); setIsRoleModalOpen(true); }}
+      />
       <SiteFooter copy={t.footer} brandSubtitle={t.header.brandSubtitle} />
     </main>
   );

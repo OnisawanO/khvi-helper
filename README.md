@@ -12,6 +12,10 @@
 > 🌐 **Language / ภาษา:**  
 > [🇹🇭 ภาษาไทย](#-ภาษาไทย) | [🇬🇧 English](#-english)
 
+### UI languages
+
+The application UI supports English (en), Chinese (zh), Thai (th), Spanish (es) and Arabic (ar). Arabic uses right-to-left layout. The UI language preference is stored in profiles.preferred_ui_language for signed-in users and is separate from interpreter service languages.
+
 ---
 
 ## 🇹🇭 ภาษาไทย
@@ -75,7 +79,8 @@ npm ci
 
 # 3. ตั้งค่า Environment Variables (.env.local)
 cp .env.example .env.local
-# ใส่ NEXT_PUBLIC_SUPABASE_URL และ NEXT_PUBLIC_SUPABASE_ANON_KEY
+# ใส่ NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+# และ SUPABASE_SECRET_KEY สำหรับการลบบัญชีถาวรฝั่ง server
 
 # 4. รัน Development Server
 npm run dev
@@ -139,7 +144,8 @@ npm ci
 # 3. Configure environment variables (.env.local)
 # Add your Supabase credentials:
 # NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-# NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+# NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+# SUPABASE_SECRET_KEY=your_supabase_secret_key
 
 # 4. Run the local development server
 npm run dev
@@ -151,6 +157,8 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ### 📑 Detailed Documentation
 สำหรับเอกสารข้อกำหนดเชิงเทคนิค, Business Rules, Use-case Diagram, และ ER Diagram ฉบับเต็ม กรุณาอ่านเพิ่มเติมได้ที่ 👉 **[requirements.md](docs/requirements.md)**
+
+คู่มือการเชื่อมต่อ Supabase, database contract, RPC, RLS, Storage และ migration สำหรับ agent อยู่ที่ 👉 **[database-integration.md](docs/database-integration.md)**
 
 เอกสาร workflow การพัฒนาอยู่ที่ 👉 **[development-workflow.md](docs/development-workflow.md)**
 
@@ -171,5 +179,6 @@ feature/* → develop → main
 - พัฒนาแต่ละงานบน feature branch ที่แตกจาก `develop`
 - เปิด Pull Request เข้า `develop` หลังผ่าน lint และ build
 - ตรวจสอบงานรวมบน `develop` ก่อนเปิด Pull Request เข้า `main`
+- `develop` เป็น default integration branch สำหรับงานใหม่
 - `main` และ `develop` ควรตั้งเป็น protected branches บน GitHub
-- AI Agent ห้าม push หรือ merge เอง และต้องรอคำสั่งก่อน commit
+- AI Agent ต้องรอคำสั่งก่อน commit, push หรือ merge และหากไม่ระบุ target ให้ใช้ `develop`

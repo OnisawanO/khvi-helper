@@ -39,7 +39,7 @@ html {
   touch-action: manipulation;
 }
 
-:where(a, button):focus-visible {
+:where(a, button, input, select, textarea):focus-visible {
   outline: 3px solid var(--khvi-sun);
   outline-offset: 3px;
 }
@@ -131,4 +131,184 @@ html {
   rotate: 27deg;
   background: rgba(247, 217, 157, 0.78);
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.86);
+}
+
+.request-leaflet-map,
+.mission-leaflet-map {
+  isolation: isolate;
+  background: #e8eef0;
+}
+
+.request-leaflet-map .leaflet-container,
+.mission-leaflet-map .leaflet-container {
+  height: 100%;
+  width: 100%;
+  color: var(--khvi-ink);
+  font-family: "Noto Sans Thai", "Segoe UI", Arial, Helvetica, sans-serif;
+}
+
+.request-leaflet-map .leaflet-container {
+  min-height: 430px;
+}
+
+.request-leaflet-map--compact .leaflet-container {
+  min-height: 260px;
+}
+
+.mission-leaflet-map .leaflet-container {
+  min-height: 18rem;
+  touch-action: none;
+}
+
+.request-leaflet-map .leaflet-control-zoom,
+.mission-leaflet-map .leaflet-control-zoom {
+  border: 1px solid rgba(16, 40, 58, 0.14);
+  border-radius: 0.65rem;
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(16, 40, 58, 0.15);
+}
+
+.request-leaflet-map .leaflet-control-zoom a,
+.mission-leaflet-map .leaflet-control-zoom a {
+  color: var(--khvi-navy);
+  font-weight: 800;
+}
+
+.request-leaflet-map .leaflet-control-attribution,
+.mission-leaflet-map .leaflet-control-attribution {
+  border-radius: 0.4rem 0 0 0;
+  color: #526c75;
+  font-size: 10px;
+}
+
+.request-leaflet-map .leaflet-control-attribution a,
+.mission-leaflet-map .leaflet-control-attribution a {
+  color: #276b75;
+}
+
+.khvi-leaflet-marker {
+  background: transparent;
+  border: 0;
+  transition: filter 160ms ease, transform 160ms ease;
+}
+
+.khvi-leaflet-marker:hover,
+.khvi-leaflet-marker:focus {
+  filter: brightness(0.96) drop-shadow(0 8px 8px rgba(16, 40, 58, 0.28));
+}
+
+.khvi-leaflet-marker--selected {
+  filter: drop-shadow(0 0 0.35rem rgba(16, 40, 58, 0.35));
+  transform: scale(1.12);
+}
+
+.khvi-leaflet-marker__dot {
+  display: grid;
+  height: 42px;
+  width: 42px;
+  place-items: center;
+  border: 4px solid #fff;
+  border-radius: 999px 999px 999px 0;
+  box-shadow: 0 8px 20px rgba(16, 40, 58, 0.24);
+  transform: rotate(-45deg);
+}
+
+.khvi-leaflet-marker--urgent .khvi-leaflet-marker__dot {
+  background: var(--khvi-coral);
+}
+
+.khvi-leaflet-marker--scheduled .khvi-leaflet-marker__dot {
+  background: var(--khvi-sun);
+}
+
+.khvi-leaflet-marker__glyph {
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 900;
+  line-height: 1;
+  transform: rotate(45deg);
+}
+
+.khvi-mission-marker {
+  background: transparent;
+  border: 0;
+}
+
+.khvi-mission-marker__dot {
+  display: grid;
+  height: 42px;
+  width: 42px;
+  place-items: center;
+  border: 4px solid #fff;
+  border-radius: 999px 999px 999px 0;
+  box-shadow: 0 8px 20px rgba(16, 40, 58, 0.24);
+  transform: rotate(-45deg);
+}
+
+.khvi-mission-marker--requester .khvi-mission-marker__dot {
+  background: #087f80;
+}
+
+.khvi-mission-marker--interpreter .khvi-mission-marker__dot {
+  background: var(--khvi-coral);
+}
+
+.khvi-mission-marker__glyph {
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 900;
+  line-height: 1;
+  transform: rotate(45deg);
+}
+
+.khvi-mission-tooltip {
+  white-space: nowrap;
+}
+
+@media (max-width: 639px) {
+  .mission-leaflet-map .khvi-mission-tooltip {
+    display: none;
+  }
+}
+
+.khvi-mission-popup {
+  display: grid;
+  gap: 0.3rem;
+  color: var(--khvi-ink);
+  font-family: "Noto Sans Thai", "Segoe UI", Arial, Helvetica, sans-serif;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.khvi-mission-popup strong {
+  color: var(--khvi-navy);
+  font-size: 0.8rem;
+}
+
+.leaflet-tooltip {
+  border: 0;
+  border-radius: 999px;
+  background: var(--khvi-ink);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  box-shadow: 0 5px 14px rgba(16, 40, 58, 0.18);
+}
+
+.leaflet-tooltip-top::before {
+  border-top-color: var(--khvi-ink);
+}
+
+@media (min-width: 640px) {
+  .request-leaflet-map .leaflet-container {
+    min-height: 520px;
+  }
+
+  .request-leaflet-map--compact .leaflet-container {
+    min-height: 260px;
+  }
+
+  .mission-leaflet-map .leaflet-container {
+    min-height: 24rem;
+  }
 }
