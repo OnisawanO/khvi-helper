@@ -6,7 +6,6 @@ export type ReportResolutionAction = "none" | "fixed" | "warned";
 
 export type ReportRow = {
   report_id: number | string;
-  report_type: "system";
   category: string | null;
   title: string | null;
   description: string | null;
@@ -31,7 +30,6 @@ export type ReportProfileRow = {
 
 export const REPORT_COLUMNS = [
   "report_id",
-  "report_type",
   "category",
   "title",
   "description",
@@ -68,7 +66,6 @@ export async function loadReportRows(supabase: SupabaseClient) {
   const { data, error } = await supabase
     .from("reports")
     .select(REPORT_COLUMNS)
-    .eq("report_type", "system")
     .order("created_at", { ascending: false });
 
   if (error) return { rows: [] as ReportRow[], profiles: [] as ReportProfileRow[], error };

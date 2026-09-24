@@ -109,7 +109,7 @@ open -> claimed -> in_progress -> completed
 | FR-15 | Approval | Approve/Reject ใบสมัครพร้อมเหตุผล | Manager/Admin |
 | FR-16 | Review | User รีวิว Interpreter หลัง Completed | User |
 | FR-17 | Help Request | Manager ดูแลและตอบ Help Request | Manager |
-| FR-18 | Report | เริ่มทำหลัง Help Request | Manager/Admin |
+| FR-18 | Report | เริ่มทำหลัง Help Request | User/Interpreter/Manager/Admin |
 | FR-19 | Audit | บันทึก action สำคัญของ Manager และ Admin ใน phase ที่กำหนด | System |
 | FR-20 | Admin | Admin จัดการ role และข้อมูลผู้ใช้ | Admin |
 | FR-21 | Self-service account deletion | ผู้ใช้ลบบัญชี Supabase Auth และข้อมูลที่ผูกกับบัญชีแบบถาวรหลังไม่มีงานที่ยังดำเนินอยู่ | ทุก role |
@@ -592,17 +592,20 @@ open -> claimed -> in_progress -> completed
 
 **Requirement:** Manager และ Admin ต้องตรวจ Report และส่งต่อกรณีที่ต้องใช้สิทธิ์สูงกว่า โดยเริ่มพัฒนา feature นี้หลัง Help Request
 
-**Actor:** Manager, Admin
+**Actor:** User, Interpreter, Manager, Admin
 
 **Preconditions:**
 
-- Actor Login และผ่าน permission check
-- มี Report จาก User หรือ Interpreter พร้อมเหตุผลและ booking reference เมื่อเกี่ยวข้อง
+- User หรือ Interpreter Login และผ่าน permission check ก่อนส่ง System Report
+- Manager หรือ Admin Login และผ่าน permission check ก่อนตรวจหรือจัดการ System Report
+- มี System Report พร้อมข้อมูลผู้รายงาน เหตุผล และ booking reference เมื่อเกี่ยวข้อง
 
 **รายละเอียด:**
 
 - คำว่า “เริ่มทำหลัง Help Request” หมายถึงลำดับ phase การพัฒนา ไม่ได้บังคับว่า Report ทุกฉบับต้องสร้างจาก Help Request
-- Manager ต้องตรวจผู้รายงาน ผู้ถูกรายงาน booking เหตุผล หลักฐาน และสถานะของ Report
+- User และ Interpreter เปิด popup `Report a system issue` จาก footer เพื่อส่งปัญหาทางเทคนิคเป็นภาษาอังกฤษ โดยระบุ system area, subject, description และ booking reference เมื่อเกี่ยวข้อง
+- System Report ไม่ระบุผู้ถูกรายงาน และ server ต้องกำหนดผู้รายงานจาก session ที่ผ่านการตรวจสิทธิ์
+- Manager ต้องตรวจผู้รายงาน booking เหตุผล หลักฐาน และสถานะของ System Report
 - Manager แก้ปัญหาภายใน permission หรือส่งต่อ Admin เมื่อกรณีต้องเปลี่ยน role, Lock/Unlock หรือดำเนินการระดับระบบ
 - Admin ต้องเห็น Report ที่ส่งต่อและบันทึกผลการตัดสินใจได้
 - ระบบต้องป้องกันการส่งต่อซ้ำและเก็บประวัติผู้ดำเนินการ เวลา และเหตุผล
@@ -778,7 +781,7 @@ erDiagram
     USER ||--o{ REVIEW : "1 : N reviewer / reviewee"
     
     USER ||--o{ HELP_REQUEST : "1 : N requester / manager"
-    USER ||--o{ REPORT : "1 : N reporter / reported"
+    USER ||--o{ REPORT : "1 : N reporter"
     BOOKING ||--o{ REPORT : "1 : N booking reference"
     
     USER ||--o{ NOTIFICATION : "1 : N notifications"

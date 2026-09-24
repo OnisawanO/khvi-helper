@@ -216,8 +216,8 @@ flowchart TD
 
 ### 4.4 Flow ตรวจ Report และส่งต่อ Admin
 
-1. User หรือ Interpreter ส่ง Report ที่อ้างอิง Booking
-2. Manager เปิด `Incident Reports` และตรวจผู้รายงาน ผู้ถูกรายงาน Booking และเหตุผล
+1. User หรือ Interpreter ส่ง System Report ที่อ้างอิง Booking
+2. Manager เปิด `Incident Reports` และตรวจผู้รายงาน Booking และเหตุผล
 3. Manager ตัดสินใจว่ากรณีอยู่ในขอบเขตการประสานงานหรือเกี่ยวข้องกับมาตรการบัญชี
 4. ถ้าต้องล็อกบัญชีหรือใช้สิทธิ์สูง Manager เลือกระดับ `Medium`, `High` หรือ `Critical` แล้วกด `Escalate to Admin`
 5. ระบบเปลี่ยนสถานะเป็น `Escalated to Admin` และบันทึกระดับความรุนแรงกับเหตุผลการส่งต่อ
@@ -299,7 +299,7 @@ Pending
 | Experience Summary | ตรวจประสบการณ์ | แสดงรายละเอียดประสบการณ์ในจุดเดียวเพื่อใช้ประกอบการตัดสินใจ |
 | Reject Modal | เก็บเหตุผลการปฏิเสธ | ใช้ modal เพราะเป็น action สำคัญที่ต้องหยุดตรวจความครบถ้วนก่อน submit |
 | Help Ticket Card | อ่านและตอบ Help Request | card แยกแต่ละเหตุการณ์ พร้อม urgency, status, mission และ response |
-| Incident Report Card | คัดกรองและส่งต่อ Report | แสดงผู้รายงาน ผู้ถูกรายงาน Booking และเหตุผลในกลุ่มเดียว |
+| Incident Report Card | คัดกรองและส่งต่อ System Report | แสดงผู้รายงาน Booking และเหตุผลในกลุ่มเดียว |
 | `SiteFooter` | policy, support และ audit context | ปิดท้ายด้วยช่องทางสนับสนุนและความรับผิดชอบต่อการบันทึก action |
 
 ### 6.2 Component ที่ควรแยกเมื่อเชื่อม production
