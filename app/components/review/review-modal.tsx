@@ -77,10 +77,46 @@ const copy = {
     done: "完成",
     required: "提交前请选择星级。",
   },
+  es: {
+    eyebrow: "Trabajo completado",
+    title: "¿Cómo fue tu intérprete?",
+    intro: "Tu opinión ayuda a la comunidad de KHVI a encontrar apoyo lingüístico confiable.",
+    ratingLegend: "Elige una calificación",
+    starLabel: (rating: number) => `${rating} de 5 estrellas`,
+    commentLabel: "Comparte una nota (opcional)",
+    commentHint: "Cuéntanos qué te ayudó más durante esta sesión.",
+    submit: "Enviar reseña",
+    saving: "Guardando…",
+    cancel: "Ahora no",
+    close: "Cerrar el cuadro de reseña",
+    completed: "Completado",
+    successTitle: "Gracias por tu reseña",
+    successBody: "Tu reseña se ha guardado para este trabajo completado.",
+    done: "Listo",
+    required: "Elige una calificación antes de enviar la reseña.",
+  },
+  ar: {
+    eyebrow: "مهمة مكتملة",
+    title: "كيف كانت خدمة المترجم؟",
+    intro: "تساعد ملاحظاتك مجتمع KHVI على العثور على دعم لغوي موثوق.",
+    ratingLegend: "اختر تقييمًا",
+    starLabel: (rating: number) => `${rating} من 5 نجوم`,
+    commentLabel: "أضف ملاحظة (اختياري)",
+    commentHint: "أخبرنا بما كان أكثر فائدة خلال هذه الجلسة.",
+    submit: "إرسال التقييم",
+    saving: "جارٍ الحفظ…",
+    cancel: "ليس الآن",
+    close: "إغلاق نافذة التقييم",
+    completed: "مكتمل",
+    successTitle: "شكرًا على تقييمك",
+    successBody: "تم حفظ تقييمك لهذه المهمة المكتملة.",
+    done: "تم",
+    required: "اختر تقييمًا بالنجوم قبل الإرسال.",
+  },
 } as const;
 
 function getCopy(locale: ReturnType<typeof useUiLocale>) {
-  return locale === "th" ? copy.th : locale === "zh" ? copy.zh : copy.en;
+  return copy[locale];
 }
 
 export function ReviewModal({
