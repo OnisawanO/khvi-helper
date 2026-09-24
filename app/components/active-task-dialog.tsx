@@ -20,12 +20,22 @@ const copy = {
     body: "您有未完成的求助或口译任务。请先完成或取消当前任务，再接取新的任务。",
     close: "关闭",
   },
+  es: {
+    title: "Ya tienes una tarea activa",
+    body: "Tienes una solicitud de ayuda o una asignación de interpretación sin terminar. Termínala o cancélala antes de aceptar otra solicitud.",
+    close: "Cerrar",
+  },
+  ar: {
+    title: "لديك مهمة نشطة بالفعل",
+    body: "لديك طلب مساعدة أو مهمة ترجمة فورية غير مكتملة. أكملها أو ألغها قبل استلام طلب آخر.",
+    close: "إغلاق",
+  },
 } as const;
 
 export function ActiveTaskDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const locale = useUiLocale();
-  const t = locale === "th" ? copy.th : locale === "zh" ? copy.zh : copy.en;
+  const t = copy[locale];
 
   useEffect(() => {
     const dialog = dialogRef.current;

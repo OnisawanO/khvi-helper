@@ -611,32 +611,21 @@ export function RequestHelpForm({
   const locale = useUiLocale();
   const copyLocale = useCopyLocale();
   const t = localizedCopy[copyLocale];
-  const privacyCopy = locale === "th"
-    ? {
-        privacyTitle: "สิ่งที่ล่ามสามารถมองเห็นได้",
-        beforeClaim: "ก่อนที่คุณจะยืนยันล่าม",
-        afterClaim: "หลังจากคุณยืนยันล่ามแล้ว",
-        beforeItems: [
-          "ภาษาที่ต้องการและประเภทความช่วยเหลือ",
-          "รายละเอียดคำขอที่คุณกรอก ควรหลีกเลี่ยงข้อมูลติดต่อส่วนตัว",
-          "พื้นที่โดยประมาณ ความเร่งด่วน และวันเวลานัดหมาย (ถ้ามี)",
-        ],
-        afterItems: [
-          "สถานที่นัดหมายและพิกัดจริง (หากระบุไว้)",
-          "ชื่อและเบอร์โทรศัพท์ของคุณ เพื่อใช้ประสานงานนัดหมาย",
-        ],
-      }
-    : t;
-  const successCopy = locale === "th"
-    ? { title: "สร้างคำขอสำเร็จแล้ว!", body: "ส่งคำขอของคุณแล้ว รอล่ามอาสาเข้ามาช่วยนะ", next: "กำลังพาไปติดตามคำขอ…", track: "ดูคำขอของฉัน", saving: "กำลังส่งคำขอ…", error: "ส่งคำขอไม่สำเร็จ กรุณาลองอีกครั้ง" }
-    : locale === "zh"
-      ? { title: "求助已创建！", body: "您的求助已发布，请等待志愿口译员接单。", next: "即将打开求助详情…", track: "查看我的求助", saving: "正在提交…", error: "提交失败，请重试。" }
-      : { title: "Your request is ready!", body: "Your request is posted. A volunteer interpreter can now pick it up.", next: "Taking you to your request…", track: "View my request", saving: "Sending request…", error: "Could not send your request. Please try again." };
-  const blockedCopy = locale === "th"
-    ? { title: "ยังมีงานที่กำลังดำเนินการอยู่", body: blockingTask?.kind === "assignment" ? "คุณกำลังรับงานล่ามอยู่ จึงยังสร้างคำขอใหม่ไม่ได้" : "คุณมีคำขอความช่วยเหลือที่ยังไม่เสร็จ จึงยังสร้างคำขอใหม่ไม่ได้", detail: "กรุณาดำเนินงานเดิมให้เสร็จหรือยกเลิกก่อน แล้วจึงสร้างคำขอใหม่ได้", close: "ปิด" }
-    : locale === "zh"
-      ? { title: "已有进行中的任务", body: blockingTask?.kind === "assignment" ? "您正在处理一个口译任务，暂时无法创建新的求助。" : "您已有一个未完成的求助，暂时无法创建新的求助。", detail: "请先完成或取消当前任务，然后再创建新的求助。", close: "关闭" }
-      : { title: "You already have an active task", body: blockingTask?.kind === "assignment" ? "You are currently handling an interpreter assignment, so you cannot create a new request." : "You already have an unfinished help request, so you cannot create a new one.", detail: "Finish or cancel the current task before creating another request.", close: "Close" };
+  const privacyCopy = t;
+  const successCopy = {
+    th: { title: "สร้างคำขอสำเร็จแล้ว!", body: "ส่งคำขอของคุณแล้ว รอล่ามอาสาเข้ามาช่วยนะ", next: "กำลังพาไปติดตามคำขอ…", track: "ดูคำขอของฉัน", saving: "กำลังส่งคำขอ…", error: "ส่งคำขอไม่สำเร็จ กรุณาลองอีกครั้ง" },
+    en: { title: "Your request is ready!", body: "Your request is posted. A volunteer interpreter can now pick it up.", next: "Taking you to your request…", track: "View my request", saving: "Sending request…", error: "Could not send your request. Please try again." },
+    zh: { title: "求助已创建！", body: "您的求助已发布，请等待志愿口译员接单。", next: "即将打开求助详情…", track: "查看我的求助", saving: "正在提交…", error: "提交失败，请重试。" },
+    es: { title: "¡Solicitud creada!", body: "Tu solicitud se ha publicado. Un intérprete voluntario puede aceptarla ahora.", next: "Abriendo tu solicitud…", track: "Ver mi solicitud", saving: "Enviando solicitud…", error: "No se pudo enviar la solicitud. Inténtalo de nuevo." },
+    ar: { title: "تم إنشاء الطلب!", body: "تم نشر طلبك. يمكن لمترجم متطوع استلامه الآن.", next: "جارٍ فتح طلبك…", track: "عرض طلبي", saving: "جارٍ إرسال الطلب…", error: "تعذر إرسال الطلب. حاول مرة أخرى." },
+  }[locale];
+  const blockedCopy = {
+    th: { title: "ยังมีงานที่กำลังดำเนินการอยู่", body: blockingTask?.kind === "assignment" ? "คุณกำลังรับงานล่ามอยู่ จึงยังสร้างคำขอใหม่ไม่ได้" : "คุณมีคำขอความช่วยเหลือที่ยังไม่เสร็จ จึงยังสร้างคำขอใหม่ไม่ได้", detail: "กรุณาดำเนินงานเดิมให้เสร็จหรือยกเลิกก่อน แล้วจึงสร้างคำขอใหม่ได้", close: "ปิด" },
+    en: { title: "You already have an active task", body: blockingTask?.kind === "assignment" ? "You are currently handling an interpreter assignment, so you cannot create a new request." : "You already have an unfinished help request, so you cannot create a new one.", detail: "Finish or cancel the current task before creating another request.", close: "Close" },
+    zh: { title: "已有进行中的任务", body: blockingTask?.kind === "assignment" ? "您正在处理一个口译任务，暂时无法创建新的求助。" : "您已有一个未完成的求助，暂时无法创建新的求助。", detail: "请先完成或取消当前任务，然后再创建新的求助。", close: "关闭" },
+    es: { title: "Ya tienes una tarea activa", body: blockingTask?.kind === "assignment" ? "Estás atendiendo una asignación de interpretación y no puedes crear una nueva solicitud." : "Tienes una solicitud de ayuda sin terminar y no puedes crear otra.", detail: "Termina o cancela la tarea actual antes de crear otra solicitud.", close: "Cerrar" },
+    ar: { title: "لديك مهمة نشطة بالفعل", body: blockingTask?.kind === "assignment" ? "أنت تتولى مهمة ترجمة فورية، لذلك لا يمكنك إنشاء طلب جديد." : "لديك طلب مساعدة غير مكتمل، لذلك لا يمكنك إنشاء طلب آخر.", detail: "أكمل المهمة الحالية أو ألغها قبل إنشاء طلب آخر.", close: "إغلاق" },
+  }[locale];
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdRequestId, setCreatedRequestId] = useState<string | null>(null);
 
