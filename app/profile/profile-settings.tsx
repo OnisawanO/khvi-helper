@@ -561,6 +561,7 @@ function AccountDeletionCard({
 }
 
 const CROP_SIZE = 280;
+const MAX_SOURCE_PIXELS = 40_000_000;
 
 type CropSource = {
   url: string;
@@ -578,7 +579,21 @@ function loadCropSource(file: File): Promise<CropSource> {
     const url = URL.createObjectURL(file);
     const image = new Image();
 
-    image.onload = () => resolve({ url, width: image.naturalWidth, height: image.naturalHeight });
+    image.onload = () => {
+      const width = image.naturalWidth;
+      const height = image.naturalHeight;
+
+      // Large camera originals are resized to the 256px avatar canvas after
+      // cropping. Reject only images whose dimensions are too large to decode
+      // safely in the browser, not files that merely exceed the upload limit.
+      if (width <= 0 || height <= 0 || width * height > MAX_SOURCE_PIXELS) {
+        URL.revokeObjectURL(url);
+        reject(new Error("Image dimensions are too large to process"));
+        return;
+      }
+
+      resolve({ url, width, height });
+    };
     image.onerror = () => {
       URL.revokeObjectURL(url);
       reject(new Error("Image could not be read"));
@@ -669,11 +684,6 @@ function ProfileImagePicker({
       setError(copy.photo.invalidType);
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setError(copy.photo.sizeTooLarge);
-      return;
-    }
-
     setBusy(true);
     try {
       setCropSource(await loadCropSource(file));

@@ -252,7 +252,7 @@ const copyTh: ProfileCopy = {
   },
   photo: {
     title: "รูปโปรไฟล์",
-    description: "เลือกรูปภาพที่ชัดเจน และครอบตัดให้อยู่ในกรอบสี่เหลี่ยมก่อนบันทึก",
+    description: "เลือกรูปภาพที่ชัดเจน และครอบตัดให้อยู่ในกรอบสี่เหลี่ยมก่อนบันทึก ระบบจะลดขนาดภาพใหญ่ให้อัตโนมัติ",
     processing: "กำลังประมวลผล…",
     changePhoto: "เปลี่ยนรูปโปรไฟล์",
     removePhoto: "ลบรูปโปรไฟล์",
@@ -437,7 +437,7 @@ const copyEn: ProfileCopy = {
   },
   photo: {
     title: "Profile photo",
-    description: "Use a clear image, then crop it to a square before saving it to your profile.",
+    description: "Use a clear image, then crop it to a square before saving it. Large images are resized automatically.",
     processing: "Processing…",
     changePhoto: "Change photo",
     removePhoto: "Remove",
@@ -622,7 +622,7 @@ const copyZh: ProfileCopy = {
   },
   photo: {
     title: "个人头像",
-    description: "请使用清晰的图片，然后在保存前将其裁剪为正方形。",
+    description: "请使用清晰的图片，然后在保存前将其裁剪为正方形。大图片会自动缩小。",
     processing: "处理中…",
     changePhoto: "更换头像",
     removePhoto: "删除头像",
@@ -734,7 +734,7 @@ const copyEs: ProfileCopy = {
   },
   photo: {
     ...copyEn.photo,
-    title: "Foto de perfil", description: "Elige una imagen clara y recórtala a un cuadrado antes de guardarla en tu perfil.", processing: "Procesando…", changePhoto: "Cambiar foto", removePhoto: "Eliminar foto", photoUpdated: "Foto de perfil actualizada", photoRemoved: "Foto de perfil eliminada", invalidType: "Elige una imagen JPG, PNG o WEBP", sizeTooLarge: "La imagen debe tener menos de 5 MB", readError: "No se pudo leer la imagen. Prueba con otra.", cropTitle: "Recorta tu foto", cropEyebrow: "Foto de perfil", cropDescription: "Arrastra la imagen para colocarla dentro del cuadrado.", cropCloseAria: "Cerrar el editor de recorte", cropZoom: "Zoom", cropCancel: "Cancelar", cropSaving: "Guardando…", cropConfirm: "Usar esta foto", cropError: "No se pudo guardar el recorte. Inténtalo de nuevo.",
+    title: "Foto de perfil", description: "Elige una imagen clara y recórtala a un cuadrado antes de guardarla. Las imágenes grandes se reducen automáticamente.", processing: "Procesando…", changePhoto: "Cambiar foto", removePhoto: "Eliminar foto", photoUpdated: "Foto de perfil actualizada", photoRemoved: "Foto de perfil eliminada", invalidType: "Elige una imagen JPG, PNG o WEBP", sizeTooLarge: "La imagen debe tener menos de 5 MB", readError: "No se pudo leer la imagen. Prueba con otra.", cropTitle: "Recorta tu foto", cropEyebrow: "Foto de perfil", cropDescription: "Arrastra la imagen para colocarla dentro del cuadrado.", cropCloseAria: "Cerrar el editor de recorte", cropZoom: "Zoom", cropCancel: "Cancelar", cropSaving: "Guardando…", cropConfirm: "Usar esta foto", cropError: "No se pudo guardar el recorte. Inténtalo de nuevo.",
   },
   roleConfig: {
     ...copyEn.roleConfig,
@@ -769,7 +769,7 @@ const copyAr: ProfileCopy = {
   },
   photo: {
     ...copyEn.photo,
-    title: "صورة الملف الشخصي", description: "اختر صورة واضحة واقتصها إلى مربع قبل حفظها في ملفك الشخصي.", processing: "جارٍ المعالجة…", changePhoto: "تغيير الصورة", removePhoto: "إزالة الصورة", photoUpdated: "تم تحديث صورة الملف الشخصي", photoRemoved: "تمت إزالة صورة الملف الشخصي", invalidType: "اختر صورة بصيغة JPG أو PNG أو WEBP", sizeTooLarge: "يجب ألا يزيد حجم الصورة عن 5 ميغابايت", readError: "تعذرت قراءة الصورة. جرّب صورة أخرى.", cropTitle: "اقتصاص صورتك", cropEyebrow: "صورة الملف الشخصي", cropDescription: "اسحب الصورة لوضعها داخل المربع.", cropCloseAria: "إغلاق محرر الاقتصاص", cropZoom: "تكبير", cropCancel: "إلغاء", cropSaving: "جارٍ الحفظ…", cropConfirm: "استخدام هذه الصورة", cropError: "تعذر حفظ الاقتصاص. حاول مرة أخرى.",
+    title: "صورة الملف الشخصي", description: "اختر صورة واضحة واقتصها إلى مربع قبل حفظها. سيتم تصغير الصور الكبيرة تلقائيًا.", processing: "جارٍ المعالجة…", changePhoto: "تغيير الصورة", removePhoto: "إزالة الصورة", photoUpdated: "تم تحديث صورة الملف الشخصي", photoRemoved: "تمت إزالة صورة الملف الشخصي", invalidType: "اختر صورة بصيغة JPG أو PNG أو WEBP", sizeTooLarge: "يجب ألا يزيد حجم الصورة عن 5 ميغابايت", readError: "تعذرت قراءة الصورة. جرّب صورة أخرى.", cropTitle: "اقتصاص صورتك", cropEyebrow: "صورة الملف الشخصي", cropDescription: "اسحب الصورة لوضعها داخل المربع.", cropCloseAria: "إغلاق محرر الاقتصاص", cropZoom: "تكبير", cropCancel: "إلغاء", cropSaving: "جارٍ الحفظ…", cropConfirm: "استخدام هذه الصورة", cropError: "تعذر حفظ الاقتصاص. حاول مرة أخرى.",
   },
   roleConfig: {
     ...copyEn.roleConfig,
