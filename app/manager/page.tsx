@@ -559,6 +559,7 @@ export default function ManagerDashboard({
           pendingReportCount={pendingReportCount}
           activitiesCount={activities.length}
           t={t.navigation}
+          header={t.header}
         />
       )}
 
@@ -702,6 +703,7 @@ export default function ManagerDashboard({
                 setFilterMenuOpen={setFilterMenuOpen}
                 onSelectApplicant={handleOpenDetailModal}
                 t={t.table}
+                locale={locale}
               />
             )}
 
@@ -760,6 +762,7 @@ export default function ManagerDashboard({
         onClose={() => setDetailModalOpen(false)}
         onApprove={handleApprove}
         onReject={handleReject}
+        locale={locale}
       />
 
       {/* Login & Switch Account Modal */}

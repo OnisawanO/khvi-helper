@@ -9,7 +9,7 @@ const copy = {
   en: { prefix: "Expires in", expired: "Expired without a claim" },
   zh: { prefix: "剩余时间", expired: "无人接取已过期" },
   es: { prefix: "Expira en", expired: "Expirada sin asignación" },
-  ar: { prefix: "ينتهي خلال", expired: "انتهت دون استلام" },
+  ar: { prefix: "ينتهي خلال", expired: "انتهى دون استلام" },
 } as const;
 
 function formatRemaining(totalSeconds: number): string {
@@ -57,7 +57,15 @@ export function ExpiryCountdown({
       }`}
     >
       <ClockIcon aria-hidden="true" className={compact ? "h-4 w-4" : "h-5 w-5"} />
-      {remaining === null ? (copyLocale === "th" ? "กำลังตรวจเวลาหมดอายุ…" : copyLocale === "zh" ? "正在检查截止时间…" : "Checking deadline…") : isExpired ? t.expired : `${t.prefix} ${formatRemaining(remaining)}`}
+      {remaining === null
+        ? ({
+            th: "กำลังตรวจเวลาหมดอายุ…",
+            en: "Checking deadline…",
+            zh: "正在检查截止时间…",
+            es: "Comprobando la fecha límite…",
+            ar: "جارٍ التحقق من الموعد النهائي…",
+          } as const)[copyLocale]
+        : isExpired ? t.expired : `${t.prefix} ${formatRemaining(remaining)}`}
     </span>
   );
 }

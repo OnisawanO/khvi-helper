@@ -25,6 +25,48 @@ html {
   scroll-padding-top: var(--anchor-offset);
 }
 
+html[dir="rtl"] body {
+  direction: rtl;
+}
+
+html[dir="rtl"] .text-left {
+  text-align: right;
+}
+
+html[dir="rtl"] .skip-link {
+  left: auto;
+  right: 1rem;
+}
+
+html[dir="rtl"] #mobile-navigation {
+  left: 0;
+  right: auto;
+  box-shadow: 18px 0 45px rgba(9, 47, 69, 0.24);
+}
+
+html[dir="rtl"] .khvi-account-menu {
+  left: 0;
+  right: auto;
+}
+
+html[dir="rtl"] .khvi-side-drawer {
+  border-left: 1px solid #16435c;
+  border-right: 0;
+}
+
+html[dir="rtl"] .khvi-side-drawer.-translate-x-full {
+  transform: translateX(100%);
+}
+
+html[dir="rtl"] .rtl-directional-icon {
+  transform: scaleX(-1);
+}
+
+html[dir="rtl"] .request-leaflet-map .leaflet-container,
+html[dir="rtl"] .mission-leaflet-map .leaflet-container {
+  direction: rtl;
+}
+
 :where(section[id], main[id], div[id]) {
   scroll-margin-top: var(--anchor-offset);
 }

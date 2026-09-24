@@ -19,6 +19,13 @@ import {
 } from "@heroicons/react/24/outline";
 import { createClient } from "@/utils/supabase/client";
 import { InterpreterApplicant } from "../types";
+import type { Locale } from "@/app/components/site-header";
+import { formatLocalizedDateTime, localeDateTimeTags } from "@/app/lib/locale";
+import {
+  localizeCategoryReference,
+  localizeLanguageReference,
+  localizeUnspecified,
+} from "@/app/lib/reference-localization";
 
 type ApplicantDetailModalProps = {
   isOpen: boolean;
@@ -26,6 +33,7 @@ type ApplicantDetailModalProps = {
   onClose: () => void;
   onApprove: (id: string) => void;
   onReject: (id: string, reason: string) => void;
+  locale: Locale;
 };
 
 export function ApplicantDetailModal({
@@ -34,6 +42,7 @@ export function ApplicantDetailModal({
   onClose,
   onApprove,
   onReject,
+  locale,
 }: ApplicantDetailModalProps) {
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -117,6 +126,25 @@ export function ApplicantDetailModal({
 
   if (!isOpen || !applicant) return null;
 
+  const text = (th: string, en: string, zh: string, es: string, ar: string) =>
+    locale === "th" ? th : locale === "zh" ? zh : locale === "es" ? es : locale === "ar" ? ar : en;
+  const status = applicant.status === "Approved"
+    ? text("อนุมัติแล้ว", "Approved", "已批准", "Aprobada", "معتمدة")
+    : applicant.status === "Rejected"
+      ? text("ไม่อนุมัติ", "Rejected", "未批准", "Rechazada", "مرفوضة")
+      : applicant.status === "Under Review"
+        ? text("กำลังตรวจสอบ", "Under review", "审核中", "En revisión", "قيد المراجعة")
+        : text("รอตรวจสอบ", "Pending review", "待审核", "Pendiente de revisión", "بانتظار المراجعة");
+  const country = localizeUnspecified(applicant.country, locale);
+  const appliedDate = formatLocalizedDateTime(applicant.appliedDate, locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Bangkok",
+  });
+  const formattedAge = applicant.age > 0
+    ? new Intl.NumberFormat(localeDateTimeTags[locale]).format(applicant.age)
+    : "—";
+
   const handleConfirmReject = () => {
     if (!rejectReason.trim()) return;
     onReject(applicant.id, rejectReason.trim());
@@ -140,11 +168,11 @@ export function ApplicantDetailModal({
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-sm sm:text-base font-bold text-[#092f45] leading-tight">
-                    Volunteer Applicant Dossier
+                    {text("แฟ้มข้อมูลผู้สมัครล่ามอาสา", "Volunteer applicant dossier", "志愿口译员申请档案", "Expediente de solicitud de intérprete", "ملف طلب المترجم المتطوع")}
                   </h3>
                   <span className="text-xs text-slate-300">•</span>
                   <span className="font-mono text-xs text-slate-500 font-medium">
-                    ID: #{applicant.id}
+                    {text("รหัส", "ID", "编号", "ID", "المعرّف")}: #{applicant.id}
                   </span>
                 </div>
               </div>
@@ -154,7 +182,7 @@ export function ApplicantDetailModal({
               type="button"
               onClick={onClose}
               className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors cursor-pointer"
-              aria-label="Close modal"
+              aria-label={text("ปิดหน้าต่าง", "Close dialog", "关闭对话框", "Cerrar diálogo", "إغلاق النافذة")}
             >
               <XMarkIcon className="h-5 w-5" />
             </button>
@@ -195,10 +223,10 @@ export function ApplicantDetailModal({
                               : "bg-amber-500"
                           }`}
                         />
-                        {applicant.status}
+                        {status}
                       </span>
                       <span className="text-[11px] text-slate-400 font-medium">
-                        {applicant.country}
+                        {country}
                       </span>
                     </div>
                   </div>
@@ -207,19 +235,19 @@ export function ApplicantDetailModal({
                 {/* Demographics Details (Flat Slate Card) */}
                 <div className="space-y-2.5">
                   <h5 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                    Demographics
+                    {text("ข้อมูลพื้นฐาน", "Demographics", "基本信息", "Datos demográficos", "البيانات الأساسية")}
                   </h5>
                   <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3.5 space-y-2.5 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-400 text-[11px]">Age & Assigned Area:</span>
+                      <span className="text-slate-400 text-[11px]">{text("อายุและพื้นที่ที่รับผิดชอบ:", "Age and assigned area:", "年龄与分配区域：", "Edad y zona asignada:", "العمر والمنطقة المعيّنة:")}</span>
                       <span className="font-semibold text-slate-800">
-                        {applicant.age} yrs · {applicant.country}
+                        {formattedAge} {text("ปี", "years", "岁", "años", "سنة")} · {country}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-400 text-[11px]">Applied Timestamp:</span>
+                      <span className="text-slate-400 text-[11px]">{text("เวลาที่ส่งใบสมัคร:", "Application time:", "提交时间：", "Fecha de solicitud:", "وقت تقديم الطلب:")}</span>
                       <span className="font-mono text-slate-600 text-[11px]">
-                        {applicant.appliedDate}
+                        {appliedDate}
                       </span>
                     </div>
                   </div>
@@ -228,14 +256,14 @@ export function ApplicantDetailModal({
                 {/* Direct Contact Channels (Unified Clean Card, Separated Rows) */}
                 <div className="space-y-2.5">
                   <h5 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                    Direct Contact Channels
+                    {text("ช่องทางติดต่อโดยตรง", "Direct contact channels", "直接联系方式", "Canales de contacto directo", "قنوات الاتصال المباشر")}
                   </h5>
                   <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3.5 space-y-2.5 text-xs">
                     {/* Phone */}
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-slate-400 flex items-center gap-1.5 text-[11px] shrink-0">
                         <PhoneIcon className="h-3.5 w-3.5 text-[#087f80]" />
-                        Phone:
+                        {text("โทรศัพท์:", "Phone:", "电话：", "Teléfono:", "الهاتف:")}
                       </span>
                       {applicant.phone ? (
                         <a
@@ -245,7 +273,7 @@ export function ApplicantDetailModal({
                           {applicant.phone}
                         </a>
                       ) : (
-                        <span className="text-slate-400 italic text-[11px]">Not provided</span>
+                        <span className="text-slate-400 italic text-[11px]">{text("ไม่ได้ระบุ", "Not provided", "未提供", "No proporcionado", "غير متوفر")}</span>
                       )}
                     </div>
 
@@ -253,7 +281,7 @@ export function ApplicantDetailModal({
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-slate-400 flex items-center gap-1.5 text-[11px] shrink-0">
                         <EnvelopeIcon className="h-3.5 w-3.5 text-[#087f80]" />
-                        Email:
+                        {text("อีเมล:", "Email:", "电子邮件：", "Correo electrónico:", "البريد الإلكتروني:")}
                       </span>
                       {applicant.email ? (
                         <a
@@ -264,7 +292,7 @@ export function ApplicantDetailModal({
                           {applicant.email}
                         </a>
                       ) : (
-                        <span className="text-slate-400 italic text-[11px]">Not provided</span>
+                        <span className="text-slate-400 italic text-[11px]">{text("ไม่ได้ระบุ", "Not provided", "未提供", "No proporcionado", "غير متوفر")}</span>
                       )}
                     </div>
 
@@ -272,10 +300,10 @@ export function ApplicantDetailModal({
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-slate-400 flex items-center gap-1.5 text-[11px] shrink-0">
                         <ChatBubbleLeftRightIcon className="h-3.5 w-3.5 text-[#087f80]" />
-                        Other:
+                        {text("อื่น ๆ:", "Other:", "其他：", "Otro:", "أخرى:")}
                       </span>
                       <span className="font-semibold text-[#092f45] truncate">
-                        {applicant.extraContact || applicant.contactChannels || "None"}
+                        {applicant.extraContact || applicant.contactChannels || text("ไม่มี", "None", "无", "Ninguno", "لا يوجد")}
                       </span>
                     </div>
                   </div>
@@ -284,7 +312,7 @@ export function ApplicantDetailModal({
                 {/* Rejection Note If Applicable */}
                 {applicant.rejectionReason && (
                   <div className="rounded-xl border border-red-200 bg-red-50/60 p-3 text-xs">
-                    <p className="font-bold text-red-800">Specified Rejection Reason:</p>
+                    <p className="font-bold text-red-800">{text("เหตุผลที่ระบุในการปฏิเสธ:", "Specified rejection reason:", "已说明的拒绝原因：", "Motivo de rechazo indicado:", "سبب الرفض المحدد:")}</p>
                     <p className="mt-1 text-red-700 text-[11px] leading-relaxed">
                       {applicant.rejectionReason}
                     </p>
@@ -300,30 +328,30 @@ export function ApplicantDetailModal({
                   <div>
                     <h5 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                       <LanguageIcon className="h-4 w-4 text-[#087f80]" />
-                      Language Qualifications & Competency
+                      {text("คุณสมบัติและความสามารถด้านภาษา", "Language qualifications and competency", "语言资质与能力", "Competencias y cualificaciones lingüísticas", "المؤهلات والكفاءة اللغوية")}
                     </h5>
                     <div className="mt-2.5 rounded-xl border border-slate-100 bg-slate-50/70 p-3.5 space-y-2 text-xs">
                       <div className="flex items-center justify-between flex-wrap gap-2">
-                        <span className="text-slate-400 text-[11px]">Primary Language:</span>
+                        <span className="text-slate-400 text-[11px]">{text("ภาษาหลัก:", "Primary language:", "主要语言：", "Idioma principal:", "اللغة الأساسية:")}</span>
                         <span className="font-bold text-[#092f45]">
-                          {applicant.primaryLanguage}
+                          {localizeLanguageReference(applicant.primaryLanguage, locale)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between flex-wrap gap-2">
-                        <span className="text-slate-400 text-[11px]">Proficiency Scores:</span>
+                        <span className="text-slate-400 text-[11px]">{text("ระดับความสามารถ:", "Proficiency:", "熟练度：", "Nivel de competencia:", "مستوى الكفاءة:")}</span>
                         <span className="font-semibold text-[#087f80]">
-                          {applicant.proficiencyScore || "Verified Native"}
+                          {applicant.proficiencyScore || text("ยืนยันว่าเป็นภาษาแม่", "Verified native", "已验证母语", "Idioma nativo verificado", "لغة أم موثقة")}
                         </span>
                       </div>
                       <div className="pt-2 border-t border-slate-200/60">
-                        <span className="text-[11px] text-slate-400 block mb-1.5">Spoken & Certified Languages:</span>
+                        <span className="text-[11px] text-slate-400 block mb-1.5">{text("ภาษาที่สื่อสารได้และผ่านการรับรอง:", "Spoken and certified languages:", "掌握及已认证的语言：", "Idiomas hablados y certificados:", "اللغات المنطوقة والمعتمدة:")}</span>
                         <div className="flex flex-wrap gap-1.5">
                           {applicant.spokenLanguages.map((l) => (
                             <span
                               key={l}
                               className="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 shadow-2xs"
                             >
-                              {l}
+                              {localizeLanguageReference(l, locale)}
                             </span>
                           ))}
                         </div>
@@ -336,10 +364,10 @@ export function ApplicantDetailModal({
                     <div className="flex items-center justify-between">
                       <h5 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                         <IdentificationIcon className="h-4 w-4 text-[#087f80]" />
-                        Submitted Credential File
+                        {text("เอกสารรับรองที่ส่ง", "Submitted credential file", "已提交的资质文件", "Archivo de acreditación enviado", "ملف المؤهلات المرسل")}
                       </h5>
                       <span className="text-[10px] font-medium text-slate-400">
-                        Max 1 file (.PDF, .PNG, .JPG)
+                        {text("สูงสุด 1 ไฟล์ (.PDF, .PNG, .JPG)", "Maximum 1 file (.PDF, .PNG, .JPG)", "最多 1 个文件（.PDF、.PNG、.JPG）", "Máximo 1 archivo (.PDF, .PNG, .JPG)", "ملف واحد كحد أقصى (.PDF، .PNG، .JPG)")}
                       </span>
                     </div>
 
@@ -362,7 +390,7 @@ export function ApplicantDetailModal({
                               {applicant.document.name}
                             </p>
                             <p className="text-[11px] text-slate-400 mt-0.5">
-                              {applicant.document.size || "Original Document"} · {applicant.document.type.toUpperCase()} Credential
+                              {applicant.document.size || text("เอกสารต้นฉบับ", "Original document", "原始文件", "Documento original", "المستند الأصلي")} · {applicant.document.type.toUpperCase()} {text("เอกสารรับรอง", "credential", "凭证", "acreditación", "اعتماد")}
                             </p>
                           </div>
                         </div>
@@ -376,12 +404,12 @@ export function ApplicantDetailModal({
                           }}
                           className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-[#087f80] hover:bg-[#087f80] hover:text-white hover:border-[#087f80] transition-colors cursor-pointer"
                         >
-                          Preview File
+                          {text("ดูตัวอย่างไฟล์", "Preview file", "预览文件", "Vista previa", "معاينة الملف")}
                         </button>
                       </div>
                     ) : (
                       <div className="mt-2.5 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-4 text-center text-xs text-slate-400">
-                        No credential file submitted
+                        {text("ไม่ได้ส่งเอกสารรับรอง", "No credential file submitted", "未提交资质文件", "No se envió ningún archivo de acreditación", "لم يتم إرسال ملف مؤهلات")}
                       </div>
                     )}
                   </div>
@@ -390,7 +418,7 @@ export function ApplicantDetailModal({
                   <div>
                     <h5 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                       <BriefcaseIcon className="h-4 w-4 text-[#087f80]" />
-                      Field Specialization Categories
+                      {text("หมวดงานที่เชี่ยวชาญ", "Specialization categories", "专业服务类别", "Categorías de especialidad", "فئات التخصص")}
                     </h5>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {applicant.specialtyCategories.map((cat) => (
@@ -398,7 +426,7 @@ export function ApplicantDetailModal({
                           key={cat}
                           className="rounded-lg bg-teal-50 px-2.5 py-1 text-xs font-semibold text-[#087f80] border border-teal-100"
                         >
-                          {cat}
+                          {localizeCategoryReference(cat, locale)}
                         </span>
                       ))}
                     </div>
@@ -408,7 +436,7 @@ export function ApplicantDetailModal({
                   {applicant.experienceSummary && (
                     <div>
                       <h5 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                        Experience Summary
+                        {text("สรุปประสบการณ์", "Experience summary", "经历摘要", "Resumen de experiencia", "ملخص الخبرة")}
                       </h5>
                       <p className="mt-1.5 rounded-xl border border-slate-100 bg-slate-50/50 p-3 text-xs leading-relaxed text-slate-600 italic">
                         &ldquo;{applicant.experienceSummary}&rdquo;
@@ -423,15 +451,15 @@ export function ApplicantDetailModal({
                     {applicant.status === "Approved" ? (
                       <span className="inline-flex items-center gap-1.5 font-medium text-emerald-700">
                         <CheckCircleIcon className="h-4 w-4" />
-                        Approved volunteer. Role modifications are administered via Admin Portal.
+                        {text("ล่ามผ่านการอนุมัติแล้ว การเปลี่ยนบทบาทจัดการผ่านพอร์ทัลผู้ดูแลระบบ", "Approved volunteer. Role changes are managed through the Admin portal.", "志愿者已获批准。角色变更由管理员门户管理。", "Intérprete aprobado. Los cambios de rol se gestionan desde el portal de administración.", "المترجم معتمد. تُدار تغييرات الدور من خلال بوابة الإدارة.")}
                       </span>
                     ) : applicant.status === "Rejected" ? (
                       <span className="inline-flex items-center gap-1.5 font-medium text-red-600">
                         <XCircleIcon className="h-4 w-4" />
-                        Application rejected and logged in Archive.
+                        {text("ใบสมัครถูกปฏิเสธและบันทึกในคลังข้อมูลแล้ว", "Application rejected and recorded in the archive.", "申请已拒绝并记录在档案中。", "La solicitud fue rechazada y se registró en el archivo.", "رُفض الطلب وسُجل في الأرشيف.")}
                       </span>
                     ) : (
-                      <span>Verify credentials and security check before making a determination.</span>
+                      <span>{text("ตรวจสอบเอกสารและความปลอดภัยก่อนตัดสินใจ", "Verify credentials and security checks before deciding.", "请在作出决定前核实资质和安全检查。", "Verifica las acreditaciones y la seguridad antes de decidir.", "تحقق من المؤهلات وفحوصات الأمان قبل اتخاذ القرار.")}</span>
                     )}
                   </div>
 
@@ -444,7 +472,7 @@ export function ApplicantDetailModal({
                         className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-white px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-40 transition-colors cursor-pointer"
                       >
                         <XCircleIcon className="h-4 w-4" />
-                        Reject
+                        {text("ปฏิเสธ", "Reject", "拒绝", "Rechazar", "رفض")}
                       </button>
                     )}
 
@@ -458,12 +486,12 @@ export function ApplicantDetailModal({
                         className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#087f80] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#066a6a] transition-all cursor-pointer"
                       >
                         <CheckCircleIcon className="h-4 w-4" />
-                        Approve Candidate
+                        {text("อนุมัติผู้สมัคร", "Approve candidate", "批准申请人", "Aprobar solicitante", "اعتماد المرشح")}
                       </button>
                     ) : (
                       <div className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-50 px-3.5 py-1.5 text-xs font-bold text-emerald-700 border border-emerald-200">
                         <CheckBadgeIcon className="h-4 w-4" />
-                        Authorized Volunteer
+                        {text("ล่ามอาสาที่ได้รับอนุญาต", "Authorized volunteer", "已授权志愿者", "Intérprete autorizado", "مترجم متطوع معتمد")}
                       </div>
                     )}
                   </div>
@@ -482,7 +510,7 @@ export function ApplicantDetailModal({
               <div className="flex items-center gap-2">
                 <ExclamationCircleIcon className="h-5 w-5 text-[#d93829]" />
                 <h4 className="text-base font-extrabold text-[#112b3c]">
-                  Reject Interpreter Application
+                  {text("ปฏิเสธใบสมัครล่าม", "Reject interpreter application", "拒绝口译员申请", "Rechazar solicitud de intérprete", "رفض طلب المترجم")}
                 </h4>
               </div>
               <button
@@ -495,19 +523,19 @@ export function ApplicantDetailModal({
             </div>
 
             <p className="mt-3 text-xs leading-relaxed text-[#59717d]">
-              Managers must provide an explicit explanation when rejecting an applicant. This reason will be logged and notified to the applicant.
+              {text("ผู้จัดการต้องระบุเหตุผลเมื่อปฏิเสธผู้สมัคร เหตุผลนี้จะถูกบันทึกและแจ้งให้ผู้สมัครทราบ", "Managers must provide a reason when rejecting an applicant. It will be recorded and shared with the applicant.", "管理人员拒绝申请人时必须说明原因。该原因会被记录并通知申请人。", "Las personas gestoras deben indicar un motivo al rechazar una solicitud. Se registrará y se comunicará a la persona solicitante.", "يجب على المديرين تقديم سبب عند رفض المتقدم. سيُسجل السبب ويُبلّغ به المتقدم.")}
             </p>
 
             <div className="mt-4">
               <label htmlFor="modal-reject-reason" className="block text-xs font-extrabold text-[#143141]">
-                Rejection Reason (Required)
+                {text("เหตุผลการปฏิเสธ (จำเป็น)", "Rejection reason (required)", "拒绝原因（必填）", "Motivo de rechazo (obligatorio)", "سبب الرفض (مطلوب)")}
               </label>
               <textarea
                 id="modal-reject-reason"
                 rows={3}
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
-                placeholder="e.g. Incomplete proof of medical language certification, or contact verification failed."
+                placeholder={text("เช่น เอกสารรับรองความสามารถด้านภาษาทางการแพทย์ไม่ครบ หรือยืนยันข้อมูลติดต่อไม่สำเร็จ", "For example, medical-language certification is incomplete or contact verification failed.", "例如，医疗语言资质证明不完整或联系方式验证失败。", "Por ejemplo, falta la acreditación de idioma médico o falló la verificación del contacto.", "مثال: شهادة اللغة الطبية غير مكتملة أو تعذر التحقق من جهة الاتصال.")}
                 className="mt-1.5 w-full rounded-lg border border-[#cddae0] p-2.5 text-xs text-[#133040] focus:border-[#087f80] focus:outline-none"
               />
             </div>
@@ -518,7 +546,7 @@ export function ApplicantDetailModal({
                 onClick={() => setRejectModalOpen(false)}
                 className="rounded-lg border border-[#cddae0] bg-white px-4 py-2 text-xs font-bold text-[#455f6d] hover:bg-[#f0f4f6] cursor-pointer"
               >
-                Cancel
+                {text("ยกเลิก", "Cancel", "取消", "Cancelar", "إلغاء")}
               </button>
               <button
                 type="button"
@@ -526,7 +554,7 @@ export function ApplicantDetailModal({
                 disabled={!rejectReason.trim()}
                 className="rounded-lg bg-[#d93829] px-4 py-2 text-xs font-extrabold text-white hover:bg-[#b8291b] disabled:opacity-50 cursor-pointer"
               >
-                Confirm Rejection
+                {text("ยืนยันการปฏิเสธ", "Confirm rejection", "确认拒绝", "Confirmar rechazo", "تأكيد الرفض")}
               </button>
             </div>
           </div>
@@ -554,7 +582,7 @@ export function ApplicantDetailModal({
                     {applicant.document.name}
                   </h4>
                   <p className="text-[11px] text-slate-400">
-                    Uploaded by {applicant.name}
+                    {text("อัปโหลดโดย", "Uploaded by", "上传者", "Subido por", "رُفع بواسطة")} {applicant.name}
                   </p>
                 </div>
               </div>
@@ -562,7 +590,7 @@ export function ApplicantDetailModal({
                 type="button"
                 onClick={() => setPreviewDocOpen(false)}
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
-                title="Close preview"
+                title={text("ปิดตัวอย่าง", "Close preview", "关闭预览", "Cerrar vista previa", "إغلاق المعاينة")}
               >
                 <XMarkIcon className="h-5 w-5" />
               </button>
@@ -573,7 +601,7 @@ export function ApplicantDetailModal({
               {docLoading ? (
                 <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-300">
                   <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#087f80] border-t-transparent" />
-                  <span className="text-xs font-bold">กำลังโหลดเอกสาร...</span>
+                  <span className="text-xs font-bold">{text("กำลังโหลดเอกสาร…", "Loading document…", "正在加载文件…", "Cargando documento…", "جارٍ تحميل المستند…")}</span>
                 </div>
               ) : applicant.document.format !== "pdf" && docUrl && !docError ? (
                 /* Display Image Directly */
@@ -591,7 +619,7 @@ export function ApplicantDetailModal({
                     <span className="h-2 w-2 rounded-full bg-emerald-400" />
                     <span className="font-mono">{applicant.document.name}</span>
                     <span>•</span>
-                    <span>Image/{applicant.document.format.toUpperCase()} (Verified)</span>
+                    <span>{text("รูปภาพ", "Image", "图片", "Imagen", "صورة")}/{applicant.document.format.toUpperCase()} ({text("ยืนยันแล้ว", "verified", "已验证", "verificada", "تم التحقق")})</span>
                   </div>
                 </div>
               ) : applicant.document.format === "pdf" && docUrl && !docError ? (
@@ -618,12 +646,12 @@ export function ApplicantDetailModal({
                   </h5>
                   <p className="mt-2 text-xs text-slate-300 max-w-sm leading-relaxed">
                     {docError
-                      ? "ไม่สามารถแสดงตัวอย่างได้ในหน้านี้ สามารถคลิกดาวน์โหลดเพื่อตรวจสอบไฟล์โดยตรง"
-                      : "เอกสารรับรองคุณสมบัติทางภาษาของล่ามอาสา"}
+                      ? text("ไม่สามารถแสดงตัวอย่างได้ในหน้านี้ คุณสามารถดาวน์โหลดเพื่อตรวจสอบไฟล์โดยตรง", "This preview is unavailable. Download the file to review it directly.", "无法在此处预览。请下载文件后直接查看。", "Esta vista previa no está disponible. Descarga el archivo para revisarlo.", "المعاينة غير متاحة هنا. نزّل الملف لمراجعته مباشرة.")
+                      : text("เอกสารรับรองคุณสมบัติทางภาษาของล่ามอาสา", "Volunteer interpreter language-qualification document", "志愿口译员语言资质文件", "Documento de cualificación lingüística de intérprete voluntario", "وثيقة المؤهلات اللغوية للمترجم المتطوع")}
                   </p>
                   <div className="mt-4 flex items-center gap-2 rounded-lg bg-black/30 px-3 py-1.5 text-xs text-slate-300 border border-white/10">
                     <span className={`h-2 w-2 rounded-full ${docError ? "bg-amber-400" : "bg-emerald-400"}`} />
-                    <span>Format: {applicant.document.format.toUpperCase()}</span>
+                    <span>{text("รูปแบบ", "Format", "格式", "Formato", "التنسيق")}: {applicant.document.format.toUpperCase()}</span>
                   </div>
                 </div>
               )}
@@ -632,7 +660,7 @@ export function ApplicantDetailModal({
             {/* Modal Footer */}
             <div className="flex items-center justify-between border-t border-[#16435c] px-5 py-3 bg-[#072435]">
               <span className="text-xs text-slate-400 font-mono">
-                Security Hash: SHA-256 Verified
+                {text("ตรวจสอบแฮชความปลอดภัย SHA-256 แล้ว", "Security hash: SHA-256 verified", "安全哈希：已验证 SHA-256", "Hash de seguridad: SHA-256 verificado", "تجزئة الأمان: تم التحقق من SHA-256")}
               </span>
               <div className="flex items-center gap-2">
                 {docUrl ? (
@@ -644,7 +672,7 @@ export function ApplicantDetailModal({
                     className="inline-flex items-center gap-1.5 rounded-lg border border-[#215777] bg-[#0d3b55] px-3.5 py-1.5 text-xs font-bold text-slate-200 hover:bg-[#124a6b] hover:text-white transition-colors cursor-pointer"
                   >
                     <ArrowDownTrayIcon className="h-3.5 w-3.5" />
-                    Download File
+                    {text("ดาวน์โหลดไฟล์", "Download file", "下载文件", "Descargar archivo", "تنزيل الملف")}
                   </a>
                 ) : (
                   <button
@@ -653,7 +681,7 @@ export function ApplicantDetailModal({
                     className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-lg border border-[#215777] bg-[#0d3b55] px-3.5 py-1.5 text-xs font-bold text-slate-500 opacity-70"
                   >
                     <ArrowDownTrayIcon className="h-3.5 w-3.5" />
-                    Download File
+                    {text("ดาวน์โหลดไฟล์", "Download file", "下载文件", "Descargar archivo", "تنزيل الملف")}
                   </button>
                 )}
                 <button
@@ -661,7 +689,7 @@ export function ApplicantDetailModal({
                   onClick={() => setPreviewDocOpen(false)}
                   className="rounded-lg bg-[#087f80] px-4 py-1.5 text-xs font-bold text-white hover:bg-[#0aa1a2] transition-colors cursor-pointer"
                 >
-                  Close
+                  {text("ปิด", "Close", "关闭", "Cerrar", "إغلاق")}
                 </button>
               </div>
             </div>

@@ -364,7 +364,7 @@ function toManagerApplicant(application: InterpreterApplication): InterpreterApp
     primaryLanguage: application.primaryLanguage,
     spokenLanguages: application.languages.map((language) => language.name),
     specialtyCategories: application.categories.map((category) => category.name),
-    experienceSummary: application.workHistory.map((entry) => entry.organization ? `${entry.description} (${entry.organization})` : entry.description).join("; ") || "No experience history submitted.",
+    experienceSummary: application.workHistory.map((entry) => entry.organization ? `${entry.description} (${entry.organization})` : entry.description).join("; "),
     contactChannels: [application.phone, application.email, application.extraContact].filter(Boolean).join(" · "),
     phone: application.phone,
     email: application.email,

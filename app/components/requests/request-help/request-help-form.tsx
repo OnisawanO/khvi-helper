@@ -21,6 +21,7 @@ import {
   SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { useCopyLocale, useUiLocale } from "@/app/components/app-shell";
+import { localeDateTimeTags } from "@/app/lib/locale";
 import type { Urgency } from "@/app/lib/request-types";
 import type { ReferenceOption } from "@/app/lib/reference-catalog";
 import { LocationMapPicker, type LocationCoordinates } from "./location-map-picker";
@@ -166,7 +167,12 @@ const localizedCopy = {
     breadcrumb: "เส้นทางนำทาง", main: "หน้าหลัก", label: "สร้างคำขอความช่วยเหลือ", title: "สร้างหมุดขอความช่วยเหลือ",
     intro: "เลือกภาษาและหมวดหมู่ที่ต้องการ แล้วระบุสถานที่เพื่อให้ล่ามที่ตรงความสามารถรับงานได้",
     urgencyLegend: "ต้องการความช่วยเหลือเมื่อใด?", scheduleLabel: "เวลานัดหมาย", scheduleHint: "เลือกวันพรุ่งนี้หรือวันถัดไป",
+    urgency: {
+      Immediate: { title: "เร่งด่วน", detail: "ต้องการความช่วยเหลือภายในประมาณ 15 นาที หมุดจะหมดอายุหลัง 30 นาทีหากไม่มีล่ามรับงาน" },
+      Scheduled: { title: "นัดหมายล่วงหน้า", detail: "เลือกเวลาใดก็ได้ตั้งแต่วันถัดไปเป็นต้นไป" },
+    },
     scheduleDay: "วันที่", scheduleHour: "ชั่วโมง", scheduleMinute: "นาที", selectedTime: "เวลาที่เลือก",
+    timeWheelHint: "เลื่อนวงล้อชั่วโมงและนาทีในแนวตั้ง", previousMonth: "เดือนก่อน", nextMonth: "เดือนถัดไป", selectedDate: "วันที่เลือก",
     languageLabel: "ภาษาที่ต้องการ", languagePlaceholder: "เลือกหนึ่งภาษา", categoryLabel: "หมวดหมู่",
     categoryPlaceholder: "เลือกหนึ่งหมวดหมู่", descriptionLabel: "ล่ามควรรู้อะไรบ้าง?",
     descriptionHint: "อาการ เอกสาร จุดสังเกต หรือข้อมูลที่ช่วยให้ล่ามเตรียมตัว (ไม่บังคับ)",
@@ -190,7 +196,12 @@ const localizedCopy = {
     breadcrumb: "Migas de pan", main: "Inicio", label: "Nueva solicitud de ayuda", title: "Crear una solicitud de ayuda",
     intro: "Elige un idioma y una categoría por solicitud. Los intérpretes que coincidan podrán aceptarla.",
     urgencyLegend: "¿Cuándo necesitas ayuda?", scheduleLabel: "Hora de la cita", scheduleHint: "Elige mañana o una fecha posterior",
+    urgency: {
+      Immediate: { title: "Urgente", detail: "Necesitas ayuda en unos 15 minutos. La solicitud caduca tras 30 minutos si nadie la acepta." },
+      Scheduled: { title: "Programada", detail: "Elige cualquier hora a partir del día siguiente." },
+    },
     scheduleDay: "Fecha", scheduleHour: "Hora", scheduleMinute: "Minuto", selectedTime: "Hora seleccionada",
+    timeWheelHint: "Desplaza verticalmente las ruedas de hora y minuto.", previousMonth: "Mes anterior", nextMonth: "Mes siguiente", selectedDate: "Fecha seleccionada",
     languageLabel: "Idioma necesario", languagePlaceholder: "Selecciona un idioma", categoryLabel: "Categoría",
     categoryPlaceholder: "Selecciona una categoría", descriptionLabel: "¿Qué debe saber el intérprete?",
     descriptionHint: "Síntomas, documentos, referencias u otra información útil. Opcional.",
@@ -214,7 +225,12 @@ const localizedCopy = {
     breadcrumb: "مسار التنقل", main: "الرئيسية", label: "طلب مساعدة جديد", title: "إنشاء طلب مساعدة",
     intro: "اختر لغة وفئة واحدة لكل طلب. سيتمكن المترجمون المطابقون من استلامه.",
     urgencyLegend: "متى تحتاج إلى المساعدة؟", scheduleLabel: "موعد اللقاء", scheduleHint: "اختر الغد أو تاريخًا لاحقًا",
+    urgency: {
+      Immediate: { title: "عاجل", detail: "تحتاج إلى المساعدة خلال نحو 15 دقيقة. تنتهي صلاحية الطلب بعد 30 دقيقة إذا لم يستلمه أحد." },
+      Scheduled: { title: "مجدول", detail: "اختر أي وقت بدءًا من اليوم التالي." },
+    },
     scheduleDay: "التاريخ", scheduleHour: "الساعة", scheduleMinute: "الدقيقة", selectedTime: "الوقت المحدد",
+    timeWheelHint: "مرّر عجلات الساعة والدقيقة رأسيًا.", previousMonth: "الشهر السابق", nextMonth: "الشهر التالي", selectedDate: "التاريخ المحدد",
     languageLabel: "اللغة المطلوبة", languagePlaceholder: "اختر لغة واحدة", categoryLabel: "الفئة",
     categoryPlaceholder: "اختر فئة واحدة", descriptionLabel: "ما الذي يجب أن يعرفه المترجم؟",
     descriptionHint: "الأعراض أو المستندات أو المعالم أو أي معلومات تساعده على الاستعداد. اختياري.",
@@ -375,10 +391,10 @@ function parseDateInputValue(dateValue: string) {
   return date;
 }
 
-function formatShortSelectedDate(dateValue: string) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateValue);
-  if (!match) return "--/--/--";
-  return `${match[3]}/${match[2]}/${match[1].slice(-2)}`;
+function formatShortSelectedDate(dateValue: string, locale: string) {
+  const date = parseDateInputValue(dateValue);
+  if (!date) return "--/--/--";
+  return new Intl.DateTimeFormat(locale, { day: "2-digit", month: "2-digit", year: "2-digit" }).format(date);
 }
 
 function appointmentFromParts(dateValue: string, hourValue: string, minuteValue: string) {
@@ -399,7 +415,7 @@ type DateCalendarProps = {
   label: string;
   value: string;
   minimumDate: string;
-  locale: "en-US" | "zh-CN";
+  locale: string;
   previousMonthLabel: string;
   nextMonthLabel: string;
   selectedDateLabel: string;
@@ -500,7 +516,7 @@ function DateCalendar({
       <div className="mt-3 flex items-center justify-between gap-3 border-t border-[#d6e0e4] pt-3">
         <span className="text-xs font-bold text-[#64777e]">{selectedDateLabel}</span>
         <output htmlFor={id} className="text-base font-extrabold tabular-nums text-[#087f80]">
-          {formatShortSelectedDate(value)}
+          {formatShortSelectedDate(value, locale)}
         </output>
       </div>
     </div>
@@ -611,32 +627,21 @@ export function RequestHelpForm({
   const locale = useUiLocale();
   const copyLocale = useCopyLocale();
   const t = localizedCopy[copyLocale];
-  const privacyCopy = locale === "th"
-    ? {
-        privacyTitle: "สิ่งที่ล่ามสามารถมองเห็นได้",
-        beforeClaim: "ก่อนที่คุณจะยืนยันล่าม",
-        afterClaim: "หลังจากคุณยืนยันล่ามแล้ว",
-        beforeItems: [
-          "ภาษาที่ต้องการและประเภทความช่วยเหลือ",
-          "รายละเอียดคำขอที่คุณกรอก ควรหลีกเลี่ยงข้อมูลติดต่อส่วนตัว",
-          "พื้นที่โดยประมาณ ความเร่งด่วน และวันเวลานัดหมาย (ถ้ามี)",
-        ],
-        afterItems: [
-          "สถานที่นัดหมายและพิกัดจริง (หากระบุไว้)",
-          "ชื่อและเบอร์โทรศัพท์ของคุณ เพื่อใช้ประสานงานนัดหมาย",
-        ],
-      }
-    : t;
-  const successCopy = locale === "th"
-    ? { title: "สร้างคำขอสำเร็จแล้ว!", body: "ส่งคำขอของคุณแล้ว รอล่ามอาสาเข้ามาช่วยนะ", next: "กำลังพาไปติดตามคำขอ…", track: "ดูคำขอของฉัน", saving: "กำลังส่งคำขอ…", error: "ส่งคำขอไม่สำเร็จ กรุณาลองอีกครั้ง" }
-    : locale === "zh"
-      ? { title: "求助已创建！", body: "您的求助已发布，请等待志愿口译员接单。", next: "即将打开求助详情…", track: "查看我的求助", saving: "正在提交…", error: "提交失败，请重试。" }
-      : { title: "Your request is ready!", body: "Your request is posted. A volunteer interpreter can now pick it up.", next: "Taking you to your request…", track: "View my request", saving: "Sending request…", error: "Could not send your request. Please try again." };
-  const blockedCopy = locale === "th"
-    ? { title: "ยังมีงานที่กำลังดำเนินการอยู่", body: blockingTask?.kind === "assignment" ? "คุณกำลังรับงานล่ามอยู่ จึงยังสร้างคำขอใหม่ไม่ได้" : "คุณมีคำขอความช่วยเหลือที่ยังไม่เสร็จ จึงยังสร้างคำขอใหม่ไม่ได้", detail: "กรุณาดำเนินงานเดิมให้เสร็จหรือยกเลิกก่อน แล้วจึงสร้างคำขอใหม่ได้", close: "ปิด" }
-    : locale === "zh"
-      ? { title: "已有进行中的任务", body: blockingTask?.kind === "assignment" ? "您正在处理一个口译任务，暂时无法创建新的求助。" : "您已有一个未完成的求助，暂时无法创建新的求助。", detail: "请先完成或取消当前任务，然后再创建新的求助。", close: "关闭" }
-      : { title: "You already have an active task", body: blockingTask?.kind === "assignment" ? "You are currently handling an interpreter assignment, so you cannot create a new request." : "You already have an unfinished help request, so you cannot create a new one.", detail: "Finish or cancel the current task before creating another request.", close: "Close" };
+  const privacyCopy = t;
+  const successCopy = {
+    th: { title: "สร้างคำขอสำเร็จแล้ว!", body: "ส่งคำขอของคุณแล้ว รอล่ามอาสาเข้ามาช่วยนะ", next: "กำลังพาไปติดตามคำขอ…", track: "ดูคำขอของฉัน", saving: "กำลังส่งคำขอ…", error: "ส่งคำขอไม่สำเร็จ กรุณาลองอีกครั้ง" },
+    en: { title: "Your request is ready!", body: "Your request is posted. A volunteer interpreter can now pick it up.", next: "Taking you to your request…", track: "View my request", saving: "Sending request…", error: "Could not send your request. Please try again." },
+    zh: { title: "求助已创建！", body: "您的求助已发布，请等待志愿口译员接单。", next: "即将打开求助详情…", track: "查看我的求助", saving: "正在提交…", error: "提交失败，请重试。" },
+    es: { title: "¡Solicitud creada!", body: "Tu solicitud se ha publicado. Un intérprete voluntario puede aceptarla ahora.", next: "Abriendo tu solicitud…", track: "Ver mi solicitud", saving: "Enviando solicitud…", error: "No se pudo enviar la solicitud. Inténtalo de nuevo." },
+    ar: { title: "تم إنشاء الطلب!", body: "تم نشر طلبك. يمكن لمترجم متطوع استلامه الآن.", next: "جارٍ فتح طلبك…", track: "عرض طلبي", saving: "جارٍ إرسال الطلب…", error: "تعذر إرسال الطلب. حاول مرة أخرى." },
+  }[locale];
+  const blockedCopy = {
+    th: { title: "ยังมีงานที่กำลังดำเนินการอยู่", body: blockingTask?.kind === "assignment" ? "คุณกำลังรับงานล่ามอยู่ จึงยังสร้างคำขอใหม่ไม่ได้" : "คุณมีคำขอความช่วยเหลือที่ยังไม่เสร็จ จึงยังสร้างคำขอใหม่ไม่ได้", detail: "กรุณาดำเนินงานเดิมให้เสร็จหรือยกเลิกก่อน แล้วจึงสร้างคำขอใหม่ได้", close: "ปิด" },
+    en: { title: "You already have an active task", body: blockingTask?.kind === "assignment" ? "You are currently handling an interpreter assignment, so you cannot create a new request." : "You already have an unfinished help request, so you cannot create a new one.", detail: "Finish or cancel the current task before creating another request.", close: "Close" },
+    zh: { title: "已有进行中的任务", body: blockingTask?.kind === "assignment" ? "您正在处理一个口译任务，暂时无法创建新的求助。" : "您已有一个未完成的求助，暂时无法创建新的求助。", detail: "请先完成或取消当前任务，然后再创建新的求助。", close: "关闭" },
+    es: { title: "Ya tienes una tarea activa", body: blockingTask?.kind === "assignment" ? "Estás atendiendo una asignación de interpretación y no puedes crear una nueva solicitud." : "Tienes una solicitud de ayuda sin terminar y no puedes crear otra.", detail: "Termina o cancela la tarea actual antes de crear otra solicitud.", close: "Cerrar" },
+    ar: { title: "لديك مهمة نشطة بالفعل", body: blockingTask?.kind === "assignment" ? "أنت تتولى مهمة ترجمة فورية، لذلك لا يمكنك إنشاء طلب جديد." : "لديك طلب مساعدة غير مكتمل، لذلك لا يمكنك إنشاء طلب آخر.", detail: "أكمل المهمة الحالية أو ألغها قبل إنشاء طلب آخر.", close: "إغلاق" },
+  }[locale];
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdRequestId, setCreatedRequestId] = useState<string | null>(null);
 
@@ -878,7 +883,7 @@ export function RequestHelpForm({
                       label={t.scheduleDay}
                       value={scheduledDate}
                       minimumDate={minimumScheduleDate}
-                      locale={copyLocale === "zh" ? "zh-CN" : "en-US"}
+                      locale={localeDateTimeTags[locale]}
                       previousMonthLabel={t.previousMonth}
                       nextMonthLabel={t.nextMonth}
                       selectedDateLabel={t.selectedDate}

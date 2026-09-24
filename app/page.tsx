@@ -29,7 +29,7 @@ const landingCopy = {
   th: {
     skip: "ข้ามไปเนื้อหาหลัก",
     header: {
-      brandSubtitle: "เชื่อมคน เชื่อมภาษา เพื่อสังคมที่เท่าเทียม",
+      brandSubtitle: "พร้อมที่จะให้ความช่วยเหลือด้านภาษา",
       languageLabel: "ภาษาหน้าจอ",
       signIn: "เข้าสู่ระบบ",
       primaryAction: "ขอความช่วยเหลือ",
@@ -77,7 +77,7 @@ const landingCopy = {
     },
     footer: {
       description: "เครือข่ายอาสาสมัครล่ามเพื่อการสื่อสารที่เข้าถึงได้สำหรับทุกคน",
-      note: "เชื่อมคน เชื่อมภาษา",
+      note: "พร้อมที่จะให้ความช่วยเหลือด้านภาษา",
       explore: "สำรวจ",
       safety: "ความปลอดภัย",
       needHelp: "ต้องการความช่วยเหลือ?",
@@ -90,7 +90,7 @@ const landingCopy = {
   en: {
     skip: "Skip to main content",
     header: {
-      brandSubtitle: "Connecting people and languages",
+      brandSubtitle: "Ready to provide language support",
       languageLabel: "Language",
       signIn: "Sign in",
       primaryAction: "Get help",
@@ -138,7 +138,7 @@ const landingCopy = {
     },
     footer: {
       description: "A volunteer interpreter network making communication accessible to everyone.",
-      note: "Connecting people and languages",
+      note: "Ready to provide language support",
       explore: "Explore",
       safety: "Safety",
       needHelp: "Need help?",
@@ -151,7 +151,7 @@ const landingCopy = {
   zh: {
     skip: "跳到主要内容",
     header: {
-      brandSubtitle: "连接人与语言，共创平等社会",
+      brandSubtitle: "随时提供语言支持",
       languageLabel: "语言",
       signIn: "登录",
       primaryAction: "获取帮助",
@@ -199,7 +199,7 @@ const landingCopy = {
     },
     footer: {
       description: "让每个人都能获得沟通支持的志愿口译网络。",
-      note: "连接人与语言",
+      note: "随时提供语言支持",
       explore: "探索",
       safety: "安全",
       needHelp: "需要帮助？",
@@ -217,7 +217,7 @@ const localizedLandingCopy = {
     ...landingCopy.en,
     header: {
       ...landingCopy.en.header,
-      brandSubtitle: "Conectamos personas y lenguas para una sociedad más igualitaria",
+      brandSubtitle: "Listos para brindar apoyo lingüístico",
       languageLabel: "Idioma",
       signIn: "Iniciar sesión",
       primaryAction: "Obtener ayuda",
@@ -254,10 +254,20 @@ const localizedLandingCopy = {
       note: "Lenguas diferentes, una comunidad",
       imageAlt: "Un grupo diverso observa unido un paisaje tailandés",
     },
+    howItWorks: {
+      label: "Cómo funciona",
+      title: "De la solicitud a la finalización",
+      steps: ["Elige un idioma, una categoría y un punto de encuentro", "Cuando un intérprete acepte la solicitud, revisa y confirma a la persona intérprete", "Ambas partes confirman la finalización y después dejan una valoración"],
+    },
+    privacy: {
+      label: "Privacidad",
+      title: "Comparte solo lo necesario",
+      body: "Confirma con quién te reunirás y el lugar antes de desplazarte. Los datos de contacto y la ubicación exacta se muestran tras confirmar al intérprete. El apoyo lingüístico no sustituye a los servicios de emergencia.",
+    },
     footer: {
       ...landingCopy.en.footer,
       description: "Una red de intérpretes voluntarios que hace accesible la comunicación para todas las personas.",
-      note: "Conectamos personas y lenguas",
+      note: "Listos para brindar apoyo lingüístico",
       explore: "Explorar",
       safety: "Seguridad",
       needHelp: "¿Necesitas ayuda?",
@@ -271,7 +281,7 @@ const localizedLandingCopy = {
     ...landingCopy.en,
     header: {
       ...landingCopy.en.header,
-      brandSubtitle: "نربط الناس واللغات من أجل مجتمع أكثر مساواة",
+      brandSubtitle: "مستعدون لتقديم الدعم اللغوي",
       languageLabel: "اللغة",
       signIn: "تسجيل الدخول",
       primaryAction: "الحصول على المساعدة",
@@ -308,10 +318,20 @@ const localizedLandingCopy = {
       note: "لغات مختلفة، مجتمع واحد",
       imageAlt: "مجموعة متنوعة تقف معًا وتتأمل منظرًا طبيعيًا في تايلاند",
     },
+    howItWorks: {
+      label: "كيف يعمل",
+      title: "من الطلب إلى الإتمام",
+      steps: ["اختر اللغة والفئة ومكان اللقاء", "عندما يستلم مترجم الطلب، راجع بياناته وأكّد اختياره", "يؤكد الطرفان اكتمال المهمة ثم يتركان تقييمًا"],
+    },
+    privacy: {
+      label: "الخصوصية",
+      title: "شارك ما يلزم فقط",
+      body: "تأكد من الشخص الذي ستقابله ومكان اللقاء قبل التحرك. تظهر تفاصيل التواصل والموقع الدقيق بعد تأكيد المترجم. لا يغني الدعم اللغوي عن خدمات الطوارئ.",
+    },
     footer: {
       ...landingCopy.en.footer,
       description: "شبكة مترجمين متطوعين تجعل التواصل متاحًا للجميع.",
-      note: "نربط الناس واللغات",
+      note: "مستعدون لتقديم الدعم اللغوي",
       explore: "استكشف",
       safety: "الأمان",
       needHelp: "هل تحتاج إلى مساعدة؟",

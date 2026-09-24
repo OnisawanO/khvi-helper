@@ -33,6 +33,7 @@ import ManagerDashboard from "@/app/manager/page";
 import { PlatformOverviewView } from "./components/platform-overview-view";
 import { WorkspaceDataLoadingSkeleton } from "@/app/components/workspace-loading-skeleton";
 import { useGovernanceStore } from "@/app/lib/governance-store";
+import { useStoredLocale } from "@/app/lib/locale";
 import type { ManagerNavSection } from "@/app/manager/types";
 import {
   getAdminReportsAction,
@@ -48,6 +49,8 @@ import {
 
 export default function AdminPage({ initialUser }: { initialUser: UserProfile }) {
   const router = useRouter();
+  const [locale] = useStoredLocale();
+  const text = (en: string, th: string, zh: string, es: string, ar: string) => locale === "th" ? th : locale === "zh" ? zh : locale === "es" ? es : locale === "ar" ? ar : en;
   const [authChecked, setAuthChecked] = useState(true);
   const [activeTab, setActiveTab] = useState<AdminActiveTab>(() => {
     if (typeof window === "undefined") return "overview";
@@ -661,7 +664,7 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
         {/* Content Workspace Scroll Area - Pure Clean White Canvas */}
         <div className="relative flex-1 overflow-y-auto min-w-0 flex flex-col bg-white">
           {dataLoading && (
-            <div className="absolute inset-0 z-20 bg-white/92 p-4 sm:p-6 md:p-8" aria-label="Loading admin data">
+            <div className="absolute inset-0 z-20 bg-white/92 p-4 sm:p-6 md:p-8" aria-label={text("Loading admin data", "กำลังโหลดข้อมูลผู้ดูแลระบบ", "正在加载管理数据", "Cargando datos de administración", "جارٍ تحميل بيانات المسؤول") }>
               <WorkspaceDataLoadingSkeleton variant="table" />
             </div>
           )}
@@ -672,6 +675,7 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
                 users={users}
                 reports={reports}
                 auditLogs={auditLogs}
+                locale={locale}
                 onNavigateTab={handleSetActiveTab}
                 onRefresh={async () => {
                   await refreshUsers();
@@ -686,9 +690,9 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
               <div className="flex flex-col gap-3 border-b border-slate-200 pb-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="text-lg sm:text-xl font-bold text-[#092f45]">
-                    User Directory
+                    {text("User Directory", "รายชื่อผู้ใช้", "用户目录", "Directorio de usuarios", "دليل المستخدمين")}
                   </h2>
-                  <p className="mt-1 text-xs text-slate-500">Manage user access, staff roles, and account security.</p>
+                  <p className="mt-1 text-xs text-slate-500">{text("Manage user access, staff roles, and account security.", "จัดการสิทธิ์ผู้ใช้ บทบาทเจ้าหน้าที่ และความปลอดภัยบัญชี", "管理用户访问、员工角色和账户安全。", "Gestiona el acceso, los roles y la seguridad de las cuentas.", "إدارة وصول المستخدمين وأدوار الموظفين وأمان الحسابات.")}</p>
                 </div>
                 {currentUser?.adminLevel === "primary" && (
                   <button
@@ -697,7 +701,7 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
                     className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#087f80] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#076f70] focus:outline-none focus:ring-2 focus:ring-[#087f80]/30 focus:ring-offset-2"
                   >
                     <UserPlusIcon className="h-4 w-4" aria-hidden="true" />
-                    Add Staff Account
+                    {text("Add Staff Account", "เพิ่มบัญชีเจ้าหน้าที่", "添加员工账户", "Añadir cuenta de personal", "إضافة حساب موظف")}
                   </button>
                 )}
               </div>
@@ -723,7 +727,7 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-slate-200">
                 <div>
                   <h2 className="text-lg sm:text-xl font-bold text-[#092f45]">
-                    System Reports
+                    {text("System Reports", "รายงานระบบ", "系统报告", "Informes del sistema", "تقارير النظام")}
                   </h2>
                 </div>
               </div>
@@ -738,6 +742,7 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
                 dismissedReportsCount={dismissedReportsCount}
                 selectedStatusFilter={selectedReportStatusFilter}
                 onSelectStatusFilter={setSelectedReportStatusFilter}
+                locale={locale}
               />
             )}
 
@@ -746,7 +751,7 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
                 role="alert"
                 className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-800"
               >
-                <p className="font-bold">Reports could not be loaded from Supabase.</p>
+                <p className="font-bold">{text("Reports could not be loaded from Supabase.", "ไม่สามารถโหลดรายงานจาก Supabase ได้", "无法从 Supabase 加载报告。", "No se pudieron cargar los informes desde Supabase.", "تعذر تحميل التقارير من Supabase.")}</p>
                 <p className="mt-1 break-words">{reportsLoadError}</p>
               </div>
             )}
@@ -784,6 +789,7 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
                 filterMenuOpen={filterMenuOpen}
                 setFilterMenuOpen={setFilterMenuOpen}
                 onSelectUser={handleOpenUserDetail}
+                locale={locale}
               />
             )}
 
@@ -794,6 +800,7 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
                 onResolveSystemReport={handleResolveSystemReport}
                 selectedStatusFilter={selectedReportStatusFilter}
                 onSelectStatusFilter={setSelectedReportStatusFilter}
+                locale={locale}
               />
             )}
 
@@ -809,6 +816,7 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
                   auditLogs={auditLogs}
                   auditViewMode={auditViewMode}
                   setAuditViewMode={setAuditViewMode}
+                  locale={locale}
                 />
               )
             )}

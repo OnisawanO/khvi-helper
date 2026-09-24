@@ -28,6 +28,7 @@ interface ManagerDrawerProps {
   pendingReportCount: number;
   activitiesCount: number;
   t: ManagerTranslation["navigation"];
+  header: ManagerTranslation["header"];
 }
 
 export function ManagerDrawer({
@@ -42,6 +43,7 @@ export function ManagerDrawer({
   pendingReportCount,
   activitiesCount,
   t,
+  header,
 }: ManagerDrawerProps) {
   return (
     <div
@@ -62,7 +64,7 @@ export function ManagerDrawer({
 
       {/* Drawer content sliding smoothly from left (Navy Dark Theme) */}
       <aside
-        className={`relative z-10 flex h-full w-[290px] max-w-[85vw] flex-col justify-between bg-[#092f45] text-white p-4 shadow-2xl border-r border-[#16435c] transition-transform duration-300 [transition-timing-function:cubic-bezier(0.2,0,0,1)] select-none ${
+        className={`khvi-side-drawer relative z-10 flex h-full w-[290px] max-w-[85vw] flex-col justify-between bg-[#092f45] text-white p-4 shadow-2xl border-r border-[#16435c] transition-transform duration-300 [transition-timing-function:cubic-bezier(0.2,0,0,1)] select-none ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -73,7 +75,7 @@ export function ManagerDrawer({
               href="/"
               onClick={onClose}
               className="group flex items-center gap-3 rounded-2xl transition-transform hover:scale-105"
-              title="KHVI Home"
+              title={header.home}
             >
               <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#087f80]/40 bg-[#0d3b55] shadow-xs group-hover:border-[#087f80]">
                 <Image
@@ -87,15 +89,15 @@ export function ManagerDrawer({
               </div>
               <div>
                 <span className="block text-sm font-black tracking-tight text-white">KHVI</span>
-                <span className="block truncate text-[10px] font-bold text-[#4d8a93]">Operations Hub</span>
+                <span className="block truncate text-[10px] font-bold text-[#4d8a93]">{header.hubSubtitle}</span>
               </div>
             </Link>
             <button
               type="button"
               onClick={onClose}
               className="flex h-8 w-8 items-center justify-center rounded-xl text-slate-300 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
-              aria-label="Close menu"
-              title="Close menu"
+              aria-label={t.toggleMenu}
+              title={t.toggleMenu}
             >
               <XMarkIcon className="h-5 w-5" />
             </button>
@@ -289,10 +291,10 @@ export function ManagerDrawer({
             type="button"
             onClick={() => alert("Manager System Settings & Preferences")}
             className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-xs font-bold text-slate-300 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
-            title="Manager Settings"
+            title={header.profile}
           >
             <Cog6ToothIcon className="h-5 w-5 shrink-0" />
-            <span>Profile & Settings</span>
+            <span>{header.profile}</span>
           </button>
         </div>
       </aside>

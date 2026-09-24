@@ -17,6 +17,39 @@ export interface RegisterRoleModalProps {
   onSelectInterpreter: () => void;
 }
 
+const roleCopy = {
+  en: {
+    close: "Close", eyebrow: "Choose account type", title: "What would you like to register as?", intro: "Select your role in KHVI Helper to continue with the appropriate registration.",
+    requesterBadge: "Requester", requesterTitle: "Standard user", requesterBody: "For people who need language support, emergency communication, or everyday coordination.", requesterFeatureOne: "Create SOS help requests", requesterFeatureTwo: "Connect with nearby volunteer interpreters", requesterAction: "Register as user →",
+    interpreterBadge: "Interpreter", interpreterTitle: "Volunteer interpreter", interpreterBody: "For multilingual people who want to support others in urgent and everyday situations.", interpreterFeatureOne: "Register and submit credentials in one place", interpreterFeatureTwo: "Accept requests and build a service record", interpreterAction: "Register as volunteer →",
+    privacy: "Your information is protected under the BR-04 Shield privacy standard.",
+  },
+  th: {
+    close: "ปิด", eyebrow: "เลือกประเภทบัญชีผู้ใช้", title: "คุณต้องการลงทะเบียนเป็นอะไร?", intro: "เลือกบทบาทของคุณในระบบ KHVI Helper เพื่อเริ่มต้นการลงทะเบียนที่ตรงกับความต้องการ",
+    requesterBadge: "ผู้ขอความช่วยเหลือ", requesterTitle: "ผู้ใช้งานทั่วไป", requesterBody: "สำหรับผู้ที่ต้องการความช่วยเหลือทางภาษา สื่อสารยามฉุกเฉิน หรือประสานงานในชีวิตประจำวัน", requesterFeatureOne: "สร้างคำขอ SOS ได้ทันที", requesterFeatureTwo: "เชื่อมต่อล่ามอาสาใกล้เคียง", requesterAction: "ลงทะเบียนเป็นผู้ใช้ →",
+    interpreterBadge: "ล่ามจิตอาสา", interpreterTitle: "ล่ามจิตอาสา", interpreterBody: "สำหรับผู้มีทักษะทางภาษาและประสงค์เข้าร่วมช่วยเหลือผู้ประสบภัยในสถานการณ์ต่าง ๆ", interpreterFeatureOne: "สมัครและยื่นเอกสารในหน้าเดียว", interpreterFeatureTwo: "รับงานช่วยเหลือและสะสมภารกิจ", interpreterAction: "ลงทะเบียนเป็นล่ามอาสา →",
+    privacy: "ข้อมูลของคุณได้รับการคุ้มครองตามมาตรฐานความเป็นส่วนตัว BR-04 Shield",
+  },
+  zh: {
+    close: "关闭", eyebrow: "选择账户类型", title: "你想注册为哪种角色？", intro: "选择你在 KHVI Helper 中的角色，进入对应的注册流程。",
+    requesterBadge: "求助者", requesterTitle: "普通用户", requesterBody: "适用于需要语言协助、紧急沟通或日常协调的用户。", requesterFeatureOne: "发布 SOS 求助", requesterFeatureTwo: "联系附近的志愿口译员", requesterAction: "注册为用户 →",
+    interpreterBadge: "志愿口译员", interpreterTitle: "志愿口译员", interpreterBody: "适用于具备多语言能力并希望在紧急或日常场景中帮助他人的人士。", interpreterFeatureOne: "在一处注册并提交资质", interpreterFeatureTwo: "接受任务并积累服务记录", interpreterAction: "注册为志愿者 →",
+    privacy: "你的信息受 BR-04 Shield 隐私标准保护。",
+  },
+  es: {
+    close: "Cerrar", eyebrow: "Elige el tipo de cuenta", title: "¿Con qué perfil quieres registrarte?", intro: "Elige tu rol en KHVI Helper para continuar con el registro adecuado.",
+    requesterBadge: "Solicitante", requesterTitle: "Usuario", requesterBody: "Para personas que necesitan apoyo lingüístico, comunicación de emergencia o coordinación cotidiana.", requesterFeatureOne: "Crear solicitudes SOS", requesterFeatureTwo: "Conectar con intérpretes voluntarios cercanos", requesterAction: "Registrarme como usuario →",
+    interpreterBadge: "Intérprete", interpreterTitle: "Intérprete voluntario", interpreterBody: "Para personas multilingües que desean ayudar en situaciones urgentes y cotidianas.", interpreterFeatureOne: "Registrarte y presentar credenciales en un solo lugar", interpreterFeatureTwo: "Aceptar solicitudes y crear un historial de servicio", interpreterAction: "Registrarme como voluntario →",
+    privacy: "Tu información está protegida conforme al estándar de privacidad BR-04 Shield.",
+  },
+  ar: {
+    close: "إغلاق", eyebrow: "اختر نوع الحساب", title: "بأي دور تريد التسجيل؟", intro: "اختر دورك في KHVI Helper للمتابعة إلى التسجيل المناسب.",
+    requesterBadge: "صاحب الطلب", requesterTitle: "مستخدم", requesterBody: "لمن يحتاج إلى دعم لغوي أو تواصل في الطوارئ أو تنسيق يومي.", requesterFeatureOne: "إنشاء طلبات مساعدة SOS", requesterFeatureTwo: "التواصل مع مترجمين متطوعين قريبين", requesterAction: "التسجيل كمستخدم ←",
+    interpreterBadge: "مترجم", interpreterTitle: "مترجم متطوع", interpreterBody: "للمتحدثين بعدة لغات ممن يرغبون في مساعدة الآخرين في المواقف العاجلة واليومية.", interpreterFeatureOne: "التسجيل وتقديم المؤهلات في مكان واحد", interpreterFeatureTwo: "استلام الطلبات وبناء سجل خدمة", interpreterAction: "التسجيل كمتطوع ←",
+    privacy: "معلوماتك محمية وفق معيار الخصوصية BR-04 Shield.",
+  },
+} as const;
+
 export function RegisterRoleModal({
   isOpen,
   onClose,
@@ -25,6 +58,7 @@ export function RegisterRoleModal({
 }: RegisterRoleModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const [locale] = useStoredLocale();
+  const copy = roleCopy[locale];
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -49,6 +83,7 @@ export function RegisterRoleModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="role-modal-title"
+      dir={locale === "ar" ? "rtl" : "ltr"}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto bg-[#092f45]/70 backdrop-blur-xs animate-in fade-in"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
@@ -64,8 +99,8 @@ export function RegisterRoleModal({
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-5 right-5 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-[#5c727d] transition-all hover:bg-slate-200 hover:text-[#092f45] cursor-pointer"
-          aria-label="Close"
+          className="absolute top-5 right-5 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-[#5c727d] transition-all hover:bg-slate-200 hover:text-[#092f45] cursor-pointer rtl:left-5 rtl:right-auto"
+          aria-label={copy.close}
         >
           <XMarkIcon className="h-5 w-5" aria-hidden="true" />
         </button>
@@ -74,21 +109,13 @@ export function RegisterRoleModal({
         <div className="text-center max-w-lg mx-auto">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-[#b9d9d6] bg-[#edf7f5] px-3 py-1 text-xs font-black uppercase tracking-wider text-[#087f80]">
             <SparklesIcon className="h-3.5 w-3.5" />
-            {locale === "th" ? "เลือกประเภทบัญชีผู้ใช้" : locale === "zh" ? "选择账户类型" : "Choose Account Type"}
+            {copy.eyebrow}
           </span>
           <h2 id="role-modal-title" className="mt-3 text-2xl font-black text-[#10283a] sm:text-3xl">
-            {locale === "th"
-              ? "คุณต้องการลงทะเบียนเป็นอะไร?"
-              : locale === "zh"
-                ? "你想注册为哪种角色？"
-                : "What would you like to register as?"}
+            {copy.title}
           </h2>
           <p className="mt-2 text-xs sm:text-sm text-[#64777e]">
-            {locale === "th"
-              ? "เลือกบทบาทของคุณในระบบ KHVI Helper เพื่อเริ่มต้นการลงทะเบียนที่ตรงกับความต้องการ"
-              : locale === "zh"
-                ? "选择您在 KHVI Helper 系统中的角色，以进行相应的注册流程"
-                : "Select your role in KHVI Helper to proceed with the appropriate registration process."}
+            {copy.intro}
           </p>
         </div>
 
@@ -105,29 +132,25 @@ export function RegisterRoleModal({
                   <UserIcon className="h-6 w-6" />
                 </div>
                 <span className="rounded-full border border-[#cbd7dc] bg-[#f8fafb] px-2.5 py-0.5 text-[11px] font-bold text-[#53656c]">
-                  {locale === "th" ? "ผู้ขอความช่วยเหลือ" : locale === "zh" ? "求助者" : "Requester"}
+                  {copy.requesterBadge}
                 </span>
               </div>
 
               <h3 className="mt-4 text-lg font-black text-[#10283a] group-hover:text-[#087f80] transition-colors">
-                {locale === "th" ? "ผู้ใช้งานทั่วไป (User)" : locale === "zh" ? "普通用户 (User)" : "Standard User"}
+                {copy.requesterTitle}
               </h3>
               <p className="mt-2 text-xs leading-relaxed text-[#64777e]">
-                {locale === "th"
-                  ? "สำหรับผู้ที่ต้องการความช่วยเหลือทางภาษา สื่อสารยามฉุกเฉิน หรือประสานงานในชีวิตประจำวัน"
-                  : locale === "zh"
-                    ? "适用于需要紧急翻译、日常沟通或协助服务的普通用户"
-                    : "For individuals needing language translation, emergency communication, or coordination."}
+                {copy.requesterBody}
               </p>
 
               <ul className="mt-4 space-y-1.5 text-xs text-[#526a74]">
                 <li className="flex items-center gap-1.5">
                   <span className="text-[#087557] font-bold">✓</span>
-                  <span>{locale === "th" ? "สร้างคำขอ SOS ได้ทันที" : locale === "zh" ? "即时发布 SOS 求助" : "Post SOS help requests"}</span>
+                  <span>{copy.requesterFeatureOne}</span>
                 </li>
                 <li className="flex items-center gap-1.5">
                   <span className="text-[#087557] font-bold">✓</span>
-                  <span>{locale === "th" ? "เชื่อมต่อล่ามอาสาใกล้เคียง" : locale === "zh" ? "连接附近志愿口译员" : "Connect with nearby interpreters"}</span>
+                  <span>{copy.requesterFeatureTwo}</span>
                 </li>
               </ul>
             </div>
@@ -140,7 +163,7 @@ export function RegisterRoleModal({
               }}
               className="mt-6 inline-flex w-full min-h-11 items-center justify-center rounded-xl border border-[#087f80] bg-[#edf7f5] px-4 py-2.5 text-xs font-extrabold text-[#087f80] group-hover:bg-[#087f80] group-hover:text-white transition-colors cursor-pointer"
             >
-              {locale === "th" ? "ลงทะเบียนเป็น User →" : locale === "zh" ? "注册为普通用户 →" : "Register as User →"}
+              {copy.requesterAction}
             </button>
           </div>
 
@@ -155,29 +178,25 @@ export function RegisterRoleModal({
                   <AcademicCapIcon className="h-6 w-6" />
                 </div>
                 <span className="rounded-full border border-[#8ed5c4]/40 bg-[#087f80] px-2.5 py-0.5 text-[11px] font-extrabold text-white">
-                  {locale === "th" ? "ล่ามจิตอาสา" : locale === "zh" ? "志愿口译员" : "Interpreter"}
+                  {copy.interpreterBadge}
                 </span>
               </div>
 
               <h3 className="mt-4 text-lg font-black text-white group-hover:text-[#8ed5c4] transition-colors">
-                {locale === "th" ? "ล่ามจิตอาสา (Interpreter)" : locale === "zh" ? "志愿口译员 (Interpreter)" : "Volunteer Interpreter"}
+                {copy.interpreterTitle}
               </h3>
               <p className="mt-2 text-xs leading-relaxed text-slate-300">
-                {locale === "th"
-                  ? "สำหรับผู้มีทักษะทางภาษาและประสงค์เข้าร่วมช่วยเหลือผู้ประสบภัยในสถานการณ์ต่าง ๆ"
-                  : locale === "zh"
-                    ? "适用于具备多语言技能，希望协助受助者并参与应急救援的专业人士"
-                    : "For multilingual speakers wanting to provide volunteer interpretation support."}
+                {copy.interpreterBody}
               </p>
 
               <ul className="mt-4 space-y-1.5 text-xs text-slate-300">
                 <li className="flex items-center gap-1.5">
                   <span className="text-[#8ed5c4] font-bold">✓</span>
-                  <span>{locale === "th" ? "สมัครและยื่นเอกสารในหน้าเดียว" : locale === "zh" ? "单页面注册与提交资质" : "Register and submit credentials"}</span>
+                  <span>{copy.interpreterFeatureOne}</span>
                 </li>
                 <li className="flex items-center gap-1.5">
                   <span className="text-[#8ed5c4] font-bold">✓</span>
-                  <span>{locale === "th" ? "รับงานช่วยเหลือและสะสมภารกิจ" : locale === "zh" ? "接收任务并积累服务记录" : "Claim requests & build impact"}</span>
+                  <span>{copy.interpreterFeatureTwo}</span>
                 </li>
               </ul>
             </div>
@@ -190,7 +209,7 @@ export function RegisterRoleModal({
               }}
               className="mt-6 inline-flex w-full min-h-11 items-center justify-center rounded-xl bg-[#087f80] px-4 py-2.5 text-xs font-extrabold text-white group-hover:bg-[#8ed5c4] group-hover:text-[#092f45] transition-colors cursor-pointer"
             >
-              {locale === "th" ? "ลงทะเบียนเป็นล่ามอาสา →" : locale === "zh" ? "注册为志愿口译员 →" : "Register as Volunteer →"}
+              {copy.interpreterAction}
             </button>
           </div>
         </div>
@@ -199,11 +218,7 @@ export function RegisterRoleModal({
         <div className="mt-6 flex items-center justify-center gap-2 text-xs text-[#73848a]">
           <ShieldCheckIcon className="h-4 w-4 text-[#087557]" />
           <span>
-            {locale === "th"
-              ? "ข้อมูลของคุณได้รับการคุ้มครองความปลอดภัยตามมาตรฐาน BR-04 Shield"
-              : locale === "zh"
-                ? "您的个人信息受 BR-04 隐私保护规范保障"
-                : "Your information is protected under BR-04 Shield privacy standards"}
+            {copy.privacy}
           </span>
         </div>
       </div>

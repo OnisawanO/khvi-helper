@@ -67,7 +67,7 @@ export function AdminHeader({
 
         {/* Right Section: Profile & Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
-          <label className="sr-only" htmlFor="admin-interface-language">Interface language</label>
+          <label className="sr-only" htmlFor="admin-interface-language">{t.header.interfaceLanguage}</label>
           <select
             id="admin-interface-language"
             value={locale}

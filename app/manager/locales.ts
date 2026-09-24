@@ -58,6 +58,7 @@ export type ManagerTranslation = {
     paginationNext: string;
   };
   header: {
+    home: string;
     hubSubtitle: string;
     toggleMenu: string;
     profile: string;
@@ -141,6 +142,7 @@ export const managerTranslations: Record<Locale, ManagerTranslation> = {
       paginationNext: "Next",
     },
     header: {
+      home: "KHVI Home",
       hubSubtitle: "Interpreter Operations Hub",
       toggleMenu: "Toggle Navigation Menu",
       profile: "Profile",
@@ -222,6 +224,7 @@ export const managerTranslations: Record<Locale, ManagerTranslation> = {
       paginationNext: "ถัดไป",
     },
     header: {
+      home: "หน้าหลัก KHVI",
       hubSubtitle: "ศูนย์ควบคุมและประสานงานล่าม",
       toggleMenu: "เปิด/ปิดเมนูนำทาง",
       profile: "โปรไฟล์ส่วนตัว",
@@ -303,6 +306,7 @@ export const managerTranslations: Record<Locale, ManagerTranslation> = {
       paginationNext: "下一页",
     },
     header: {
+      home: "KHVI 首页",
       hubSubtitle: "口译调度运营中心",
       toggleMenu: "切换导航菜单",
       profile: "个人资料",
@@ -384,6 +388,7 @@ export const managerTranslations: Record<Locale, ManagerTranslation> = {
       paginationNext: "Siguiente",
     },
     header: {
+      home: "Inicio de KHVI",
       hubSubtitle: "Centro de Operaciones de Intérpretes",
       toggleMenu: "Alternar menú de navegación",
       profile: "Perfil",
@@ -465,6 +470,7 @@ export const managerTranslations: Record<Locale, ManagerTranslation> = {
       paginationNext: "التالي",
     },
     header: {
+      home: "صفحة KHVI الرئيسية",
       hubSubtitle: "مركز عمليات الترجمة الفورية",
       toggleMenu: "تبديل قائمة التنقل",
       profile: "الملف الشخصي",

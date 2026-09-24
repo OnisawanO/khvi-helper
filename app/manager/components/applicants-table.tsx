@@ -15,6 +15,13 @@ import {
 } from "@heroicons/react/24/outline";
 import { InterpreterApplicant } from "../types";
 import type { ManagerTranslation } from "../locales";
+import type { Locale } from "@/app/components/site-header";
+import { formatLocalizedDateTime } from "@/app/lib/locale";
+import {
+  localizeCategoryReference,
+  localizeLanguageReference,
+  localizeUnspecified,
+} from "@/app/lib/reference-localization";
 
 interface ApplicantsTableProps {
   applicants: InterpreterApplicant[];
@@ -30,6 +37,7 @@ interface ApplicantsTableProps {
   setFilterMenuOpen: (open: boolean) => void;
   onSelectApplicant: (applicant: InterpreterApplicant) => void;
   t: ManagerTranslation["table"];
+  locale: Locale;
 }
 
 export function ApplicantsTable({
@@ -46,6 +54,7 @@ export function ApplicantsTable({
   setFilterMenuOpen,
   onSelectApplicant,
   t,
+  locale,
 }: ApplicantsTableProps) {
   const filterMenuRef = useRef<HTMLDivElement>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -60,6 +69,13 @@ export function ApplicantsTable({
   }, [applicants, validCurrentPage, pageSize]);
 
   const activeFiltersCount = selectedLanguages.length + selectedCategories.length;
+  const filterCopy = {
+    en: { options: "Filter candidate options", clearAll: "Clear all", reset: "Reset", found: "Found", candidates: "candidate(s)", done: "Done" },
+    th: { options: "ตัวเลือกตัวกรองผู้สมัคร", clearAll: "ล้างทั้งหมด", reset: "รีเซ็ต", found: "พบ", candidates: "รายการ", done: "เสร็จสิ้น" },
+    zh: { options: "候选人筛选选项", clearAll: "清除全部", reset: "重置", found: "找到", candidates: "位候选人", done: "完成" },
+    es: { options: "Opciones de filtro", clearAll: "Borrar todo", reset: "Restablecer", found: "Encontrados", candidates: "candidatos", done: "Listo" },
+    ar: { options: "خيارات تصفية المرشحين", clearAll: "مسح الكل", reset: "إعادة تعيين", found: "تم العثور على", candidates: "مرشحين", done: "تم" },
+  }[locale];
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -133,7 +149,7 @@ export function ApplicantsTable({
                 <div className="flex items-center justify-between border-b border-[#edf2f5] pb-2.5">
                   <span className="text-xs font-black text-[#112d3f] flex items-center gap-1.5">
                     <AdjustmentsHorizontalIcon className="h-4 w-4 text-[#087f80]" />
-                    Filter Candidate Options
+                    {filterCopy.options}
                   </span>
                   {activeFiltersCount > 0 && (
                     <button
@@ -145,7 +161,7 @@ export function ApplicantsTable({
                       }}
                       className="text-[11px] font-bold text-[#f04f3e] hover:underline cursor-pointer"
                     >
-                      Clear all ({activeFiltersCount})
+                      {filterCopy.clearAll} ({activeFiltersCount})
                     </button>
                   )}
                 </div>
@@ -155,7 +171,7 @@ export function ApplicantsTable({
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-[11px] font-bold text-[#557180] flex items-center gap-1">
                       <LanguageIcon className="h-3.5 w-3.5 text-[#087f80]" />
-                      Spoken Languages
+                      {t.languagesTitle}
                     </label>
                     {selectedLanguages.length > 0 && (
                       <button
@@ -163,19 +179,19 @@ export function ApplicantsTable({
                         onClick={resetLanguages}
                         className="text-[10px] text-[#087f80] hover:underline cursor-pointer font-bold"
                       >
-                        Reset ({selectedLanguages.length})
+                        {filterCopy.reset} ({selectedLanguages.length})
                       </button>
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pr-1">
                     {[
-                      { id: "Thai", label: "Thai (ไทย)" },
-                      { id: "Burmese", label: "Burmese (พม่า)" },
-                      { id: "Mandarin", label: "Mandarin (จีนกลาง)" },
-                      { id: "English", label: "English (อังกฤษ)" },
-                      { id: "Vietnamese", label: "Vietnamese (เวียดนาม)" },
-                      { id: "Japanese", label: "Japanese (ญี่ปุ่น)" },
-                      { id: "Russian", label: "Russian (รัสเซีย)" },
+                      { id: "Thai" },
+                      { id: "Burmese" },
+                      { id: "Mandarin" },
+                      { id: "English" },
+                      { id: "Vietnamese" },
+                      { id: "Japanese" },
+                      { id: "Russian" },
                     ].map((lang) => {
                       const isChecked = selectedLanguages.includes(lang.id);
                       return (
@@ -201,7 +217,7 @@ export function ApplicantsTable({
                           >
                             {isChecked && <CheckIcon className="h-2.5 w-2.5 stroke-[3]" />}
                           </span>
-                          <span className="truncate">{lang.label}</span>
+                          <span className="truncate">{localizeLanguageReference(lang.id, locale)}</span>
                         </button>
                       );
                     })}
@@ -213,7 +229,7 @@ export function ApplicantsTable({
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-[11px] font-bold text-[#557180] flex items-center gap-1">
                       <BriefcaseIcon className="h-3.5 w-3.5 text-[#087f80]" />
-                      Specialty Domains
+                      {t.categoriesTitle}
                     </label>
                     {selectedCategories.length > 0 && (
                       <button
@@ -221,17 +237,17 @@ export function ApplicantsTable({
                         onClick={resetCategories}
                         className="text-[10px] text-[#087f80] hover:underline cursor-pointer font-bold"
                       >
-                        Reset ({selectedCategories.length})
+                        {filterCopy.reset} ({selectedCategories.length})
                       </button>
                     )}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pr-1">
                     {[
-                      { id: "Medical", label: "Medical" },
-                      { id: "Tourism", label: "Tourism" },
-                      { id: "Police station", label: "Police Station" },
-                      { id: "Legal Documentation", label: "Legal Document" },
-                      { id: "Labour Assistance", label: "Labour Help" },
+                      { id: "Medical" },
+                      { id: "Tourism" },
+                      { id: "Police station" },
+                      { id: "Legal Documentation" },
+                      { id: "Labour Assistance" },
                     ].map((cat) => {
                       const isChecked = selectedCategories.includes(cat.id);
                       return (
@@ -257,7 +273,7 @@ export function ApplicantsTable({
                           >
                             {isChecked && <CheckIcon className="h-2.5 w-2.5 stroke-[3]" />}
                           </span>
-                          <span className="truncate">{cat.label}</span>
+                          <span className="truncate">{localizeCategoryReference(cat.id, locale)}</span>
                         </button>
                       );
                     })}
@@ -267,14 +283,14 @@ export function ApplicantsTable({
                 {/* Active Filter Summary and Apply */}
                 <div className="border-t border-[#edf2f5] pt-3 flex items-center justify-between">
                   <span className="text-[11px] text-[#698492]">
-                    Found: <strong className="text-[#102938]">{applicants.length}</strong> candidate(s)
+                    {filterCopy.found}: <strong className="text-[#102938]">{applicants.length}</strong> {filterCopy.candidates}
                   </span>
                   <button
                     type="button"
                     onClick={() => setFilterMenuOpen(false)}
                     className="rounded-lg bg-[#087f80] px-4 py-1.5 text-xs font-bold text-white hover:bg-[#066a6a] cursor-pointer"
                   >
-                    Done
+                    {filterCopy.done}
                   </button>
                 </div>
               </div>
@@ -294,7 +310,7 @@ export function ApplicantsTable({
               className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-[#f04f3e] hover:bg-red-50 hover:border-red-200 transition-all cursor-pointer shadow-2xs"
             >
               <ArrowPathIcon className="h-3.5 w-3.5" />
-              <span>Reset</span>
+              <span>{t.resetButton}</span>
             </button>
           )}
         </div>
@@ -339,7 +355,7 @@ export function ApplicantsTable({
                             {app.name}
                           </p>
                           <p className="text-[11px] text-slate-500 font-mono">
-                            {app.appliedDate.split(" ")[1] || app.appliedDate} · {app.country}
+                            {formatLocalizedDateTime(app.appliedDate, locale, { dateStyle: "medium", timeZone: "Asia/Bangkok" })} · {localizeUnspecified(app.country, locale)}
                           </p>
                         </div>
                       </div>
@@ -348,7 +364,7 @@ export function ApplicantsTable({
                     {/* Primary Pair */}
                     <td className="px-3.5 py-3.5">
                       <span className="font-bold text-[#092f45]">
-                        {app.primaryLanguage}
+                        {localizeLanguageReference(app.primaryLanguage, locale)}
                       </span>
                       {app.spokenLanguages.length > 1 && (
                         <p className="text-[10px] text-slate-400 mt-0.5">
@@ -363,7 +379,7 @@ export function ApplicantsTable({
                         {app.specialtyCategories.slice(0, 2).map((spec, idx) => (
                           <span key={spec} className="inline-flex items-center">
                             {idx > 0 && <span className="mr-1.5 text-slate-300">·</span>}
-                            <span className="font-medium text-[#2d4957]">{spec}</span>
+                            <span className="font-medium text-[#2d4957]">{localizeCategoryReference(spec, locale)}</span>
                           </span>
                         ))}
                         {app.specialtyCategories.length > 2 && (

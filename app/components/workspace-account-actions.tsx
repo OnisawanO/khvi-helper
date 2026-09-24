@@ -67,7 +67,7 @@ export function WorkspaceAccountActions({ user, onSignOut }: { user: UserProfile
       {profileMenuOpen && (
         <div
           role="menu"
-          className="absolute right-0 z-50 mt-2 w-64 rounded-(--khvi-radius-md) border border-(--khvi-teal)/20 bg-(--khvi-surface) p-2 shadow-[0_18px_36px_rgba(19,52,68,0.16)]"
+          className="khvi-account-menu absolute right-0 z-50 mt-2 w-64 rounded-(--khvi-radius-md) border border-(--khvi-teal)/20 bg-(--khvi-surface) p-2 shadow-[0_18px_36px_rgba(19,52,68,0.16)]"
         >
           <div className="border-b border-(--khvi-teal)/15 px-3 py-2.5">
             <p className="truncate text-sm font-extrabold text-(--khvi-ink)">{displayName}</p>

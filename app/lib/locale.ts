@@ -18,6 +18,15 @@ export const localeLanguageTags: Record<Locale, string> = {
   ar: "ar",
 };
 
+/** Use one explicit regional format for each supported interface language. */
+export const localeDateTimeTags: Record<Locale, string> = {
+  en: "en-GB",
+  th: "th-TH-u-ca-gregory",
+  zh: "zh-CN",
+  es: "es-ES",
+  ar: "ar-EG-u-ca-gregory",
+};
+
 export function isLocale(value: string | null): value is Locale {
   return value === "en" || value === "th" || value === "zh" || value === "es" || value === "ar";
 }
@@ -27,6 +36,16 @@ export type CopyLocale = Locale;
 
 export function resolveCopyLocale(locale: Locale): CopyLocale {
   return locale;
+}
+
+export function formatLocalizedDateTime(
+  value: Date | string | number,
+  locale: Locale,
+  options: Intl.DateTimeFormatOptions,
+): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (!Number.isFinite(date.getTime())) return typeof value === "string" ? value : "";
+  return new Intl.DateTimeFormat(localeDateTimeTags[locale], options).format(date);
 }
 
 function applyLocaleToDocument(locale: Locale) {
@@ -54,6 +73,13 @@ export async function persistPreferredUiLanguage(locale: Locale): Promise<void> 
     ].filter(Boolean).join("; ");
     throw new Error(details || "Supabase rejected the preferred UI language update.");
   }
+
+  // Auth email templates receive user metadata, so keep that safe presentation
+  // preference aligned with the profile value used by the application.
+  const { error: metadataError } = await supabase.auth.updateUser({
+    data: { preferred_ui_language: locale },
+  });
+  if (metadataError) throw metadataError;
 }
 
 /** Locale picked in the header, persisted so it survives navigation between routes. */
@@ -69,6 +95,10 @@ export function useStoredLocale(): [Locale, (locale: Locale) => void] {
     window.localStorage.setItem(LOCALE_USER_SELECTED_KEY, "true");
     applyLocaleToDocument(nextLocale);
     window.dispatchEvent(new CustomEvent<Locale>(LOCALE_CHANGE_EVENT, { detail: nextLocale }));
+    void persistPreferredUiLanguage(nextLocale).catch(() => {
+      // The local preference is still useful for signed-out visitors. Signed-in
+      // users receive the stored profile preference again on the next session.
+    });
   }, []);
 
   useEffect(() => {
