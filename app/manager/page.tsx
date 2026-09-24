@@ -24,6 +24,7 @@ import { OperationsHistoryView } from "./components/operations-history-view";
 import { ProfileChangeRequestsView } from "./components/profile-change-requests-view";
 import { ApplicantDetailModal } from "./components/applicant-detail-modal";
 import { LoginModal } from "@/app/components/auth/login-modal";
+import { WorkspaceLoadingSkeleton } from "@/app/components/workspace-loading-skeleton";
 
 import {
   getRedirectPathByRole,
@@ -528,11 +529,7 @@ export default function ManagerDashboard({
   ]);
 
   if (!authChecked) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#f7f9fa] text-[#092f45]" aria-busy="true">
-        <p role="status" className="text-sm font-bold">Checking manager session…</p>
-      </main>
-    );
+    return <WorkspaceLoadingSkeleton variant="table" />;
   }
 
   const setManagerNavSection = (section: ManagerNavSection) => {

@@ -33,6 +33,7 @@ import { AuditTrailTable } from "./components/audit-trail-table";
 import { PlatformPoliciesView } from "./components/platform-policies-view";
 import ManagerDashboard from "@/app/manager/page";
 import { PlatformOverviewView } from "./components/platform-overview-view";
+import { WorkspaceDataLoadingSkeleton } from "@/app/components/workspace-loading-skeleton";
 import { useGovernanceStore } from "@/app/lib/governance-store";
 import type { ManagerNavSection } from "@/app/manager/types";
 import {
@@ -49,9 +50,9 @@ import {
   updateUserSecurityAction,
 } from "./actions/admin-actions";
 
-export default function AdminPage() {
+export default function AdminPage({ initialUser }: { initialUser: UserProfile }) {
   const router = useRouter();
-  const [authChecked, setAuthChecked] = useState(false);
+  const [authChecked, setAuthChecked] = useState(true);
   const [activeTab, setActiveTab] = useState<AdminActiveTab>(() => {
     if (typeof window === "undefined") return "overview";
     return new URLSearchParams(window.location.search).get("view") === "manager-operations"
@@ -124,7 +125,8 @@ export default function AdminPage() {
   const [usersLoadError, setUsersLoadError] = useState<string | null>(null);
   const [auditLogsLoadError, setAuditLogsLoadError] = useState<string | null>(null);
   const [systemSettingsLoadError, setSystemSettingsLoadError] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(initialUser);
+  const [dataLoading, setDataLoading] = useState(true);
   const [isStaffAccountModalOpen, setIsStaffAccountModalOpen] = useState(false);
 
   const handleSetActiveTab = (tab: AdminActiveTab) => {
@@ -164,13 +166,18 @@ export default function AdminPage() {
 
       setCurrentUser(result.profile);
       setAuthChecked(true);
+      setDataLoading(true);
 
       // Load every Admin data source from Supabase. Empty results are valid and
       // must not fall back to client-side seed data.
-      void loadSupabaseUsers();
-      void loadSupabaseReports();
-      void loadSupabaseAuditLogs();
-      void loadSupabasePlatformSettings();
+      void Promise.all([
+        loadSupabaseUsers(),
+        loadSupabaseReports(),
+        loadSupabaseAuditLogs(),
+        loadSupabasePlatformSettings(),
+      ]).finally(() => {
+        if (!disposed) setDataLoading(false);
+      });
     };
 
     const loadSupabaseUsers = async () => {
@@ -667,7 +674,12 @@ export default function AdminPage() {
         />
 
         {/* Content Workspace Scroll Area - Pure Clean White Canvas */}
-        <div className="flex-1 overflow-y-auto min-w-0 flex flex-col bg-white">
+        <div className="relative flex-1 overflow-y-auto min-w-0 flex flex-col bg-white">
+          {dataLoading && (
+            <div className="absolute inset-0 z-20 bg-white/92 p-4 sm:p-6 md:p-8" aria-label="Loading admin data">
+              <WorkspaceDataLoadingSkeleton variant="table" />
+            </div>
+          )}
           <main className="flex-1 p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6">
             {/* TAB 0: SYSTEM & OPERATIONS OVERVIEW (ANALYTICS & CHARTS) */}
             {activeTab === "overview" && (

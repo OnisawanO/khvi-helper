@@ -37,5 +37,5 @@ export async function RequestDetailPage({ requestId, withShell = true, requiredA
     />
   );
 
-  return withShell ? <WorkspaceShell requiredAccountRole={requiredAccountRole}>{detail}</WorkspaceShell> : detail;
+  return withShell ? <WorkspaceShell initialUser={roleSession?.profile} requiredAccountRole={requiredAccountRole}>{detail}</WorkspaceShell> : detail;
 }

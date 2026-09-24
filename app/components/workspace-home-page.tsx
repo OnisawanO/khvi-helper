@@ -36,9 +36,9 @@ export async function WorkspaceHomePage({ requiredRole }: { requiredRole: Extrac
 
   if (profile.role === "Interpreter") {
     const [openRes, assignRes, requestRes, catalog, ratingResult] = await Promise.all([
-      loadOpenInterpreterRequests(supabase),
-      loadInterpreterAssignments(supabase),
-      loadRequesterRequests(supabase),
+      loadOpenInterpreterRequests(supabase, profile),
+      loadInterpreterAssignments(supabase, { profile }),
+      loadRequesterRequests(supabase, { profile }),
       loadReferenceCatalog(supabase),
       loadMyInterpreterRating(supabase, profile.userId).catch(() => null),
     ]);
@@ -50,7 +50,7 @@ export async function WorkspaceHomePage({ requiredRole }: { requiredRole: Extrac
     interpreterRating = ratingResult;
   } else {
     [requesterRequests, referenceCatalog] = await Promise.all([
-      loadRequesterRequests(supabase),
+      loadRequesterRequests(supabase, { profile }),
       loadReferenceCatalog(supabase),
     ]);
   }

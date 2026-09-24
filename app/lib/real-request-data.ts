@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/utils/supabase/server";
 import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
+import type { UserProfile } from "@/app/lib/auth-types";
 import {
   LANGUAGES,
   type CategoryId,
@@ -97,6 +98,24 @@ type RatingSummaryRow = {
 
 type QueryError = { code?: string; message?: string } | null;
 
+type RequestDetails = {
+  privateDetails?: PrivateDetails;
+  contacts: ContactRow[];
+  locations: LocationRow[];
+  review?: ReviewRow;
+  rating?: RatingSummaryRow;
+};
+
+type RequestLoadOptions = {
+  /**
+   * Home/list views only need the booking row, contacts and review state.
+   * The full RPC set is reserved for the request detail page.
+   */
+  details?: "none" | "summary" | "full";
+  /** Reuse the profile already loaded by the page guard. */
+  profile?: UserProfile;
+};
+
 function isPermissionDenied(error: QueryError): boolean {
   return error?.code === "42501" || Boolean(error?.message?.includes("not_authorized"));
 }
@@ -182,7 +201,7 @@ async function loadDetails(
   bookingId: number,
   bookingStatus: string,
   interpreterId: string | null,
-) {
+): Promise<RequestDetails> {
   const [
     { data: privateData, error: privateError },
     { data: contactData, error: contactError },
@@ -225,6 +244,38 @@ async function loadDetails(
     rating,
   };
 }
+
+async function loadSummaryDetails(
+  supabase: SupabaseClient,
+  bookingId: number,
+  bookingStatus: string,
+): Promise<RequestDetails> {
+  const [{ data: contactData, error: contactError }, { data: reviewData, error: reviewError }] = await Promise.all([
+    supabase.rpc("get_booking_contacts", { p_booking_id: bookingId }),
+    bookingStatus === "completed"
+      ? supabase.rpc("get_booking_review", { p_booking_id: bookingId })
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  if (contactError && !isPermissionDenied(contactError)) throw contactError;
+  if (reviewError && !isPermissionDenied(reviewError)) throw reviewError;
+
+  return {
+    privateDetails: undefined,
+    contacts: (contactError ? [] : contactData ?? []) as ContactRow[],
+    locations: [],
+    review: reviewError ? undefined : ((reviewData ?? [])[0] as ReviewRow | undefined),
+    rating: undefined,
+  };
+}
+
+const EMPTY_REQUEST_DETAILS: RequestDetails = {
+  privateDetails: undefined,
+  contacts: [],
+  locations: [],
+  review: undefined,
+  rating: undefined,
+};
 
 function contactFor(contacts: ContactRow[], role: ContactRow["contact_role"]): ContactRow | undefined {
   return contacts.find((contact) => contact.contact_role === role);
@@ -345,9 +396,13 @@ export type OpenRequestsResult = {
   diagnostic: OpenRequestsDiagnostic;
 };
 
-async function loadRows(supabase: SupabaseClient, mode: "requester" | "interpreter-assigned") {
-  const profileResult = await getCurrentUserProfile(supabase);
-  if (!profileResult.profile) {
+async function loadRows(
+  supabase: SupabaseClient,
+  mode: "requester" | "interpreter-assigned",
+  options: RequestLoadOptions = {},
+) {
+  const profile = options.profile ?? (await getCurrentUserProfile(supabase)).profile;
+  if (!profile) {
     console.warn(`[real-request-data] loadRows (${mode}): No profile found for session`);
     return [];
   }
@@ -358,9 +413,9 @@ async function loadRows(supabase: SupabaseClient, mode: "requester" | "interpret
     .order("created_at", { ascending: false });
 
   if (mode === "requester") {
-    query = query.eq("user_id", profileResult.profile.userId);
+    query = query.eq("user_id", profile.userId);
   } else {
-    query = query.eq("interpreter_id", profileResult.profile.userId);
+    query = query.eq("interpreter_id", profile.userId);
   }
 
   const { data, error } = await query;
@@ -371,37 +426,51 @@ async function loadRows(supabase: SupabaseClient, mode: "requester" | "interpret
 
   const references = await loadReferences(supabase);
   const rows = (data ?? []) as unknown as BookingRow[];
+  const detailLevel = options.details ?? "summary";
   const requests = await Promise.all(rows.map(async (row) => {
-    const details = await loadDetails(supabase, Number(row.booking_id), row.status, row.interpreter_id);
+    const details = detailLevel === "full"
+      ? await loadDetails(supabase, Number(row.booking_id), row.status, row.interpreter_id)
+      : detailLevel === "summary"
+        ? await loadSummaryDetails(supabase, Number(row.booking_id), row.status)
+        : EMPTY_REQUEST_DETAILS;
     return toRequest(row, references, details);
   }));
 
   return requests.filter((request): request is HelpRequest => request !== null);
 }
 
-export async function loadRequesterRequests(supabase?: SupabaseClient): Promise<HelpRequest[]> {
+export async function loadRequesterRequests(
+  supabase?: SupabaseClient,
+  options?: RequestLoadOptions,
+): Promise<HelpRequest[]> {
   try {
-    return await loadRows(supabase ?? await createClient(), "requester");
+    return await loadRows(supabase ?? await createClient(), "requester", options);
   } catch (error) {
     console.error("[real-request-data] loadRequesterRequests error:", error);
     return [];
   }
 }
 
-export async function loadInterpreterAssignments(supabase?: SupabaseClient): Promise<HelpRequest[]> {
+export async function loadInterpreterAssignments(
+  supabase?: SupabaseClient,
+  options?: RequestLoadOptions,
+): Promise<HelpRequest[]> {
   try {
-    return await loadRows(supabase ?? await createClient(), "interpreter-assigned");
+    return await loadRows(supabase ?? await createClient(), "interpreter-assigned", options);
   } catch (error) {
     console.error("[real-request-data] loadInterpreterAssignments error:", error);
     return [];
   }
 }
 
-export async function loadWorkspaceActivity(supabase?: SupabaseClient): Promise<WorkspaceActivity> {
+export async function loadWorkspaceActivity(
+  supabase?: SupabaseClient,
+  profile?: UserProfile,
+): Promise<WorkspaceActivity> {
   const client = supabase ?? (await createClient());
   const [requesterRequests, assignments] = await Promise.all([
-    loadRequesterRequests(client),
-    loadInterpreterAssignments(client),
+    loadRequesterRequests(client, { details: "none", profile }),
+    loadInterpreterAssignments(client, { details: "none", profile }),
   ]);
 
   return {
@@ -410,51 +479,61 @@ export async function loadWorkspaceActivity(supabase?: SupabaseClient): Promise<
   };
 }
 
-export async function loadOpenInterpreterRequests(supabaseClient?: SupabaseClient): Promise<OpenRequestsResult> {
+export async function loadOpenInterpreterRequests(
+  supabaseClient?: SupabaseClient,
+  initialProfile?: UserProfile,
+): Promise<OpenRequestsResult> {
   const supabase = supabaseClient ?? (await createClient());
 
-  // a. Check session
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-  if (userError || !userData?.user) {
-    console.warn("[real-request-data] loadOpenInterpreterRequests: No authenticated user session");
-    return {
-      requests: [],
-      diagnostic: {
-        status: "no_session",
-        message: "No authenticated session. Please sign in as an interpreter.",
-      },
-    };
-  }
+  let userId = initialProfile?.userId ?? "";
+  let role = initialProfile?.role;
 
-  const userId = userData.user.id;
+  if (!initialProfile) {
+    // a. Check session
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData?.user) {
+      console.warn("[real-request-data] loadOpenInterpreterRequests: No authenticated user session");
+      return {
+        requests: [],
+        diagnostic: {
+          status: "no_session",
+          message: "No authenticated session. Please sign in as an interpreter.",
+        },
+      };
+    }
 
-  // b. Check profile
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("role, is_locked")
-    .eq("user_id", userId)
-    .maybeSingle();
+    userId = userData.user.id;
 
-  if (profileError || !profile) {
-    console.error("[real-request-data] loadOpenInterpreterRequests: Profile lookup failed for user", userId, profileError?.message);
-    return {
-      requests: [],
-      diagnostic: {
-        status: "no_profile",
-        message: "User profile was not found. Please verify user creation trigger.",
-      },
-    };
+    // b. Check profile
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (profileError || !profile) {
+      console.error("[real-request-data] loadOpenInterpreterRequests: Profile lookup failed for user", userId, profileError?.message);
+      return {
+        requests: [],
+        diagnostic: {
+          status: "no_profile",
+          message: "User profile was not found. Please verify user creation trigger.",
+        },
+      };
+    }
+
+    role = profile.role as UserProfile["role"];
   }
 
   // c. Check role
-  if (profile.role !== "Interpreter") {
-    console.warn("[real-request-data] loadOpenInterpreterRequests: Non-interpreter role accessed open pool:", profile.role);
+  if (role !== "Interpreter") {
+    console.warn("[real-request-data] loadOpenInterpreterRequests: Non-interpreter role accessed open pool:", role);
     return {
       requests: [],
       diagnostic: {
         status: "not_interpreter",
-        role: profile.role,
-        message: `Account role is currently "${profile.role}". An approved "Interpreter" role is required.`,
+        role,
+        message: `Account role is currently "${role}". An approved "Interpreter" role is required.`,
       },
     };
   }
@@ -509,14 +588,12 @@ export async function loadOpenInterpreterRequests(supabaseClient?: SupabaseClien
   const rows = (bookingRows ?? []) as unknown as BookingRow[];
   const references = await loadReferences(supabase);
 
-  const requests = (
-      await Promise.all(
-      rows.map(async (row) => {
-        const details = await loadDetails(supabase, Number(row.booking_id), row.status, row.interpreter_id);
-        return toRequest(row, references, details);
-      }),
-    )
-  ).filter((request): request is HelpRequest => request !== null);
+  // The open-request map/list only needs public booking fields. Contacts,
+  // private coordinates, locations, reviews and ratings are loaded on the
+  // request detail page after the interpreter opens a specific request.
+  const requests = rows
+    .map((row) => toRequest(row, references, EMPTY_REQUEST_DETAILS))
+    .filter((request): request is HelpRequest => request !== null);
 
   if (requests.length === 0) {
     const appLangs = (approvedApp.interpreter_application_languages ?? []) as { language_id: number }[];

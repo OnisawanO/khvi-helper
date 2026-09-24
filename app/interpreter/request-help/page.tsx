@@ -13,15 +13,15 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function InterpreterRequestHelpPage() {
-  const { supabase } = await requireWorkspaceAccountRole("Interpreter");
+  const { profile, supabase } = await requireWorkspaceAccountRole("Interpreter");
   const [referenceCatalog, activity] = await Promise.all([
     loadReferenceCatalog(supabase),
-    loadWorkspaceActivity(supabase),
+    loadWorkspaceActivity(supabase, profile),
   ]);
   const blockingTask = activity.requester ?? activity.assignment;
 
   return (
-    <WorkspaceShell requiredRole="User" requiredAccountRole="Interpreter" alternatePath="/interpreter/find-requests#main-content">
+    <WorkspaceShell initialUser={profile} requiredRole="User" requiredAccountRole="Interpreter" alternatePath="/interpreter/find-requests#main-content">
       <RequestHelpForm
         languageOptions={referenceCatalog.languages}
         categoryOptions={referenceCatalog.categories}
