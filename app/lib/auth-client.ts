@@ -1,6 +1,6 @@
 import type { AuthApiResponse } from "./api/auth-response";
 import type { Locale } from "@/app/components/site-header";
-import type { RegisterInput, UserProfile, UserRole } from "./auth-types";
+import type { RegisterInput, UserProfile } from "./auth-types";
 
 async function apiFetch<T>(endpoint: string, init?: RequestInit): Promise<AuthApiResponse<T>> {
   try {
@@ -64,14 +64,6 @@ export const authApi = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ password, confirmPassword, locale }),
-    });
-  },
-
-  async fastLogin(role: UserRole) {
-    return apiFetch<{ user: UserProfile; role: UserRole; redirectPath: string }>("/api/auth/fast-login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role }),
     });
   },
 };

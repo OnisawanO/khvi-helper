@@ -54,8 +54,6 @@ User | Interpreter | Manager | Admin
 
 `profiles` เปิด RLS และให้ผู้ใช้ที่ login แล้วอ่านหรือแก้ไขเฉพาะ profile ของตนเอง ฟิลด์ role, lock status และ `is_super_interpreter` ต้องเปลี่ยนผ่าน server-side authorization เท่านั้น อย่าใช้ `user_metadata` เป็นแหล่งตัดสินสิทธิ์
 
-Fast Login ใช้เฉพาะ development ผ่าน `FAST_LOGIN_*` server environment variables และ `/api/auth/fast-login` ไม่ควรนำไปใช้เป็น production login flow
-
 ## Schema ที่มีอยู่จริง
 
 ความสัมพันธ์หลัก:
@@ -239,18 +237,18 @@ npm run dev
 
 ก่อนใช้ remote project ต้อง link project ให้ถูกต้องและตรวจ migration ก่อน `db push` เสมอ การ push schema ไป shared หรือ production ต้องได้รับอนุมัติจากผู้ดูแลโครงการ
 
-ใน repository ยังไม่มี `supabase/seed.sql` หรือ committed test users ดังนั้น local reset ไม่ได้สร้างบัญชี Fast Login ให้เอง บัญชีทดสอบต้องมีทั้ง Supabase Auth user และ `public.profiles` ที่ตรงกัน
+ใน repository ยังไม่มี `supabase/seed.sql` หรือ committed test users ดังนั้น local reset ไม่ได้สร้างบัญชีทดสอบให้อัตโนมัติ บัญชีทดสอบต้องมีทั้ง Supabase Auth user และ `public.profiles` ที่ตรงกัน และเข้าสู่ระบบผ่านฟอร์มปกติ
 
 ### บัญชี Super Interpreter สำหรับทดสอบ
 
-บัญชีใน `FAST_LOGIN_INTERPRETER_EMAIL` ที่ต้องการใช้เป็นบัญชีทดสอบพิเศษสามารถเปิดสิทธิ์ด้วย SQL นี้หลังจากมี profile และใบสมัครที่ `approved` แล้ว:
+บัญชี Interpreter สำหรับทดสอบที่ต้องการสิทธิ์พิเศษสามารถเปิดสิทธิ์ด้วย SQL นี้หลังจากมี profile และใบสมัครที่ `approved` แล้ว:
 
 ```sql
 update public.profiles p
 set is_super_interpreter = true
 from auth.users u
 where u.id = p.user_id
-  and u.email = '<FAST_LOGIN_INTERPRETER_EMAIL>'
+  and u.email = '<TEST_INTERPRETER_EMAIL>'
   and p.role = 'Interpreter'
   and p.is_locked = false;
 ```

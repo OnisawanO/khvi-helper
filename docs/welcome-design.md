@@ -26,8 +26,8 @@
 ## การตรวจสอบรอบนี้
 
 - lint และ production build ผ่านหลังย้าย business data ไปใช้ Supabase
-- ตรวจเบราว์เซอร์จริง: การเลือกภาษาไทย ปุ่มขอความช่วยเหลือเปิด login พร้อม intent, Quick Login User ไปหน้าสร้างคำขอ, กลับ Welcome และสร้างคำขอทดสอบเพื่อให้เห็น active card
-- Quick Login Interpreter แสดงเนื้อหาตามบทบาท ตัวกรองภาษาเปลี่ยนจากรายการที่ตรงเป็น empty state ได้
+- ตรวจเบราว์เซอร์จริง: การเลือกภาษาไทย ปุ่มขอความช่วยเหลือเปิด login พร้อม intent, บัญชี User ไปหน้าสร้างคำขอ, กลับ Welcome และสร้างคำขอทดสอบเพื่อให้เห็น active card
+- บัญชี Interpreter แสดงเนื้อหาตามบทบาท ตัวกรองภาษาเปลี่ยนจากรายการที่ตรงเป็น empty state ได้
 - FAQ เปิดคำตอบได้ ตรวจหน้าจอ 390, 768 และ 1440 พิกเซลตามหน้าที่ทดสอบ ไม่พบ horizontal overflow; พบปุ่มสีข้อความผิดระหว่างตรวจและแก้ก่อนตรวจซ้ำ
 - Next.js /_next/mcp get_errors ไม่พบ config/session errors
 - ยังไม่ได้ตรวจ GPS สำเร็จโดยใช้พิกัดจริง ไม่ได้ทดสอบ approval/review/atomic Claim เพราะ backend ส่วนนี้ยังไม่มี
@@ -47,7 +47,7 @@
 |---|---|---|
 | User starting page | requirements FR-04, user-flows.txt | Show service guidance and working links to create and track requests. |
 | Interpreter starting page | Existing documents plan an interpreter dashboard; the current user request asks for Welcome for both roles. | Use role-specific Welcome content for this task. The map remains planned. |
-| Authentication | Supabase Auth และ `public.profiles` เป็นแหล่งข้อมูล session/profile | ใช้ session และ server authorization จริง; Fast Login ยังคงไว้เฉพาะ development testing |
+| Authentication | Supabase Auth และ `public.profiles` เป็นแหล่งข้อมูล session/profile | ใช้ session และ server authorization จริง; ผู้ใช้เข้าสู่ระบบด้วยอีเมลและรหัสผ่าน |
 | Request activity | `bookings` และ guarded RPCs ผูกกับบัญชีใน Supabase | แสดงข้อมูลจริงตาม owner, role และ RLS |
 | Interpreter jobs | Matching, claims and account-scoped job history use Supabase data. | Use `/interpreter/find-requests` for open summaries and `/interpreter/my-assignments` for claimed, in-progress or completed summaries. |
 | Privacy | FR-10/11 require requester confirmation before sensitive details unlock. | Explain the confirmation gate consistently in the requester and interpreter guidance. |
@@ -64,4 +64,4 @@ Production work still requires Supabase sessions, server authorization and accou
 - Browser checks cover role-specific workspace entry, sign-out to `/#top`, requester links, role-specific Back to main paths, interpreter guide anchor and Chinese language switching.
 - Checked layouts at 390, 768 และ 1440 พิกเซลโดยไม่มี horizontal overflow; empty states แสดงจากผลลัพธ์ Supabase
 - LSP CLI was unavailable; source reads, reference searches and the TypeScript build covered import/type verification.
-- Post-change review keeps claim, contact-unlock, scheduling and database contracts unchanged. The implementation uses production data paths; Fast Login remains development-only.
+- Post-change review keeps claim, contact-unlock, scheduling and database contracts unchanged. The implementation uses production data paths; login uses Supabase Auth credentials.
