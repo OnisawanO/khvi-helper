@@ -135,7 +135,7 @@ function EscalateReportModalContent({
         <div className="overflow-y-auto p-5">
           <div className="space-y-1 rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-xs">
             <div className="flex items-center justify-between gap-3">
-              <span className="font-semibold text-slate-600">ผู้ถูกรายงาน</span>
+              <span className="font-semibold text-slate-600">ประเด็นระบบ</span>
               <span className="text-right font-extrabold text-red-600">
                 {`System issue${report.category ? ` (${report.category})` : ""}`}
               </span>

@@ -23,6 +23,7 @@ Auth
 - ก่อน Claim แสดงเฉพาะชื่อสถานที่แบบกว้าง ๆ
 - หลัง Claim User ต้องยืนยันล่ามก่อนจึงเปิดข้อมูลติดต่อและพิกัดจริงตามสิทธิ์
 - ไม่มีระบบ Chat
+- User และ Interpreter เปิด popup `Report a system issue` จาก footer เพื่อแจ้งบั๊กระบบเป็นภาษาอังกฤษได้ โดยเชื่อม booking ของตนเองได้เมื่อเกี่ยวข้อง
 - ผู้ใช้ทุก role ลบบัญชีถาวรจาก Profile Settings ได้เมื่อไม่มีคำขอ Open ที่ยังไม่หมดอายุหรืองาน Claimed/InProgress ระบบลบ Auth, profile, ไฟล์ใบสมัคร และข้อมูลที่ผูกกับบัญชีตาม foreign key แล้วล้าง session ใน browser
 
 User (ผู้ขอความช่วยเหลือ)

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BrandMark } from "./brand-mark";
+import { SystemReportDialog } from "./system-report-dialog";
 import type { Locale } from "./site-header";
 
 type FooterCopy = {
@@ -26,6 +27,7 @@ type SiteFooterProps = {
   brandSubtitle: string;
   locale?: Locale;
   workspace?: boolean;
+  showSystemReport?: boolean;
 };
 
 const footerBrandLabels: Record<Locale, string> = {
@@ -36,13 +38,14 @@ const footerBrandLabels: Record<Locale, string> = {
   ar: "الصفحة الرئيسية لـ KHVI",
 };
 
-export function SiteFooter({ copy, brandSubtitle, locale = "en", workspace = false }: SiteFooterProps) {
+export function SiteFooter({ copy, brandSubtitle, locale = "en", workspace = false, showSystemReport = true }: SiteFooterProps) {
   const brandAriaLabel = footerBrandLabels[locale];
 
   if (workspace) return (
     <footer className="border-t border-(--khvi-teal)/20 bg-(--khvi-surface) px-5 py-7 sm:px-8 lg:px-12">
       <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-6">
         <BrandMark subtitle={brandSubtitle} ariaLabel={brandAriaLabel} />
+        {showSystemReport && <SystemReportDialog tone="light" />}
       </div>
     </footer>
   );
@@ -77,7 +80,10 @@ export function SiteFooter({ copy, brandSubtitle, locale = "en", workspace = fal
         </div>
         <div className="mt-10 flex flex-col gap-3 border-t border-white/10 pt-5 text-xs text-white/45 sm:flex-row sm:items-center sm:justify-between">
           <p>© 2026 K-HVI. Volunteer Interpreter Network.</p>
-          <p>{copy.privacy}</p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            {showSystemReport && <SystemReportDialog tone="dark" />}
+            <p>{copy.privacy}</p>
+          </div>
         </div>
       </div>
     </footer>
