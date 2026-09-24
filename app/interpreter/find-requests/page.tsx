@@ -10,14 +10,14 @@ export const metadata: Metadata = {
 };
 
 export default async function FindRequestsPage() {
-  const { supabase } = await requireWorkspaceAccountRole("Interpreter");
+  const { profile, supabase } = await requireWorkspaceAccountRole("Interpreter");
   const [{ requests, diagnostic }, activity] = await Promise.all([
-    loadOpenInterpreterRequests(supabase),
-    loadWorkspaceActivity(supabase),
+    loadOpenInterpreterRequests(supabase, profile),
+    loadWorkspaceActivity(supabase, profile),
   ]);
 
   return (
-    <WorkspaceShell requiredRole="Interpreter" requiredAccountRole="Interpreter" alternatePath="/interpreter/request-help#main-content">
+    <WorkspaceShell initialUser={profile} requiredRole="Interpreter" requiredAccountRole="Interpreter" alternatePath="/interpreter/request-help#main-content">
       <FindRequestsList
         initialRequests={requests}
         diagnostic={diagnostic}

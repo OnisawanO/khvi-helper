@@ -15,18 +15,18 @@ export const metadata: Metadata = {
 export default async function MyAssignmentsPage(props: PageProps<"/interpreter/my-assignments">) {
   const { status } = await props.searchParams;
   const activeFilter = resolveStatusFilter(status ?? "completed");
-  const { supabase } = await requireWorkspaceAccountRole("Interpreter");
+  const { profile, supabase } = await requireWorkspaceAccountRole("Interpreter");
   const [assignments, openRequestsResult, application, activity] = await Promise.all([
-    loadInterpreterAssignments(supabase),
-    loadOpenInterpreterRequests(supabase),
+    loadInterpreterAssignments(supabase, { profile }),
+    loadOpenInterpreterRequests(supabase, profile),
     loadMyInterpreterApplication(supabase),
-    loadWorkspaceActivity(supabase),
+    loadWorkspaceActivity(supabase, profile),
   ]);
   const availableRequests = openRequestsResult.requests;
   const applicationStatus: ApplicationStatus | null = application?.status ?? null;
 
   return (
-    <WorkspaceShell requiredRole="Interpreter" requiredAccountRole="Interpreter" alternatePath="/interpreter/my-requests#main-content">
+    <WorkspaceShell initialUser={profile} requiredRole="Interpreter" requiredAccountRole="Interpreter" alternatePath="/interpreter/my-requests#main-content">
       <MyAssignmentsList
         activeFilter={activeFilter}
         applicationStatus={applicationStatus}

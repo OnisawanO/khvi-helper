@@ -1,29 +1,21 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import { getRedirectPathByRole, type UserRole } from "@/app/lib/auth-types";
+import { getRedirectPathByRole } from "@/app/lib/auth-types";
+import { getCurrentUserProfile } from "@/app/lib/supabase-auth";
 import AdminPageClient from "./admin-page-client";
 
 export default async function AdminPage() {
   const supabase = await createClient();
-  const { data: userData } = await supabase.auth.getUser();
+  const profileResult = await getCurrentUserProfile(supabase);
+  const profile = profileResult.profile;
 
-  if (!userData.user) {
-    redirect("/#top");
-  }
-
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("role, is_locked")
-    .eq("user_id", userData.user.id)
-    .maybeSingle();
-
-  if (error || !profile || profile.is_locked) {
+  if (!profile) {
     redirect("/#top");
   }
 
   if (profile.role !== "Admin") {
-    redirect(getRedirectPathByRole(profile.role as UserRole));
+    redirect(getRedirectPathByRole(profile.role));
   }
 
-  return <AdminPageClient />;
+  return <AdminPageClient initialUser={{ ...profile, role: "Admin" }} />;
 }

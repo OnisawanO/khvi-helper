@@ -13,11 +13,11 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function MyRequestsLayout({ children }: { children: ReactNode }) {
-  const { supabase } = await requireWorkspaceAccountRole("User");
-  const requests = await loadRequesterRequests(supabase);
+  const { profile, supabase } = await requireWorkspaceAccountRole("User");
+  const requests = await loadRequesterRequests(supabase, { profile });
 
   return (
-    <WorkspaceShell requiredRole="User" requiredAccountRole="User" alternatePath="/interpreter/my-assignments#main-content">
+    <WorkspaceShell initialUser={profile} requiredRole="User" requiredAccountRole="User" alternatePath="/interpreter/my-assignments#main-content">
       <RequesterRequestsProvider initialRequests={requests}>{children}</RequesterRequestsProvider>
     </WorkspaceShell>
   );
