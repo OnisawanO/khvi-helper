@@ -107,9 +107,8 @@ export async function getCurrentUserProfile(
     .eq("user_id", userData.user.id)
     .maybeSingle();
 
-  // Keep sign-in and development Fast Login usable while a new migration is
-  // being applied. The account deletion control remains unavailable until the
-  // database has the deleted_at column.
+  // Keep sign-in usable while a new migration is being applied. The account
+  // deletion control remains unavailable until the database has deleted_at.
   if (error && /deleted_at|column .* does not exist/i.test(error.message)) {
     accountDeletionAvailable = false;
     const legacyResult = await supabase

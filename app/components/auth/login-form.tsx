@@ -11,7 +11,6 @@ import {
   LockClosedIcon,
 } from "@heroicons/react/24/outline";
 import { getAuthCopy } from "@/app/lib/auth-copy";
-import { DevFastLoginPanel } from "./dev-fast-login-panel";
 import { useStoredLocale } from "@/app/lib/locale";
 import { authApi } from "@/app/lib/auth-client";
 import { getRedirectPathByRole, type UserProfile } from "@/app/lib/auth-types";
@@ -264,8 +263,6 @@ export function LoginForm({ onSuccess, onSwitchToRegister, isModal = false, isEm
               </button>
             </div>
           </form>
-
-          <DevFastLoginPanel embedded />
 
           {/* Switch to Register */}
           <div className="border-t border-[#edf2f4] pt-3 text-center text-xs text-[#5c727d]">

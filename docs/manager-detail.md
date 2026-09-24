@@ -17,7 +17,6 @@ Requirement → User → Use Case → User Flow → UI → Web Component → Des
 | สถานะ | ความหมาย | หลักฐานใน repository |
 |---|---|---|
 | Implemented production flow | หน้าและ interaction ใช้ข้อมูลจาก Supabase พร้อม server actions และ authorization | `/manager`, `app/manager/page.tsx` |
-| Development-only test flow | Fast Login ใช้บัญชีทดสอบจาก server environment เพื่อทดสอบ role | `/api/auth/fast-login` |
 
 ปัจจุบัน `/manager` ใช้ข้อมูลจริงจาก Supabase และ `/manager/dashboard` เป็น compatibility redirect ไปยัง route เดียวกัน ส่วน `/manager/verify-volunteers` ยังเป็น route ที่วางแผนไว้
 

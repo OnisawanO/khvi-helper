@@ -22,8 +22,6 @@ export type AuthCopy = {
     rememberMe: string;
     submit: string;
     submitting: string;
-    fastLoginTitle: string;
-    fastLoginNote: string;
     successTitle: string;
     successBody: (name: string, role: string) => string;
     emptyEmail: string;
@@ -31,8 +29,6 @@ export type AuthCopy = {
     emptyPassword: string;
     profileError: string;
     genericError: string;
-    fastLoginError: string;
-    fastLoginRoleMismatch: string;
     showPassword: string;
     hidePassword: string;
     noAccount: string;
@@ -140,8 +136,6 @@ const englishCopy: AuthCopy = {
     rememberMe: "Keep me signed in",
     submit: "Sign in",
     submitting: "Signing in…",
-    fastLoginTitle: "Development fast login:",
-    fastLoginNote: "Uses test accounts in Supabase Auth and is disabled in production.",
     successTitle: "Signed in successfully",
     successBody: (name, role) => `Welcome ${name} (role: ${role}). Redirecting…`,
     emptyEmail: "Enter your email.",
@@ -149,8 +143,6 @@ const englishCopy: AuthCopy = {
     emptyPassword: "Enter your password.",
     profileError: "Unable to load your profile.",
     genericError: "Something went wrong while signing in. Please try again.",
-    fastLoginError: "Unable to connect to Fast Login.",
-    fastLoginRoleMismatch: "The test account does not match the selected role.",
     showPassword: "Show password",
     hidePassword: "Hide password",
     noAccount: "Don’t have an account yet?",
@@ -258,8 +250,6 @@ const thaiCopy: AuthCopy = {
     rememberMe: "จดจำการเข้าสู่ระบบไว้",
     submit: "เข้าสู่ระบบ",
     submitting: "กำลังเข้าสู่ระบบ…",
-    fastLoginTitle: "เข้าสู่ระบบด่วนสำหรับการพัฒนา:",
-    fastLoginNote: "ใช้บัญชีทดสอบใน Supabase Auth และไม่แสดงใน production",
     successTitle: "เข้าสู่ระบบสำเร็จ",
     successBody: (name, role) => `ยินดีต้อนรับคุณ ${name} (บทบาท: ${role}) กำลังนำทาง...`,
     emptyEmail: "กรุณากรอกอีเมล",
@@ -267,8 +257,6 @@ const thaiCopy: AuthCopy = {
     emptyPassword: "กรุณากรอกรหัสผ่าน",
     profileError: "ไม่สามารถโหลดข้อมูลโปรไฟล์ได้",
     genericError: "เกิดข้อผิดพลาดในการเข้าสู่ระบบ กรุณาลองใหม่อีกครั้ง",
-    fastLoginError: "ไม่สามารถเชื่อมต่อ Fast Login ได้",
-    fastLoginRoleMismatch: "บัญชีทดสอบมี role ไม่ตรงกับปุ่มที่เลือก",
     showPassword: "แสดงรหัสผ่าน",
     hidePassword: "ซ่อนรหัสผ่าน",
     noAccount: "ยังไม่มีบัญชีใช่ไหม?",
@@ -372,8 +360,6 @@ const chineseCopy: AuthCopy = {
     rememberMe: "保持登录状态",
     submit: "登录",
     submitting: "正在登录…",
-    fastLoginTitle: "开发用快速登录：",
-    fastLoginNote: "使用 Supabase Auth 测试账户，生产环境不会显示。",
     successTitle: "登录成功",
     successBody: (name, role) => `欢迎你，${name}（角色：${role}）。正在跳转…`,
     emptyEmail: "请输入邮箱。",
@@ -457,8 +443,6 @@ const spanishCopy: AuthCopy = {
     rememberMe: "Mantener la sesión iniciada",
     submit: "Iniciar sesión",
     submitting: "Iniciando sesión…",
-    fastLoginTitle: "Inicio rápido para desarrollo:",
-    fastLoginNote: "Usa cuentas de prueba de Supabase Auth y no aparece en producción.",
     successTitle: "Sesión iniciada correctamente",
     successBody: (name, role) => "Bienvenido, " + name + " (rol: " + role + "). Redirigiendo…",
     emptyEmail: "Introduce tu correo electrónico.",
@@ -468,8 +452,6 @@ const spanishCopy: AuthCopy = {
     signUp: "Regístrate",
     profileError: "No se pudo cargar tu perfil.",
     genericError: "Se produjo un error al iniciar sesión. Inténtalo de nuevo.",
-    fastLoginError: "No se pudo conectar con el inicio rápido.",
-    fastLoginRoleMismatch: "La cuenta de prueba no coincide con el rol seleccionado.",
     showPassword: "Mostrar contraseña",
     hidePassword: "Ocultar contraseña",
   },
@@ -550,8 +532,6 @@ const arabicCopy: AuthCopy = {
     rememberMe: "إبقائي مسجّلًا",
     submit: "تسجيل الدخول",
     submitting: "جارٍ تسجيل الدخول…",
-    fastLoginTitle: "تسجيل دخول سريع للتطوير:",
-    fastLoginNote: "يستخدم حسابات اختبار في Supabase Auth ولا يظهر في الإنتاج.",
     successTitle: "تم تسجيل الدخول بنجاح",
     successBody: (name, role) => "مرحبًا " + name + " (الدور: " + role + "). جارٍ التحويل…",
     emptyEmail: "أدخل بريدك الإلكتروني.",
@@ -559,8 +539,6 @@ const arabicCopy: AuthCopy = {
     emptyPassword: "أدخل كلمة المرور.",
     profileError: "تعذر تحميل ملفك الشخصي.",
     genericError: "حدث خطأ أثناء تسجيل الدخول. حاول مرة أخرى.",
-    fastLoginError: "تعذر الاتصال بتسجيل الدخول السريع.",
-    fastLoginRoleMismatch: "حساب الاختبار لا يطابق الدور المحدد.",
     showPassword: "إظهار كلمة المرور",
     hidePassword: "إخفاء كلمة المرور",
     noAccount: "ليس لديك حساب؟",

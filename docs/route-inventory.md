@@ -65,7 +65,7 @@ This update supersedes the older source and state-only behavior notes below.
 | `/find-requests` | Compatibility interpreter-list route | Authenticated Interpreter | Supabase matching-open `bookings` through RLS; atomic `claim_booking` RPC | Redirect User to `/request-help`; empty state; claim error stays on list | Redirects to canonical `app/interpreter/find-requests/page.tsx` from `app/find-requests/page.tsx` |
 | `/my-assignments` | Compatibility interpreter-assignment route | Authenticated Interpreter (Supabase session) | Supabase `bookings` visible through matching-open and assigned-row RLS policies | Redirect User to `/my-requests`; approval guidance or empty state | Redirects to canonical `app/interpreter/my-assignments/page.tsx` from `app/my-assignments/page.tsx` |
 | `/register` | Static auth route | Public | Supabase Auth + `public.profiles` trigger; session is available immediately after signup | Not applicable | Implemented at `app/register/page.tsx` |
-| `/login` | Static auth route | Public | Direct Supabase Auth form; development-only Fast Login uses server credentials | Not applicable | Implemented at `app/login/page.tsx` |
+| `/login` | Static auth route | Public | Supabase Auth email/password form | Not applicable | Implemented at `app/login/page.tsx` |
 | `/forgot-password` | Static auth route | Public | Supabase Auth password-reset request | Invalid input stays on the form; success copy is account-enumeration safe | Implemented at `app/forgot-password/page.tsx` |
 | `/reset-password` | Static auth route | Recovery session | Supabase Auth recovery session established by the PKCE callback | Invalid or expired link offers a new reset request | Implemented at `app/reset-password/page.tsx` |
 | `/api/auth/callback` | Auth callback route | Public recovery/legacy callback entry | Supabase Auth PKCE `exchangeCodeForSession` and server-side profile/role check | Invalid or expired recovery link redirects to `/reset-password` | Implemented at `app/api/auth/callback/route.ts` |
@@ -74,7 +74,6 @@ This update supersedes the older source and state-only behavior notes below.
 | `/api/auth/logout` | Auth action route | Authenticated | Supabase Auth session cookies | Session cookies and persistence marker are cleared | Implemented at `app/api/auth/logout/route.ts` |
 | `/api/auth/forgot-password` | Auth action route | Public | Supabase Auth password-reset email | Same success response for existing and unknown email addresses | Implemented at `app/api/auth/forgot-password/route.ts` |
 | `/api/auth/reset-password` | Auth action route | Recovery session | Supabase Auth `updateUser` followed by server sign-out | `401` missing or non-recovery session; `400` invalid password | Implemented at `app/api/auth/reset-password/route.ts` |
-| `/api/auth/fast-login` | Auth action route | Development only; disabled in production | Supabase Auth accounts configured by `FAST_LOGIN_*` server environment variables | `400` invalid role; `503` missing dev account; `401` Auth failure | Implemented at `app/api/auth/fast-login/route.ts` |
 | `/sign-in` | Static auth redirect | Public | None | Redirects to `/?signin=true` | Implemented at `app/sign-in/page.tsx` |
 
 `/my-requests` รับ query parameter `status` ค่าเดียวเท่านั้น: `open`, `claimed`, `in-progress`, `completed`, `cancelled`
@@ -88,7 +87,7 @@ parameter ที่ผิดรูปแบบหรือไม่พบข้�
 
 `/register` เป็นระบบสมัครสมาชิกบัญชีผู้ใช้ใหม่ รับข้อมูลตาม Schema ตาราง `profiles` ใน `detail.md` ร่วมกับ Supabase Auth (ชื่อ-นามสกุล, อีเมล, รหัสผ่าน, เบอร์โทรศัพท์, วันเดือนปีเกิด, ภาษาหน้าจอ) โดยเบอร์โทรศัพท์และวันเดือนปีเกิดเป็นข้อมูลบังคับ และวันเดือนปีเกิดแสดงตามลำดับ วัน เดือน ปี; หากอีเมลซ้ำจะแจ้งว่ามีผู้ใช้นี้แล้ว โดยแสดงผลเป็น Modal Overlay แบบ 2 ฝั่ง (Split Card) ซ้อนบนหน้าแรก (`/`) และสามารถเข้าถึงผ่าน Direct URL `/register` ได้เช่นกัน
 
-`/login` เป็นหน้า Login โดยตรงที่ใช้ฟอร์ม Supabase Auth เดียวกับ modal หน้าแรก พร้อม checkbox `จดจำฉัน` และปุ่ม Fast Login สำหรับ development ซึ่งไม่แสดงใน production. หน้าแรกยังเปิด Login modal ได้ ส่วน `/sign-in` redirect ไป `/?signin=true` เพื่อคง compatibility เดิม
+`/login` เป็นหน้า Login โดยตรงที่ใช้ฟอร์ม Supabase Auth เดียวกับ modal หน้าแรก พร้อม checkbox `จดจำฉัน`. หน้าแรกยังเปิด Login modal ได้ ส่วน `/sign-in` redirect ไป `/?signin=true` เพื่อคง compatibility เดิม
 
 Session refresh ผ่าน `proxy.ts` ครอบคลุม canonical private routes `/user/**`, `/interpreter/**`, `/manager/**`, `/admin/**`, `/profile/**` และ compatibility private paths ที่ยังใช้งานอยู่ รวมถึง auth API ที่ต้องล้างหรือ refresh session. Proxy มีหน้าที่ refresh cookie เท่านั้น; page, server action และ API ยังคงตรวจ user/profile/role ฝั่ง server แยกกัน
 
