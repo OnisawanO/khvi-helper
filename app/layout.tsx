@@ -10,6 +10,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "K-HVI | Map-based volunteer interpreter platform",
   description: "Create a language help request pin and let approved volunteer interpreters nearby claim matched jobs.",
+  icons: {
+    icon: [{ url: "/khvi-logo.png", type: "image/png" }],
+    shortcut: [{ url: "/khvi-logo.png", type: "image/png" }],
+    apple: [{ url: "/khvi-logo.png", type: "image/png" }],
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
