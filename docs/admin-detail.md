@@ -40,7 +40,7 @@
 - เมนู Profile Dropdown สำหรับตรวจสอบข้อมูล บันทึก Audit Log และออกจากระบบ (`Sign Out`)
 
 ### 2.2 แถบนำทางด้านซ้ายและกิจกรรมความปลอดภัยล่าสุด (Left Navigation & Recent Security Activity)
-- current source ใช้เมนู 5 ส่วน: Platform Overview, User Management, Escalated Reports, Audit Trail และ Platform Policies
+- current source ใช้เมนู 4 ส่วน: Platform Overview, User Management, Escalated Reports และ Audit Trail
 - **Recent Security Activity (ประวัติความปลอดภัยย่อ):** แสดงเป็นส่วนสรุปขนาดกะทัดรัดใน Platform Overview จาก audit logs ล่าสุด และให้ลิงก์ไปยัง Audit Trail เต็มรูปแบบ จึงไม่ทำเป็นรายการถาวรใน sidebar
 
 ### 2.3 การ์ดสรุปตัวชี้วัดสำคัญ (Key Metric Cards)

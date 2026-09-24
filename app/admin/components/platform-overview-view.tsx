@@ -14,7 +14,7 @@ interface PlatformOverviewViewProps {
   users: AdminUserRecord[];
   reports: AdminIncidentReport[];
   auditLogs: AuditLogEntry[];
-  onNavigateTab: (tab: "users" | "reports" | "audit" | "policies") => void;
+  onNavigateTab: (tab: "users" | "reports" | "audit") => void;
   onRefresh?: () => void;
 }
 
@@ -268,7 +268,7 @@ export function PlatformOverviewView({
               <p className="text-xl sm:text-2xl font-black text-[#10283a]">
                 {metrics.lockedOrBannedCount}
               </p>
-              <span className="text-[11px] font-semibold text-slate-400">locked / banned</span>
+              <span className="text-[11px] font-semibold text-slate-400">locked / legacy restricted</span>
             </div>
             <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px] sm:text-xs text-slate-500">
               <span className="text-slate-400">Audit Enforcements</span>
@@ -471,13 +471,6 @@ export function PlatformOverviewView({
                   Distribution of verified volunteers ready for dispatch
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => onNavigateTab("policies")}
-                className="text-[11px] font-bold text-[#4d8a93] hover:underline cursor-pointer"
-              >
-                Taxonomies →
-              </button>
             </div>
 
             <div className="space-y-4 pt-4">

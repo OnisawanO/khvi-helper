@@ -12,29 +12,30 @@ type AccountActionDialogProps = {
   isOpen: boolean;
   user: AdminUserRecord | null;
   onClose: () => void;
-  onConfirmHardBan: (userId: string, reason: string) => Promise<boolean>;
+  onConfirmAccountDeletion: (userId: string, reason: string) => Promise<boolean>;
 };
 
 export function AccountActionDialog({
   isOpen,
   user,
   onClose,
-  onConfirmHardBan,
+  onConfirmAccountDeletion,
 }: AccountActionDialogProps) {
   const [reason, setReason] = useState("");
   const [typedConfirmation, setTypedConfirmation] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen || !user) return null;
 
-  const isBanned = user.accountStatus === "Banned" || user.lockReason?.includes("[PERMANENT BAN]");
+  const isLegacyRestricted = user.accountStatus === "Banned" || user.lockReason?.includes("[PERMANENT BAN]");
   const isLocked = user.isLocked;
 
   const handleAction = async () => {
     setErrorMsg("");
 
     if (!reason.trim()) {
-      setErrorMsg("Please provide an enforcement reason for the audit log.");
+      setErrorMsg("Please provide a deletion reason for the audit log.");
       return;
     }
 
@@ -44,8 +45,13 @@ export function AccountActionDialog({
       return;
     }
 
-    const success = await onConfirmHardBan(user.id, reason.trim());
-    if (success) onClose();
+    setIsSubmitting(true);
+    try {
+      const success = await onConfirmAccountDeletion(user.id, reason.trim());
+      if (success) onClose();
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -58,15 +64,15 @@ export function AccountActionDialog({
               <NoSymbolIcon className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-base font-extrabold text-[#092f45]">Permanent Hard Ban</h3>
-              <p className="text-xs text-slate-500">Permanent Security Enforcement (FR-20)</p>
+              <h3 className="text-base font-extrabold text-[#092f45]">Permanent Account Deletion</h3>
+              <p className="text-xs text-slate-500">Irreversible account and data removal (FR-20)</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-            aria-label="Close permanent hard ban dialog"
+            aria-label="Close permanent account deletion dialog"
           >
             <XMarkIcon className="h-5 w-5" />
           </button>
@@ -88,39 +94,39 @@ export function AccountActionDialog({
             </div>
             <span
               className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                isBanned
+                isLegacyRestricted
                   ? "bg-red-100 text-red-700"
                   : isLocked
                     ? "bg-amber-100 text-amber-700"
                     : "bg-emerald-100 text-emerald-700"
               }`}
             >
-              {isBanned ? "Permanently Banned" : isLocked ? "Suspended" : "Active"}
+              {isLegacyRestricted ? "Legacy Restricted" : isLocked ? "Suspended" : "Active"}
             </span>
           </div>
 
           {/* Reason Input */}
           <div>
             <label className="mb-1 block text-xs font-extrabold text-[#092f45]">
-              Enforcement Reason <span className="text-red-500">*</span>
+              Deletion Reason <span className="text-red-500">*</span>
             </label>
             <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Specify severe violation charges (e.g. Harassment, fraudulent identity, severe misconduct)..."
+              placeholder="Explain why this account and its stored data must be permanently deleted..."
               rows={3}
               className="w-full rounded-xl border border-slate-300 p-2.5 text-xs text-[#092f45] placeholder-slate-400 focus:border-[#087f80] focus:outline-none"
             />
           </div>
 
-          {/* Hard Ban Strict Confirmation Step */}
+          {/* Permanent Deletion Strict Confirmation Step */}
           <div className="space-y-2 rounded-xl border border-red-200 bg-red-50/70 p-4">
             <div className="flex items-center gap-2 text-red-700">
               <ExclamationTriangleIcon className="h-5 w-5 shrink-0 text-red-600" />
               <p className="text-xs font-black">Strict Safety Confirmation Required</p>
             </div>
             <p className="text-[11px] leading-relaxed text-red-600/90">
-              Permanent Hard Ban blocks new sign-ins and token refreshes through Supabase Auth, and marks the account as permanently restricted in KHVI. Existing access tokens may remain valid until they expire. Please type <strong>{user.name}</strong> or <strong>CONFIRM</strong> to authorize:
+              This permanently deletes the Supabase Auth account, profile, interpreter certificates, and account data. System audit history is retained without the deleted profile reference. This action cannot be undone. Type <strong>{user.name}</strong> or <strong>CONFIRM</strong> to authorize:
             </p>
             <input
               type="text"
@@ -152,12 +158,12 @@ export function AccountActionDialog({
             type="button"
             onClick={() => void handleAction()}
             disabled={
-              isBanned ||
+              isSubmitting ||
               (typedConfirmation.trim() !== user.name.trim() && typedConfirmation.trim() !== "CONFIRM")
             }
             className="cursor-pointer rounded-xl bg-red-600 px-5 py-2 text-xs font-extrabold text-white shadow-xs shadow-red-600/20 transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Confirm Permanent Hard Ban
+            {isSubmitting ? "Deleting Account..." : "Confirm Permanent Deletion"}
           </button>
         </div>
       </div>

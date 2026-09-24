@@ -17,6 +17,7 @@ import {
   ClockIcon,
   ChatBubbleLeftEllipsisIcon,
   CheckBadgeIcon,
+  CheckCircleIcon,
 } from "@heroicons/react/24/outline";
 import { AdminUserRecord, SystemRole } from "../types";
 
@@ -30,12 +31,11 @@ interface UserEditModalProps {
   setTempIsLocked: (locked: boolean) => void;
   tempLockReason: string;
   setTempLockReason: (reason: string) => void;
-  onSave: () => void;
+  onSave: (pendingRevokeReason?: string) => Promise<boolean>;
   canManageSecurity?: boolean;
   isPrimaryAdmin?: boolean;
   onGrantAdminAccess?: (user: AdminUserRecord) => void;
-  onRevokeInterpreter?: (user: AdminUserRecord, reason: string) => void;
-  onDirectHardBan?: (user: AdminUserRecord) => void;
+  onDirectAccountDeletion?: (user: AdminUserRecord) => void;
 }
 
 export function UserEditModal({
@@ -50,18 +50,30 @@ export function UserEditModal({
   canManageSecurity = true,
   isPrimaryAdmin = false,
   onGrantAdminAccess,
-  onRevokeInterpreter,
-  onDirectHardBan,
+  onDirectAccountDeletion,
 }: UserEditModalProps) {
   const [isRevoking, setIsRevoking] = useState(false);
   const [revokeReason, setRevokeReason] = useState("");
+  const [pendingRevokeReason, setPendingRevokeReason] = useState<string | null>(null);
+  const [revokeSaveState, setRevokeSaveState] = useState<"idle" | "pending" | "saving" | "saved">("idle");
   const [appealDismissed, setAppealDismissed] = useState(false);
+
+  const handleSecuritySave = async () => {
+    if (pendingRevokeReason) {
+      setRevokeSaveState("saving");
+    }
+
+    const saved = await onSave(pendingRevokeReason ?? undefined);
+    if (pendingRevokeReason) {
+      setRevokeSaveState(saved ? "saved" : "pending");
+    }
+  };
 
   if (!isOpen || !user) return null;
 
-  const isHardBanned = user.accountStatus === "Banned" || user.lockReason?.includes("[PERMANENT BAN]");
+  const isLegacyRestricted = user.accountStatus === "Banned" || user.lockReason?.includes("[PERMANENT BAN]");
   const canEditTarget =
-    !isHardBanned &&
+    !isLegacyRestricted &&
     canManageSecurity &&
     (isPrimaryAdmin || user.role === "User" || user.role === "Interpreter");
   const applicationStatusClass = user.applicationSummary?.status === "Approved"
@@ -75,16 +87,16 @@ export function UserEditModal({
       : user.interpreterStats?.specialties || []
   )];
   const hasInterpreterDetails = user.role === "Interpreter" || Boolean(user.interpreterStats || user.applicationSummary);
-  const isRestricted = isHardBanned || user.isLocked;
+  const isRestricted = isLegacyRestricted || user.isLocked;
 
   // Dynamic Risk Level Calculation
   const riskAssessment = (() => {
-    if (isHardBanned) {
+    if (isLegacyRestricted) {
       return {
-        level: "Banned / Excluded",
+        level: "Legacy Restricted",
         badgeColor: "bg-slate-900 text-red-300 border-slate-700",
         dotColor: "bg-red-500",
-        desc: "Permanently banned from accessing KHVI Helper services.",
+        desc: "This account carries a legacy permanent restriction record.",
       };
     }
     if (user.isLocked) {
@@ -154,7 +166,7 @@ export function UserEditModal({
                   </span>
                   <span
                     className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-bold ${
-                      isHardBanned
+                      isLegacyRestricted
                         ? "bg-slate-900 text-red-300"
                         : user.isLocked
                         ? "bg-red-50 text-red-700 border border-red-200"
@@ -163,15 +175,15 @@ export function UserEditModal({
                   >
                     <span
                       className={`h-1.5 w-1.5 rounded-full ${
-                        isHardBanned
+                        isLegacyRestricted
                           ? "bg-red-400"
                           : user.isLocked
                           ? "bg-red-500"
                           : "bg-emerald-500"
                       }`}
                     />
-                    {isHardBanned
-                      ? "Permanently Banned"
+                    {isLegacyRestricted
+                      ? "Legacy Restricted"
                       : user.isLocked
                       ? "Suspended"
                       : "Active"}
@@ -523,13 +535,13 @@ export function UserEditModal({
                     Staff security changes require the dedicated governance flow and Primary Admin authorization.
                   </p>
                 </div>
-              ) : isHardBanned ? (
+              ) : isLegacyRestricted ? (
                 <div className="rounded-lg border border-red-200 bg-red-50/60 p-3 text-xs text-red-800">
                   <p className="font-semibold text-red-900">
-                    Permanent ban is active
+                    Legacy restriction is active
                   </p>
                   <p className="mt-0.5 text-[11px] text-red-700/80">
-                    This account cannot be edited through the standard User Directory flow. A Primary Admin must review any change.
+                    This account cannot be edited through the standard User Directory flow. A Primary Admin can permanently delete it after review.
                   </p>
                 </div>
               ) : !canEditTarget ? (
@@ -542,7 +554,7 @@ export function UserEditModal({
                 </p>
               )}
 
-              {user.role !== "Admin" && user.role !== "Manager" && !isHardBanned && canEditTarget && (
+              {user.role !== "Admin" && user.role !== "Manager" && !isLegacyRestricted && canEditTarget && (
                 <>
                   {tempIsLocked ? (
                     <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50/40 p-3 animate-in fade-in">
@@ -588,23 +600,23 @@ export function UserEditModal({
                 </>
               )}
 
-              {isPrimaryAdmin && user.role !== "Admin" && !isHardBanned && onDirectHardBan && (
+              {isPrimaryAdmin && user.role !== "Admin" && onDirectAccountDeletion && (
                 <div className="space-y-3 border-t border-red-100 pt-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-xs font-bold text-red-900">Permanent hard ban</p>
+                      <p className="text-xs font-bold text-red-900">Permanent account deletion</p>
                       <p className="mt-1 text-[11px] leading-relaxed text-red-700/80">
-                        Irreversible enforcement. Blocks new sign-ins and token refreshes through Supabase Auth and permanently restricts the account in KHVI.
+                        Irreversible removal of the Auth account, profile, interpreter certificates, and account data. System audit history is retained.
                       </p>
                     </div>
                     <NoSymbolIcon className="h-5 w-5 shrink-0 text-red-600" />
                   </div>
                   <button
                     type="button"
-                    onClick={() => onDirectHardBan(user)}
+                    onClick={() => onDirectAccountDeletion(user)}
                     className="rounded-lg border border-red-300 bg-white px-3 py-2 text-xs font-bold text-red-700 transition-colors hover:bg-red-50"
                   >
-                    Review Permanent Hard Ban
+                    Review Permanent Account Deletion
                   </button>
                 </div>
               )}
@@ -643,31 +655,53 @@ export function UserEditModal({
                     <div className="flex items-center justify-end gap-2">
                       <button
                         type="button"
+                        disabled={revokeSaveState === "saving" || revokeSaveState === "saved"}
                         onClick={() => {
                           setIsRevoking(false);
                           setRevokeReason("");
+                          setPendingRevokeReason(null);
+                          setRevokeSaveState("idle");
                         }}
-                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
+                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Cancel
                       </button>
                       <button
                         type="button"
+                        disabled={revokeSaveState !== "idle"}
                         onClick={() => {
                           if (!revokeReason.trim()) {
                             alert("Please enter a revocation reason for the audit record.");
                             return;
                           }
-                          if (onRevokeInterpreter) {
-                            onRevokeInterpreter(user, revokeReason.trim());
-                          }
+                          setPendingRevokeReason(revokeReason.trim());
+                          setRevokeSaveState("pending");
                         }}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-[#f04f3e] px-3.5 py-1.5 text-xs font-bold text-white hover:bg-[#d93829] cursor-pointer"
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-bold text-white transition-colors ${
+                          revokeSaveState === "pending" || revokeSaveState === "saved"
+                            ? "bg-emerald-600"
+                            : "bg-[#f04f3e] hover:bg-[#d93829]"
+                        } disabled:cursor-not-allowed disabled:opacity-80`}
                       >
-                        <ExclamationTriangleIcon className="h-4 w-4" />
-                        Confirm Revocation
+                        {revokeSaveState === "pending" || revokeSaveState === "saved" ? (
+                          <CheckCircleIcon className="h-4 w-4" aria-hidden="true" />
+                        ) : (
+                          <ExclamationTriangleIcon className="h-4 w-4" aria-hidden="true" />
+                        )}
+                        {revokeSaveState === "saving"
+                          ? "Saving..."
+                          : revokeSaveState === "pending"
+                          ? "Ready to Save"
+                          : revokeSaveState === "saved"
+                          ? "Saved"
+                          : "Confirm Revocation"}
                       </button>
                     </div>
+                    {revokeSaveState === "pending" && (
+                      <p className="text-right text-[11px] font-semibold text-emerald-700" role="status">
+                        Revocation is ready. Click “Save Security Changes” below to apply it.
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <div className="flex items-center justify-between pt-1">
@@ -680,7 +714,12 @@ export function UserEditModal({
                     <button
                       type="button"
                       disabled={!canEditTarget}
-                      onClick={() => setIsRevoking(true)}
+                      onClick={() => {
+                        setIsRevoking(true);
+                        setRevokeReason("");
+                        setPendingRevokeReason(null);
+                        setRevokeSaveState("idle");
+                      }}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-bold text-amber-700 hover:bg-amber-50 cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <UserMinusIcon className="h-4 w-4" />
@@ -706,13 +745,13 @@ export function UserEditModal({
               onClick={onClose}
               className="w-full sm:w-auto rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
             >
-              {isHardBanned ? "Close" : "Cancel"}
+              {isLegacyRestricted ? "Close" : "Cancel"}
             </button>
-            {!isHardBanned && (
+            {!isLegacyRestricted && (
               <button
                 type="button"
-                onClick={onSave}
-                disabled={!canEditTarget}
+                onClick={() => void handleSecuritySave()}
+                disabled={!canEditTarget || revokeSaveState === "saving" || revokeSaveState === "saved"}
                 className="w-full sm:w-auto rounded-lg bg-[#087f80] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#087f80]/90 transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Save Security Changes
