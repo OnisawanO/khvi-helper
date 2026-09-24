@@ -290,18 +290,31 @@ where u.id = p.user_id
 - `app/actions/interpreter-application-actions.ts`
 - `.env.example`
 
-Account suspension and hard-ban enforcement use `supabase/functions/manage-account-security`.
+Account suspension uses `supabase/functions/manage-account-security`.
 The function validates the caller's active Admin level, updates Supabase Auth `ban_duration`,
-and persists `profiles.restriction_type` as `none`, `soft`, or `hard`. Deploy the function only
-after applying migrations `20260923000900_add_account_restrictions.sql`,
+and persists `profiles.restriction_type` as `none` or `soft`. Permanent account deletion is a
+separate Primary Admin-only action. It checks active bookings, removes interpreter certificates,
+detaches report history, and calls Supabase Auth `deleteUser` so the profile cascade can remove
+the account data. Deploy the function only after applying migrations `20260923000900_add_account_restrictions.sql`,
 `20260923001000_add_interpreter_access_status.sql`, and
 `20260923001100_reset_interpreter_access_on_reapproval.sql`.
+
+Apply `20260924180000_prepare_admin_permanent_account_deletion.sql` before enabling the Admin
+deletion action. The migration changes report references to `on delete set null` so system report
+history survives without retaining the deleted profile as a foreign-key dependency.
+
+Interpreter accreditation revocation calls the `public.revoke_interpreter_access` database
+function from the trusted Edge Function. The database function updates the approved application
+and the profile role/access status in one transaction, then returns the resulting identifiers and
+statuses for post-condition verification. Apply
+`20260924170000_revoke_interpreter_access_atomically.sql` before deploying the updated function.
 
 ## Current Admin and Manager database status
 
 - Admin user directory, account restrictions, reports, staff provisioning, and delegated Admin access use Supabase-backed Server Actions or the trusted Edge Function. Empty database results are shown as empty states; they are never replaced with seed data.
 - Manager applications, profile change requests, reports, and operations history use Supabase-backed data. Operations history reads persisted staff actions from `system_audit_logs` and is not reconstructed from current application or report status.
-- Admin audit records and platform policies are persisted by `system_audit_logs` and `platform_settings` from migration `20260923001200_create_admin_governance_data.sql`.
-- The migration must be applied to the linked Supabase project before the Audit Trail and Platform Policies tabs can load data.
+- Admin audit records are persisted by `system_audit_logs` from migration `20260923001200_create_admin_governance_data.sql`.
+- `platform_settings` remains reserved for a future policy-enforcement feature. The current Admin UI does not expose or apply those settings.
+- The migration must be applied to the linked Supabase project before the Audit Trail tab can load data. The current Admin workflows do not require a `platform_settings` row.
 
 ก่อนแก้ database contract ให้ตรวจ source files และ migration เหล่านี้พร้อมกัน แล้วรัน `npm run lint` และ `npm run build`

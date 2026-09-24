@@ -10,7 +10,7 @@ export type UserStatusFilter =
   | "All"
   | "Active"
   | "SoftSuspended"
-  | "PermanentlyBanned"
+  | "LegacyRestricted"
   | "AppealPending";
 
 export type InterpreterApplicationStatus =
@@ -50,7 +50,7 @@ export type AdminUserRecord = {
   restrictionAt?: string;
   restrictionByUserId?: string;
   interpreterAccessStatus?: InterpreterAccessStatus;
-  accountStatus?: AccountStatus; // Active, Locked (Temporary), Banned (Permanent Hard Ban)
+  accountStatus?: AccountStatus; // Active, Locked (Temporary), Banned (legacy restriction records)
   // Appeal fields for soft-banned users
   hasPendingAppeal?: boolean;
   appealReason?: string;
@@ -102,25 +102,4 @@ export type AdminActiveTab =
   | "users"
   | "reports"
   | "audit"
-  | "policies"
   | "manager-operations";
-
-export type SystemSettingsConfig = {
-  // 1. Emergency Dispatch & SOS Policy
-  sosDispatchRadiusKm: number;
-  autoEscalateTicketMinutes: number;
-  allowGuestSosRequests: boolean;
-
-  // 2. Interpreter Accreditation & Platform Safeguards
-  interpreterMinRatingThreshold: number;
-  mandatoryIdVerification: boolean;
-  maxFalseAlarmsBeforeAutoLock: number;
-
-  // 3. Taxonomies & Catalogs
-  languagesCatalog: string[];
-  specialtyCategories: string[];
-
-  // Metadata
-  lastUpdated?: string;
-  updatedBy?: string;
-};

@@ -139,7 +139,7 @@ open -> claimed -> in_progress -> completed
 - Password recovery ใช้ Supabase SSR/PKCE callback ที่แลก `code` ฝั่ง server ก่อนสร้าง recovery session
 - ระบบต้องไม่เก็บ `password_hash` หรือรหัสผ่านใน `profiles` หรือตารางธุรกิจ
 - ระบบต้องยกเลิก session เมื่อผู้ใช้ Logout และไม่ให้เข้าถึง private route ด้วย session เดิม
-- Checkbox `จดจำฉัน` ต้องกำหนดอายุ cookie ของ session: แบบ persistent เมื่อเลือก และ session cookie เมื่อไม่เลือก โดยห้ามเก็บ password หรือ session token ใน `localStorage`
+- Checkbox `จดจำฉัน` ต้องเริ่มต้นเป็นไม่เลือก; เมื่อเลือกให้ใช้ persistent cookie ที่มี deadline แบบ absolute ไม่เกิน 15 วันนับจาก Login ครั้งนั้น และเมื่อไม่เลือกให้ใช้ session cookie ที่หมดอายุเมื่อปิด browser โดยห้ามเก็บ password หรือ session token ใน `localStorage`
 - Forgot password ต้องตอบข้อความสำเร็จแบบเดียวกันสำหรับอีเมลที่มีและไม่มีบัญชี; ระบบต้องไม่ใช้ผลลัพธ์จาก Auth เพื่อเปิดเผย account existence
 - Recovery link ที่หมดอายุหรือใช้ไม่ได้ต้องพากลับไปขอลิงก์ใหม่ได้; หลังเปลี่ยนรหัสผ่านระบบต้องปิด recovery session และให้ผู้ใช้ Login ใหม่
 - ข้อผิดพลาดจากการสมัครหรือ Login ต้องไม่เปิดเผยข้อมูลที่ช่วยเดาว่าบัญชีอื่นมีอยู่หรือไม่เกินความจำเป็น
@@ -148,6 +148,8 @@ open -> claimed -> in_progress -> completed
 
 - สมัครสำเร็จแล้วมี record ใน Supabase Auth และ `profiles` ที่เชื่อมด้วย UUID เดียวกัน
 - Login สำเร็จแล้วระบบสร้าง session ที่ server ตรวจสอบได้
+- เมื่อเลือก `จดจำฉัน` cookie marker และ Supabase auth cookies ต้องหมดอายุไม่เกิน 15 วันจาก Login ครั้งนั้น และการ refresh session ห้ามเลื่อน deadline ออกไป
+- เมื่อไม่เลือก `จดจำฉัน` auth cookies ต้องไม่มี `Max-Age`/`Expires` สำหรับการอยู่ข้าม browser session
 - บัญชีที่สมัครสำเร็จและบัญชีที่ถูกล็อกต้องถูกตรวจตาม session/profile policy; email confirmation ไม่ใช่เงื่อนไขการเข้าใช้งาน
 - Logout สำเร็จแล้ว private route พากลับหน้า Login หรือหน้า Public ตาม route policy
 - ผู้ใช้ใหม่ได้รับ role `User` เสมอ แม้ client ส่ง role อื่นมา
@@ -639,6 +641,12 @@ open -> claimed -> in_progress -> completed
 - Admin ค้นหาและกรอง log ตามเวลา actor action และ target ได้เมื่อ UI พร้อม
 
 #### FR-20: Admin
+
+The Admin security console supports soft suspension for routine enforcement. Permanent account
+deletion replaces the previous hard-ban action and is available only to the Primary Admin after
+strict confirmation. The flow blocks deletion while the target has an active booking, removes
+account-owned interpreter certificates, deletes the Supabase Auth account and cascading profile
+data, and preserves audit/report history without the deleted profile reference.
 
 **Requirement:** Admin ต้องจัดการ role และข้อมูลผู้ใช้ตามสิทธิ์ระดับระบบ
 

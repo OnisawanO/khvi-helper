@@ -55,9 +55,9 @@ const severityBadgeConfig: Record<
 };
 
 const severityFilterOptions: Array<{ id: IncidentSeverity; label: string }> = [
-  { id: "critical", label: "Critical" },
-  { id: "high", label: "High" },
   { id: "medium", label: "Medium" },
+  { id: "high", label: "High" },
+  { id: "critical", label: "Critical" },
 ];
 
 const statusOptions = [
