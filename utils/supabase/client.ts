@@ -1,6 +1,12 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { CookieOptions } from "@supabase/ssr";
-import { AUTH_PERSISTENCE_COOKIE, getAuthPersistence } from "./auth-persistence";
+import {
+  AUTH_PERSISTENCE_COOKIE,
+  AUTH_PERSISTENT_UNTIL_COOKIE,
+  getAuthPersistence,
+  getPersistentMaxAge,
+  getPersistentUntil,
+} from "./auth-persistence";
 
 let browserClient: ReturnType<typeof createBrowserClient> | undefined;
 
@@ -24,8 +30,10 @@ function readBrowserCookies() {
 }
 
 function writeBrowserCookie(name: string, value: string, options: CookieOptions) {
-  const persistence = getAuthPersistence(
-    readBrowserCookies().find((cookie) => cookie.name === AUTH_PERSISTENCE_COOKIE)?.value,
+  const cookies = readBrowserCookies();
+  const persistence = getAuthPersistence(cookies.find((cookie) => cookie.name === AUTH_PERSISTENCE_COOKIE)?.value);
+  const persistentUntil = getPersistentUntil(
+    cookies.find((cookie) => cookie.name === AUTH_PERSISTENT_UNTIL_COOKIE)?.value,
   );
   const parts = [`${encodeURIComponent(name)}=${encodeURIComponent(value)}`];
   const path = options.path ?? "/";
@@ -40,8 +48,8 @@ function writeBrowserCookie(name: string, value: string, options: CookieOptions)
 
   if (options.maxAge === 0) {
     parts.push("Max-Age=0");
-  } else if (persistence === "persistent" && options.maxAge !== undefined) {
-    parts.push(`Max-Age=${options.maxAge}`);
+  } else if (persistence === "persistent" && persistentUntil) {
+    parts.push(`Max-Age=${getPersistentMaxAge(persistentUntil)}`);
   }
 
   document.cookie = parts.join("; ");
