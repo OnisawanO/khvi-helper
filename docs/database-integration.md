@@ -206,7 +206,7 @@ interpreter-certificates/{auth.uid()}/{uuid}-{safe-file-name}
 
 Upload ทำใน `uploadInterpreterCertificateAction()` หลังตรวจชนิดไฟล์และขนาดไม่เกิน 10 MB จากนั้นจึงส่ง path เข้า `submit_interpreter_application` หรือ `reupload_interpreter_certificate`
 
-Profile photo upload ทำใน `updateProfileAvatarAction()` หลังตรวจ session, MIME type, JPEG signature และขนาดไฟล์ไม่เกิน 5 MB จากนั้นอัปโหลดไฟล์ใหม่เข้า Storage, อัปเดต URL ใน Auth metadata และลบไฟล์เก่าของเจ้าของบัญชี
+Profile photo upload ทำใน `updateProfileAvatarAction()` หลังตรวจ session, MIME type และ JPEG signature โดยไฟล์ต้นฉบับสามารถใหญ่กว่า 5 MB ได้ เพราะหน้าเว็บจะ crop และลดขนาดลงเป็น JPEG 256×256 ก่อนส่งขึ้น Storage; ฝั่ง server ยังตรวจว่าไฟล์ผลลัพธ์ไม่เกิน 5 MB จากนั้นจึงอัปเดต URL ใน Auth metadata และลบไฟล์เก่าของเจ้าของบัญชี
 
 ## Migration workflow
 
@@ -313,6 +313,7 @@ statuses for post-condition verification. Apply
 
 - Admin user directory, account restrictions, reports, staff provisioning, and delegated Admin access use Supabase-backed Server Actions or the trusted Edge Function. Empty database results are shown as empty states; they are never replaced with seed data.
 - Manager applications, profile change requests, reports, and operations history use Supabase-backed data. Operations history reads persisted staff actions from `system_audit_logs` and is not reconstructed from current application or report status.
+- Report title and description are displayed separately. Manager sees the full triage queue, while Admin reports are loaded only after `reports.escalated_at` is set by a Manager escalation; the field also preserves post-escalation history after Admin resolution.
 - Admin audit records are persisted by `system_audit_logs` from migration `20260923001200_create_admin_governance_data.sql`.
 - `platform_settings` remains reserved for a future policy-enforcement feature. The current Admin UI does not expose or apply those settings.
 - The migration must be applied to the linked Supabase project before the Audit Trail tab can load data. The current Admin workflows do not require a `platform_settings` row.

@@ -6,7 +6,6 @@ export type ReportResolutionAction = "none" | "fixed" | "warned";
 
 export type ReportRow = {
   report_id: number | string;
-  report_type: "system";
   category: string | null;
   title: string | null;
   description: string | null;
@@ -17,6 +16,8 @@ export type ReportRow = {
   created_at: string;
   updated_at: string | null;
   resolved_at: string | null;
+  escalated_at: string | null;
+  escalated_by: string | null;
   reporter_id: string | null;
   assigned_to: string | null;
   booking_id: number | string | null;
@@ -31,7 +32,6 @@ export type ReportProfileRow = {
 
 export const REPORT_COLUMNS = [
   "report_id",
-  "report_type",
   "category",
   "title",
   "description",
@@ -42,6 +42,8 @@ export const REPORT_COLUMNS = [
   "created_at",
   "updated_at",
   "resolved_at",
+  "escalated_at",
+  "escalated_by",
   "reporter_id",
   "assigned_to",
   "booking_id",
@@ -64,12 +66,20 @@ export function getReportProfileName(profile?: ReportProfileRow): string {
   return [profile.first_name, profile.last_name].filter(Boolean).join(" ").trim() || "KHVI User";
 }
 
-export async function loadReportRows(supabase: SupabaseClient) {
-  const { data, error } = await supabase
+export async function loadReportRows(
+  supabase: SupabaseClient,
+  options: { escalatedOnly?: boolean } = {},
+) {
+  let reportQuery = supabase
     .from("reports")
     .select(REPORT_COLUMNS)
-    .eq("report_type", "system")
     .order("created_at", { ascending: false });
+
+  if (options.escalatedOnly) {
+    reportQuery = reportQuery.not("escalated_at", "is", null);
+  }
+
+  const { data, error } = await reportQuery;
 
   if (error) return { rows: [] as ReportRow[], profiles: [] as ReportProfileRow[], error };
 

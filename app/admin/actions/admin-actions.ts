@@ -1022,6 +1022,7 @@ function mapAdminReport(row: ReportRow, profiles: ReportProfileRow[]): AdminInci
 
   return {
     id: formatReportId(row.report_id),
+    title: row.title?.trim() || "Untitled report",
     reporterName: getReportProfileName(reporter),
     reporterRole: reporter?.role === "Interpreter" ? "Interpreter" : "User",
     bookingId: row.booking_id === null || row.booking_id === undefined ? undefined : String(row.booking_id),
@@ -1044,7 +1045,7 @@ export async function getAdminReportsAction(): Promise<AdminActionResult<AdminIn
       return { success: false, error: authCheck.error || "Access denied" };
     }
 
-    const result = await loadReportRows(authCheck.supabase);
+    const result = await loadReportRows(authCheck.supabase, { escalatedOnly: true });
     if (result.error) {
       return { success: false, error: `Failed to fetch reports: ${result.error.message}` };
     }

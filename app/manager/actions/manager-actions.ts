@@ -306,6 +306,7 @@ function mapManagerReport(row: ReportRow, profiles: ReportProfileRow[]): Inciden
 
   return {
     id: formatReportId(row.report_id),
+    title: row.title?.trim() || "Untitled report",
     reporterName: getReportProfileName(reporter),
     reporterRole: reporter?.role === "Interpreter" ? "Interpreter" : "User",
     bookingId: row.booking_id === null || row.booking_id === undefined ? undefined : String(row.booking_id),
@@ -358,6 +359,8 @@ export async function updateManagerReportAction(
       ? {
           severity: update.severity,
           status: "escalated",
+          escalated_at: new Date().toISOString(),
+          escalated_by: authCheck.user?.id || null,
           resolution_action: "none",
           resolution_note: update.note.trim() || null,
           updated_at: new Date().toISOString(),
