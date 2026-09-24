@@ -828,7 +828,7 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
 
       {/* Centered Modal: User Role & Suspension Editor */}
       <UserEditModal
-        key={selectedUser?.id ?? "closed"}
+        key={`user-edit-${selectedUser?.id ?? "closed"}`}
         isOpen={isEditModalOpen}
         onClose={() => {
           setIsEditModalOpen(false);
@@ -859,7 +859,7 @@ export default function AdminPage({ initialUser }: { initialUser: UserProfile })
 
       {/* Centered Modal: Permanent Account Deletion with Strict Confirmation */}
       <AccountActionDialog
-        key={actionTargetUser?.id ?? "closed"}
+        key={`account-action-${actionTargetUser?.id ?? "closed"}`}
         isOpen={isActionDialogOpen}
         user={actionTargetUser}
         onClose={() => {
